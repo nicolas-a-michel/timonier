@@ -269,7 +269,7 @@ Prérequis levés : licence MIT (Q1) ; dépôt public
   `CLAUDE.md` (une erreur de type introduite bloque la fin de tour une fois). Changements :
   - le hook Stop appelle le script `typecheck` racine ;
   - le hook de formatage trouve prettier local.
-- [ ] 1.12 CI GitHub Actions sur ubuntu-latest et macos-latest — critère : chaque étape du
+- [x] 1.12 CI GitHub Actions sur ubuntu-latest et macos-latest — critère : chaque étape du
   workflow passe en local sous Linux. Le vert sur les deux OS sera constaté au premier push
   sur le dépôt public créé par toi (Q2). Étapes :
   - Rust : vérification du format, clippy `-D warnings`, `cargo test` ;
@@ -279,7 +279,8 @@ Prérequis levés : licence MIT (Q1) ; dépôt public
   - caches cargo et npm.
 - [x] 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
   commandes de `CLAUDE.md` à jour — critère : relu.
-- [ ] 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
+- [x] 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
+  Réserves traitées (voir plus bas) ; il n'y a pas eu de seconde relecture.
 
 Critère de sortie : `cargo test` et le build de l'extension passent en CI (constaté au
 premier push, voir Q2) ; l'extension s'installe en mode développement et affiche un panneau
@@ -312,6 +313,12 @@ Constats (2026-10-14, Linux, machine de développement, après la relecture) :
 - Le bloc « Testing by hand » de `CLAUDE.md`, exécuté tel quel, produit les sept sorties
   annoncées. En particulier, une erreur de type bloque la fin de tour une fois, puis n'est
   plus que signalée.
+
+CI GitHub (commit `6d3e0f8`, run 38604588410) : 5 jobs verts au premier push.
+- Rust sur ubuntu-latest et macos-latest ; MSRV 1.96.
+- Extension et webview sur les deux OS : 4 tests d'intégration verts dans VSCode, sous xvfb
+  sur Linux et directement sur macOS.
+- `timonier.vsix` publié comme artefact du run.
 
 Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est traité :
 - B1 : la CI lançait les tests d'intégration sans webview construite. Corrigé :
@@ -796,4 +803,5 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   - squelette réalisé ;
   - relecture `phase-reviewer`, verdict « pas prête » : 1 bloquant, 5 importants, 9 mineurs,
     tous traités ;
-  - restent : la CI au premier push (1.12) et ton contrôle visuel F5 (1.9).
+  - CI verte au premier push sur Linux et macOS (run 38604588410) ;
+  - reste ton contrôle visuel F5 (1.9).
