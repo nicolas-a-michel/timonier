@@ -11,18 +11,18 @@ If it disagrees with an ADR, the ADR wins and this file must be fixed in the sam
 
 ## Workspace layout
 
-One Cargo workspace, crates under `crates/`. Intended responsibilities (the exact dependency
-edges are fixed by the Phase 1 ADR; update this table when it lands):
+One Cargo workspace, crates under `crates/`. Responsibilities and internal dependencies
+(ADR 0003; a dependency outside this table needs a new ADR):
 
-| Crate             | Responsibility                                                                 |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `timonier-core`   | Graph model types, stable identity, fusion rules. Pure: no I/O, no tokio.      |
-| `timonier-store`  | SQLite schema, migrations, snapshots, diff queries.                            |
-| `timonier-index`  | tree-sitter extraction, language packs, LSP client, components and roles.      |
-| `timonier-otlp`   | Local OTLP receiver (gRPC 4317 / HTTP 4318).                                   |
-| `timonier-daemon` | File watcher, work queue, JSON-RPC 2.0 server; wires the other crates together.|
-| `timonier-mcp`    | MCP server: a thin proxy to the daemon, no business logic, no storage access.  |
-| `timonier-cli`    | The `timonier` binary (alias `tim`): `init`, `doctor`, `test`, daemon control. |
+| Crate             | Responsibility                                                                 | Depends on (internal)          |
+| ----------------- | ------------------------------------------------------------------------------ | ------------------------------ |
+| `timonier-core`   | Graph model types, stable identity, fusion rules, protocol types. Pure: no I/O, no tokio. | —                   |
+| `timonier-store`  | SQLite schema, migrations, snapshots, diff queries.                            | core                           |
+| `timonier-index`  | tree-sitter extraction, language packs, LSP access, components and roles.      | core                           |
+| `timonier-otlp`   | Local OTLP receiver (gRPC 4317 / HTTP 4318).                                   | core                           |
+| `timonier-daemon` | File watcher, work queue, JSON-RPC 2.0 server; wires the other crates together.| core, store, index, otlp       |
+| `timonier-mcp`    | MCP server: a thin proxy to the daemon over its socket, no business logic, no storage access. | core            |
+| `timonier-cli`    | The `timonier` binary and its `tim` alias (two `[[bin]]` targets calling `timonier_cli::run`). | core, daemon, mcp |
 
 Rules:
 
@@ -30,7 +30,11 @@ Rules:
 - Only `timonier-daemon` (and the CLI that launches it) owns I/O orchestration.
 - `timonier-core` stays synchronous and deterministic, so it can be unit- and property-tested.
 - Shared versions live in `[workspace.dependencies]` of the root `Cargo.toml`; crates use
-  `dep = { workspace = true }`. Edition 2024.
+  `dep = { workspace = true }`. Edition 2024, `rust-version = 1.96` (ADR 0004), checked by the
+  CI `msrv` job.
+- Workspace lints: `unsafe_code` forbidden; clippy `unwrap_used`, `dbg_macro`, `todo` warn (errors
+  under `-D warnings`); `unwrap`/`expect` allowed in `#[test]` code only (`clippy.toml`). Test
+  helpers outside `#[test]` functions use `expect("why")`.
 
 ## Errors
 

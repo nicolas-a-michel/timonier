@@ -89,7 +89,7 @@ export function pruneState(root, now = Date.now()) {
 }
 
 // ---------------------------------------------------------------------------
-// PLAN.md parsing (format defined in docs/adr/0002-plan-md-format.md)
+// PLAN.md parsing (format defined in docs/adr/0002-format-de-plan-md.md)
 // ---------------------------------------------------------------------------
 
 const PHASE_RE = /^##\s+Phase\s+(\d+)\s*[—–-]\s*(.+?)\s*$/;

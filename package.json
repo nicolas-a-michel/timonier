@@ -1,0 +1,31 @@
+{
+  "name": "timonier-workspace",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "webview",
+    "editors/vscode"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "npm run build -w webview && npm run build -w editors/vscode",
+    "test": "npm run test --workspaces --if-present && node --test .claude/hooks/hooks.test.mjs",
+    "test:integration": "npm run build && npm run test:integration -w editors/vscode",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "package": "npm run build && npm run package -w editors/vscode"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "~24.19.2",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2"
+  }
+}

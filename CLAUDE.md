@@ -30,29 +30,39 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}` | Phase 1 |
-| `package.json`               | npm workspaces root                                              | Phase 1  |
-| `editors/vscode/`            | VSCode extension (TypeScript)                                    | Phase 1  |
-| `webview/`                   | Webview application (React + Vite), shared by future front-ends  | Phase 1  |
-| `.github/workflows/`         | CI (Linux, macOS)                                                | Phase 1  |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003 | skeleton |
+| `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
+| `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
+| `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
+| `webview/`                   | React + Vite webview, shared by future front-ends; `src/tokens.css` = design tokens | skeleton |
+| `editors/vscode/`            | VSCode extension: esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | skeleton |
+| `.vscode/`                   | `launch.json`: « Run Extension » (F5) and « Extension Tests » (needs the recommended Extension Test Runner); `tasks.json`; `extensions.json` | exists |
+| `LICENSE`, `README.md`       | MIT licence (Nicolas Michel); French README                      | exists   |
+| `.github/workflows/ci.yml`   | CI on ubuntu-latest and macos-latest                             | exists   |
 
 ## Commands
 
-Available now:
+Run from the repository root.
 
 ```sh
-node --test .claude/hooks/hooks.test.mjs   # hook tests
-```
-
-Planned in Phase 1. Update this block when they exist, and mark anything that differs.
-
-```sh
+# Rust
 cargo build --workspace
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
-cargo fmt --all            # --check in CI
+cargo fmt --all                    # CI runs --check
+
+# Node (webview + extension)
 npm ci
-npm run build | test | lint | typecheck | format
+npm run build                      # webview (Vite) then extension (esbuild)
+npm test                           # unit tests: webview (vitest), extension (node:test), hooks (node:test)
+npm run test:integration           # builds, then runs the extension inside a real VSCode (needs a display; CI uses xvfb-run)
+npm run lint                       # ESLint, type-aware
+npm run typecheck                  # tsc --noEmit for each workspace; the Stop hook runs it
+npm run format                     # Prettier (format:check in CI)
+npm run package                    # build + vsce package → editors/vscode/timonier.vsix
+
+# CLI
+cargo run --bin tim -- --version   # `timonier` and `tim` are the same program
 ```
 
 ## Working rules
@@ -111,23 +121,37 @@ Configured in `.claude/settings.json`. Scripts are in `.claude/hooks/`, document
 | `SessionStart`     | `session-start.mjs`   | One line for the human (current phase, tasks done/remaining); the remaining tasks for Claude.     |
 | `UserPromptSubmit` | `turn-start.mjs`      | Records when the turn started. Prompts injected mid-turn do not move it.                          |
 | `PreToolUse`       | `protect-intent.mjs`  | Denies `Edit`/`Write`/`NotebookEdit` on `.timonier/intent.json`, and Bash commands that would write it (best effort). Fails closed. |
-| `PostToolUse`      | `format-file.mjs`     | Formats the touched file: `rustfmt` for `.rs`; local `prettier` for `.ts`/`.tsx`/`.json`/`.css` (skipped until Phase 1 installs it). |
+| `PostToolUse`      | `format-file.mjs`     | Formats the touched file: `rustfmt` for `.rs`; `prettier` from `node_modules` for every type the CI checks (TS/JS, JSON, CSS, HTML, YAML; Markdown is in `.prettierignore`). Skipped if `npm ci` has not run. |
 | `Stop`             | `stop-checks.mjs`     | Finds the files changed during the turn (git status + mtime). Rust changed → `cargo check`; TS changed → `npm run typecheck`. A failure blocks the stop once. Code changed but `PLAN.md` untouched → one non-blocking reminder. |
 
-Testing by hand: pipe the JSON that Claude Code would send and read stdout. Run these from the repository root.
+Testing by hand: pipe the JSON that Claude Code would send and read stdout. Run these from the repository root, after
+`npm ci`. Each block prints what its comment announces.
 
 ```sh
 export CLAUDE_PROJECT_DIR="$PWD"
-# Session start: prints {"systemMessage": "Timonier · Phase …", "hookSpecificOutput": {...}}
+
+# Session start → {"systemMessage": "Timonier · Phase …", "hookSpecificOutput": {"additionalContext": …}}
 echo '{"session_id":"manual","source":"startup"}' | node .claude/hooks/session-start.mjs
-# Intent guard: prints a "deny" decision
+
+# Intent guard → a "deny" decision; a read-only Bash command prints nothing (allowed)
 echo '{"tool_name":"Write","tool_input":{"file_path":"'"$PWD"'/.timonier/intent.json"}}' | node .claude/hooks/protect-intent.mjs
-# Formatter: reformats the file in place (only files inside the project are formatted)
+echo '{"tool_name":"Bash","tool_input":{"command":"cat .timonier/intent.json"}}' | node .claude/hooks/protect-intent.mjs
+
+# Formatter → prints the formatted Rust, then the formatted TypeScript
 printf 'fn  main( ){}\n' > scratch.rs && echo '{"tool_input":{"file_path":"'"$PWD"'/scratch.rs"}}' | node .claude/hooks/format-file.mjs; cat scratch.rs; rm scratch.rs
-# Turn: open a turn, touch a code file, then end it (prints the PLAN.md reminder)
-echo '{"session_id":"manual"}' | node .claude/hooks/turn-start.mjs
+printf 'export const  x = {a:1}\n' > webview/src/scratch.ts && echo '{"tool_input":{"file_path":"'"$PWD"'/webview/src/scratch.ts"}}' | node .claude/hooks/format-file.mjs; cat webview/src/scratch.ts
+
+# End of turn, type error → first stop: {"decision":"block", "reason": "…TS2322…"}; second stop: a systemMessage only
+echo '{"session_id":"manual"}' | node .claude/hooks/turn-start.mjs; sleep 1
+printf 'export const n: number = "x";\n' > webview/src/scratch.ts
 echo '{"session_id":"manual","stop_hook_active":false}' | node .claude/hooks/stop-checks.mjs
-rm -f .claude/state/manual.json
+echo '{"session_id":"manual","stop_hook_active":true}' | node .claude/hooks/stop-checks.mjs
+rm webview/src/scratch.ts .claude/state/manual.json
+
+# End of turn, code changed but PLAN.md untouched → {"hookSpecificOutput": {"additionalContext": "…PLAN.md was not modified…"}}
+echo '{"session_id":"manual"}' | node .claude/hooks/turn-start.mjs; sleep 1; touch .claude/hooks/lib.mjs
+echo '{"session_id":"manual","stop_hook_active":false}' | node .claude/hooks/stop-checks.mjs
+rm .claude/state/manual.json
 ```
 
 In a session: `/hooks` lists the registered hooks, `/skills` the skills, `/agents` the subagents. `claude --debug`

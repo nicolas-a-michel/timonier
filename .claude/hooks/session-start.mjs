@@ -26,7 +26,8 @@ export function summarisePlan(markdown) {
   if (phases.length === 0) {
     return {
       line: "Timonier · PLAN.md has no « ## Phase N — … » section yet.",
-      context: "PLAN.md exists but contains no phase section in the expected format (see docs/adr/0002-plan-md-format.md).",
+      context:
+        "PLAN.md exists but contains no phase section in the expected format (see docs/adr/0002-format-de-plan-md.md).",
     };
   }
   const phase = currentPhase(phases);
@@ -43,11 +44,14 @@ export function summarisePlan(markdown) {
     `Timonier · Phase ${phase.number} — ${phase.title} (${status}) · ` +
     `${done}/${phase.tasks.length} tâches faites, ${remaining.length} restantes`;
   const listed = remaining.slice(0, MAX_TASKS_LISTED).map((t) => `- ${truncate(t.text, 200)}`);
-  if (remaining.length > MAX_TASKS_LISTED) listed.push(`- … and ${remaining.length - MAX_TASKS_LISTED} more (see PLAN.md)`);
+  if (remaining.length > MAX_TASKS_LISTED)
+    listed.push(`- … and ${remaining.length - MAX_TASKS_LISTED} more (see PLAN.md)`);
   const context = [
     `PLAN.md: the current phase is Phase ${phase.number} — ${phase.title} (status: ${status}).`,
     `${done} of ${phase.tasks.length} tasks are done.`,
-    remaining.length ? "Remaining tasks:" : "No task left unchecked in this phase; it awaits review and the human's go-ahead.",
+    remaining.length
+      ? "Remaining tasks:"
+      : "No task left unchecked in this phase; it awaits review and the human's go-ahead.",
     ...listed,
     "Project rules: one phase at a time; stop for the human's go-ahead at the end of each phase (see CLAUDE.md).",
   ].join("\n");

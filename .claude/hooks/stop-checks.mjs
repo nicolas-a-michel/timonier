@@ -101,8 +101,9 @@ function typecheck(root) {
   if (!existsSync(manifest)) return { label: "typecheck", skipped: "no root package.json" };
   const scripts = JSON.parse(readFileSync(manifest, "utf8")).scripts ?? {};
   if (!scripts.typecheck) return { label: "typecheck", skipped: "no root `typecheck` script" };
-  if (!existsSync(path.join(root, "node_modules"))) return { label: "typecheck", skipped: "node_modules missing (npm install)" };
-  return run("typecheck", "npm", ["run", "--silent", "typecheck"], root, TSC_TIMEOUT_MS);
+  if (!existsSync(path.join(root, "node_modules")))
+    return { label: "typecheck", skipped: "node_modules missing (npm install)" };
+  return run("typecheck", "npm", ["run", "typecheck"], root, TSC_TIMEOUT_MS);
 }
 
 /**
@@ -124,7 +125,9 @@ export function decide(turn, { failures, planStale, changed }) {
       };
     }
     return {
-      output: { systemMessage: `Timonier · end-of-turn checks still failing (${failures.map((f) => f.label).join(", ")}).` },
+      output: {
+        systemMessage: `Timonier · end-of-turn checks still failing (${failures.map((f) => f.label).join(", ")}).`,
+      },
       turn: { open: false },
     };
   }
@@ -150,10 +153,11 @@ async function main() {
   const input = await readHookInput();
   const root = projectDir(input);
   const state = loadState(root, input.session_id);
-  const turn =
-    state.turn?.open ? state.turn
-    : state.sessionStartedAt ? { open: true, startedAt: state.sessionStartedAt, checkBlocks: 0, planReminded: false }
-    : null;
+  const turn = state.turn?.open
+    ? state.turn
+    : state.sessionStartedAt
+      ? { open: true, startedAt: state.sessionStartedAt, checkBlocks: 0, planReminded: false }
+      : null;
   if (!turn) return; // Hooks were installed mid-session: nothing reliable to compare against.
 
   const changed = changedFiles(root, turn.startedAt);

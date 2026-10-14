@@ -1,0 +1,48 @@
+{
+  "name": "timonier",
+  "displayName": "Timonier",
+  "description": "%extension.description%",
+  "version": "0.1.0",
+  "publisher": "nicolas-a-michel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolas-a-michel/timonier.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.140.0"
+  },
+  "categories": [
+    "Visualization",
+    "AI"
+  ],
+  "main": "./dist/extension.js",
+  "l10n": "./l10n",
+  "contributes": {
+    "commands": [
+      {
+        "command": "timonier.openMap",
+        "title": "%command.openMap.title%",
+        "category": "Timonier"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "vscode:prepublish": "node scripts/build.mjs --production",
+    "compile": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run compile && node --test \"out/test/unit/**/*.test.js\"",
+    "test:integration": "npm run compile && vscode-test",
+    "package": "vsce package --no-dependencies --out timonier.vsix"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "~1.140.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2"
+  }
+}

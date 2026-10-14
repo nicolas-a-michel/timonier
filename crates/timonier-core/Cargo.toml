@@ -1,0 +1,15 @@
+[package]
+name = "timonier-core"
+description = "Timonier graph model: node and edge types, stable identity, fusion rules."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

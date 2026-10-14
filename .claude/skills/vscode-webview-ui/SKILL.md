@@ -49,7 +49,7 @@ description: Building Timonier's VSCode extension and React webview — the stac
 | Timelines and perf curves   | `uplot`           | 1.6.32, MIT                                                                        |
 | Data-flow animation (v2)    | `pixi.js`         | 8.22.0, MIT                                                                        |
 | Native-looking widgets      | `@vscode-elements/elements` | 2.5.1, MIT. `@vscode/webview-ui-toolkit` is deprecated: do not use it.  |
-| Build                       | `vite`            | 8.3.4, MIT. The extension host bundler is chosen by ADR in Phase 1.                |
+| Build                       | `vite` / `esbuild` | Vite 8.3.4 (MIT) builds the webview, with a manifest and third-party notices; esbuild 0.28.2 (MIT) bundles the extension (ADR 0005). |
 
 TypeScript: `typescript-eslint` 8.x does not support TypeScript 7, so pin TypeScript 6.0.x
 until it does. Check again before upgrading.
@@ -64,15 +64,26 @@ until it does. Check again before upgrading.
 - The graph truth lives in the daemon. The webview keeps only view state, persisted with
   `vscode.getState()` / `setState()` (`acquireVsCodeApi()` is called once).
 - Security:
-  - CSP meta tag with `default-src 'none'` and scripts allowed by nonce only;
+  - CSP meta tag with `default-src 'none'` and `script-src 'nonce-…'` only (no origin, no
+    `unsafe-inline`). An integration test proves the bundle runs under it: the webview posts
+    `{ type: "ready" }` after its first render;
   - no remote resources;
   - `localResourceRoots` restricted to the extension's build output;
   - `enableScripts` only where needed.
 
+## Interface language
+
+English base with a French translation (ADR 0006, awaiting the human's validation, PLAN.md Q13):
+`package.nls*.json` for the manifest, `vscode.l10n.t` with `l10n/bundle.l10n.fr.json` in the
+extension, `webview/src/i18n.ts` in the webview (language read from `<html lang>`). A unit test
+fails when a string has no French translation.
+
 ## Design tokens
 
-- Exactly one file defines the tokens as CSS custom properties, prefixed `--tim-`.
-- Components use **only** tokens: no raw hex colour, no ad-hoc spacing.
+- Exactly one file defines the tokens as CSS custom properties, prefixed `--tim-`:
+  `webview/src/tokens.css`.
+- Components use **only** tokens: no raw hex colour, no ad-hoc spacing. A vitest test
+  (`App.test.tsx`, « design tokens ») rejects raw colours in every other stylesheet.
 - Tokens map to VSCode theme variables, documented as "`editor.foreground` →
   `var(--vscode-editor-foreground)`". Examples:
   - surfaces and text: `--vscode-editor-background`, `--vscode-foreground`,
@@ -110,7 +121,10 @@ until it does. Check again before upgrading.
 
 ## Tests
 
-- Unit tests (vitest) for state, reducers and message handling.
+- Webview: unit tests with vitest (Node environment, `react-dom/server`) for state, reducers,
+  rendering and message handling.
+- Extension: unit tests with `node:test` on the `tsc` output (`src/test/unit/`) for pure modules
+  (HTML/CSP, manifest, translations).
 - Component tests for the design-system components.
-- Extension integration tests (`@vscode/test-cli` / `@vscode/test-electron`) for activation,
+- Extension integration tests (`@vscode/test-cli` / `@vscode/test-electron`, `src/test/integration/`) for activation,
   commands and the daemon relay.

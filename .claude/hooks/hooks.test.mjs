@@ -129,10 +129,18 @@ describe("intent.json protection", () => {
 
   test("the script prints a PreToolUse deny decision", () => {
     const root = tempProject();
-    const out = runScript("protect-intent.mjs", { tool_name: "Write", tool_input: { file_path: path.join(root, ".timonier/intent.json") } }, root);
+    const out = runScript(
+      "protect-intent.mjs",
+      { tool_name: "Write", tool_input: { file_path: path.join(root, ".timonier/intent.json") } },
+      root,
+    );
     assert.equal(out.status, 0);
     assert.equal(out.json.hookSpecificOutput.permissionDecision, "deny");
-    const allowed = runScript("protect-intent.mjs", { tool_name: "Write", tool_input: { file_path: path.join(root, "a.rs") } }, root);
+    const allowed = runScript(
+      "protect-intent.mjs",
+      { tool_name: "Write", tool_input: { file_path: path.join(root, "a.rs") } },
+      root,
+    );
     assert.equal(allowed.stdout, "");
   });
 });
@@ -155,9 +163,25 @@ describe("formatting", () => {
     assert.equal(formatterFor(file, root).cmd, path.join(root, "node_modules/.bin/prettier"));
   });
 
+  test("prettier covers what the CI checks, Markdown excluded", () => {
+    const root = tempProject();
+    mkdirSync(path.join(root, "node_modules/.bin"), { recursive: true });
+    writeFileSync(path.join(root, "node_modules/.bin/prettier"), "");
+    for (const rel of ["a.mjs", "b.js", ".github/workflows/ci.yml", "webview/index.html", "c.json", "d.css"]) {
+      assert.ok(formatterFor(path.join(root, rel), root), rel);
+    }
+    assert.equal(formatterFor(path.join(root, "PLAN.md"), root), null);
+  });
+
   test("never formats dependencies, build output, lockfiles or files outside the project", () => {
     const root = tempProject();
-    for (const rel of ["node_modules/a/index.ts", "target/debug/build.rs", "package-lock.json", ".timonier/plan.json", "../elsewhere.rs"]) {
+    for (const rel of [
+      "node_modules/a/index.ts",
+      "target/debug/build.rs",
+      "package-lock.json",
+      ".timonier/plan.json",
+      "../elsewhere.rs",
+    ]) {
       assert.equal(formatterFor(path.join(root, rel), root), null, rel);
     }
   });

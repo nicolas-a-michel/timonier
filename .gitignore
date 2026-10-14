@@ -9,6 +9,9 @@ out/
 *.vsix
 *.tsbuildinfo
 coverage/
+.vscode-test/
+# Copied from the root at build time (vsce needs it next to the extension manifest)
+editors/vscode/LICENSE
 
 # Timonier runtime state (the SQLite graph is a cache, never versioned)
 .timonier/*.sqlite

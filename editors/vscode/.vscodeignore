@@ -1,0 +1,12 @@
+# Only the bundle, the webview build, notices, translations, README and licence go into the
+# .vsix. vsce gives negations priority, so list exactly what to keep.
+**
+!dist/extension.js
+!dist/webview/assets/**
+!dist/webview/.vite/manifest.json
+!dist/webview/THIRD-PARTY-NOTICES.md
+!l10n/**
+!package.nls.json
+!package.nls.fr.json
+!README.md
+!LICENSE

@@ -1,0 +1,43 @@
+/*
+ * Timonier design tokens: the only colours, fonts, spacings and durations components may use
+ * (skill vscode-webview-ui). Each token maps to a VSCode theme variable, so the webview follows
+ * the IDE theme (light, dark, high contrast). The fallbacks serve the standalone dev page only.
+ * The full design system is built in Phase 4.
+ */
+:root {
+  /* Surfaces and text */
+  --tim-color-bg: var(--vscode-editor-background, #ffffff);
+  --tim-color-fg: var(--vscode-foreground, #3b3b3b);
+  --tim-color-muted: var(--vscode-descriptionForeground, #616161);
+  --tim-color-border: var(--vscode-panel-border, #e5e5e5);
+  --tim-color-focus: var(--vscode-focusBorder, #005fb8);
+
+  /* Meaning only (spec: red = violation, orange = attention, green = conformity), never alone */
+  --tim-color-violation: var(--vscode-charts-red, #c72e0f);
+  --tim-color-attention: var(--vscode-charts-orange, #b5520c);
+  --tim-color-conformity: var(--vscode-charts-green, #388a34);
+
+  /* Typography */
+  --tim-font-family: var(--vscode-font-family, system-ui, sans-serif);
+  --tim-font-size: var(--vscode-font-size, 13px);
+  --tim-font-family-code: var(--vscode-editor-font-family, ui-monospace, monospace);
+
+  /* Spacing scale (4 px base) and shapes */
+  --tim-space-1: 4px;
+  --tim-space-2: 8px;
+  --tim-space-3: 12px;
+  --tim-space-4: 16px;
+  --tim-space-6: 24px;
+  --tim-space-8: 32px;
+  --tim-radius: 4px;
+  --tim-measure: 60ch;
+
+  /* Motion: short and soft, and none when the user asks for reduced motion */
+  --tim-duration-short: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tim-duration-short: 0ms;
+  }
+}

@@ -1,0 +1,2 @@
+# Read by `cargo fmt` and by the formatting hook (which calls rustfmt directly).
+edition = "2024"

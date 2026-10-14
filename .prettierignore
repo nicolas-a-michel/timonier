@@ -1,0 +1,10 @@
+# Generated or vendored
+target/
+**/dist/
+**/out/
+**/node_modules/
+**/.vscode-test/
+package-lock.json
+Cargo.lock
+# Markdown is written by hand (PLAN.md is parsed by the hooks; docs/spec.md belongs to the human)
+*.md

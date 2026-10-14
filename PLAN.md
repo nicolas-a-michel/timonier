@@ -28,7 +28,8 @@ question indique la phase qu'elle bloque et ma recommandation.
 - Titulaire des droits : Nicolas Michel. Projet public.
 
 **Q2 — Dépôt GitHub pour la CI** — ✅ répondu le 2026-10-14
-- Réponse : propriétaire Nicolas Michel, dépôt public, créé plus tard par toi.
+- Réponse : propriétaire Nicolas Michel, dépôt public créé par toi :
+  <https://github.com/nicolas-a-michel/timonier>.
 - Conséquence : le workflow de CI est écrit en Phase 1 et ses commandes sont vérifiées en
   local (Linux). Le critère « vert en CI sur Linux et macOS » sera constaté au premier push.
 
@@ -124,6 +125,18 @@ par tâche en Phase 9 ; le calque par composant reste en v2.
   feuille de route humaine et `plan.json` pour les tâches.
 - À trancher au début de la Phase 6.
 
+**Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication)
+- Le paquet utilise `publisher: nicolas-a-michel`, qui n'existe pas encore sur la
+  Marketplace. Cet identifiant doit être créé par toi sur marketplace.visualstudio.com.
+- Il ne bloque que la publication, pas le développement.
+- À trancher : garder `nicolas-a-michel`, ou en choisir un autre (par exemple `timonier`).
+
+**Q13 — Langue de l'interface** (ADR 0006, à valider)
+- La spec ne la fixe pas.
+- J'ai mis en place l'anglais comme langue de base, avec une traduction française qui suit la
+  langue de VSCode.
+- À trancher : garder ce choix, ou passer au français seul.
+
 ## Hypothèses de travail
 
 Ce sont mes interprétations. Elles valent tant que tu ne les corriges pas.
@@ -164,7 +177,7 @@ Ce sont mes interprétations. Elles valent tant que tu ne les corriges pas.
 
 ## Phase 0 — Équiper l'environnement Claude Code du projet
 
-Statut : en cours
+Statut : terminée (0.11 reste à confirmer par toi dans une nouvelle session)
 
 - [x] 0.1 Lire `docs/spec.md` en entier — critère : contradictions et manques relevés dans
   « Questions ouvertes ».
@@ -194,42 +207,55 @@ Statut : en cours
   - `/skills` liste les sept skills ;
   - `/agents` liste `phase-reviewer` ;
   - `CLAUDE.md` suffit à reprendre le travail.
-- [ ] 0.12 Validation de ce plan et réponses à Q1–Q7 — critère : réponses consignées ici. Q1 à
-  Q7 sont répondues ; il reste ton feu vert pour la Phase 1.
+- [x] 0.12 Validation de ce plan et réponses à Q1–Q7 — critère : réponses consignées ici. Feu
+  vert donné le 2026-10-14.
 
 Décisions : [ADR 0001](docs/adr/0001-hooks-claude-code-en-node.md),
 [ADR 0002](docs/adr/0002-format-de-plan-md.md).
-Écarts : `git init` fait ici, car le dossier n'était pas un dépôt. Aucun commit n'a été fait :
-j'attends ton accord.
+Écarts :
+- `git init` fait ici, car le dossier n'était pas un dépôt. Phase 0 commitée (`33e2d76`).
+- Pour 0.11, ce qui a déjà été constaté dans la session de travail :
+  - Claude Code a chargé les hooks à chaud, et la garde `intent.json` s'est déclenchée ;
+  - les sept skills sont listés ;
+  - `phase-reviewer` est proposé comme type d'agent.
+
+  Le message de démarrage ne peut être vu que dans une nouvelle session.
+- Corrigé avant le commit de la Phase 0 : la garde `intent.json` ne juge plus que la
+  sous-commande qui écrit (faux positif constaté en réel).
+- Corrigé pendant la Phase 1 :
+  - deux références à un mauvais nom de fichier pour l'ADR 0002 dans les hooks ;
+  - les erreurs de typecheck indiquent leur workspace ;
+  - le hook de formatage couvre tous les types que la CI vérifie.
 
 ## Phase 1 — Squelette du dépôt
 
-Statut : à faire
+Statut : en cours
 
-Prérequis levés : licence MIT (Q1) ; le dépôt GitHub (Q2) sera créé plus tard par toi.
+Prérequis levés : licence MIT (Q1) ; dépôt public
+<https://github.com/nicolas-a-michel/timonier> (Q2).
 
-- [ ] 1.1 Ajouter la licence MIT (« Copyright (c) 2026 Nicolas Michel ») — critère : fichier
+- [x] 1.1 Ajouter la licence MIT (« Copyright (c) 2026 Nicolas Michel ») — critère : fichier
   `LICENSE` présent ; `license = "MIT"` dans `Cargo.toml` et `package.json` ; `cargo metadata`
   et `npm pkg get license` renvoient `MIT`.
-- [ ] 1.2 Fixer la toolchain : `rust-toolchain.toml` (stable, rustfmt, clippy), édition 2024 et
+- [x] 1.2 Fixer la toolchain : `rust-toolchain.toml` (stable, rustfmt, clippy), édition 2024 et
   `rust-version` dans `[workspace.package]`, `rustfmt.toml` — critère : `cargo fmt --all
   --check` vert ; ADR toolchain et MSRV (stable actuelle 1.99, 1.96 installée en local).
-- [ ] 1.3 Créer le workspace Cargo avec les sept crates (`timonier-core`, `-store`, `-index`,
+- [x] 1.3 Créer le workspace Cargo avec les sept crates (`timonier-core`, `-store`, `-index`,
   `-daemon`, `-otlp`, `-mcp`, `-cli`) — critère : `cargo build --workspace` vert ; ADR sur
   le découpage, le sens des dépendances et le crate qui porte les types du protocole.
-- [ ] 1.4 Binaire `timonier` et alias `tim` (clap 4.6), avec `--version` et `--help` — critère :
+- [x] 1.4 Binaire `timonier` et alias `tim` (clap 4.6), avec `--version` et `--help` — critère :
   `timonier --version` et `tim --version` impriment la même chaîne (test assert_cmd) ; ADR
   sur le mécanisme d'alias.
-- [ ] 1.5 Lints du workspace (`[workspace.lints]`) — critère : `cargo clippy --workspace
+- [x] 1.5 Lints du workspace (`[workspace.lints]`) — critère : `cargo clippy --workspace
   --all-targets -- -D warnings` vert.
-- [ ] 1.6 Un test de fumée par crate — critère : `cargo test --workspace` vert.
-- [ ] 1.7 Monorepo Node — critère : `npm ci && npm run lint && npm run typecheck && npm test`
+- [x] 1.6 Un test de fumée par crate — critère : `cargo test --workspace` vert.
+- [x] 1.7 Monorepo Node — critère : `npm ci && npm run lint && npm run typecheck && npm test`
   verts ; ADR gestionnaire de paquets et bundler de l'extension (H12). Contenu :
   - `package.json` racine, workspaces `editors/vscode` et `webview` ;
   - scripts `build`, `test`, `lint`, `typecheck`, `format` ;
   - TypeScript 6.0.x strict (H11), ESLint en configuration plate avec typescript-eslint,
     prettier.
-- [ ] 1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*`
+- [x] 1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*`
   minimaux sur les variables VSCode) — critère : `npm run build -w webview` produit le
   bundle ; test vitest vert.
 - [ ] 1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui
@@ -237,9 +263,9 @@ Prérequis levés : licence MIT (Q1) ; le dépôt GitHub (Q2) sera créé plus t
   `localResourceRoots`) — critère : F5 (« Run Extension ») ouvre le panneau vide en thème
   clair et sombre ; un test d'intégration `@vscode/test-cli` exécute la commande et vérifie
   la création du panneau.
-- [ ] 1.10 Packaging — critère : `npx @vscode/vsce package` produit un `.vsix` que
+- [x] 1.10 Packaging — critère : `npx @vscode/vsce package` produit un `.vsix` que
   `code --install-extension` installe.
-- [ ] 1.11 Activer les hooks sur le squelette — critère : test manuel documenté dans
+- [x] 1.11 Activer les hooks sur le squelette — critère : test manuel documenté dans
   `CLAUDE.md` (une erreur de type introduite bloque la fin de tour une fois). Changements :
   - le hook Stop appelle le script `typecheck` racine ;
   - le hook de formatage trouve prettier local.
@@ -251,7 +277,7 @@ Prérequis levés : licence MIT (Q1) ; le dépôt GitHub (Q2) sera créé plus t
   - tests de l'extension sous xvfb (Linux) ;
   - tests des hooks ;
   - caches cargo et npm.
-- [ ] 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
+- [x] 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
   commandes de `CLAUDE.md` à jour — critère : relu.
 - [ ] 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
 
@@ -259,8 +285,67 @@ Critère de sortie : `cargo test` et le build de l'extension passent en CI (cons
 premier push, voir Q2) ; l'extension s'installe en mode développement et affiche un panneau
 vide.
 
-Décisions : —
-Écarts : —
+Décisions : [ADR 0003](docs/adr/0003-decoupage-des-crates.md) (crates, dépendances, alias),
+[ADR 0004](docs/adr/0004-toolchain-rust.md) (toolchain, MSRV 1.96),
+[ADR 0005](docs/adr/0005-monorepo-node-et-build-de-l-extension.md) (npm, TS 6, esbuild, Vite,
+tests, CSP), [ADR 0006](docs/adr/0006-langue-de-l-interface.md) (langue de l'interface, à
+valider : Q13).
+
+Constats (2026-10-14, Linux, machine de développement, après la relecture) :
+- Rust : `cargo fmt --check` et `clippy -D warnings` verts ; `cargo test` : 9 tests verts ;
+  `cargo +1.96 check` vert (MSRV). `timonier --version` et `tim --version` affichent tous deux
+  `timonier 0.1.0`.
+- Après suppression de tous les builds (état d'un checkout neuf), `npm test` est vert :
+  - webview : 14 tests vitest, dont un vérificateur de tokens qui est lui-même testé ;
+  - extension : 14 tests `node:test` (CSP nonce seul, échappement de chaque champ, manifeste,
+    traductions complètes, sous-dossiers compris) ;
+  - hooks : 24 tests.
+- `npm run test:integration` (qui construit d'abord) donne 4 tests verts dans VSCode
+  1.141.2 :
+  - l'extension s'active et la commande existe ;
+  - le bundle s'exécute sous la CSP stricte : la webview répond « ready » ;
+  - le panneau ouvert est révélé et redevient l'onglet actif, sans second panneau.
+- Lint, typecheck et `format:check` sont verts.
+- `npm run package` produit `timonier.vsix`. Il contient le bundle, le manifeste, les
+  `THIRD-PARTY-NOTICES.md` (React, react-dom, scheduler : MIT), les traductions, le README et
+  la licence. L'installation réussit dans un profil temporaire.
+- Le bloc « Testing by hand » de `CLAUDE.md`, exécuté tel quel, produit les sept sorties
+  annoncées. En particulier, une erreur de type bloque la fin de tour une fois, puis n'est
+  plus que signalée.
+
+Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est traité :
+- B1 : la CI lançait les tests d'intégration sans webview construite. Corrigé :
+  `test:integration` construit d'abord, et le scénario a été vérifié depuis un état propre.
+- I1 : 1.9 décochée (contrôle visuel F5) ; 1.11 documentée et vérifiée.
+- I2 : skills `vscode-webview-ui` et `rust-daemon` alignés sur les ADR 0003 à 0006.
+- I3 : dépendances et actions ajoutées au tableau ; action tierce épinglée par SHA.
+- I4 : la langue de l'interface (ADR 0006) a été implémentée avant ta réponse. C'est une
+  exception assumée, car réversible ; elle reste à valider (Q13).
+- I5 : notices tierces livrées dans le `.vsix`.
+- Mineurs :
+  - CSP réduite au nonce seul ;
+  - `.vscodeignore` explicite ;
+  - tests renforcés (échappement, révélation, tokens, traductions) ;
+  - job CI `msrv` ;
+  - configuration « Extension Tests » corrigée ;
+  - ADR 0005 corrigée (scripts npm, raison de `node:test`).
+
+Écarts :
+- 1.9 n'est pas cochée : le rendu en thème clair, sombre et contraste élevé est à vérifier à
+  l'œil avec F5. Je ne peux pas voir l'écran. Le test des cinq secondes de l'état vide peut se
+  faire au même moment.
+- Checklist d'accessibilité de l'état vide :
+  - aucun élément interactif, donc ni focus ni clavier à traiter ;
+  - le texte passe par les variables de thème VSCode ;
+  - aucune animation.
+
+  Le contraste réel dépend du thème : il sera mesuré par axe-core en Phase 4.
+- `npm audit` signale 4 vulnérabilités, toutes dans mocha (via `@vscode/test-cli`) : 1 haute
+  (serialize-javascript), 1 modérée, 2 basses. C'est un outil de test, absent du `.vsix`.
+- L'éditeur de la Marketplace (`publisher`) est provisoire : `nicolas-a-michel` (Q12).
+- Les tests de fumée des crates sans code (store, index, otlp, daemon, mcp) ne prouvent que la
+  compilation et le lien avec core. Ils seront remplacés par de vrais tests dans les phases
+  suivantes.
 
 ## Phase 2 — Modèle de graphe et stockage
 
@@ -685,6 +770,11 @@ avant ajout si plus d'un mois s'est écoulé.
 | @vscode-elements/elements | 2.5.1 | MIT | `@vscode/webview-ui-toolkit` est déprécié |
 | vscode-jsonrpc | 9.0.3 | MIT | |
 | axe-core / @playwright/test | 4.14.0 / 1.64.1 | MPL-2.0 / Apache-2.0 | Développement seulement |
+| esbuild | 0.28.2 | MIT | Bundle de l'extension |
+| @eslint/js / eslint-plugin-react-hooks | 10.0.1 / 7.1.1 | MIT | |
+| @types/node / @types/react / @types/react-dom / @types/mocha | 24.19.2 / 19.3.0 / 19.3.0 / 10.0.10 | MIT | `@types/node` 24 = Node 24.21 de VSCode 1.141 |
+| actions/checkout / setup-node / upload-artifact | v7.0.1 / v7.1.0 / v7.0.2 | MIT | Actions GitHub officielles, par tag majeur |
+| Swatinem/rust-cache | v2.9.2 (`6323deb`) | LGPL-3.0 | Action tierce, épinglée par SHA |
 
 Toolchain : Rust stable 1.99.0 (1.96 installée en local), édition 2024 stable depuis 1.85 ;
 Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
@@ -702,3 +792,8 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   - options recommandées retenues pour Q4, Q5, Q6 et Q7.
 
   Q1 (licence) a été tranchée ensuite : MIT.
+- 2026-10-14 — Phase 1 :
+  - squelette réalisé ;
+  - relecture `phase-reviewer`, verdict « pas prête » : 1 bloquant, 5 importants, 9 mineurs,
+    tous traités ;
+  - restent : la CI au premier push (1.12) et ton contrôle visuel F5 (1.9).

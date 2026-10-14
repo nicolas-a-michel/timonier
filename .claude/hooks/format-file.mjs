@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // PostToolUse hook (Edit|Write): formats the file Claude just touched.
 // - .rs                      → rustfmt (edition 2024 unless a rustfmt.toml decides)
-// - .ts .tsx .json .css      → prettier from the nearest node_modules (skipped if not installed)
+// - every type `prettier --check .` covers in CI (TS/JS, JSON, CSS, HTML, YAML)
+//                            → prettier from the nearest node_modules (skipped if not installed;
+//                              .prettierignore still applies, so Markdown is left alone)
 // A formatter failure (usually a syntax error) is reported to Claude as context, never blocking.
 
 import { spawnSync } from "node:child_process";
@@ -9,7 +11,21 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { emit, isMain, projectDir, readHookInput, runHook, toPosix } from "./lib.mjs";
 
-const PRETTIER_EXT = new Set([".ts", ".tsx", ".json", ".css"]);
+const PRETTIER_EXT = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".css",
+  ".html",
+  ".yml",
+  ".yaml",
+]);
 const SKIPPED = /(^|\/)(node_modules|target|dist|out|\.git|\.timonier|\.claude\/state)\//;
 const LOCKFILES = new Set(["package-lock.json", "Cargo.lock", "pnpm-lock.yaml"]);
 const TIMEOUT_MS = 20_000;
@@ -55,7 +71,11 @@ async function main() {
   if (result.error?.code === "ENOENT") return; // Formatter not installed: nothing to do.
   if (result.status === 0) return;
 
-  const details = (result.stderr || result.stdout || String(result.error ?? "")).trim().split("\n").slice(0, 20).join("\n");
+  const details = (result.stderr || result.stdout || String(result.error ?? ""))
+    .trim()
+    .split("\n")
+    .slice(0, 20)
+    .join("\n");
   emit({
     hookSpecificOutput: {
       hookEventName: "PostToolUse",

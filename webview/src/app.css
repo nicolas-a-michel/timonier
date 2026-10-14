@@ -1,0 +1,39 @@
+/* Components use tokens only (see tokens.css); a test enforces it. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--tim-color-bg);
+  color: var(--tim-color-fg);
+  font-family: var(--tim-font-family);
+  font-size: var(--tim-font-size);
+}
+
+.tim-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tim-space-2);
+  height: 100%;
+  padding: var(--tim-space-8) var(--tim-space-4);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.tim-empty__title {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.tim-empty__text {
+  max-width: var(--tim-measure);
+  margin: 0;
+  color: var(--tim-color-muted);
+  line-height: 1.5;
+}

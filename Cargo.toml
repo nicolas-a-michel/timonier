@@ -1,0 +1,33 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+authors = ["Nicolas Michel"]
+repository = "https://github.com/nicolas-a-michel/timonier"
+publish = false
+
+[workspace.dependencies]
+# Internal crates. Dependency direction: docs/adr/0003-decoupage-des-crates.md
+timonier-core = { path = "crates/timonier-core" }
+timonier-store = { path = "crates/timonier-store" }
+timonier-index = { path = "crates/timonier-index" }
+timonier-otlp = { path = "crates/timonier-otlp" }
+timonier-daemon = { path = "crates/timonier-daemon" }
+timonier-mcp = { path = "crates/timonier-mcp" }
+
+# External crates: versions and licences verified, see PLAN.md « Dépendances vérifiées ».
+clap = { version = "4.6.7", features = ["derive"] }
+assert_cmd = "2.2.2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
