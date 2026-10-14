@@ -35,7 +35,7 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
 | `webview/`                   | React + Vite webview, shared by future front-ends; `src/tokens.css` = design tokens | skeleton |
-| `editors/vscode/`            | VSCode extension: esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | skeleton |
+| `editors/vscode/`            | VSCode extension: activity-bar container with the « Overview » view (ADR 0007, icon in `media/`), esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | skeleton |
 | `.vscode/`                   | `launch.json`: « Run Extension » (F5) and « Extension Tests » (needs the recommended Extension Test Runner); `tasks.json`; `extensions.json` | exists |
 | `LICENSE`, `README.md`       | MIT licence (Nicolas Michel); French README                      | exists   |
 | `.github/workflows/ci.yml`   | CI on ubuntu-latest and macos-latest                             | exists   |

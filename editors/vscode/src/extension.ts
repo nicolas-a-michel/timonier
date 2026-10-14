@@ -8,8 +8,15 @@ export interface TimonierApi {
   whenMapReady(): Promise<void> | undefined;
 }
 
+export const HOME_VIEW_ID = "timonier.home";
+
 export function activate(context: vscode.ExtensionContext): TimonierApi {
   context.subscriptions.push(
+    // The overview has no data yet: VSCode then shows its welcome content (package.json,
+    // `viewsWelcome`), which carries the « Open Map » button. Plan, todo and log land here later.
+    vscode.window.createTreeView<never>(HOME_VIEW_ID, {
+      treeDataProvider: { getChildren: () => [], getTreeItem: (element: never) => element },
+    }),
     vscode.commands.registerCommand("timonier.openMap", () => {
       try {
         MapPanel.show(context.extensionUri);

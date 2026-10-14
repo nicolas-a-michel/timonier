@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+  <!-- Ship's wheel (the helmsman's wheel): rim, hub, six spokes ending in handles.
+       Six spokes rather than eight: at 24 px, eight read as a snowflake. -->
+  <circle cx="12" cy="12" r="6.25" />
+  <circle cx="12" cy="12" r="2.25" />
+  <path d="M12.00 9.75L12.00 3.40M13.95 10.88L19.45 7.70M13.95 13.12L19.45 16.30M12.00 14.25L12.00 20.60M10.05 13.12L4.55 16.30M10.05 10.88L4.55 7.70" />
+  <circle cx="12.00" cy="2.59" r="1.35" fill="currentColor" stroke="none" />
+  <circle cx="20.15" cy="7.29" r="1.35" fill="currentColor" stroke="none" />
+  <circle cx="20.15" cy="16.70" r="1.35" fill="currentColor" stroke="none" />
+  <circle cx="12.00" cy="21.41" r="1.35" fill="currentColor" stroke="none" />
+  <circle cx="3.85" cy="16.71" r="1.35" fill="currentColor" stroke="none" />
+  <circle cx="3.85" cy="7.29" r="1.35" fill="currentColor" stroke="none" />
+</svg>

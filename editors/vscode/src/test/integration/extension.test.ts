@@ -36,6 +36,15 @@ describe("Timonier extension", () => {
     assert.equal(extension.isActive, true);
   });
 
+  it("adds the Timonier container to the activity bar, with its overview view", async () => {
+    const commands = await vscode.commands.getCommands(true);
+    // VSCode generates these commands for each contributed container and view.
+    assert.ok(commands.includes("workbench.view.extension.timonier"), "no Timonier view container");
+    assert.ok(commands.includes("timonier.home.focus"), "no overview view");
+    await vscode.commands.executeCommand("workbench.view.extension.timonier");
+    await vscode.commands.executeCommand("timonier.home.focus");
+  });
+
   it("contributes the Open Map command", async () => {
     const commands = await vscode.commands.getCommands(true);
     assert.ok(commands.includes("timonier.openMap"));

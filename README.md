@@ -41,9 +41,10 @@ npm run typecheck
 npm run package            # produit editors/vscode/timonier.vsix
 ```
 
-Pour essayer l'extension, ouvrez le dépôt dans VSCode et lancez « Run Extension » (F5).
-Ensuite, dans la fenêtre de développement, choisissez **Timonier : Ouvrir la carte** dans la
-palette de commandes.
+Pour essayer l'extension, ouvrez le dépôt dans VSCode et lancez « Run Extension » (F5). Dans
+la fenêtre de développement qui s'ouvre, cliquez sur l'icône Timonier (une barre à roue) dans
+la barre d'activité, puis sur **Ouvrir la carte**. La commande **Timonier : Ouvrir la carte**
+de la palette fait la même chose.
 
 Une fois le binaire construit, la CLI s'appelle `timonier` ou `tim` :
 

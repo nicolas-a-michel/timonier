@@ -1,4 +1,6 @@
 {
   "extension.description": "Steer AI coding agents without reading all the code they produce: living architecture map, intent whiteboard, measured performance, live plan.",
-  "command.openMap.title": "Open Map"
+  "command.openMap.title": "Open Map",
+  "view.home.name": "Overview",
+  "view.home.welcome": "Timonier has not indexed this project yet, so the map is still empty.\n[Open Map](command:timonier.openMap)\nThe plan, todo and session log will appear here in later versions."
 }

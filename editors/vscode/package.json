@@ -20,13 +20,48 @@
   "main": "./dist/extension.js",
   "l10n": "./l10n",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "timonier",
+          "title": "Timonier",
+          "icon": "media/timonier.svg"
+        }
+      ]
+    },
+    "views": {
+      "timonier": [
+        {
+          "id": "timonier.home",
+          "name": "%view.home.name%",
+          "icon": "media/timonier.svg",
+          "contextualTitle": "Timonier"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "timonier.home",
+        "contents": "%view.home.welcome%"
+      }
+    ],
     "commands": [
       {
         "command": "timonier.openMap",
         "title": "%command.openMap.title%",
-        "category": "Timonier"
+        "category": "Timonier",
+        "icon": "$(type-hierarchy)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "timonier.openMap",
+          "when": "view == timonier.home",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "node scripts/build.mjs",

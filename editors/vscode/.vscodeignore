@@ -6,6 +6,7 @@
 !dist/webview/.vite/manifest.json
 !dist/webview/THIRD-PARTY-NOTICES.md
 !l10n/**
+!media/**
 !package.nls.json
 !package.nls.fr.json
 !README.md

@@ -11,3 +11,4 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0004 | [Toolchain Rust : canal stable, MSRV = plus ancienne version testée](0004-toolchain-rust.md) | Proposé | 1 |
 | 0005 | [Monorepo Node, build de l'extension et chargement de la webview](0005-monorepo-node-et-build-de-l-extension.md) | Proposé | 1 |
 | 0006 | [Langue de l'interface : anglais de base, traduction française](0006-langue-de-l-interface.md) | Proposé, à valider | 1 |
+| 0007 | [Point d'entrée Timonier dans la barre d'activité](0007-entree-dans-la-barre-d-activite.md) | Proposé | 1 |

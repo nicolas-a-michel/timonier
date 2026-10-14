@@ -279,6 +279,13 @@ Prérequis levés : licence MIT (Q1) ; dépôt public
   - caches cargo et npm.
 - [x] 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
   commandes de `CLAUDE.md` à jour — critère : relu.
+- [x] 1.15 Icône Timonier dans la barre d'activité, ajoutée à ta demande du 2026-10-14 —
+  critère : un conteneur Timonier avec une icône 24×24 d'une seule couleur, une vue « Vue
+  d'ensemble » dont l'accueil propose « Ouvrir la carte », et un bouton de carte dans sa barre
+  de titre ; tests unitaires du manifeste et test d'intégration verts ; ADR 0007.
+  - Constat : 19 tests unitaires et 5 tests d'intégration verts.
+  - L'icône a été rendue pixel par pixel à 24 px, et la version à 6 rayons retenue.
+  - Le rendu réel est à regarder avec F5, en même temps que 1.9.
 - [x] 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
   Réserves traitées (voir plus bas) ; il n'y a pas eu de seconde relecture.
 
@@ -290,7 +297,8 @@ Décisions : [ADR 0003](docs/adr/0003-decoupage-des-crates.md) (crates, dépenda
 [ADR 0004](docs/adr/0004-toolchain-rust.md) (toolchain, MSRV 1.96),
 [ADR 0005](docs/adr/0005-monorepo-node-et-build-de-l-extension.md) (npm, TS 6, esbuild, Vite,
 tests, CSP), [ADR 0006](docs/adr/0006-langue-de-l-interface.md) (langue de l'interface, à
-valider : Q13).
+valider : Q13), [ADR 0007](docs/adr/0007-entree-dans-la-barre-d-activite.md) (icône et vue
+d'ensemble dans la barre d'activité).
 
 Constats (2026-10-14, Linux, machine de développement, après la relecture) :
 - Rust : `cargo fmt --check` et `clippy -D warnings` verts ; `cargo test` : 9 tests verts ;
@@ -805,3 +813,5 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
     tous traités ;
   - CI verte au premier push sur Linux et macOS (run 38604588410) ;
   - reste ton contrôle visuel F5 (1.9).
+- 2026-10-14 — Ajout de 1.15 à ta demande : icône Timonier dans la barre d'activité, avec une
+  vue d'ensemble et le bouton « Ouvrir la carte » (ADR 0007).
