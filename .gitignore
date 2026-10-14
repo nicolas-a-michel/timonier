@@ -1,0 +1,25 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node / TypeScript
+node_modules/
+dist/
+out/
+*.vsix
+*.tsbuildinfo
+coverage/
+
+# Timonier runtime state (the SQLite graph is a cache, never versioned)
+.timonier/*.sqlite
+.timonier/*.sqlite-*
+.timonier/cache/
+
+# Claude Code: personal settings and hook runtime state
+.claude/settings.local.json
+.claude/state/
+
+# Editors / OS
+.DS_Store
+*.swp
+.idea/
