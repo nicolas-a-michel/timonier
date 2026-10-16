@@ -567,7 +567,7 @@ Relecture n° 3 : « prête », sans bloquant ni important ; 10 mineurs. Corrig�
 
 ## Phase 3 — Indexation
 
-Statut : terminée (validée par toi le 2026-10-16 ; la relecture n° 3 tournait encore)
+Statut : terminée (validée par toi le 2026-10-16, sans verdict « prête » : voir 3.12)
 
 Réponses appliquées : Q5 (interface LSP commune, relais de l'IDE d'abord) et Q6 (heuristiques,
 enrichies par l'agent via MCP).
@@ -735,10 +735,11 @@ enrichies par l'agent via MCP).
   - Les arêtes passent de 690 à 666 : les appels de méthode sur un receveur inconnu ne sont
     plus résolus par leur seul nom (relecture n° 1, I6).
   - Outil : `cargo run --release -p timonier-daemon --example index_bench`.
-- [x] 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ».
-  - Deux relectures « pas prête », tous leurs constats corrigés (ci-dessous).
-  - Tu as validé la phase le 2026-10-16 pendant la relecture n° 3. Ses constats éventuels sont
-    traités à part, avant la suite de la Phase 4.
+- [ ] 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Non atteint.**
+  - Les trois relectures concluent « pas prête » ; tous leurs constats sont corrigés
+    (ci-dessous).
+  - Tu as validé la phase le 2026-10-16 pendant la relecture n° 3. La case restait cochée à
+    tort : la relecture n° 3 l'a relevé (P1). L'écart est consigné plus bas.
 
   Relecture n° 1 : « pas prête », avec 1 bloquant, 7 importants et 10 mineurs. Tous sont
   corrigés, chaque scénario reproduit est gardé comme test
@@ -807,6 +808,29 @@ enrichies par l'agent via MCP).
     - m-d : en Rust, la résolution par nom seul reste dans la même cible ;
     - m-e : chiffres de 3.5 et mentions du redémarrage mis à jour.
 
+  Relecture n° 3 : « pas prête ». Tous les constats de la n° 2 sont corrigés, sauf N4 dans les
+  faits ; elle trouve 1 bloquant, 1 important et 1 mineur, corrigés après ta validation :
+  - F1 (bloquant) : le watcher prenait les lectures de fichiers pour des modifications, y
+    compris celles du démon. Il s'en nourrissait sans fin :
+    - 46 passes en 8 s sur un dépôt au repos ;
+    - un affinage LSP qui cédait toujours ;
+    - sur 20 040 fichiers, une sauvegarde jamais vue et un arrêt de 158 s.
+
+    Corrigé :
+    - seuls les événements qui peuvent changer le graphe sont gardés (création, suppression,
+      écriture, renommage) ;
+    - `refresh` ne parcourt plus tous les fichiers pour chaque chemin reçu.
+
+    Les sondes de la relecture donnent maintenant :
+    - 2 passes en 8 s (l'indexation, puis la sauvegarde) et un affinage vérifié ;
+    - sur 20 040 fichiers, la sauvegarde faite à 1 s est vue et l'arrêt prend 67 ms.
+
+    N4 est donc corrigé lui aussi. Test : `the_watch_rests_when_nothing_changes`.
+  - P1 : 3.12 était cochée sans verdict « prête ». Décochée, écart consigné.
+  - m-f : un `refresh` sur un nouveau dossier ne trouvait pas son manifeste. Un dossier reçu
+    est maintenant parcouru, et les paquets sont redécouverts quand l'ensemble des manifestes
+    change. Test : `a_new_crate_is_a_package`.
+
 Critère de sortie : le dépôt Timonier s'indexe en quelques secondes ; une modification de
 fichier met le graphe à jour en moins de 100 ms (mesuré).
 
@@ -826,6 +850,9 @@ Décisions :
   symboles.
 
 Écarts :
+- 3.12 n'est pas atteinte : aucune relecture n'a conclu « prête ». C'est ta validation du
+  2026-10-16 qui clôt la phase. Les constats de la relecture n° 3 ont été corrigés ensuite,
+  sans quatrième relecture complète.
 - Le relais des serveurs LSP de l'IDE et le rôle « serveur » du démon attendent la Phase 4.
   L'affinage est testé avec un double conforme, comme le critère de 3.6 le permet.
 - Les composants sont ceux du dernier commit (ADR 0016). Avec beaucoup de travail non
@@ -1226,3 +1253,6 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   - 198 tests Rust verts ;
   - captures du plugin prises (VSCode 1.142, en français, thèmes sombre et clair) ;
   - Phase 4 commencée.
+- 2026-10-16 — Relecture n° 3 de la Phase 3, arrivée après ta validation : « pas prête ».
+  F1 (le watcher se nourrissait de ses propres lectures), P1 (3.12 cochée à tort) et m-f sont
+  corrigés, avec deux tests de régression. 3.12 est décochée.

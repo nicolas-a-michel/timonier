@@ -91,6 +91,8 @@ pub struct Indexer {
     /// Directories the last walk entered (`""` for the root): a new path elsewhere is ignored
     /// or hidden, and costs no walk.
     walked: BTreeSet<String>,
+    /// Manifests the last walk found: a new directory that brings one changes the packages.
+    manifests: BTreeSet<String>,
 }
 
 impl Indexer {
@@ -118,6 +120,7 @@ impl Indexer {
             trees: Trees::default(),
             parser: Parser::new(),
             walked: BTreeSet::new(),
+            manifests: BTreeSet::new(),
         })
     }
 
@@ -249,54 +252,54 @@ impl Indexer {
         let relative: BTreeSet<String> = paths.iter().filter_map(|p| self.relative(p)).collect();
         let mut batch = Batch::default();
         // A manifest, or a Cargo library that appears or disappears, may move packages
-        // (ADR 0013). A library saved again changes nothing of the kind.
+        // (ADR 0013). A library saved again changes nothing of the kind. A directory that
+        // appears may hold a manifest: the walk tells.
         let lib_appears = relative.iter().any(|p| {
             is_cargo_lib(p) && self.root.join(p).is_file() != self.project.file(p).is_some()
         });
-        if lib_appears || relative.iter().any(|p| is_manifest(p)) {
+        let manifest_named = relative.iter().any(|p| is_manifest(p));
+        let dir_named = relative.iter().any(|p| self.root.join(p).is_dir());
+        let mut accepted: Option<BTreeSet<String>> = None;
+        if lib_appears || manifest_named || dir_named {
+            let before = self.manifests.clone();
             let walk = self.walk();
-            let (mut packages, problems) = ecosystem::discover(&self.root, &walk.manifests);
-            // A manifest that does not parse, mid-edit, keeps its previous package; the others
-            // follow their manifests.
-            let broken: BTreeSet<&Path> = problems.iter().filter_map(Error::path).collect();
-            for previous in self.project.packages() {
-                let manifest = self.root.join(previous.manifest());
-                let replaced = packages
-                    .iter()
-                    .any(|p| p.dir == previous.dir && p.ecosystem == previous.ecosystem);
-                if broken.contains(manifest.as_path()) && !replaced {
-                    packages.push(previous.clone());
+            if lib_appears || manifest_named || self.manifests != before {
+                let (mut packages, problems) = ecosystem::discover(&self.root, &walk.manifests);
+                // A manifest that does not parse, mid-edit, keeps its previous package; the
+                // others follow their manifests.
+                let broken: BTreeSet<&Path> = problems.iter().filter_map(Error::path).collect();
+                for previous in self.project.packages() {
+                    let manifest = self.root.join(previous.manifest());
+                    let replaced = packages
+                        .iter()
+                        .any(|p| p.dir == previous.dir && p.ecosystem == previous.ecosystem);
+                    if broken.contains(manifest.as_path()) && !replaced {
+                        packages.push(previous.clone());
+                    }
+                }
+                packages.sort_by(|a, b| a.id.cmp(&b.id));
+                batch
+                    .problems
+                    .extend(problems.iter().map(ToString::to_string));
+                if packages.as_slice() != self.project.packages() {
+                    return self.resync(batch, packages, walk.sources);
                 }
             }
-            packages.sort_by(|a, b| a.id.cmp(&b.id));
-            batch
-                .problems
-                .extend(problems.iter().map(ToString::to_string));
-            if packages.as_slice() != self.project.packages() {
-                return self.resync(batch, packages, walk.sources);
-            }
+            accepted = Some(walk.sources.into_iter().collect());
         }
-        let mut accepted: Option<BTreeSet<String>> = None;
         let mut structure = false;
         let mut changed = BTreeSet::new();
         let mut resolve = BTreeSet::new();
         let mut removed = BTreeSet::new();
         for path in &relative {
             let on_disk = self.root.join(path);
-            let known: Vec<String> = self
-                .project
-                .files()
-                .filter(|f| f.path == *path || f.path.starts_with(&format!("{path}/")))
-                .map(|f| f.path.clone())
-                .collect();
+            let known: Vec<String> = self.project.paths_under(path).map(str::to_owned).collect();
             for file in &known {
-                // Gone, or now too large to be source code (ADR 0013).
-                let gone = match read_source(&self.root, file) {
-                    Source::Bytes(_) | Source::Unreadable if self.root.join(file).is_file() => {
-                        false
-                    }
-                    Source::TooLarge => true,
-                    _ => true,
+                // Gone, or now too large to be source code (ADR 0013). The metadata say it, without
+                // reading the file.
+                let gone = match std::fs::metadata(self.root.join(file)) {
+                    Ok(meta) => !meta.is_file() || meta.len() > MAX_FILE_BYTES as u64,
+                    Err(error) => error.kind() == std::io::ErrorKind::NotFound,
                 };
                 if gone {
                     let affected = self.project.remove(file);
@@ -584,6 +587,7 @@ impl Indexer {
         walk.manifests.sort();
         walk.sources.sort();
         self.walked = walked;
+        self.manifests = walk.manifests.iter().cloned().collect();
         walk
     }
 

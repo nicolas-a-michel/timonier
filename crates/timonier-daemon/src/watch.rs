@@ -15,7 +15,8 @@ use std::sync::{Arc, Mutex, Weak};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use notify_debouncer_full::notify::{RecommendedWatcher, RecursiveMode};
+use notify_debouncer_full::notify::event::{AccessKind, AccessMode, ModifyKind};
+use notify_debouncer_full::notify::{EventKind, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
 use timonier_index::lsp::{LanguageServer, Priority};
 
@@ -128,8 +129,11 @@ impl Watch {
                 None,
                 move |result: DebounceEventResult| match result {
                     Ok(events) => {
-                        let mut paths: Vec<PathBuf> =
-                            events.into_iter().flat_map(|e| e.event.paths).collect();
+                        let mut paths: Vec<PathBuf> = events
+                            .into_iter()
+                            .filter(|e| may_change(&e.event.kind))
+                            .flat_map(|e| e.event.paths)
+                            .collect();
                         paths.sort();
                         paths.dedup();
                         if !paths.is_empty() {
@@ -248,6 +252,21 @@ impl Watch {
         self.debouncer.take();
         self.commands.take();
         self.worker.take().and_then(|worker| worker.join().ok())
+    }
+}
+
+/// Whether an event may change what is indexed. Opening, reading, closing without writing or
+/// changing metadata changes nothing: inotify reports the daemon's own reads, which would
+/// otherwise feed it back, pass after pass. A close after writing does count.
+fn may_change(kind: &EventKind) -> bool {
+    match kind {
+        EventKind::Access(AccessKind::Close(AccessMode::Write)) => true,
+        EventKind::Access(_) | EventKind::Modify(ModifyKind::Metadata(_)) => false,
+        EventKind::Any
+        | EventKind::Create(_)
+        | EventKind::Modify(_)
+        | EventKind::Remove(_)
+        | EventKind::Other => true,
     }
 }
 

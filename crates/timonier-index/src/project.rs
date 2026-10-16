@@ -148,6 +148,19 @@ impl Project {
         self.files.get(path)
     }
 
+    /// The file at `path`, or the files under the directory `path`, by a range of the sorted
+    /// map: no walk through every file.
+    pub fn paths_under<'a>(&'a self, path: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+        let prefix = format!("{path}/");
+        let exact = self.files.get_key_value(path).map(|(p, _)| p.as_str());
+        let inside = self
+            .files
+            .range(prefix.clone()..)
+            .map(|(p, _)| p.as_str())
+            .take_while(move |p| p.starts_with(&prefix));
+        exact.into_iter().chain(inside)
+    }
+
     /// Replaces the packages (a manifest changed): every file is placed and named again.
     pub fn set_packages(&mut self, packages: Vec<PackageInfo>) -> Result<Affected> {
         self.packages = packages;

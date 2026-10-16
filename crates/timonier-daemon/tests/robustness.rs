@@ -616,3 +616,149 @@ fn a_package_renamed_while_away_keeps_its_components() {
         Some("pkg:cargo/huge")
     );
 }
+
+/// Third review, F1: the daemon's own reads are not changes. At rest, the watch does no pass;
+/// a save still gets one; a slow refinement finishes.
+#[test]
+fn the_watch_rests_when_nothing_changes() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
+    use timonier_daemon::{Event, Refinement, Watch};
+
+    /// Every function calls `helper`, slowly.
+    struct Slow;
+    impl LanguageServer for Slow {
+        fn outgoing_calls(&mut self, _: &str, _: Position) -> Result<Vec<CallTarget>, LspError> {
+            std::thread::sleep(Duration::from_millis(20));
+            Ok(vec![CallTarget {
+                path: Some("src/util.rs".into()),
+                at: Position::new(0, 7),
+                sites: 1,
+            }])
+        }
+    }
+
+    let repo = tempfile::tempdir().unwrap();
+    let db = tempfile::tempdir().unwrap();
+    let root = repo.path().to_path_buf();
+    write(&root, "Cargo.toml", "[package]\nname = \"rest\"\n");
+    write(&root, "src/lib.rs", "pub mod util;\npub mod many;\n");
+    write(&root, "src/util.rs", "pub fn helper() {}\n");
+    let many: String = (0..10)
+        .map(|i| format!("pub fn f{i}() {{ crate::util::helper(); }}\n"))
+        .collect();
+    write(&root, "src/many.rs", &many);
+    let store = Store::open(db.path().join("graph.sqlite")).unwrap();
+    let pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    let passes = Arc::new(AtomicUsize::new(0));
+    let verified = Arc::new(AtomicUsize::new(0));
+    let (p, v) = (Arc::clone(&passes), Arc::clone(&verified));
+    let watch = Watch::start(
+        pipeline,
+        Duration::from_millis(100),
+        Some(Box::new(Slow)),
+        move |event| match event {
+            Event::Indexed(_) => {
+                p.fetch_add(1, Ordering::SeqCst);
+            }
+            Event::Refined(Ok(Refinement::Verified { .. })) => {
+                v.fetch_add(1, Ordering::SeqCst);
+            }
+            _ => {}
+        },
+    )
+    .unwrap();
+    std::thread::sleep(Duration::from_millis(1500));
+    let settled = passes.load(Ordering::SeqCst);
+    std::thread::sleep(Duration::from_millis(2000));
+    assert_eq!(
+        passes.load(Ordering::SeqCst),
+        settled,
+        "passes while nothing changed"
+    );
+
+    watch.request_refinement("src/many.rs", Priority::Opened);
+    for _ in 0..100 {
+        if verified.load(Ordering::SeqCst) > 0 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(
+        verified.load(Ordering::SeqCst),
+        1,
+        "the refinement finished"
+    );
+
+    write(
+        &root,
+        "src/util.rs",
+        "pub fn helper() {}\npub fn saved() {}\n",
+    );
+    for _ in 0..100 {
+        if head_ids(&store)
+            .iter()
+            .any(|i| i == "rust:rest::util::saved")
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        head_ids(&store)
+            .iter()
+            .any(|i| i == "rust:rest::util::saved")
+    );
+    watch.stop().unwrap();
+}
+
+/// Third review, m-f: a crate created while the daemon runs is a package.
+#[test]
+fn a_new_crate_is_a_package() {
+    use std::time::Duration;
+    let repo = tempfile::tempdir().unwrap();
+    let db = tempfile::tempdir().unwrap();
+    let root = repo.path().to_path_buf();
+    write(
+        &root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"crates/*\"]\n",
+    );
+    write(&root, "crates/a/Cargo.toml", "[package]\nname = \"a\"\n");
+    write(&root, "crates/a/src/lib.rs", "pub fn f() {}\n");
+    // Without the watcher: a refresh of the new directory finds its manifest.
+    {
+        let store = Store::open(db.path().join("direct.sqlite")).unwrap();
+        let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+        pipeline.index_all().unwrap();
+        write(&root, "crates/b/Cargo.toml", "[package]\nname = \"b\"\n");
+        write(&root, "crates/b/src/lib.rs", "pub fn g() {}\n");
+        pipeline.refresh(&[PathBuf::from("crates/b")]).unwrap();
+        let ids = head_ids(&store);
+        assert!(
+            ids.contains(&"pkg:cargo/b".to_owned()) && ids.contains(&"rust:b::g".to_owned()),
+            "{ids:?}"
+        );
+        std::fs::remove_dir_all(root.join("crates/b")).unwrap();
+    }
+    // Through the watcher.
+    let store = Store::open(db.path().join("graph.sqlite")).unwrap();
+    let pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    let watch =
+        timonier_daemon::Watch::start(pipeline, Duration::from_millis(100), None, |_| {}).unwrap();
+    std::thread::sleep(Duration::from_millis(800));
+    write(&root, "crates/c/Cargo.toml", "[package]\nname = \"c\"\n");
+    write(&root, "crates/c/src/lib.rs", "pub fn h() {}\n");
+    let mut found = false;
+    for _ in 0..100 {
+        let ids = head_ids(&store);
+        if ids.contains(&"pkg:cargo/c".to_owned()) && ids.contains(&"rust:c::h".to_owned()) {
+            found = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(found, "{:?}", head_ids(&store));
+    watch.stop().unwrap();
+}
