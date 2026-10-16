@@ -106,7 +106,9 @@ impl Indexer {
             .unwrap_or("repository")
             .to_owned();
         let project = Project::new(&repo_name, &packs, Vec::new())?;
-        let given_root = std::path::absolute(&root).ok().filter(|given| *given != canonical);
+        let given_root = std::path::absolute(&root)
+            .ok()
+            .filter(|given| *given != canonical);
         Ok(Self {
             root: canonical,
             given_root,
@@ -591,7 +593,11 @@ impl Indexer {
         let relative = if path.is_absolute() {
             if let Ok(inside) = path.strip_prefix(&self.root) {
                 inside
-            } else if let Some(inside) = self.given_root.as_ref().and_then(|g| path.strip_prefix(g).ok()) {
+            } else if let Some(inside) = self
+                .given_root
+                .as_ref()
+                .and_then(|g| path.strip_prefix(g).ok())
+            {
                 inside
             } else {
                 // Through another symbolic link: the parent still exists, even for a file
