@@ -7,6 +7,7 @@
 
 mod codec;
 mod error;
+mod extraction;
 mod read;
 mod schema;
 mod write;
@@ -19,6 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use timonier_core::{Freeze, ScopeUpdate, Snapshot};
 
 pub use error::{Error, Result};
+pub use extraction::CachedExtraction;
 pub use read::Reader;
 pub use write::ApplyStats;
 
@@ -84,6 +86,14 @@ impl Store {
         self.inner
             .writer
             .run(move |connection| write::freeze(connection, &freeze, now))
+    }
+
+    /// Saves extractions of the indexer and forgets the paths of `remove` (ADR 0013), in one
+    /// transaction.
+    pub fn save_extractions(&self, put: Vec<CachedExtraction>, remove: Vec<String>) -> Result<()> {
+        self.inner
+            .writer
+            .run(move |connection| extraction::save(connection, &put, &remove))
     }
 
     /// Rows written since the store was opened (SQLite's `total_changes`): lets tests prove that

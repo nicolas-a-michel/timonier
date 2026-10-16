@@ -13,7 +13,7 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use timonier_core::tree::{self, CheckError};
 use timonier_core::{
     ContentHash, Edge, EdgeKey, EdgeKind, Freeze, Node, NodeId, NodeKind, Observation, Provenance,
-    ScopeKey, ScopeUpdate, Snapshot, SourceObservations, TreeViolation, fusion,
+    Role, ScopeKey, ScopeUpdate, Snapshot, SourceObservations, TreeViolation, fusion,
 };
 
 use crate::codec::{
@@ -518,13 +518,13 @@ fn upsert_node_claim(tx: &Transaction<'_>, scope: &str, node: &Node) -> Result<(
     let [start_line, start_column, end_line, end_column] = span_columns(node.span.as_ref());
     tx.prepare_cached(
         "INSERT INTO node_claim (scope, id, kind, name, language, parent, signature, body_hash,
-                                 start_line, start_column, end_line, end_column)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                                 start_line, start_column, end_line, end_column, role)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
          ON CONFLICT (id, scope) DO UPDATE SET
              kind = excluded.kind, name = excluded.name, language = excluded.language,
              parent = excluded.parent, signature = excluded.signature, body_hash = excluded.body_hash,
              start_line = excluded.start_line, start_column = excluded.start_column,
-             end_line = excluded.end_line, end_column = excluded.end_column",
+             end_line = excluded.end_line, end_column = excluded.end_column, role = excluded.role",
     )?
     .execute(params![
         scope,
@@ -539,6 +539,7 @@ fn upsert_node_claim(tx: &Transaction<'_>, scope: &str, node: &Node) -> Result<(
         start_column,
         end_line,
         end_column,
+        node.role.map(Role::as_str),
     ])?;
     Ok(())
 }
@@ -553,8 +554,8 @@ fn insert_node(tx: &Transaction<'_>, scope: &str, node: &Node, head: u64) -> Res
     let [start_line, start_column, end_line, end_column] = span_columns(node.span.as_ref());
     tx.prepare_cached(
         "INSERT INTO node (id, scope, kind, name, language, parent, signature, body_hash,
-                           start_line, start_column, end_line, end_column, valid_from)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                           start_line, start_column, end_line, end_column, valid_from, role)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
     )?
     .execute(params![
         node.id.as_str(),
@@ -570,6 +571,7 @@ fn insert_node(tx: &Transaction<'_>, scope: &str, node: &Node, head: u64) -> Res
         end_line,
         end_column,
         seq_param(head),
+        node.role.map(Role::as_str),
     ])?;
     Ok(())
 }
@@ -578,7 +580,7 @@ fn update_node_in_place(tx: &Transaction<'_>, version_id: i64, node: &Node) -> R
     let [start_line, start_column, end_line, end_column] = span_columns(node.span.as_ref());
     tx.prepare_cached(
         "UPDATE node SET kind = ?2, name = ?3, language = ?4, parent = ?5, signature = ?6, body_hash = ?7,
-                         start_line = ?8, start_column = ?9, end_line = ?10, end_column = ?11
+                         start_line = ?8, start_column = ?9, end_line = ?10, end_column = ?11, role = ?12
          WHERE version_id = ?1",
     )?
     .execute(params![
@@ -593,6 +595,7 @@ fn update_node_in_place(tx: &Transaction<'_>, version_id: i64, node: &Node) -> R
         start_column,
         end_line,
         end_column,
+        node.role.map(Role::as_str),
     ])?;
     Ok(())
 }

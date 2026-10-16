@@ -216,6 +216,75 @@ impl From<ContentHash> for String {
     }
 }
 
+/// Architectural roles of the spec (« Composants »), on packages and components (ADR 0017).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "&'static str")]
+pub enum Role {
+    /// Server or entry point.
+    EntryPoint,
+    DataModel,
+    Persistence,
+    Interface,
+    BackgroundTask,
+    /// A group of external libraries.
+    ExternalLibraries,
+    Utility,
+}
+
+impl Role {
+    pub const ALL: [Self; 7] = [
+        Self::EntryPoint,
+        Self::DataModel,
+        Self::Persistence,
+        Self::Interface,
+        Self::BackgroundTask,
+        Self::ExternalLibraries,
+        Self::Utility,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::EntryPoint => "entry_point",
+            Self::DataModel => "data_model",
+            Self::Persistence => "persistence",
+            Self::Interface => "interface",
+            Self::BackgroundTask => "background_task",
+            Self::ExternalLibraries => "external_libraries",
+            Self::Utility => "utility",
+        }
+    }
+
+    pub fn parse(name: &str) -> Result<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|role| role.as_str() == name)
+            .ok_or_else(|| Error::UnknownName {
+                what: "role",
+                value: name.to_owned(),
+            })
+    }
+}
+
+impl From<Role> for &'static str {
+    fn from(role: Role) -> Self {
+        role.as_str()
+    }
+}
+
+impl TryFrom<String> for Role {
+    type Error = Error;
+
+    fn try_from(name: String) -> Result<Self> {
+        Self::parse(&name)
+    }
+}
+
+impl fmt::Display for Role {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// A node of the graph. Its place in the hierarchy is its `parent` (a strict tree, ADR 0008).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Node {
@@ -235,6 +304,9 @@ pub struct Node {
     /// Hash of the normalised body of a symbol, from its language pack.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_hash: Option<ContentHash>,
+    /// Architectural role of a package or a component (ADR 0017).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<Role>,
 }
 
 impl Node {
@@ -248,6 +320,7 @@ impl Node {
             parent: None,
             signature: None,
             body_hash: None,
+            role: None,
         }
     }
 
@@ -273,6 +346,11 @@ impl Node {
 
     pub fn with_body_hash(mut self, hash: ContentHash) -> Self {
         self.body_hash = Some(hash);
+        self
+    }
+
+    pub fn with_role(mut self, role: Role) -> Self {
+        self.role = Some(role);
         self
     }
 
@@ -311,12 +389,33 @@ impl Node {
             && self.parent == other.parent
             && self.signature == other.signature
             && self.body_hash == other.body_hash
+            && self.role == other.role
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn roles_use_the_spec_names_and_belong_to_the_version() {
+        for role in Role::ALL {
+            assert_eq!(Role::parse(role.as_str()).unwrap(), role);
+            let json = serde_json::to_string(&role).unwrap();
+            assert_eq!(serde_json::from_str::<Role>(&json).unwrap(), role);
+        }
+        assert!(Role::parse("server").is_err());
+        let package = Node::new(
+            NodeId::package("cargo", "a").unwrap(),
+            NodeKind::Package,
+            "a",
+        );
+        let with_role = package.clone().with_role(Role::Persistence);
+        assert!(!package.same_version(&with_role));
+        let json = serde_json::to_string(&with_role).unwrap();
+        assert!(json.contains("\"role\":\"persistence\""), "{json}");
+        assert_eq!(serde_json::from_str::<Node>(&json).unwrap(), with_role);
+    }
 
     #[test]
     fn node_kinds_have_one_flat_name_each() {

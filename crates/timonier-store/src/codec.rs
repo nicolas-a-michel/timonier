@@ -3,13 +3,13 @@
 use rusqlite::Row;
 use timonier_core::{
     Confidence, ContentHash, Edge, EdgeKind, Language, Node, NodeId, NodeKind, Position,
-    Provenance, Snapshot, SnapshotKind, Span,
+    Provenance, Role, Snapshot, SnapshotKind, Span,
 };
 
 use crate::{Error, Result};
 
 /// Columns read by [`RawNode::read`], in order.
-pub(crate) const NODE_COLUMNS: &str = "id, kind, name, language, parent, signature, body_hash, start_line, start_column, end_line, end_column";
+pub(crate) const NODE_COLUMNS: &str = "id, kind, name, language, parent, signature, body_hash, start_line, start_column, end_line, end_column, role";
 
 /// Columns read by [`RawEdge::read`], in order.
 pub(crate) const EDGE_COLUMNS: &str = "src, dst, kind, provenance, confidence, weight";
@@ -27,6 +27,7 @@ pub(crate) struct RawNode {
     signature: Option<String>,
     body_hash: Option<[u8; 32]>,
     span: [Option<i64>; 4],
+    role: Option<String>,
 }
 
 impl RawNode {
@@ -46,6 +47,7 @@ impl RawNode {
                 row.get(at + 9)?,
                 row.get(at + 10)?,
             ],
+            role: row.get(at + 11)?,
         })
     }
 
@@ -84,6 +86,7 @@ impl RawNode {
             parent: self.parent.map(NodeId::parse).transpose()?,
             signature: self.signature,
             body_hash: self.body_hash.map(ContentHash::from_bytes),
+            role: self.role.map(|r| Role::parse(&r)).transpose()?,
         })
     }
 }

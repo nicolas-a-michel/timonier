@@ -125,6 +125,32 @@ function, method, field, constant. Each node has a name, a language, a span and 
   - Pragmas: WAL, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5s`.
   - One writer thread with a synchronous API; read-only `Reader`s, one per thread.
 
+## Decisions of Phase 3 (ADR 0012 to 0018)
+
+- **Who produces what** (ADR 0013): `timonier-index` turns a repository into scope updates.
+  The structure scope holds the repo, components, packages (internal ones that own a file, and
+  runtime dependencies), files, and the manifests' `DependsOn`. Each file scope holds its
+  symbols and its tree-sitter edges: file → file `Imports`, `Calls`, `References`, and symbol →
+  symbol `Implements`/`Inherits`.
+- **Qualified names** (ADR 0013): `rust:<crate>::<module path>::<items>`, with target prefixes
+  no module can take (`<crate>::@tests::<name>`, `<crate>::@bin::<name>`, `@examples`,
+  `@benches`, `@build`); `typescript:<package>/<path>#<A.b>`. Only `timonier_index::project`
+  builds them.
+- **LSP** (ADR 0014): `Lsp` observations are function → function `Calls`, `verifying([Calls])`,
+  `computed_on` the hash read at request time. Beyond 50 000 of them (ADR 0018), the oldest
+  verified files keep `Lsp` file → file `Calls`, still verified.
+- **Commit snapshots** (ADR 0015) describe the committed tree: dirty files take their HEAD
+  version for the freeze, then the working tree comes back.
+- **Components** (ADR 0016): keys `dir/<path>`, `cluster/<smallest member path>`, `external`,
+  `external/<category>`. Clustering happens at a commit, at the first indexing, and when
+  packages change; a restart takes the head's components back as they are. Leiden is
+  idempotent, and only components that hang from the repo or an existing package are emitted.
+- **Roles** (ADR 0017): `Node::role` on packages and components, versioned (a changed role is
+  a modification). Migration 0003.
+- **Extraction cache** (ADR 0013, migration 0002): table `extraction`, opaque JSON for the
+  store, keyed by content hash, language, pack version and extractor version. Not graph facts:
+  no `valid_from`/`valid_to`.
+
 ## Update by difference
 
 Re-indexing a file computes its new set of nodes and edges, compares it with the currently

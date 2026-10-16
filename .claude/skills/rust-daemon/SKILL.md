@@ -48,6 +48,25 @@ Rules:
 - Nothing panics across the JSON-RPC or MCP boundary: errors become protocol error objects
   with stable codes and an actionable message.
 
+## The daemon today (Phase 3)
+
+- `indexing::Pipeline` owns the `Indexer` and the `Store`: `index_all` (cache, restart,
+  consolidation of HEAD), `refresh` (paths changed on disk), `consolidate` (commit snapshot,
+  ADR 0015), `refine_next` (one LSP step, ADR 0014, with compaction, ADR 0018), `recluster`.
+- `watch::Watch` runs the pipeline on a dedicated std thread: debounced changes (300 ms),
+  commits seen under the git directory, LSP refinement when idle with `yield_now` as soon as a
+  change waits. Its events (`Event`) go to a callback. It watches only the directories the walk
+  entered (non-recursive, one by one) plus the git directory and its `logs/`, and indexes once
+  the watches are in place.
+- When an update fails, the pipeline indexes everything again (disk and cache) so that the
+  indexer's memory and the store agree again. Restarting reloads the LSP state from the
+  store's `Lsp` observations.
+- `git` asks git's CLI (`rev-parse`, `status --porcelain=v1 -z`, `show`).
+- No tokio yet: the JSON-RPC server of Phase 4 brings the runtime. Keep the pipeline
+  synchronous and call it from `spawn_blocking` or its own thread then.
+- Measure with `cargo run --release -p timonier-daemon --example index_bench`; look at a graph
+  with `--example index_dump`.
+
 ## Async with tokio
 
 - One multi-threaded runtime, created in `main`.

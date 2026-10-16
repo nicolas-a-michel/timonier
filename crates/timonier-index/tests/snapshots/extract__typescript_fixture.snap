@@ -1,0 +1,39 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/host.ts\", TS))"
+---
+constant K                                        under -                        at 6:13  `K =`  #a2a6f221
+function f                                        under -                        at 7:6  `f = (x: number): number =>`  #ed8fb7e7
+function g                                        under -                        at 9:7  `function g(a: string): void`  #fd43c60c
+type     Foo                                      under -                        at 15:15  `class Foo extends Bar implements I, J`  #2f48bdc9
+field    Foo/x                                    under Foo                      at 16:2  `private x = 1`  #a15cbc2a
+method   Foo/m                                    under Foo                      at 17:2  `m(a: number): T`  #878b32da
+trait    I                                        under -                        at 22:0  `interface I extends Base`  #35596fa0
+field    I/p                                      under I                        at 23:2  `p: string`  #a9328ee2
+method   I/q                                      under I                        at 24:2  `q(): void`  #a2ff1c21
+type     U                                        under -                        at 27:0  `type U =`  #21945b90
+type     En                                       under -                        at 29:0  `enum En`  #d6b3ddb7
+module   N                                        under -                        at 33:0  `namespace N`  #b70a8920
+function N/inN                                    under N                        at 34:9  `function inN()`  #c7ee7c96
+function over                                     under -                        at 38:0  `function over(a: any)`  #f52af9ae
+function activate                                 under -                        at 42:7  `function activate()`  #0a8c4837
+import   ./host binds ["a", "c"]
+import   ../x binds ["ns"]
+import   react binds ["React"]
+import   ./t binds ["T"]
+import   ./z binds ["z"]
+calls Foo ×1
+calls c ×1
+calls h ×1
+calls ns·k ×1 on a receiver
+calls this·n ×1 on a receiver
+references Foo ×1
+references I ×1
+references T ×1
+references U ×1
+implements I ×1 from Foo
+implements J ×1 from Foo
+inherits Bar ×1 from Foo
+inherits Base ×1 from I
+signal   entry_point ×1
+errors   false

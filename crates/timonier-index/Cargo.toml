@@ -11,6 +11,21 @@ publish.workspace = true
 
 [dependencies]
 timonier-core = { workspace = true }
+blake3 = { workspace = true }
+globset = { workspace = true }
+ignore = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+tree-sitter = { workspace = true }
+tree-sitter-rust = { workspace = true }
+tree-sitter-typescript = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

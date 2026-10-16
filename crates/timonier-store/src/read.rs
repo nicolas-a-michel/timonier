@@ -1,6 +1,6 @@
 //! Reads, on read-only connections: state at a snapshot, diffs, aggregation (ADR 0010).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -29,6 +29,123 @@ impl Reader {
         Ok(Self {
             connection: schema::open_reader(path)?,
         })
+    }
+
+    /// The scopes that hold something: `structure` and the files whose content was recorded.
+    pub fn scopes(&self) -> Result<Vec<timonier_core::ScopeKey>> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT key FROM scope UNION SELECT DISTINCT scope FROM node WHERE valid_to IS NULL ORDER BY 1",
+        )?;
+        let keys = statement
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        keys.into_iter()
+            .map(|key| {
+                timonier_core::ScopeKey::new(key.clone()).map_err(|_| Error::Corrupt {
+                    column: "scope.key",
+                    value: key,
+                    expected: "`structure` or a file id",
+                })
+            })
+            .collect()
+    }
+
+    /// The innermost symbol of a file's scope whose span contains `at`, at the head: where a
+    /// language server's answer lands in the graph (ADR 0014).
+    pub fn symbol_at(&self, file: &NodeId, at: timonier_core::Position) -> Result<Option<NodeId>> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT id FROM node
+             WHERE scope = ?1 AND valid_to IS NULL AND start_line IS NOT NULL
+               AND (start_line, start_column) <= (?2, ?3) AND (end_line, end_column) >= (?2, ?3)
+             ORDER BY start_line DESC, start_column DESC LIMIT 1",
+        )?;
+        let id: Option<String> = statement
+            .query_row(params![file.as_str(), at.line, at.column], |row| row.get(0))
+            .optional()?;
+        id.map(|id| {
+            NodeId::parse(id.clone()).map_err(|_| Error::Corrupt {
+                column: "node.id",
+                value: id,
+                expected: "a node id",
+            })
+        })
+        .transpose()
+    }
+
+    /// What one source observed in every scope, with the kinds it verified there: what the
+    /// daemon reloads after a restart, for the LSP (ADR 0014, 0018).
+    pub fn observations(
+        &self,
+        source: Provenance,
+    ) -> Result<Vec<(ScopeKey, timonier_core::SourceObservations)>> {
+        let corrupt = |column: &'static str, value: String| Error::Corrupt {
+            column,
+            value,
+            expected: "a valid value",
+        };
+        let mut by_scope: BTreeMap<String, timonier_core::SourceObservations> = BTreeMap::new();
+        let mut statement = self.connection.prepare_cached(
+            "SELECT scope, src, dst, kind, confidence, weight FROM observation WHERE source = ?1 ORDER BY scope, src, dst, kind",
+        )?;
+        let rows = statement
+            .query_map([source.as_str()], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, f64>(4)?,
+                    row.get::<_, i64>(5)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        for (scope, src, dst, kind, confidence, weight) in rows {
+            #[allow(clippy::cast_possible_truncation)]
+            // Stored from an f32: the round trip is exact.
+            let confidence = timonier_core::Confidence::new(confidence as f32)?;
+            let weight = u32::try_from(weight)
+                .map_err(|_| corrupt("observation.weight", weight.to_string()))?;
+            let observation = timonier_core::Observation::new(
+                NodeId::parse(src)?,
+                NodeId::parse(dst)?,
+                EdgeKind::parse(&kind)?,
+            )
+            .with_confidence(confidence)
+            .with_weight(weight);
+            by_scope
+                .entry(scope)
+                .or_insert_with(|| timonier_core::SourceObservations::new(source, Vec::new()))
+                .observations
+                .push(observation);
+        }
+        let mut statement = self.connection.prepare_cached(
+            "SELECT scope, kind FROM verification WHERE source = ?1 ORDER BY scope, kind",
+        )?;
+        let rows = statement
+            .query_map([source.as_str()], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        for (scope, kind) in rows {
+            by_scope
+                .entry(scope)
+                .or_insert_with(|| timonier_core::SourceObservations::new(source, Vec::new()))
+                .verified
+                .push(EdgeKind::parse(&kind)?);
+        }
+        by_scope
+            .into_iter()
+            .map(|(scope, observations)| {
+                let key = ScopeKey::new(scope.clone())
+                    .map_err(|_| corrupt("observation.scope", scope))?;
+                Ok((key, observations))
+            })
+            .collect()
+    }
+
+    /// The whole extraction cache, by path (ADR 0013).
+    pub fn extractions(&self) -> Result<Vec<crate::CachedExtraction>> {
+        crate::extraction::load(&self.connection)
     }
 
     /// The open snapshot every change is recorded in.

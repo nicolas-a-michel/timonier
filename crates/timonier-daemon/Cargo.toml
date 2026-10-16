@@ -14,6 +14,14 @@ timonier-core = { workspace = true }
 timonier-store = { workspace = true }
 timonier-index = { workspace = true }
 timonier-otlp = { workspace = true }
+notify-debouncer-full = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+ignore = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

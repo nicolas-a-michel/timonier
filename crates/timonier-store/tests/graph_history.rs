@@ -1737,3 +1737,141 @@ fn a_precise_source_brings_no_nodes() {
         Err(Error::PreciseSourceSetsContent { .. })
     ));
 }
+
+#[test]
+fn the_extraction_cache_saves_replaces_and_forgets() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = timonier_store::Store::open(dir.path().join("graph.sqlite")).unwrap();
+    let entry = |path: &str, hash: u8, facts: &str| timonier_store::CachedExtraction {
+        path: path.into(),
+        language: "rust".into(),
+        pack_version: "1.0.0".into(),
+        extractor: 1,
+        content_hash: timonier_core::ContentHash::from_bytes([hash; 32]),
+        facts: facts.into(),
+    };
+    store
+        .save_extractions(
+            vec![entry("src/a.rs", 1, "{}"), entry("src/b.rs", 2, "[]")],
+            Vec::new(),
+        )
+        .unwrap();
+    store
+        .save_extractions(
+            vec![entry("src/a.rs", 3, "{\"x\":1}")],
+            vec!["src/b.rs".into()],
+        )
+        .unwrap();
+    let reader = store.reader().unwrap();
+    assert_eq!(
+        reader.extractions().unwrap(),
+        [entry("src/a.rs", 3, "{\"x\":1}")]
+    );
+}
+
+#[test]
+fn roles_are_stored_and_a_changed_role_is_a_modification() {
+    use timonier_core::{Freeze, Node, NodeChange, NodeId, NodeKind, Role, ScopeKey, ScopeUpdate};
+    let dir = tempfile::tempdir().unwrap();
+    let store = timonier_store::Store::open(dir.path().join("graph.sqlite")).unwrap();
+    let repo = NodeId::repo("r").unwrap();
+    let package = NodeId::package("cargo", "store").unwrap();
+    let structure = |role: Role| {
+        ScopeUpdate::new(ScopeKey::structure()).with_nodes(vec![
+            Node::new(repo.clone(), NodeKind::Repo, "r"),
+            Node::new(package.clone(), NodeKind::Package, "store")
+                .with_parent(repo.clone())
+                .with_role(role),
+        ])
+    };
+    store.apply(structure(Role::Utility)).unwrap();
+    let mark = store.freeze(Freeze::ReviewMark).unwrap().seq;
+    store.apply(structure(Role::Persistence)).unwrap();
+    let mut reader = store.reader().unwrap();
+    let head = reader.head().unwrap().seq;
+    let node = reader.node_at(&package, head).unwrap().unwrap();
+    assert_eq!(node.role, Some(Role::Persistence));
+    let diff = reader.diff(mark, head).unwrap();
+    assert!(
+        matches!(&diff.nodes[..], [NodeChange::Modified { before, after }]
+        if before.role == Some(Role::Utility) && after.role == Some(Role::Persistence)),
+        "{diff:?}"
+    );
+}
+
+#[test]
+fn readers_find_the_innermost_symbol_the_scopes_and_a_source_s_observations() {
+    use timonier_core::{
+        EdgeKind, Node, NodeId, NodeKind, Observation, Position, Provenance, ScopeKey, ScopeUpdate,
+        SourceObservations, Span, SymbolKind,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let store = timonier_store::Store::open(dir.path().join("graph.sqlite")).unwrap();
+    let repo = NodeId::repo("r").unwrap();
+    let file = NodeId::file("src/a.rs").unwrap();
+    let ty = NodeId::parse("rust:a::T").unwrap();
+    let method = NodeId::parse("rust:a::T::m").unwrap();
+    let span = |a: (u32, u32), b: (u32, u32)| {
+        Span::new(Position::new(a.0, a.1), Position::new(b.0, b.1)).unwrap()
+    };
+    let hash = timonier_core::ContentHash::from_bytes([7; 32]);
+    let scope = ScopeKey::of_file(&file).unwrap();
+    store
+        .apply_all(vec![
+            ScopeUpdate::new(ScopeKey::structure()).with_nodes(vec![
+                Node::new(repo.clone(), NodeKind::Repo, "r"),
+                Node::new(file.clone(), NodeKind::File, "a.rs").with_parent(repo.clone()),
+            ]),
+            ScopeUpdate::new(scope.clone())
+                .with_content_hash(hash)
+                .with_nodes(vec![
+                    Node::new(ty.clone(), NodeKind::Symbol(SymbolKind::Type), "T")
+                        .with_parent(file.clone())
+                        .with_span(span((0, 0), (10, 1))),
+                    Node::new(method.clone(), NodeKind::Symbol(SymbolKind::Method), "m")
+                        .with_parent(ty.clone())
+                        .with_span(span((2, 4), (4, 5))),
+                ]),
+        ])
+        .unwrap();
+    store
+        .apply(
+            ScopeUpdate::new(scope.clone()).with_observations(
+                SourceObservations::new(
+                    Provenance::Lsp,
+                    vec![Observation::new(
+                        method.clone(),
+                        ty.clone(),
+                        EdgeKind::Calls,
+                    )],
+                )
+                .verifying([EdgeKind::Calls])
+                .computed_on(hash),
+            ),
+        )
+        .unwrap();
+    let reader = store.reader().unwrap();
+    assert_eq!(
+        reader.symbol_at(&file, Position::new(3, 0)).unwrap(),
+        Some(method.clone())
+    );
+    assert_eq!(
+        reader.symbol_at(&file, Position::new(2, 4)).unwrap(),
+        Some(method.clone())
+    );
+    assert_eq!(
+        reader.symbol_at(&file, Position::new(5, 0)).unwrap(),
+        Some(ty.clone())
+    );
+    assert_eq!(reader.symbol_at(&file, Position::new(11, 0)).unwrap(), None);
+    assert_eq!(
+        reader.scopes().unwrap(),
+        [scope.clone(), ScopeKey::structure()]
+    );
+    let lsp = reader.observations(Provenance::Lsp).unwrap();
+    assert_eq!(lsp.len(), 1);
+    assert_eq!(lsp[0].0, scope);
+    assert_eq!(lsp[0].1.verified, [EdgeKind::Calls]);
+    assert_eq!(lsp[0].1.observations.len(), 1);
+    assert!(reader.observations(Provenance::Scip).unwrap().is_empty());
+}

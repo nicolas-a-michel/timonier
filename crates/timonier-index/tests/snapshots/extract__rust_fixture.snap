@@ -1,0 +1,62 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/lib.rs\", RUST))"
+---
+type     Foo                                      under -                        at 8:0  `pub struct Foo<T>`  #286a8f9b
+field    Foo/a                                    under Foo                      at 9:4  `pub a: u32`  #ade6a9db
+field    Foo/b                                    under Foo                      at 10:4  `b: T`  #811fe7f5
+type     Unit                                     under -                        at 13:0  `pub struct Unit;`  #2656b11e
+method   Foo/new                                  under Foo                      at 16:4  `pub fn new(a: u32) -> Self where T: Default`  #08355461
+function Foo/new/helper                           under Foo/new                  at 17:8  `fn helper(x: u32) -> u32`  #6c83a68b
+method   <Foo as std::fmt::Display>/fmt           under Foo                      at 26:4  `fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result`  #417cd422
+method   <Foo as std::fmt::Debug>/fmt             under Foo                      at 32:4  `fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result`  #e8764c99
+trait    Shape                                    under -                        at 35:0  `pub trait Shape: Clone`  #475f956b
+type     Shape/Output                             under Shape                    at 36:4  `type Output;`  #30309a96
+constant Shape/SIDES                              under Shape                    at 37:4  `const SIDES: u32;`  #de293ffe
+method   Shape/area                               under Shape                    at 38:4  `fn area(&self) -> f64;`  #17938173
+method   Shape/name                               under Shape                    at 39:4  `fn name(&self) -> &str`  #24f71aee
+module   inner                                    under -                        at 42:0  `mod inner`  #eaa9db1a
+constant inner/K                                  under inner                    at 43:4  `pub const K: u32 =`  #a2a6f221
+constant inner/S                                  under inner                    at 44:4  `static S: u8 =`  #1ee7adc0
+function inner/platform                           under inner                    at 46:4  `fn platform() -> u8`  #821f6ccd
+type     Kind                                     under -                        at 53:0  `pub enum Kind`  #e837871e
+field    Kind/x                                   under Kind                     at 53:23  `x: u32`  #8f2e811b
+type     Alias                                    under -                        at 55:0  `type Alias =`  #3fb8b386
+function main                                     under -                        at 57:0  `fn main()`  #7dab48b2
+import   crate::node::Node binds ["Node"]
+import   crate::edge::Edge binds ["Edge"]
+import   crate::edge binds ["edge"]
+import   super::store binds ["storage"]
+import   std::fmt::* binds []
+import   serde::Deserialize binds ["Deserialize"]
+import   serde::Serialize binds ["Serialize"]
+calls Edge·default ×1
+calls Node·new ×1
+calls Ok ×1
+calls T·default ×1
+calls helper ×1
+calls inner·platform ×1
+calls join ×1 on a receiver
+calls push ×1 on a receiver
+calls std·thread·spawn ×1
+calls storage·save ×1
+calls unwrap ×1 on a receiver
+references Alias ×1
+references Clone ×1
+references Default ×1
+references Foo ×4
+references Kind ×1
+references Output ×1
+references Self ×2
+references Shape ×1
+references T ×5
+references Unit ×1
+references Vec ×1
+references std·fmt·Formatter ×2
+references std·fmt·Result ×2
+implements std·fmt·Debug ×1 from Foo
+implements std·fmt·Display ×1 from Foo
+signal   entry_point ×1
+signal   data_model ×1
+signal   background_task ×1
+errors   false

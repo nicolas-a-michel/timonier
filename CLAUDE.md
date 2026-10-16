@@ -30,7 +30,7 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation) and `timonier-store` (SQLite history, single writer; `migrations/`, `examples/bench.rs`) are implemented (Phase 2); the others are skeletons | in progress |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles) and `timonier-store` (SQLite history, single writer, extraction cache; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3; `otlp`, `mcp`, `cli` are skeletons | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
@@ -66,6 +66,11 @@ cargo run --bin tim -- --version   # `timonier` and `tim` are the same program
 
 # Store baseline timings (record changes in PLAN.md)
 cargo run --release -p timonier-store --example bench [packages] [files] [symbols]
+
+# Indexing timings on a repository (default: this one, copied to a temp dir), and its graph
+cargo run --release -p timonier-daemon --example index_bench [repository] [saves]
+cargo run --release -p timonier-daemon --example index_dump [repository]
+cargo test --release -p timonier-daemon --test compaction -- --ignored   # load test
 ```
 
 ## Working rules

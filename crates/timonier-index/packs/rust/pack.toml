@@ -1,0 +1,81 @@
+# Rust language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "rust"
+version = "1.0.0"
+ecosystem = "cargo"
+
+[[grammars]]
+name = "rust"
+crate = "tree-sitter-rust"
+version = "0.24.2"
+license = "MIT"
+extensions = ["rs"]
+
+[naming]
+module = "::"
+join = "::"
+member = "::"
+
+[paths]
+# How a path written in the code splits into segments, and what an import list prefixes.
+separators = ["::"]
+prefix_field = "path"
+# `use a::{self}` imports `a`.
+trailing_self = "self"
+# `use a::b::C` binds `C`; `use a::b::C as D` binds `D`.
+bind = "last_segment"
+
+[fingerprint]
+# Literals are kept whole: their content is meaning, not layout.
+atoms = ["string_literal", "raw_string_literal", "char_literal"]
+drop = []
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ":", ".", "::", "?"]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", "&", "*", "!", ".", "::", "#", "'"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+[dependencies]
+async = ["tokio", "async-std", "smol", "futures", "async-trait", "tokio-util", "tokio-stream"]
+network = [
+  "hyper", "axum", "reqwest", "tonic", "warp", "actix-web", "tower", "tower-http",
+  "jsonrpsee", "rmcp", "async-lsp", "tower-lsp-server", "ureq", "http",
+]
+serialization = [
+  "serde", "serde_json", "toml", "prost", "bincode", "rmp-serde", "serde_yaml", "schemars",
+  "quick-junit", "cyclonedx-bom", "scip",
+]
+database = ["rusqlite", "rusqlite_migration", "sqlx", "diesel", "sea-orm", "redis", "refinery"]
+cli = ["clap", "argh", "pico-args"]
+observability = [
+  "tracing", "tracing-subscriber", "tracing-opentelemetry", "opentelemetry", "opentelemetry_sdk",
+  "opentelemetry-otlp", "opentelemetry-proto", "log", "env_logger",
+]
+parsing = ["tree-sitter", "tree-sitter-rust", "tree-sitter-typescript", "syn", "nom", "winnow"]
+
+# Role signals (spec « Composants »): libraries a package depends on, and paths its code
+# imports. The roles query adds signals read in the code itself; a data model shows there,
+# by its share of files deriving Serialize or Deserialize (ADR 0017), not by importing serde.
+[[roles]]
+role = "entry_point"
+libraries = ["clap", "axum", "actix-web", "warp", "hyper", "tonic", "jsonrpsee", "rmcp"]
+paths = [
+  "std::net::TcpListener", "tokio::net::TcpListener", "tokio::net::UnixListener",
+  "std::os::unix::net::UnixListener",
+]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["rusqlite", "sqlx", "diesel", "sea-orm", "redis", "refinery", "rusqlite_migration"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+libraries = ["notify", "notify-debouncer-full", "notify-debouncer-mini", "crossbeam-channel", "cron"]
+paths = ["std::thread::spawn", "tokio::spawn", "tokio::task::spawn_blocking", "notify::Watcher"]
+confidence = 0.5

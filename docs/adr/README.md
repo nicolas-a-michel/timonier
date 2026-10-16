@@ -16,3 +16,10 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0009 | [Portées, observations et fusion des sources](0009-portees-et-fusion-des-sources.md) | Accepté | 2 |
 | 0010 | [Versionnement : tête de travail ouverte, snapshots figés, diff et déplacements](0010-versionnement-snapshots-et-diff.md) | Accepté | 2 |
 | 0011 | [SQLite : moteur embarqué, migrations, écrivain unique](0011-sqlite-migrations-et-ecrivain-unique.md) | Accepté | 2 |
+| 0012 | [Format des packs de langage](0012-format-des-packs-de-langage.md) | Accepté | 3 |
+| 0013 | [Extraction tree-sitter, résolution approchée et cache](0013-extraction-resolution-et-cache.md) | Accepté | 3 |
+| 0014 | [Vitesse 2 : affinage LSP en arrière-plan](0014-affinage-lsp-en-arriere-plan.md) | Accepté | 3 |
+| 0015 | [Vitesse 3 : consolidation au commit](0015-consolidation-au-commit.md) | Accepté | 3 |
+| 0016 | [Composants : structure, clustering stable, identité](0016-composants-et-clustering.md) | Accepté | 3 |
+| 0017 | [Rôles architecturaux et dépendances externes](0017-roles-architecturaux.md) | Accepté | 3 |
+| 0018 | [Compaction des arêtes de symboles](0018-compaction-des-aretes-de-symboles.md) | Accepté | 3 |

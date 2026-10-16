@@ -1,0 +1,87 @@
+# TypeScript language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "typescript"
+version = "1.0.0"
+ecosystem = "npm"
+
+[[grammars]]
+name = "typescript"
+crate = "tree-sitter-typescript"
+version = "0.23.2"
+license = "MIT"
+extensions = ["ts", "mts", "cts"]
+
+[[grammars]]
+name = "tsx"
+crate = "tree-sitter-typescript"
+version = "0.23.2"
+license = "MIT"
+extensions = ["tsx"]
+
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# Imports name a module (`"./host"`); the names they bind are captured separately.
+bind = "captures"
+
+[fingerprint]
+atoms = ["string", "template_string", "regex"]
+# Semicolons are optional in TypeScript; formatters add or remove them.
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+# Formatters add a leading `|` or `&` to multi-line union and intersection types.
+drop_leading = ["|", "&"]
+opening = ["=", "(", "[", "<", ":", ",", "=>"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ":", ".", "?", "!"]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "...", "@"]
+
+[dependencies]
+async = ["rxjs", "p-limit", "p-queue"]
+network = [
+  "express", "fastify", "koa", "hono", "axios", "undici", "ws", "socket.io", "node-fetch",
+  "vscode-jsonrpc", "@modelcontextprotocol/sdk",
+]
+serialization = ["zod", "yaml", "protobufjs", "superjson", "msgpackr"]
+database = ["pg", "mysql2", "better-sqlite3", "sqlite3", "prisma", "@prisma/client", "typeorm", "mongoose", "drizzle-orm", "redis", "ioredis"]
+cli = ["commander", "yargs", "cac"]
+observability = ["@opentelemetry/api", "@opentelemetry/sdk-node", "pino", "winston"]
+ui = [
+  "react", "react-dom", "vue", "svelte", "@xyflow/react", "elkjs", "uplot", "pixi.js",
+  "@vscode-elements/elements",
+]
+
+[[roles]]
+role = "entry_point"
+libraries = ["express", "fastify", "koa", "hono", "commander", "yargs"]
+paths = ["http", "node:http", "https", "node:https", "net", "node:net"]
+confidence = 0.8
+
+[[roles]]
+role = "interface"
+libraries = ["react", "react-dom", "vue", "svelte"]
+paths = ["vscode"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["pg", "mysql2", "better-sqlite3", "sqlite3", "prisma", "@prisma/client", "typeorm", "mongoose", "drizzle-orm"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+libraries = ["zod"]
+confidence = 0.5
+
+[[roles]]
+role = "background_task"
+paths = ["worker_threads", "node:worker_threads", "child_process", "node:child_process"]
+confidence = 0.5

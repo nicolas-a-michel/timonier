@@ -21,7 +21,7 @@ pub use edge::{Confidence, Edge, EdgeKey, EdgeKind, Observation, Provenance};
 pub use error::{Error, Result};
 pub use fusion::SourceObservations;
 pub use id::{IdForm, Language, NodeId, RESERVED_PREFIXES};
-pub use node::{ContentHash, Node, NodeKind, Position, Span, SymbolKind};
+pub use node::{ContentHash, Node, NodeKind, Position, Role, Span, SymbolKind};
 pub use snapshot::{Freeze, Snapshot, SnapshotKind};
 pub use tree::TreeViolation;
 pub use update::{ScopeKey, ScopeUpdate};

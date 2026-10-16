@@ -501,6 +501,17 @@ Constats (2026-10-14, Linux, après deux relectures) :
   | Lire tous les nœuds à la tête | 16 ms | 163 ms |
   | Agréger au niveau des packages | 48 ms | 627 ms |
 
+CI GitHub (2026-10-16) :
+- commit `48e397f` (run 38860803467) : rouge. Clippy 1.99, plus récent que le 1.96 installé en
+  local, refusait un `chunks_exact(2)` (lint `chunks_exact_to_as_chunks`). Un test
+  d'intégration a aussi échoué sous Linux : la fenêtre de VSCode 1.142.0, sortie la veille, a
+  été déclarée « unresponsive » sous xvfb avant le premier test.
+- commit `72f2ae5` (run 38861207962) : les 5 jobs sont verts. Le correctif utilise
+  `as_chunks::<2>()`, stable depuis 1.88 et donc compatible MSRV. Le même test d'intégration est
+  passé, avec la même version de VSCode : l'échec Linux était intermittent.
+- La toolchain stable locale est passée à 1.99.1, pour lancer en local le même clippy que la
+  CI.
+
 Relecture n° 1 (`phase-reviewer`) : « pas prête », avec 1 bloquant et 6 importants (B1, I1 à
 I6) et 10 mineurs. Tous ont été corrigés ou consignés :
 - B1 : déplacement « même identifiant », que le fichier suit ;
@@ -556,61 +567,279 @@ Relecture n° 3 : « prête », sans bloquant ni important ; 10 mineurs. Corrig�
 
 ## Phase 3 — Indexation
 
-Statut : à faire
+Statut : terminée (validée par toi le 2026-10-16 ; la relecture n° 3 tournait encore)
 
 Réponses appliquées : Q5 (interface LSP commune, relais de l'IDE d'abord) et Q6 (heuristiques,
 enrichies par l'agent via MCP).
 
-- [ ] 3.1 ADR sur le format des packs de langage : manifeste versionné, requêtes `.scm`,
-  heuristiques, emplacement — critère : ADR acceptée ; skill `language-pack` mis à jour.
-- [ ] 3.2 Packs Rust et TypeScript : grammaires (tree-sitter 0.27.1, tree-sitter-rust 0.24.2,
+- [x] 3.1 ADR sur le format des packs de langage : manifeste versionné, requêtes `.scm`,
+  heuristiques, emplacement — critère : ADR écrite (« Proposé »), acceptée quand tu valides la
+  phase (Q15) ; skill `language-pack` mis à jour.
+  - [ADR 0012](docs/adr/0012-format-des-packs-de-langage.md) : packs dans
+    `crates/timonier-index/packs/<langue>/`, incorporés au binaire ; contrat des captures
+    vérifié au chargement.
+  - Restent du code : la table des grammaires (une ligne par grammaire) et les écosystèmes
+    `cargo` et `npm`.
+- [x] 3.2 Packs Rust et TypeScript : grammaires (tree-sitter 0.27.1, tree-sitter-rust 0.24.2,
   tree-sitter-typescript 0.23.2), requêtes de définitions, d'imports et
   d'appels/références — critère : snapshots insta des nœuds et arêtes extraits de fixtures
   Rust et TS.
-- [ ] 3.3 Noms qualifiés stables et hash de corps normalisé, par langage — critère : reformater
+  - Trois instantanés relus ligne à ligne (Rust, TS, TSX), dans
+    `crates/timonier-index/tests/snapshots/`.
+  - La résolution des chemins en arêtes est testée à part
+    (`crates/timonier-index/src/project.rs`), dont les réexportations Rust et TS.
+- [x] 3.3 Noms qualifiés stables et hash de corps normalisé, par langage — critère : reformater
   un fichier ne change aucune identité (test).
-- [ ] 3.4 Indexation initiale parallélisée, avec un cache persistant (hash par fichier) —
+  - Testé en Rust et en TypeScript : un fichier reformaté garde chaque nom qualifié, chaque
+    signature et chaque hash de corps.
+  - Réordonner les définitions ne change aucune identité (test).
+  - Un déplacement de fonction entre fichiers et un renommage de fichier donnent « déplacé »
+    dans le diff (test de bout en bout, `crates/timonier-daemon/tests/indexing.rs`).
+- [x] 3.4 Indexation initiale parallélisée, avec un cache persistant (hash par fichier) —
   critère : une deuxième indexation sans changement ne reparse aucun fichier (compteur).
-- [ ] 3.5 Vitesse 1, à la sauvegarde — critère : latence mesurée selon H2. Contenu :
+  - Cache dans SQLite (migration 0002, [ADR 0013](docs/adr/0013-extraction-resolution-et-cache.md)).
+  - Seconde indexation : 0 fichier reparsé ; au redémarrage sur la même base, 0 ligne écrite
+    (tests).
+- [x] 3.5 Vitesse 1, à la sauvegarde — critère : latence mesurée selon H2. Contenu :
   - watcher (notify 8.2 + notify-debouncer-full 0.7), anti-rebond ~300 ms ;
   - respect de `.gitignore` (crate `ignore`) ;
   - hash du fichier, reparse tree-sitter incrémental, mise à jour par différence.
-- [ ] 3.6 Vitesse 2, en arrière-plan, selon Q5 — critère : test avec un serveur LSP réel ou un
+
+  Constat (2026-10-16, build release, Ryzen 9 5950X), sur une copie du dépôt Timonier
+  (71 fichiers) et 200 sauvegardes : chiffres de 3.11 (p50 2,5 ms, p95 10,4 ms, max 24 ms) ;
+  - la mesure va du début de la passe (fin de l'anti-rebond) au commit SQLite ;
+  - outil : `cargo run --release -p timonier-daemon --example index_bench`.
+
+  Le watcher réel est testé de bout en bout : sauvegarde, anti-rebond, graphe mis à jour.
+- [x] 3.6 Vitesse 2, en arrière-plan, selon Q5 — critère : test avec un serveur LSP réel ou un
   double conforme. Contenu :
   - les fichiers dépendants sont marqués quand une signature publique change ;
   - file LSP basse priorité, en commençant par ce qui est affiché ;
   - arêtes fonction → fonction issues du LSP ;
   - « vérifié par LSP au hash X ».
-- [ ] 3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la
+
+  [ADR 0014](docs/adr/0014-affinage-lsp-en-arriere-plan.md) : interface `LanguageServer`
+  (hiérarchie d'appels), file à trois priorités (affiché, ouvert, dépendant), seuls les `Calls`
+  vérifiés.
+
+  Constat : 3 tests avec un double conforme au protocole (`crates/timonier-daemon/tests/refinement.rs`) :
+  - arêtes fonction → fonction en provenance `Lsp`, qui remplacent les `Calls` tree-sitter du
+    fichier ;
+  - « vérifié par LSP » perdu quand le contenu change, et le fichier revient en file ;
+  - dépendants renvoyés en file quand une signature change ;
+  - cession du travail à une sauvegarde ;
+  - fichier sans serveur ignoré ;
+  - affinage par le watcher quand il est libre.
+
+  Le relais des serveurs de l'IDE est branché en Phase 4, avec le lien démon ↔ extension.
+- [x] 3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la
   partition précédente, snapshot `commit` figé, sans SCIP (H4) — critère : test d'intégration
   sur un dépôt git temporaire.
   - Le snapshot doit décrire l'arbre commité, pas l'arbre de travail indexé avec ses
     modifications non commitées (ADR 0010, « Conséquences ») : indexer le commit, ou marquer le
     snapshot comme « sale ».
-- [ ] 3.8 Composants — critère : stabilité mesurée (une petite modification change moins de
+
+  [ADR 0015](docs/adr/0015-consolidation-au-commit.md) : on indexe l'arbre commité. Les
+  fichiers qui diffèrent du commit prennent leur version commitée le temps du gel, puis
+  l'arbre de travail revient. La détection passe par le watcher, sur le dossier git.
+
+  Constat : 2 tests sur un dépôt git temporaire (`crates/timonier-daemon/tests/commit.rs`) :
+  - le snapshot du commit contient la modification commitée, mais ni le travail en cours ni le
+    fichier non suivi, que la tête garde ;
+  - le retour à l'arbre de travail n'écrit aucune ligne ;
+  - le watcher voit un vrai `git commit`.
+
+  Le re-clustering à ce moment est fait avec 3.8.
+- [x] 3.8 Composants — critère : stabilité mesurée (une petite modification change moins de
   X % des affectations, seuil fixé par ADR). Contenu :
   - agrégation par structure (membres du workspace Cargo, workspaces npm, dossiers) ;
   - clustering Louvain/Leiden stable. ADR : `graphrs` 0.12 (MIT) est le seul crate vérifié
     qui offre Louvain et Leiden, avec une adoption faible ; l'alternative est d'implémenter
     Leiden nous-mêmes.
-- [ ] 3.9 Rôles architecturaux et dépendances externes — critère : sur Timonier, les rôles
+
+  [ADR 0016](docs/adr/0016-composants-et-clustering.md) :
+  - un niveau ne se découpe qu'au-delà de 12 éléments, par dossiers d'abord, puis par Leiden ;
+  - Leiden écrit par nous, car graphrs ne part pas d'une partition initiale ;
+  - les clés restent stables d'un clustering à l'autre ;
+  - seuil de stabilité : 5 %.
+
+  Constats :
+  - Graphe synthétique de 300 nœuds : moins de 5 % des affectations changent (test).
+  - Sur Timonier, après 200 sauvegardes dont 100 ajoutent un appel vers un autre fichier du
+    paquet : 0 affectation changée sur 23 ; re-clustering en 4,4 ms.
+  - Seul `timonier-index` dépasse 12 fichiers. On y trouve un composant `tests` et deux
+    groupes : les composants (`cluster`, `components`, `structure`) et l'extraction avec la
+    résolution.
+  - Un redémarrage reprend les composants de la tête, sans clustering, et n'écrit rien
+    (test). Un fichier laissé seul par Leiden le reste (test).
+- [x] 3.9 Rôles architecturaux et dépendances externes — critère : sur Timonier, les rôles
   attendus sont vérifiés par un test (par exemple `timonier-daemon` = serveur,
   `timonier-store` = persistance). Contenu :
   - rôles par heuristiques des packs (TcpListener, routeur HTTP, ORM, types sérialisés…) ;
   - dépendances externes regroupées par usage (réseau, sérialisation, base de données,
     async) ;
   - nommage et confirmation selon Q6.
-- [ ] 3.10 Compaction au-delà d'environ 50 000 arêtes de symboles — critère : test de charge
+
+  [ADR 0017](docs/adr/0017-roles-architecturaux.md) : un attribut `role` sur les paquets et
+  les composants (migration 0003), calculé à partir de trois signaux, les bibliothèques, les
+  imports et le code. Les tests et exemples ne comptent pas.
+
+  Constat (`crates/timonier-daemon/tests/timonier.rs`, sur le dépôt lui-même) :
+
+  | Paquet | Rôle |
+  | ------ | ---- |
+  | cli | point d'entrée |
+  | core | modèle de données |
+  | daemon | tâche de fond |
+  | index | utilitaire |
+  | store | persistance |
+  | webview | interface |
+  | extension | interface |
+
+  - Les dépendances externes sont rangées par usage (base de données, sérialisation, ui…).
+  - Écart : `timonier-daemon` ne peut pas encore être « serveur ». Il n'a pas de serveur
+    JSON-RPC avant la Phase 4, et le test sera mis à jour alors.
+  - Le nommage et la confirmation par l'agent (Q6) arrivent avec les outils MCP de la
+    Phase 6.
+- [x] 3.10 Compaction au-delà d'environ 50 000 arêtes de symboles — critère : test de charge
   synthétique.
-- [ ] 3.11 Mesures sur le dépôt Timonier — critère : indexation à froid ≤ 3 s (H3) et mise à
+
+  [ADR 0018](docs/adr/0018-compaction-des-aretes-de-symboles.md) : budget de 50 000 appels
+  fonction → fonction issus du LSP. Au-delà, les fichiers vérifiés les plus anciens gardent
+  leurs appels de fichier à fichier, toujours en provenance `Lsp` et vérifiés, jusqu'à 90 %
+  du budget.
+
+  Constats :
+  - Test de comportement : compaction du plus ancien, vérification conservée, retour au
+    détail quand le fichier est rouvert.
+  - Test de charge, en build release : 260 fichiers de 20 fonctions, 52 000 appels vérifiés
+    en 0,83 s. Il reste 46 800 appels de symbole à symbole dans la tête, et 26 fichiers sont
+    compactés.
+  - Commande : `cargo test --release -p timonier-daemon --test compaction -- --ignored`.
+- [x] 3.11 Mesures sur le dépôt Timonier — critère : indexation à froid ≤ 3 s (H3) et mise à
   jour p95 < 100 ms (H2), chiffres et machine consignés.
-- [ ] 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ».
+
+  Constats (2026-10-16, après les corrections de la relecture n° 1 ; build release, Ryzen 9
+  5950X, 32 fils, Linux), sur 71 fichiers Rust et TypeScript, soit 1 557 nœuds et 666 arêtes :
+
+  | Mesure | Valeur | Cible |
+  | ------ | -----: | ----: |
+  | Indexation à froid du dépôt, consolidation git comprise | 456 ms | ≤ 3 s |
+  | Indexation à froid d'une copie, sans git | 145 ms | |
+  | Redémarrage avec le cache | 95 ms, 0 reparse, 0 ligne écrite | |
+  | Sauvegarde, p50 / p95 / max (200 sauvegardes) | 2,5 / 10,4 / 24,4 ms | p95 < 100 ms |
+  | Re-clustering | 4,4 ms, 0 affectation changée | |
+
+  - La consolidation git est la plus coûteuse ici : les fichiers non commités prennent leur
+    version de HEAD le temps du gel.
+  - Les arêtes passent de 690 à 666 : les appels de méthode sur un receveur inconnu ne sont
+    plus résolus par leur seul nom (relecture n° 1, I6).
+  - Outil : `cargo run --release -p timonier-daemon --example index_bench`.
+- [x] 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - Deux relectures « pas prête », tous leurs constats corrigés (ci-dessous).
+  - Tu as validé la phase le 2026-10-16 pendant la relecture n° 3. Ses constats éventuels sont
+    traités à part, avant la suite de la Phase 4.
+
+  Relecture n° 1 : « pas prête », avec 1 bloquant, 7 importants et 10 mineurs. Tous sont
+  corrigés, chaque scénario reproduit est gardé comme test
+  (`crates/timonier-daemon/tests/robustness.rs` et les tests cités) :
+  - B1 :
+    - un paquet renommé ou retiré laissait un composant sous un paquet disparu, et le
+      stockage refusait ensuite toute structure ;
+    - corrigé : les composants sont recalculés quand les paquets changent, et seuls les
+      composants valides sont émis ;
+    - après une écriture refusée, tout est indexé à nouveau pour remettre la mémoire
+      d'accord avec la base.
+  - I1 : une réexportation qui change de cible résout à nouveau ceux qui la citent.
+  - I2 : un manifeste illisible ou un chemin sans identifiant possible sont écartés et
+    signalés, sans arrêter la passe ; un manifeste en cours d'édition garde les paquets.
+  - I3 : la consolidation ne prend que les fichiers que le parcours indexerait (dossiers
+    cachés, `.gitignore`).
+  - I4 : un `lib.rs` enregistré n'entraîne plus de resynchronisation ; une resynchronisation
+    n'a lieu que si les paquets changent vraiment.
+  - I5 : l'état d'affinage LSP est relu de la base au démarrage (dépendants, budget). Les
+    vérifications tombent quand les identifiants changent.
+  - I6 : les appels sur un receveur inconnu (`x.iter()`) ne sont plus résolus par leur seul
+    nom (capture `@reference.method`, version d'extracteur 2). Les composants de Timonier en
+    sont plus justes.
+  - I7 : un redémarrage reprend les composants de la tête au lieu de les recalculer
+    (ADR 0016).
+  - Mineurs corrigés :
+    - m1 : un singleton de Leiden reste seul ; un nœud isolé quitte sa communauté ;
+    - m2 : le bench ajoute de vraies arêtes ; chiffres mis à jour ;
+    - m3 : nom de test corrigé ;
+    - m4 : tests de `git.rs` (sous-dossier, worktree, dépôt sans commit), de
+      `Reader::symbol_at`, `scopes` et `observations` ;
+    - m5 : erreur de création du fil rendue, pas de `expect` ;
+    - m6 : ADR 0012 complétée ; la clé du cache inclut la version de la grammaire, et un test
+      la compare à l'espace de travail ;
+    - m7 : préfixes `@tests`, `@bin`… pour les cibles Rust ; `src/` transparent sans fusion de
+      dossiers ;
+    - m8 : `proptest` retiré de `timonier-index` ;
+    - m9 : le watcher ne surveille que les dossiers parcourus et indexe une fois les
+      surveillances posées ;
+    - m10 : les échecs de git sont distingués et signalés ; un fichier devenu trop gros quitte
+      le graphe.
+  - Trouvé en corrigeant : le commit pouvait arriver au watcher avant les sauvegardes qui
+    l'ont précédé. La consolidation relit d'abord les fichiers changés depuis le dernier
+    commit (ADR 0015).
+
+  Relecture n° 2 : « pas prête ». Elle confirme B1, I1 à I6 et presque tous les mineurs
+  corrigés, mais trouve 1 bloquant, 4 importants et 5 mineurs. Tous sont corrigés, et chacun
+  est un test de `crates/timonier-daemon/tests/robustness.rs` :
+  - N1 (bloquant, introduit par m9) : un dossier supprimé puis recréé (changement de branche)
+    n'était plus surveillé. Le watcher oublie les dossiers disparus et resurveille ceux qui
+    reviennent.
+  - N2 : un manifeste illisible quelque part gelait tous les paquets ; seul son paquet reste
+    figé.
+  - N3 : `git diff` sans `--no-renames` laissait l'ancien chemin d'un renommage dans le
+    snapshot de commit.
+  - R1 : une tête sans composant déclenchait un clustering au redémarrage. Seule une base
+    jamais indexée en déclenche un.
+  - N4 : une sauvegarde dans un sous-dossier pendant l'indexation initiale était perdue. Tous
+    les dossiers sont surveillés avant, et chaque dossier ajouté ensuite est relu.
+  - Mineurs :
+    - m-a : un paquet renommé pendant l'arrêt garde ses composants (nouveau clustering) ;
+    - m-b : la version de grammaire des packs est comparée à `Cargo.lock` ;
+    - m-c : la file d'affinage garde ses demandes en attente quand la base est relue ; un
+      fichier vérifié sans appel n'est plus « compacté » ; l'ordre après redémarrage est
+      documenté (ADR 0018) ;
+    - m-d : en Rust, la résolution par nom seul reste dans la même cible ;
+    - m-e : chiffres de 3.5 et mentions du redémarrage mis à jour.
 
 Critère de sortie : le dépôt Timonier s'indexe en quelques secondes ; une modification de
 fichier met le graphe à jour en moins de 100 ms (mesuré).
 
-Décisions : —
-Écarts : —
+Décisions :
+- [ADR 0012](docs/adr/0012-format-des-packs-de-langage.md) : format des packs de langage ;
+- [ADR 0013](docs/adr/0013-extraction-resolution-et-cache.md) : extraction, noms qualifiés,
+  empreinte, résolution approchée, réexportations, cache ;
+- [ADR 0014](docs/adr/0014-affinage-lsp-en-arriere-plan.md) : affinage LSP, file à trois
+  priorités ;
+- [ADR 0015](docs/adr/0015-consolidation-au-commit.md) : snapshot de commit fidèle à l'arbre
+  commité ;
+- [ADR 0016](docs/adr/0016-composants-et-clustering.md) : composants, Leiden écrit par nous,
+  stabilité ;
+- [ADR 0017](docs/adr/0017-roles-architecturaux.md) : rôles et dépendances externes ; un
+  attribut `role` sur les nœuds ;
+- [ADR 0018](docs/adr/0018-compaction-des-aretes-de-symboles.md) : compaction des arêtes de
+  symboles.
+
+Écarts :
+- Le relais des serveurs LSP de l'IDE et le rôle « serveur » du démon attendent la Phase 4.
+  L'affinage est testé avec un double conforme, comme le critère de 3.6 le permet.
+- Les composants sont ceux du dernier commit (ADR 0016). Avec beaucoup de travail non
+  commité, la tête montre les composants calculés sur le commit. Un fichier nouveau rejoint
+  ses voisins de dossier.
+- Limites assumées :
+  - les appels hors de toute fonction disparaissent quand le LSP vérifie le fichier
+    (ADR 0014) ;
+  - les noms qualifiés Rust sont approchés (`#[path]` ignoré, fichiers de `main.rs`) ;
+  - une mise en forme qui ajoute des jetons change le hash du corps (ADR 0013).
+- Packs livrés dans le binaire seulement ; les packs de l'utilisateur viendront plus tard
+  (ADR 0012). Un nouvel écosystème (Python, Go) demande du code dans `timonier-index`.
+- Pour le diagnostic : `cargo run --release -p timonier-daemon --example index_dump` montre
+  l'arbre, les rôles et les arêtes les plus lourdes d'un dépôt.
 
 ## Phase 4 — Démon, extension et carte
 
@@ -903,9 +1132,11 @@ avant ajout si plus d'un mois s'est écoulé.
 | opentelemetry, _sdk, -otlp, -proto | 0.33.1 | Apache-2.0 | Avant la 1.0 ; l'API traces est encore « Beta » |
 | rusqlite | 0.40.2 | MIT | |
 | rusqlite_migration / refinery | 2.6.0 / 0.10.0 | Apache-2.0 / MIT | rusqlite_migration retenu (ADR 0011) ; refinery écarté |
-| tree-sitter / -rust / -typescript | 0.27.1 / 0.24.2 / 0.23.2 | MIT | ABI compatibles |
-| notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC |
-| ignore | 0.4.33 | Unlicense OR MIT | |
+| tree-sitter / -rust / -typescript | 0.27.1 / 0.24.2 / 0.23.2 | MIT | Revérifiés le 2026-10-16 ; utilisés (ADR 0012) |
+| notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC ; notify vient par le débounceur, qui le réexporte |
+| ignore / globset | 0.4.33 / 0.4.20 | Unlicense OR MIT | Revérifiés le 2026-10-16 |
+| rayon | 1.12.0 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; extraction parallèle (ADR 0013) |
+| toml | 1.1.8 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; manifestes des packs et de Cargo, features `std`, `serde`, `parse` |
 | serde / serde_json / schemars | 1.0.229 / 1.0.154 / 1.2.3 | MIT (OR Apache-2.0) | |
 | jsonrpsee | 0.26.1 | MIT | |
 | async-lsp / tower-lsp-server | 0.2.4 / 0.23.0 | MIT OR Apache-2.0 | tower-lsp n'est plus maintenu ; lsp-types est figé |
@@ -913,7 +1144,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | tonic / prost / axum | 0.14.6 / 0.14.4 / 0.8.9 | MIT / Apache-2.0 / MIT | |
 | clap | 4.6.7 | MIT OR Apache-2.0 | |
 | blake3 | 1.8.7 | CC0-1.0 OR Apache-2.0 | |
-| graphrs | 0.12.0 | MIT | Louvain + Leiden ; adoption faible |
+| graphrs | 0.12.0 | MIT | **Écarté** (ADR 0016) : son Leiden ne part pas d'une partition initiale |
 | quick-junit | 0.8.0 | Apache-2.0 OR MIT | |
 | cyclonedx-bom | 0.8.1 | Apache-2.0 | |
 | scip | 0.10.0 | Apache-2.0 | v2 ; dépend de rust-protobuf, pas de prost |
@@ -938,7 +1169,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | actions/checkout / setup-node / upload-artifact | v7.0.1 / v7.1.0 / v7.0.2 | MIT | Actions GitHub officielles, par tag majeur |
 | Swatinem/rust-cache | v2.9.2 (`6323deb`) | LGPL-3.0 | Action tierce, épinglée par SHA |
 
-Toolchain : Rust stable 1.99.0 (1.96 installée en local), édition 2024 stable depuis 1.85 ;
+Toolchain : Rust stable 1.99.1 (installée en local le 2026-10-16 ; 1.96 reste pour la MSRV), édition 2024 stable depuis 1.85 ;
 Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
 
 ## Journal
@@ -981,3 +1212,17 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   - Q13 : bilingue pour l'instant, ADR 0006 acceptée ;
   - Q12 reportée ;
   - Phase 3 commencée.
+- 2026-10-16 — Phase 3 :
+  - ADR 0012 à 0018 ;
+  - packs Rust et TypeScript, extraction, résolution, cache, watcher, affinage LSP,
+    consolidation au commit, composants (Leiden écrit par nous), rôles, compaction ;
+  - relecture n° 1 « pas prête » (1 bloquant, 7 importants, 10 mineurs), tout corrigé ;
+  - 192 tests Rust verts (un test de charge à part, en release) ;
+  - mesures sur Timonier : 456 ms à froid, p95 de 10 ms par sauvegarde.
+- 2026-10-16 — Phase 3 validée par toi (« commit push, vérifie que la CI passe, et ensuite passe
+  à la Phase 4 ») :
+  - ADR 0012 à 0018 acceptées ;
+  - relecture n° 2 « pas prête » (1 bloquant, 4 importants, 5 mineurs), tout corrigé ;
+  - 198 tests Rust verts ;
+  - captures du plugin prises (VSCode 1.142, en français, thèmes sombre et clair) ;
+  - Phase 4 commencée.

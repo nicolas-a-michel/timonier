@@ -9,7 +9,11 @@ use rusqlite_migration::{M, Migrations};
 use crate::{Error, Result};
 
 /// Forward-only migrations; never edit one that has been committed (skill `graph-model`).
-const MIGRATION_SLICE: &[M<'_>] = &[M::up(include_str!("../migrations/0001_initial.sql"))];
+const MIGRATION_SLICE: &[M<'_>] = &[
+    M::up(include_str!("../migrations/0001_initial.sql")),
+    M::up(include_str!("../migrations/0002_extraction_cache.sql")),
+    M::up(include_str!("../migrations/0003_node_role.sql")),
+];
 
 pub(crate) const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
 
@@ -77,7 +81,34 @@ mod tests {
         let version: i64 = connection
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 3);
+    }
+
+    #[test]
+    fn a_database_of_the_first_schema_migrates_and_keeps_its_rows() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("graph.sqlite");
+        {
+            let mut connection = Connection::open(&path).unwrap();
+            Migrations::from_slice(&MIGRATION_SLICE[..1])
+                .to_latest(&mut connection)
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO scope (key, content_hash) VALUES ('structure', NULL)",
+                    [],
+                )
+                .unwrap();
+        }
+        let connection = open_writer(&path).unwrap();
+        let scopes: i64 = connection
+            .query_row("SELECT count(*) FROM scope", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(scopes, 1);
+        let cached: i64 = connection
+            .query_row("SELECT count(*) FROM extraction", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(cached, 0);
     }
 
     #[test]
