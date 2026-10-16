@@ -1,6 +1,6 @@
 # 0003 — Découpage des crates, sens des dépendances et alias `tim`
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
 - Date : 2026-10-14
 - Phase : 1
 - Liens : prompt de démarrage (Phase 1), skill `rust-daemon`, PLAN.md tâches 1.3 à 1.5

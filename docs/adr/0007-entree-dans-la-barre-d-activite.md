@@ -1,6 +1,6 @@
 # 0007 — Point d'entrée Timonier dans la barre d'activité
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
 - Date : 2026-10-14
 - Phase : 1 (demande de l'humain du 2026-10-14)
 - Liens : spec « Pilotage » (plan en « panneau latéral permanent ») et « Expérience et

@@ -62,8 +62,10 @@ Rules:
 - Exactly one writer: a dedicated thread owns the only read-write connection. Every write is a
   command sent to it over a channel and applied in a transaction (batched per file update or
   per indexing batch).
-- Pragmas set at open: `journal_mode=WAL`, `foreign_keys=ON`, a `busy_timeout`; the
-  `synchronous` level is fixed by the Phase 2 ADR.
+- Pragmas set at open: `journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`,
+  `busy_timeout=5s` (ADR 0011).
+- The store's write API (`Store::apply`, `apply_all`, `freeze`) is synchronous: it blocks until
+  the writer thread commits. From async code, call it inside `tokio::task::spawn_blocking`.
 - Readers use separate read-only connections and never write.
 - Schema changes only through migrations (see the `graph-model` skill).
 - The database is a rebuildable cache of the repository. User-owned data lives in

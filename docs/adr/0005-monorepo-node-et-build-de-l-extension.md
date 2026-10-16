@@ -1,6 +1,6 @@
 # 0005 — Monorepo Node, build de l'extension et chargement de la webview
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
 - Date : 2026-10-14
 - Phase : 1
 - Liens : skill `vscode-webview-ui` ; PLAN.md H1, H11, H12 ; tâches 1.7 à 1.10

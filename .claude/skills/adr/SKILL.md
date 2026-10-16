@@ -26,7 +26,9 @@ Project rule 3: every technical decision not covered by `docs/spec.md` gets a sh
 3. Copy [template.md](template.md). Write it **in French**: ADRs are read by the human. Keep it
    short, one page at most.
 4. Status lifecycle: `Proposé` → `Accepté` once the human has validated the phase or the
-   decision → possibly `Remplacé par NNNN`. Never rewrite the decision of an accepted ADR:
+   decision → possibly `Remplacé par NNNN`. Write the ADR (`Proposé`) before the code that
+   depends on it; the human accepts the phase's ADRs together when validating the phase
+   (PLAN.md Q15). Do not stop mid-phase for it. Never rewrite the decision of an accepted ADR:
    write a new one that supersedes it, and update the old one's status line only.
 5. If the decision changes a convention described in a skill, in `CLAUDE.md` or in the hooks,
    update them in the same change.

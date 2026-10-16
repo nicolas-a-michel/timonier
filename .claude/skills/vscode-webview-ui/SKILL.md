@@ -73,7 +73,7 @@ until it does. Check again before upgrading.
 
 ## Interface language
 
-English base with a French translation (ADR 0006, awaiting the human's validation, PLAN.md Q13):
+English base with a French translation (ADR 0006, accepted; more languages will come later):
 `package.nls*.json` for the manifest, `vscode.l10n.t` with `l10n/bundle.l10n.fr.json` in the
 extension, `webview/src/i18n.ts` in the webview (language read from `<html lang>`). A unit test
 fails when a string has no French translation.

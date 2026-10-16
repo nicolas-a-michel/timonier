@@ -1,6 +1,30 @@
-//! Timonier's graph model: node and edge types, stable identity and fusion rules.
+//! Timonier's graph model: node and edge types, stable identity, the strict tree, fusion of
+//! sources, snapshot diffs with move detection, aggregation at a zoom level.
 //!
-//! This crate is pure: no I/O and no async runtime. See the `graph-model` skill.
+//! This crate is pure: no I/O and no async runtime. See the `graph-model` skill and
+//! ADR 0008 to 0010.
+
+pub mod aggregate;
+pub mod diff;
+mod edge;
+mod error;
+pub mod fusion;
+mod id;
+mod node;
+mod snapshot;
+pub mod tree;
+mod update;
+
+pub use aggregate::AggregatedEdge;
+pub use diff::{EdgeChange, GraphDiff, MoveEvidence, NodeChange};
+pub use edge::{Confidence, Edge, EdgeKey, EdgeKind, Observation, Provenance};
+pub use error::{Error, Result};
+pub use fusion::SourceObservations;
+pub use id::{IdForm, Language, NodeId, RESERVED_PREFIXES};
+pub use node::{ContentHash, Node, NodeKind, Position, Span, SymbolKind};
+pub use snapshot::{Freeze, Snapshot, SnapshotKind};
+pub use tree::TreeViolation;
+pub use update::{ScopeKey, ScopeUpdate};
 
 /// Version shared by every Timonier crate and binary (the workspace version).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

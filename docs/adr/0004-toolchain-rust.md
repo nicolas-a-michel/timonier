@@ -1,6 +1,6 @@
 # 0004 — Toolchain Rust : canal stable, MSRV = plus ancienne version testée
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
 - Date : 2026-10-14
 - Phase : 1
 

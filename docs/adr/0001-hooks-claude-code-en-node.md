@@ -1,6 +1,6 @@
 # 0001 — Hooks Claude Code écrits en Node.js, sans dépendance
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
 - Date : 2026-10-14
 - Phase : 0
 - Liens : prompt de démarrage, Phase 0 ; documentation officielle consultée le 2026-10-14 :

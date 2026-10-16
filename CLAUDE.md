@@ -30,7 +30,7 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003 | skeleton |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation) and `timonier-store` (SQLite history, single writer; `migrations/`, `examples/bench.rs`) are implemented (Phase 2); the others are skeletons | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
@@ -63,6 +63,9 @@ npm run package                    # build + vsce package → editors/vscode/tim
 
 # CLI
 cargo run --bin tim -- --version   # `timonier` and `tim` are the same program
+
+# Store baseline timings (record changes in PLAN.md)
+cargo run --release -p timonier-store --example bench [packages] [files] [symbols]
 ```
 
 ## Working rules

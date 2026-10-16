@@ -1,6 +1,6 @@
 # 0006 — Langue de l'interface : anglais de base, traduction française
 
-- Statut : Proposé, **à valider par l'humain** (choix produit)
+- Statut : Accepté (2026-10-16, réponse de l'humain à Q13 : bilingue pour l'instant, d'autres langues plus tard)
 - Date : 2026-10-14
 - Phase : 1
 
@@ -29,5 +29,9 @@ vise « n'importe quel langage » de programmation, donc des utilisateurs non fr
 
 ## Conséquences
 
-Chaque nouvelle chaîne s'écrit en anglais et en français. Si l'humain préfère le français
-seul, on supprime l'anglais : la structure reste la même.
+Chaque nouvelle chaîne s'écrit en anglais et en français.
+
+D'autres langues viendront plus tard (réponse à Q13). En ajouter une demande :
+- `package.nls.<code>.json` et `l10n/bundle.l10n.<code>.json` dans l'extension ;
+- une entrée dans `webview/src/i18n.ts`, et sa reconnaissance dans `resolveLocale` ;
+- d'étendre à cette langue les tests de complétude, qui ne visent aujourd'hui que le français.

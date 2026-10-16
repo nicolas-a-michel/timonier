@@ -125,17 +125,42 @@ par tâche en Phase 9 ; le calque par composant reste en v2.
   feuille de route humaine et `plan.json` pour les tâches.
 - À trancher au début de la Phase 6.
 
-**Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication)
+**Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication) — ⏸
+reportée le 2026-10-16 (« la Q12 attendra »). `nicolas-a-michel` reste provisoire.
 - Le paquet utilise `publisher: nicolas-a-michel`, qui n'existe pas encore sur la
   Marketplace. Cet identifiant doit être créé par toi sur marketplace.visualstudio.com.
 - Il ne bloque que la publication, pas le développement.
 - À trancher : garder `nicolas-a-michel`, ou en choisir un autre (par exemple `timonier`).
 
-**Q13 — Langue de l'interface** (ADR 0006, à valider)
+**Q13 — Langue de l'interface** — ✅ répondu le 2026-10-16 : **bilingue** (anglais de base,
+traduction française) pour l'instant ; d'autres langues seront ajoutées plus tard. ADR 0006
+acceptée.
 - La spec ne la fixe pas.
 - J'ai mis en place l'anglais comme langue de base, avec une traduction française qui suit la
   langue de VSCode.
 - À trancher : garder ce choix, ou passer au français seul.
+
+**Q14 — Fichiers hors de tout package** — ✅ répondu le 2026-10-16 : extension gardée. Un
+fichier hors de tout package se place sous le Repo ou sous un Component de haut niveau.
+- Ta réponse à Q4 place les fichiers sous un Package, ou sous un Component à l'intérieur d'un
+  package.
+- J'ai aussi permis un fichier directement sous le Repo ou sous un Component de haut niveau,
+  pour les fichiers qui n'appartiennent à aucun package (scripts à la racine, par exemple).
+- À trancher : garder cette extension, ou refuser ces fichiers (ils ne seraient alors pas
+  indexés).
+
+**Q15 — Validation des ADR de la Phase 2 et du critère 2.1** — ✅ répondu le 2026-10-16 :
+ADR 0008 à 0011 acceptées. Pour la suite, option (a) : les ADR sont écrites (« Proposé ») avant
+le code, et tu les acceptes ensemble à la validation de la phase.
+- Le critère de 2.1 disait « ADR acceptées avant le code qui en dépend ». Je l'ai réécrit en
+  « écrites avant le code, acceptées à la validation de la phase ».
+- Les ADR 0008 à 0011 sont donc implémentées sans ton acceptation préalable. La relecture l'a
+  signalé à juste titre.
+- L'ADR 0009 a beaucoup évolué au fil des trois relectures. Les sections « Propriété » et
+  « Contenu de référence des observations » méritent d'être lues : propriété à la plus petite
+  clé pour un nœud, à la source la plus fiable pour une arête, contributions en attente.
+- À trancher : accepter les ADR 0008 à 0011 (avec Q14) et le nouveau libellé, ou demander des
+  changements avant la suite.
 
 ## Hypothèses de travail
 
@@ -229,7 +254,7 @@ Décisions : [ADR 0001](docs/adr/0001-hooks-claude-code-en-node.md),
 
 ## Phase 1 — Squelette du dépôt
 
-Statut : en cours
+Statut : terminée (validée par toi le 2026-10-14)
 
 Prérequis levés : licence MIT (Q1) ; dépôt public
 <https://github.com/nicolas-a-michel/timonier> (Q2).
@@ -258,7 +283,7 @@ Prérequis levés : licence MIT (Q1) ; dépôt public
 - [x] 1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*`
   minimaux sur les variables VSCode) — critère : `npm run build -w webview` produit le
   bundle ; test vitest vert.
-- [ ] 1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui
+- [x] 1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui
   ouvre un panneau webview chargeant le bundle de `webview/` sous une CSP stricte (nonce,
   `localResourceRoots`) — critère : F5 (« Run Extension ») ouvre le panneau vide en thème
   clair et sombre ; un test d'intégration `@vscode/test-cli` exécute la commande et vérifie
@@ -296,8 +321,8 @@ vide.
 Décisions : [ADR 0003](docs/adr/0003-decoupage-des-crates.md) (crates, dépendances, alias),
 [ADR 0004](docs/adr/0004-toolchain-rust.md) (toolchain, MSRV 1.96),
 [ADR 0005](docs/adr/0005-monorepo-node-et-build-de-l-extension.md) (npm, TS 6, esbuild, Vite,
-tests, CSP), [ADR 0006](docs/adr/0006-langue-de-l-interface.md) (langue de l'interface, à
-valider : Q13), [ADR 0007](docs/adr/0007-entree-dans-la-barre-d-activite.md) (icône et vue
+tests, CSP), [ADR 0006](docs/adr/0006-langue-de-l-interface.md) (langue de l'interface,
+acceptée le 2026-10-16 : Q13), [ADR 0007](docs/adr/0007-entree-dans-la-barre-d-activite.md) (icône et vue
 d'ensemble dans la barre d'activité).
 
 Constats (2026-10-14, Linux, machine de développement, après la relecture) :
@@ -335,7 +360,7 @@ Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est tra
 - I2 : skills `vscode-webview-ui` et `rust-daemon` alignés sur les ADR 0003 à 0006.
 - I3 : dépendances et actions ajoutées au tableau ; action tierce épinglée par SHA.
 - I4 : la langue de l'interface (ADR 0006) a été implémentée avant ta réponse. C'est une
-  exception assumée, car réversible ; elle reste à valider (Q13).
+  exception assumée, car réversible ; validée ensuite (Q13, 2026-10-16).
 - I5 : notices tierces livrées dans le `.vsix`.
 - Mineurs :
   - CSP réduite au nonce seul ;
@@ -346,9 +371,8 @@ Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est tra
   - ADR 0005 corrigée (scripts npm, raison de `node:test`).
 
 Écarts :
-- 1.9 n'est pas cochée : le rendu en thème clair, sombre et contraste élevé est à vérifier à
-  l'œil avec F5. Je ne peux pas voir l'écran. Le test des cinq secondes de l'état vide peut se
-  faire au même moment.
+- 1.9 : contrôle visuel fait par toi avec F5 (« très bien pour l'icône », 2026-10-14). Le
+  rendu dans chaque thème n'a pas été commenté en détail.
 - Checklist d'accessibilité de l'état vide :
   - aucun élément interactif, donc ni focus ni clavier à traiter ;
   - le texte passe par les variables de thème VSCode ;
@@ -364,52 +388,171 @@ Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est tra
 
 ## Phase 2 — Modèle de graphe et stockage
 
-Statut : à faire
+Statut : terminée (validée le 2026-10-16)
 
-- [ ] 2.1 Écrire les ADR — critère : ADR acceptées avant le code qui en dépend. Sujets :
+- [x] 2.1 Écrire les ADR — critère : ADR écrites (statut « Proposé ») avant le code qui en
+  dépend, puis acceptées quand tu valides la phase (procédure du skill `adr`). Sujets :
   - place des composants : consigne la réponse à Q4, option (a) ;
   - classement de fiabilité des sources pour la fusion ;
   - sémantique des snapshots `working_tree` ;
   - outil de migration (`rusqlite_migration` 2.6 ou `refinery` 0.10) ;
   - pragmas SQLite.
-- [ ] 2.2 `timonier-core` : les types `Node`, `NodeKind`, `SymbolKind`, `Edge`, `EdgeKind`,
+- [x] 2.2 `timonier-core` : les types `Node`, `NodeKind`, `SymbolKind`, `Edge`, `EdgeKind`,
   `Provenance`, la confiance, le poids et le span, sérialisables (serde) — critère :
   round-trip JSON testé pour chaque type.
-- [ ] 2.3 Identité stable : symbole SCIP ou `lang:qualified_name` — critère : tests unitaires
+- [x] 2.3 Identité stable : symbole SCIP ou `lang:qualified_name` — critère : tests unitaires
   et proptest (`parse(format(id)) == id`).
-- [ ] 2.4 Invariant d'arbre strict : un seul parent, pas de cycle — critère : un proptest
+- [x] 2.4 Invariant d'arbre strict : un seul parent, pas de cycle — critère : un proptest
   génère arbres et reparentages, et toute violation est refusée par une erreur typée.
-- [ ] 2.5 Règles de fusion multi-sources — critère : tests en table :
+- [x] 2.5 Règles de fusion multi-sources — critère : tests en table :
   - une arête vue par TreeSitter et Lsp garde la provenance Lsp ;
   - une arête TreeSitter contredite par le Lsp est supprimée ;
   - `Intended` n'est jamais fusionnée.
-- [ ] 2.6 Détection des déplacements par signature et hash du corps normalisé, avec un seuil
+- [x] 2.6 Détection des déplacements par signature et hash du corps normalisé, avec un seuil
   fixé par ADR — critère : un fichier renommé, une fonction déplacée entre deux fichiers et
   une fonction renommée à corps égal donnent « déplacé », jamais « supprimé + ajouté ».
-- [ ] 2.7 `timonier-store` — critère : migrations testées sur base vide ; test de lectures
+- [x] 2.7 `timonier-store` — critère : migrations testées sur base vide ; test de lectures
   concurrentes pendant les écritures. Contenu :
   - schéma SQLite : nœuds, arêtes avec `valid_from` / `valid_to`, `snapshot(seq, commit_sha,
     timestamp, kind)`, état par fichier (hash, « vérifié par LSP au hash X ») ;
   - migrations ;
   - WAL, écrivain unique sur un thread dédié, lecteurs en lecture seule.
-- [ ] 2.8 Mise à jour par différence d'un fichier — critère : réappliquer un fichier identique
+- [x] 2.8 Mise à jour par différence d'un fichier — critère : réappliquer un fichier identique
   modifie 0 ligne ; modifier un symbole ferme un intervalle et en ouvre un.
-- [ ] 2.9 Snapshots `commit`, `review_mark` et `working_tree` — critère : création, liste et
+- [x] 2.9 Snapshots `commit`, `review_mark` et `working_tree` — critère : création, liste et
   cohérence des intervalles testées.
-- [ ] 2.10 Requête de diff entre deux snapshots : ajouts, suppressions, modifications,
+- [x] 2.10 Requête de diff entre deux snapshots : ajouts, suppressions, modifications,
   déplacements — critère : tests sur fixtures ; un déplacement de fichier est rapporté comme
   déplacement.
-- [ ] 2.11 Arêtes entre composants agrégées par requête depuis les arêtes de symboles, jamais
+- [x] 2.11 Arêtes entre composants agrégées par requête depuis les arêtes de symboles, jamais
   stockées à la main — critère : test du poids agrégé attendu.
-- [ ] 2.12 Mesure de référence : insertion et diff sur un graphe synthétique — critère :
+- [x] 2.12 Mesure de référence : insertion et diff sur un graphe synthétique — critère :
   chiffres consignés dans ce plan.
-- [ ] 2.13 Relecture par `phase-reviewer` — critère : verdict « prête ».
+- [x] 2.13 Relecture par `phase-reviewer` — critère : verdict « prête ». Obtenu à la troisième
+  relecture ; ses mineurs ont ensuite été corrigés.
 
 Critère de sortie : tests couvrant l'insertion, la mise à jour par différence, le diff de
 snapshots et la détection d'un déplacement de fichier.
 
-Décisions : —
-Écarts : —
+Décisions :
+- [ADR 0008](docs/adr/0008-hierarchie-et-identite-des-noeuds.md) : hiérarchie (Q4 a), forme
+  des identifiants, positions ;
+- [ADR 0009](docs/adr/0009-portees-et-fusion-des-sources.md) : portées, observations,
+  fusion, arêtes pendantes, agrégation ;
+- [ADR 0010](docs/adr/0010-versionnement-snapshots-et-diff.md) : tête ouverte, snapshots
+  figés, diff par intervalles, déplacements ;
+- [ADR 0011](docs/adr/0011-sqlite-migrations-et-ecrivain-unique.md) : rusqlite `bundled`,
+  rusqlite_migration, pragmas, fil d'écriture unique.
+
+Constats (2026-10-14, Linux, après deux relectures) :
+- `cargo test --workspace` : 105 tests verts.
+  - `timonier-core`, 55 tests, dont 5 proptests :
+    - aller-retour des identifiants ;
+    - toute construction d'arbre valide est acceptée ;
+    - un reparentage sous un descendant est un cycle ;
+    - sur des mutations aléatoires, le vérificateur est d'accord avec un juge naïf écrit à part.
+  - Allers-retours JSON de chaque variante de diff, de `EdgeKey` et de `AggregatedEdge`.
+  - `timonier-store`, 9 tests unitaires, dont un test des plans de requête sur le SQLite
+    embarqué : les lectures à la tête passent par les index partiels.
+  - `timonier-store`, 34 tests d'intégration. Ils couvrent :
+    - le critère de sortie : insertion, mise à jour par différence (0 ligne écrite à
+      l'identique, fermeture et ouverture de version après gel), diff, déplacement de fichier ;
+    - les déplacements de fichier, avec nouveaux identifiants ou identifiants conservés
+      (`src/foo/mod.rs` → `src/foo.rs`, dans les deux ordres du lot) ;
+    - un symbole déplacé entre fichiers ;
+    - un nœud retiré puis rétabli après gel ;
+    - un lot où les enfants précèdent leurs parents ;
+    - des diffs entre snapshots non consécutifs ;
+    - la fusion, une réponse LSP tardive ignorée, et après suppression du fichier ;
+    - le refus :
+      - des observations précises sans hash, ou qui posent le contenu ;
+      - des appels entre symboles hors LSP et SCIP ;
+      - de l'intention et des arêtes de composants ;
+    - le contenu des portées imposé ;
+    - un nœud et une arête fournis par deux fichiers : la tête ne dépend pas de l'ordre, la
+      réapplication n'écrit rien, aucun faux déplacement, puis passage de relais à l'autre
+      fichier ;
+    - la convergence d'un symbole déplacé ;
+    - la propriété passée de main en main entre trois portées, sans attente qui reste en
+      table ;
+    - une attente qui change de version sans toucher la tête ;
+    - le retrait d'une portée propriétaire ;
+    - la version d'arête la plus fiable, qui l'emporte sur la plus petite clé ;
+    - un fichier qui ne peut pas quitter la structure tant qu'une de ses contributions attend ;
+    - le refus des cycles, paquets imbriqués, parents interdits, orphelins et second repo ;
+    - un proptest d'équivalence entre vérifications incrémentales et vérification complète,
+      avec reparentages, retraits et rétablissements ;
+    - les lecteurs concurrents ;
+    - le test sur modèle : à chaque snapshot figé, nœuds (tous attributs) et arêtes
+      identiques ; diffs vérifiés entre toute paire de points ; réapplication sans écriture.
+- `cargo clippy --workspace --all-targets -- -D warnings` et `cargo fmt --check` sont verts.
+- Mesures (2.12), en build release, sur Ryzen 9 5950X. Le bench donne à chaque fichier 3 appels
+  fichier → fichier (tree-sitter) et 2 appels vérifiés par fonction (LSP).
+
+  | `bench [packages] [fichiers] [symboles]` | `20 50 20` (défaut) | `50 100 40` |
+  | ------------------------------------------ | ------------------: | ----------: |
+  | Taille | 1 000 fichiers, 20 000 symboles, ~40 000 arêtes | 5 000 fichiers, 200 000 symboles, 400 000 arêtes |
+  | Chargement initial (une transaction) | 536 ms | 4 739 ms |
+  | Réappliquer un fichier identique (médiane) | 0,14 ms | 0,19 ms |
+  | Changer un fichier, lignes nées dans la tête | 0,84 ms | 1,28 ms |
+  | Changer un fichier, après un gel à chaque échantillon | 1,09 ms | 1,61 ms |
+  | Changer 10 % des fichiers, tous distincts | 85 ms (100 fichiers) | 801 ms (500) |
+  | Diff depuis la marque de revue | 22 ms (2 000 nœuds, 8 000 arêtes) | 247 ms (20 000, 80 000) |
+  | Lire tous les nœuds à la tête | 16 ms | 163 ms |
+  | Agréger au niveau des packages | 48 ms | 627 ms |
+
+Relecture n° 1 (`phase-reviewer`) : « pas prête », avec 1 bloquant et 6 importants (B1, I1 à
+I6) et 10 mineurs. Tous ont été corrigés ou consignés :
+- B1 : déplacement « même identifiant », que le fichier suit ;
+- I1 : `computed_on` ;
+- I2 : reprise entre portées, revue ensuite (N1) ;
+- I3 : granularité des `Calls` imposée ;
+- I4 : vérifications incrémentales testées ;
+- I5 : critère 2.1 soumis à ta validation (Q15) ;
+- I6 : bench corrigé.
+
+Relecture n° 2 : plus aucun bloquant ; deux défauts importants introduits ou laissés par les
+corrections, et 8 mineurs. Tout est corrigé ou consigné :
+- N1 : avec « la dernière portée l'emporte », la tête dépendait de l'historique quand deux
+  fichiers fournissent le même identifiant (bascules, écritures inutiles, faux déplacements).
+  Corrigé : propriété à la portée de plus petite clé, et versions des autres en attente qui
+  prennent le relais (ADR 0009).
+- N2 : une réponse LSP tardive portant un hash de contenu ramenait l'ancien contenu. Corrigé :
+  une source précise ne peut plus poser le hash de contenu.
+- Mineurs corrigés :
+  - n1 : contenu des portées imposé, et arêtes observées qui partent de ce que la portée
+    fournit ;
+  - n2 : observations sur une portée sans contenu périmées, sources précises toujours ancrées ;
+  - n3 : appels entre symboles venant de `Manifest` refusés ;
+  - n4 : appariement par signature seulement s'il est unique des deux côtés ;
+  - n5 : tests élargis ;
+  - n6 : allers-retours JSON complets ;
+  - n7 : test des plans de requête.
+- Mineur consigné (n8) : les deux reports sont maintenant écrits dans les tâches 3.7 et 5.2.
+
+Relecture n° 3 : « prête », sans bloquant ni important ; 10 mineurs. Corrigés :
+- m1 : les contributions en attente comptent dans le contrôle des orphelins ;
+- m2 : une portée de fichier sans contenu ne prend aucune observation ;
+- m3 : une source précise n'apporte pas de nœuds ;
+- m4 : pour une arête, la provenance la plus fiable l'emporte avant la plus petite clé
+  (conforme à la spec « Fusion ») ;
+- m5 : commentaire périmé ;
+- m6 : tests à trois portées, attente qui change, retrait du propriétaire, absence de fuite ;
+- m7 : une version fermée garde le propriétaire de son époque, et les rétrogradations sont
+  comptées ;
+- m8 : un retrait n'apporte rien d'autre ;
+- m9 : allers-retours avec `computed_on` et `Freeze` ;
+- m10 : skill corrigé.
+
+Écarts :
+- Le stockage ne menace pas l'objectif de 100 ms de la Phase 3 : moins de 2 ms par fichier.
+- L'agrégation relit tout le graphe : 0,63 s à 200 000 symboles. La Phase 4 devra la mettre en
+  cache par vue.
+- Le critère de 2.1 a été reformulé ; tu as accepté le nouveau libellé (Q15).
+- Limites assumées (ADR 0010) :
+  - un fichier sans symbole déplacé reste « supprimé + ajouté » ;
+  - un type supprimé et un autre ajouté, chacun avec une seule méthode de même nom et même
+    signature, s'apparient encore.
 
 ## Phase 3 — Indexation
 
@@ -441,6 +584,9 @@ enrichies par l'agent via MCP).
 - [ ] 3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la
   partition précédente, snapshot `commit` figé, sans SCIP (H4) — critère : test d'intégration
   sur un dépôt git temporaire.
+  - Le snapshot doit décrire l'arbre commité, pas l'arbre de travail indexé avec ses
+    modifications non commitées (ADR 0010, « Conséquences ») : indexer le commit, ou marquer le
+    snapshot comme « sale ».
 - [ ] 3.8 Composants — critère : stabilité mesurée (une petite modification change moins de
   X % des affectations, seuil fixé par ADR). Contenu :
   - agrégation par structure (membres du workspace Cargo, workspaces npm, dossiers) ;
@@ -527,7 +673,8 @@ Statut : à faire
 - [ ] 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
   JSON-RPC) avec une confirmation discrète — critère : test d'intégration.
 - [ ] 5.2 Diff structurel depuis la dernière `review_mark` — critère : tests sur des paires de
-  snapshots fixtures. Le diff montre :
+  snapshots fixtures. Les arêtes pendantes, que les lectures brutes renvoient, sont filtrées
+  (ADR 0009). Le diff montre :
   - composants ajoutés et supprimés ;
   - dépendances ajoutées et supprimées ;
   - cycles ajoutés (composantes fortement connexes du graphe des composants) ;
@@ -755,7 +902,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | tracing-opentelemetry | 0.34.0 | MIT | Va avec opentelemetry 0.33 |
 | opentelemetry, _sdk, -otlp, -proto | 0.33.1 | Apache-2.0 | Avant la 1.0 ; l'API traces est encore « Beta » |
 | rusqlite | 0.40.2 | MIT | |
-| rusqlite_migration / refinery | 2.6.0 / 0.10.0 | Apache-2.0 / MIT | Choix en Phase 2 |
+| rusqlite_migration / refinery | 2.6.0 / 0.10.0 | Apache-2.0 / MIT | rusqlite_migration retenu (ADR 0011) ; refinery écarté |
 | tree-sitter / -rust / -typescript | 0.27.1 / 0.24.2 / 0.23.2 | MIT | ABI compatibles |
 | notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC |
 | ignore | 0.4.33 | Unlicense OR MIT | |
@@ -815,3 +962,22 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   - reste ton contrôle visuel F5 (1.9).
 - 2026-10-14 — Ajout de 1.15 à ta demande : icône Timonier dans la barre d'activité, avec une
   vue d'ensemble et le bouton « Ouvrir la carte » (ADR 0007).
+- 2026-10-14 — Phase 1 validée par toi (« très bien pour l'icône, passe à la suite »). ADR 0001
+  à 0005 et 0007 acceptées ; 0006 attend Q13. Phase 2 commencée.
+- 2026-10-14 — Phase 2 :
+  - ADR 0008 à 0011 ;
+  - modèle (`timonier-core`) et stockage versionné (`timonier-store`) ;
+  - trois relectures `phase-reviewer` :
+    - n° 1 « pas prête » (1 bloquant, 6 importants) ;
+    - n° 2 : 2 importants introduits ou laissés par les corrections ;
+    - n° 3 « prête » ;
+    - tout corrigé ;
+  - 105 tests Rust verts ;
+  - mesures consignées ;
+  - Q14 et Q15 posées.
+- 2026-10-16 — Phase 2 validée par toi (« tout me semble bien ») :
+  - ADR 0008 à 0011 acceptées ; Q14 (fichiers hors package gardés) et Q15 (ADR acceptées à la
+    validation de la phase) tranchées ;
+  - Q13 : bilingue pour l'instant, ADR 0006 acceptée ;
+  - Q12 reportée ;
+  - Phase 3 commencée.
