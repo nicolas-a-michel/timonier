@@ -762,3 +762,41 @@ fn a_new_crate_is_a_package() {
     assert!(found, "{:?}", head_ids(&store));
     watch.stop().unwrap();
 }
+
+/// Counter-check of m-f: a walk that does not rediscover the packages (a new file's, the
+/// watcher's, the consolidation's) sees the new crate first. The packages still follow it.
+#[test]
+fn a_new_crate_seen_by_another_walk_first_is_a_package() {
+    let repo = tempfile::tempdir().unwrap();
+    let db = tempfile::tempdir().unwrap();
+    let root = repo.path().to_path_buf();
+    write(
+        &root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"crates/*\"]\n",
+    );
+    write(&root, "crates/a/Cargo.toml", "[package]\nname = \"a\"\n");
+    write(&root, "crates/a/src/lib.rs", "pub mod x;\npub fn a() {}\n");
+    let store = Store::open(db.path().join("graph.sqlite")).unwrap();
+    let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    pipeline.index_all().unwrap();
+    write(&root, "crates/a/src/x.rs", "pub fn x() {}\n");
+    write(&root, "crates/b/Cargo.toml", "[package]\nname = \"b\"\n");
+    write(&root, "crates/b/src/lib.rs", "pub fn b() {}\n");
+    // The watcher walks to find the directories to watch.
+    pipeline.walk_dirs();
+    // The new file comes first: its walk finds the new manifest.
+    pipeline
+        .refresh(&[PathBuf::from("crates/a/src/x.rs")])
+        .unwrap();
+    let ids = head_ids(&store);
+    assert!(ids.contains(&"pkg:cargo/b".to_owned()), "{ids:?}");
+    pipeline.refresh(&[PathBuf::from("crates/b")]).unwrap();
+    // As a fresh indexing.
+    let fresh = Store::open(db.path().join("fresh.sqlite")).unwrap();
+    Pipeline::new(&root, fresh.clone())
+        .unwrap()
+        .index_all()
+        .unwrap();
+    assert_eq!(head_ids(&store), head_ids(&fresh));
+}

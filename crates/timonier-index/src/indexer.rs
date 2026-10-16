@@ -91,7 +91,8 @@ pub struct Indexer {
     /// Directories the last walk entered (`""` for the root): a new path elsewhere is ignored
     /// or hidden, and costs no walk.
     walked: BTreeSet<String>,
-    /// Manifests the last walk found: a new directory that brings one changes the packages.
+    /// Manifests the packages were discovered from. Any walk that finds others changes the
+    /// packages: a new directory that brings one, a crate created next to a new file.
     manifests: BTreeSet<String>,
 }
 
@@ -154,6 +155,7 @@ impl Indexer {
                 .map(|p| format!("`{p}`: not a valid file path for an id")),
         );
         let (packages, problems) = ecosystem::discover(&self.root, &walk.manifests);
+        self.manifests = walk.manifests.iter().cloned().collect();
         batch
             .problems
             .extend(problems.iter().map(ToString::to_string));
@@ -259,12 +261,19 @@ impl Indexer {
         });
         let manifest_named = relative.iter().any(|p| is_manifest(p));
         let dir_named = relative.iter().any(|p| self.root.join(p).is_dir());
+        // A new path in a walked directory: only the walk says whether it is indexed.
+        let new_path = relative.iter().any(|p| {
+            self.walked.contains(parent(p))
+                && self.project.paths_under(p).next().is_none()
+                && self.root.join(p).exists()
+        });
         let mut accepted: Option<BTreeSet<String>> = None;
-        if lib_appears || manifest_named || dir_named {
-            let before = self.manifests.clone();
+        if lib_appears || manifest_named || dir_named || new_path {
             let walk = self.walk();
-            if lib_appears || manifest_named || self.manifests != before {
+            let found: BTreeSet<String> = walk.manifests.iter().cloned().collect();
+            if lib_appears || manifest_named || found != self.manifests {
                 let (mut packages, problems) = ecosystem::discover(&self.root, &walk.manifests);
+                self.manifests = found;
                 // A manifest that does not parse, mid-edit, keeps its previous package; the
                 // others follow their manifests.
                 let broken: BTreeSet<&Path> = problems.iter().filter_map(Error::path).collect();
@@ -314,9 +323,8 @@ impl Indexer {
                 self.reindex(path, &mut batch, &mut changed, &mut resolve)?;
             } else if on_disk.exists() && known.is_empty() && self.walked.contains(parent(path)) {
                 // New files, or a directory moved in: only what the walk accepts.
-                let accepted = match &accepted {
-                    Some(accepted) => accepted,
-                    None => accepted.insert(self.walk().sources.into_iter().collect()),
+                let Some(accepted) = &accepted else {
+                    continue;
                 };
                 let new: Vec<String> = accepted
                     .iter()
@@ -587,7 +595,6 @@ impl Indexer {
         walk.manifests.sort();
         walk.sources.sort();
         self.walked = walked;
-        self.manifests = walk.manifests.iter().cloned().collect();
         walk
     }
 

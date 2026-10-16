@@ -831,6 +831,21 @@ enrichies par l'agent via MCP).
     est maintenant parcouru, et les paquets sont redécouverts quand l'ensemble des manifestes
     change. Test : `a_new_crate_is_a_package`.
 
+  Contre-vérification de ces trois corrections par `phase-reviewer` :
+  - F1 et P1 sont corrigés, N4 aussi ; aucune régression trouvée.
+  - m-f ne l'était qu'en partie. Les parcours qui ne redécouvrent pas les paquets mettaient
+    aussi à jour l'ensemble des manifestes : celui d'un nouveau fichier, celui du watcher et
+    celui de la consolidation.
+    - Effet : un crate créé de 100 à 250 ms après un autre fichier n'était jamais reconnu.
+    - Corrigé : l'ensemble est celui d'où les paquets ont été découverts. Tout parcours de
+      `refresh` qui en trouve un autre les redécouvre.
+    - Test : `a_new_crate_seen_by_another_walk_first_is_a_package`, qui compare le résultat
+      à une indexation neuve. Les sondes de la relecture reconnaissent maintenant le crate
+      quel que soit le délai.
+  - Hypothèse de la relecture : sous macOS, une écriture serait vue comme un simple changement
+    de métadonnées. Elle est écartée : notify traduit `ITEM_MODIFIED` en `Modify(Data)`, et la
+    CI macOS voit les sauvegardes.
+
 Critère de sortie : le dépôt Timonier s'indexe en quelques secondes ; une modification de
 fichier met le graphe à jour en moins de 100 ms (mesuré).
 
@@ -1256,3 +1271,5 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
 - 2026-10-16 — Relecture n° 3 de la Phase 3, arrivée après ta validation : « pas prête ».
   F1 (le watcher se nourrissait de ses propres lectures), P1 (3.12 cochée à tort) et m-f sont
   corrigés, avec deux tests de régression. 3.12 est décochée.
+- 2026-10-16 — Contre-vérification : F1 et P1 corrigés ; m-f ne l'était qu'en partie (un crate
+  vu d'abord par un autre parcours). Corrigé, avec un troisième test.
