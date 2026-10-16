@@ -180,7 +180,8 @@ impl ContentHash {
             return Err(Error::InvalidHash("expected 64 hexadecimal digits"));
         }
         let mut bytes = [0_u8; 32];
-        for (byte, pair) in bytes.iter_mut().zip(hex.as_bytes().chunks_exact(2)) {
+        let (pairs, _) = hex.as_bytes().as_chunks::<2>();
+        for (byte, pair) in bytes.iter_mut().zip(pairs) {
             let pair = std::str::from_utf8(pair).map_err(|_| Error::InvalidHash("not ASCII"))?;
             *byte =
                 u8::from_str_radix(pair, 16).map_err(|_| Error::InvalidHash("not hexadecimal"))?;
