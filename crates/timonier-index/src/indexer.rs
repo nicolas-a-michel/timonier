@@ -80,6 +80,9 @@ pub struct BatchStats {
 
 pub struct Indexer {
     root: PathBuf,
+    /// The root as given, when it differs from the canonical one (a symbolic link, such as
+    /// macOS's `/var` → `/private/var`): callers may name paths through it.
+    given_root: Option<PathBuf>,
     repo_name: String,
     packs: Packs,
     project: Project,
@@ -103,8 +106,10 @@ impl Indexer {
             .unwrap_or("repository")
             .to_owned();
         let project = Project::new(&repo_name, &packs, Vec::new())?;
+        let given_root = std::path::absolute(&root).ok().filter(|given| *given != canonical);
         Ok(Self {
             root: canonical,
+            given_root,
             repo_name,
             packs,
             project,
@@ -582,8 +587,19 @@ impl Indexer {
 
     /// A path relative to the root, with `/` separators; `None` outside the root.
     fn relative(&self, path: &Path) -> Option<String> {
+        let resolved;
         let relative = if path.is_absolute() {
-            path.strip_prefix(&self.root).ok()?
+            if let Ok(inside) = path.strip_prefix(&self.root) {
+                inside
+            } else if let Some(inside) = self.given_root.as_ref().and_then(|g| path.strip_prefix(g).ok()) {
+                inside
+            } else {
+                // Through another symbolic link: the parent still exists, even for a file
+                // that was just deleted.
+                let parent = path.parent()?.canonicalize().ok()?;
+                resolved = parent.join(path.file_name()?);
+                resolved.strip_prefix(&self.root).ok()?
+            }
         } else {
             path
         };

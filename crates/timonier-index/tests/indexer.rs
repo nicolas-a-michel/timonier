@@ -371,3 +371,24 @@ fn singletons_stay_alone_and_newcomers_join_their_neighbours() {
     );
     assert_eq!(parent(&batch, "file:src/lone.rs"), "pkg:cargo/k");
 }
+
+/// A root reached through a symbolic link (macOS's `/var` → `/private/var`): paths named
+/// through the link, or through another link to the same place, are the same files.
+#[cfg(unix)]
+#[test]
+fn paths_through_a_symbolic_link_name_the_same_files() {
+    let dir = repository();
+    let link_dir = tempfile::tempdir().unwrap();
+    let link = link_dir.path().join("repo");
+    std::os::unix::fs::symlink(dir.path(), &link).unwrap();
+    let mut indexer = indexer(&link);
+    indexer.index_all(&HashMap::new(), &[], None).unwrap();
+    std::fs::remove_file(link.join("web/src/App.tsx")).unwrap();
+    let batch = indexer.refresh(&[link.join("web/src/App.tsx")]).unwrap();
+    assert_eq!(batch.stats.removed, 1, "{:?}", scopes(&batch));
+    let other = link_dir.path().join("other");
+    std::os::unix::fs::symlink(dir.path(), &other).unwrap();
+    std::fs::remove_file(dir.path().join("web/src/main.tsx")).unwrap();
+    let batch = indexer.refresh(&[other.join("web/src/main.tsx")]).unwrap();
+    assert_eq!(batch.stats.removed, 1, "{:?}", scopes(&batch));
+}
