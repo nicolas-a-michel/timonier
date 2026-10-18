@@ -1,8 +1,11 @@
-import type { WebviewToHost } from "./protocol";
+import type { WebviewMessage } from "./protocol";
 
 /** The part of the host API the webview uses. */
 export interface Host {
-  postMessage(message: WebviewToHost): void;
+  postMessage(message: WebviewMessage): void;
+  /** What the webview kept of its view state, across reloads of its page. */
+  getState?(): unknown;
+  setState?(state: unknown): void;
 }
 
 // Injected by VSCode into its webviews; absent on the standalone dev page.

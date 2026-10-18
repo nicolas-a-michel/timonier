@@ -12,7 +12,8 @@
   "scripts": {
     "build": "npm run build -w webview && npm run build -w editors/vscode",
     "test": "npm run test --workspaces --if-present && node --test .claude/hooks/hooks.test.mjs",
-    "test:integration": "npm run build && npm run test:integration -w editors/vscode",
+    "test:integration": "cargo build -p timonier-cli && npm run build && npm run test:integration -w editors/vscode",
+    "test:a11y": "npm run test:a11y -w webview",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",

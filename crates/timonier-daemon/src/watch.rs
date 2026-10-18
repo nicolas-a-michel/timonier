@@ -20,8 +20,8 @@ use notify_debouncer_full::notify::{EventKind, RecommendedWatcher, RecursiveMode
 use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
 use timonier_index::lsp::{LanguageServer, Priority};
 
-use crate::indexing::{Consolidation, Pipeline, Refinement, Report};
-use crate::{Error, Result};
+use crate::indexing::{Consolidated, Pipeline, Refinement, Report};
+use crate::{Error, Result, git};
 
 /// The debounce of the spec (« anti-rebond ~300 ms »).
 pub const DEBOUNCE: Duration = Duration::from_millis(300);
@@ -37,13 +37,36 @@ type Watcher = Debouncer<RecommendedWatcher, RecommendedCache>;
 pub enum Event {
     Indexed(Result<Report>),
     Refined(Result<Refinement>),
-    /// A new commit got its snapshot (ADR 0015).
-    Committed(Result<Consolidation>),
+    /// A change in the git directory was consolidated: a new commit got its snapshot, or the
+    /// head changed on the way (ADR 0015). An error may come after the head changed.
+    Committed(Result<Consolidated>),
+}
+
+impl Event {
+    /// Whether the views may have to read the graph again.
+    pub fn changes_graph(&self) -> bool {
+        match self {
+            Event::Indexed(Ok(report)) => !report.apply.is_empty(),
+            // The head may have changed before the failure: a start that wrote it, then failed
+            // to freeze the commit (review n° 17, m17-5).
+            Event::Indexed(Err(_)) => true,
+            Event::Refined(Ok(Refinement::Verified { apply, .. })) => !apply.is_empty(),
+            Event::Committed(Ok(consolidated)) => {
+                consolidated.snapshot.is_some() || !consolidated.head.is_empty()
+            }
+            // The head may have changed before the failure (review n° 16, m16-5).
+            Event::Committed(Err(_)) => true,
+            _ => false,
+        }
+    }
 }
 
 enum Command {
     Changed(Vec<PathBuf>),
     Refine(String, Priority),
+    /// The server may have become ready, or its client's documents saved: what was held waits
+    /// again, and the queue is looked at again (ADR 0022).
+    Nudge,
 }
 
 /// A running watch. Dropping it stops the watcher and the pipeline thread.
@@ -51,6 +74,10 @@ pub struct Watch {
     debouncer: Option<Arc<Mutex<Watcher>>>,
     commands: Option<SyncSender<Command>>,
     pending: Arc<AtomicUsize>,
+    /// Files waiting for refinement, as of the pipeline's last step.
+    refinements: Arc<AtomicUsize>,
+    /// Files and lookups held until the client's documents are saved, as of the last step.
+    held: Arc<AtomicUsize>,
     worker: Option<JoinHandle<Pipeline>>,
 }
 
@@ -118,7 +145,11 @@ impl Watch {
         F: FnMut(Event) + Send + 'static,
     {
         let root = pipeline.root().to_path_buf();
-        let git_dir = pipeline.git_dir();
+        let git = pipeline.git_places();
+        // The root as given, and as the file system names it: events come under either.
+        let roots: Vec<PathBuf> = std::iter::once(root.clone())
+            .chain(std::fs::canonicalize(&root).ok())
+            .collect();
         let (commands, receive) = mpsc::sync_channel::<Command>(QUEUE);
         let pending = Arc::new(AtomicUsize::new(0));
         let changes = commands.clone();
@@ -158,15 +189,34 @@ impl Watch {
             watcher: Arc::downgrade(&debouncer),
             dirs: BTreeSet::new(),
         };
-        // HEAD and its log move in the git directory, inside the repository or not (worktree).
-        let mut wanted: Vec<PathBuf> = git_dir
+        // HEAD and its log move in the git directory, inside the repository or not (worktree);
+        // `info/exclude`, in the directory worktrees share, says what the walk skips. So do the
+        // ignore files of the folders between the top of the working tree and the root
+        // (ADR 0023).
+        let mut wanted: Vec<PathBuf> = git
             .iter()
-            .flat_map(|d| [d.clone(), d.join("logs")])
+            .flat_map(|g| [g.dir.clone(), g.dir.join("logs"), g.common.join("info")])
             .collect();
+        if let Some(git) = &git {
+            wanted.extend(
+                roots
+                    .iter()
+                    .flat_map(|r| {
+                        r.ancestors()
+                            .skip(1)
+                            .take_while(|d| d.starts_with(&git.top))
+                    })
+                    .map(Path::to_path_buf),
+            );
+        }
         wanted.push(root);
         wanted.extend(pipeline.walk_dirs());
         watched.sync(wanted, &[])?;
         let waiting = Arc::clone(&pending);
+        let refinements = Arc::new(AtomicUsize::new(0));
+        let queued = Arc::clone(&refinements);
+        let held = Arc::new(AtomicUsize::new(0));
+        let holding = Arc::clone(&held);
         let worker = std::thread::Builder::new()
             .name("timonier-index".into())
             .spawn(move || {
@@ -181,7 +231,10 @@ impl Watch {
                 on_event(Event::Indexed(report));
                 follow(&mut pipeline, &mut watched, &[], &mut on_event);
                 loop {
-                    let idle_work = server.is_some() && pipeline.refinements_waiting() > 0;
+                    queued.store(pipeline.refinements_waiting(), Ordering::SeqCst);
+                    holding.store(pipeline.refinements_held(), Ordering::SeqCst);
+                    let idle_work = server.as_deref().is_some_and(|s| s.ready())
+                        && pipeline.refinements_waiting() > 0;
                     let command = if idle_work {
                         match receive.try_recv() {
                             Ok(command) => Some(command),
@@ -199,12 +252,16 @@ impl Watch {
                             waiting.fetch_sub(1, Ordering::SeqCst);
                             let named: Vec<PathBuf> =
                                 paths.iter().filter(|p| p.is_dir()).cloned().collect();
-                            changed(&mut pipeline, git_dir.as_deref(), paths, &mut on_event);
+                            changed(&mut pipeline, git.as_ref(), &roots, paths, &mut on_event);
                             follow(&mut pipeline, &mut watched, &named, &mut on_event);
                         }
                         Some(Command::Refine(path, priority)) => {
                             waiting.fetch_sub(1, Ordering::SeqCst);
                             pipeline.request_refinement(&path, priority);
+                        }
+                        Some(Command::Nudge) => {
+                            waiting.fetch_sub(1, Ordering::SeqCst);
+                            pipeline.release_held();
                         }
                         None => {
                             let Some(server) = server.as_deref_mut() else {
@@ -212,7 +269,18 @@ impl Watch {
                             };
                             let yield_now = || waiting.load(Ordering::SeqCst) > 0;
                             match pipeline.refine_next(server, yield_now) {
-                                Ok(Some(refined)) => on_event(Event::Refined(Ok(refined))),
+                                Ok(Some(refined)) => {
+                                    log_refinement(&refined);
+                                    on_event(Event::Refined(Ok(refined)));
+                                    // The disk differs from the index: read it now, rather
+                                    // than wait for the watcher, which may have missed it.
+                                    if let Some(report) = pipeline.reread_unseen() {
+                                        if let Err(error) = &report {
+                                            tracing::warn!(%error, "indexing failed");
+                                        }
+                                        on_event(Event::Indexed(report));
+                                    }
+                                }
                                 Ok(None) => {}
                                 Err(error) => {
                                     tracing::warn!(%error, "refinement failed");
@@ -229,6 +297,8 @@ impl Watch {
             debouncer: Some(debouncer),
             commands: Some(commands),
             pending,
+            refinements,
+            held,
             worker: Some(worker),
         })
     }
@@ -239,6 +309,25 @@ impl Watch {
             self.pending.fetch_add(1, Ordering::SeqCst);
             let _ = commands.send(Command::Refine(path.to_owned(), priority));
         }
+    }
+
+    /// The language server may answer now (a relaying client connected, or its documents are
+    /// saved): refinement resumes, held work included.
+    pub fn nudge(&self) {
+        if let Some(commands) = &self.commands {
+            self.pending.fetch_add(1, Ordering::SeqCst);
+            let _ = commands.send(Command::Nudge);
+        }
+    }
+
+    /// Files waiting for LSP refinement (ADR 0014).
+    pub fn refinements_waiting(&self) -> usize {
+        self.refinements.load(Ordering::SeqCst)
+    }
+
+    /// Files and lookups held until the client's documents are saved (ADR 0022).
+    pub fn refinements_held(&self) -> usize {
+        self.held.load(Ordering::SeqCst)
     }
 
     /// Stops watching, lets the pipeline finish the step in progress, and gives it back.
@@ -252,6 +341,46 @@ impl Watch {
         self.debouncer.take();
         self.commands.take();
         self.worker.take().and_then(|worker| worker.join().ok())
+    }
+}
+
+/// One line per refinement step, at debug level (ADR 0014, 0022).
+fn log_refinement(refined: &Refinement) {
+    match refined {
+        Refinement::Verified {
+            path,
+            calls,
+            usages,
+            unverified,
+            elapsed,
+            ..
+        } => tracing::debug!(
+            file = %path,
+            calls,
+            usages,
+            unverified = unverified.as_deref().unwrap_or("-"),
+            elapsed_ms = elapsed.as_secs_f64() * 1000.0,
+            "file refined"
+        ),
+        Refinement::LookedUp {
+            path,
+            dependents,
+            by_name,
+            elapsed,
+        } => tracing::debug!(
+            file = %path,
+            dependents,
+            by_name,
+            elapsed_ms = elapsed.as_secs_f64() * 1000.0,
+            "dependents looked up"
+        ),
+        Refinement::Yielded { path } => tracing::debug!(file = %path, "refinement yielded"),
+        Refinement::Held { path, reason } => {
+            tracing::debug!(file = %path, reason, "refinement held");
+        }
+        Refinement::Skipped { path, reason } => {
+            tracing::debug!(file = %path, reason, "refinement skipped");
+        }
     }
 }
 
@@ -292,17 +421,33 @@ fn follow(
 }
 
 /// A debounced batch: files go to the pipeline, a change in the git directory may be a commit.
+/// An ignore file above the root, or git's own, makes the walk start again.
 fn changed(
     pipeline: &mut Pipeline,
-    git_dir: Option<&Path>,
+    places: Option<&git::Places>,
+    roots: &[PathBuf],
     paths: Vec<PathBuf>,
     on_event: &mut impl FnMut(Event),
 ) {
-    let (git, files): (Vec<PathBuf>, Vec<PathBuf>) = paths
+    let (git, paths): (Vec<PathBuf>, Vec<PathBuf>) = paths
         .into_iter()
-        .partition(|p| git_dir.is_some_and(|d| p.starts_with(d)));
-    if !files.is_empty() {
-        let report = pipeline.refresh(&files);
+        .partition(|p| places.is_some_and(|g| p.starts_with(&g.dir) || p.starts_with(&g.common)));
+    let (files, above): (Vec<PathBuf>, Vec<PathBuf>) = paths
+        .into_iter()
+        .partition(|p| roots.iter().any(|r| p.starts_with(r)));
+    // Git's own ignore file, in the git directory, and those of the folders above the root: the
+    // walk changes with them (ADR 0023). Nothing else above the root is indexed.
+    let excluded = git.iter().any(|p| p.ends_with("info/exclude"))
+        || above.iter().any(|p| {
+            p.file_name()
+                .is_some_and(|n| n == ".gitignore" || n == ".ignore")
+        });
+    if !files.is_empty() || excluded {
+        let report = if excluded {
+            pipeline.reconcile(&files)
+        } else {
+            pipeline.refresh(&files)
+        };
         match &report {
             Ok(report) => tracing::debug!(
                 files = files.len(),
@@ -316,11 +461,15 @@ fn changed(
     }
     if !git.is_empty() {
         match pipeline.consolidate() {
-            Ok(Some(consolidation)) => {
-                tracing::info!(sha = %consolidation.sha, seq = consolidation.seq, "commit snapshot");
-                on_event(Event::Committed(Ok(consolidation)));
+            Ok(consolidated) => {
+                if let Some(snapshot) = &consolidated.snapshot {
+                    tracing::info!(sha = %snapshot.sha, seq = snapshot.seq, "commit snapshot");
+                }
+                let event = Event::Committed(Ok(consolidated));
+                if event.changes_graph() {
+                    on_event(event);
+                }
             }
-            Ok(None) => {}
             Err(error) => {
                 tracing::warn!(%error, "consolidation failed");
                 on_event(Event::Committed(Err(error)));
@@ -332,5 +481,40 @@ fn changed(
 impl Drop for Watch {
     fn drop(&mut self) {
         self.shutdown();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use timonier_store::ApplyStats;
+
+    use super::*;
+    use crate::indexing::{Consolidated, Consolidation};
+
+    /// Review n° 16, m16-5, and n° 17, m17-5: a consolidation tells the views when it froze a
+    /// snapshot, when the head changed on the way without one, and when it failed; an indexing
+    /// tells them when it failed too.
+    #[test]
+    fn a_consolidation_tells_the_views_what_changed_the_head() {
+        assert!(Event::Indexed(Err(Error::Poisoned)).changes_graph());
+        let committed = |c: Consolidated| Event::Committed(Ok(c)).changes_graph();
+        assert!(!committed(Consolidated::default()));
+        assert!(committed(Consolidated {
+            snapshot: None,
+            head: ApplyStats {
+                nodes_added: 1,
+                ..ApplyStats::default()
+            },
+        }));
+        assert!(committed(Consolidated {
+            snapshot: Some(Consolidation {
+                sha: "c0ffee".into(),
+                seq: 2,
+                dirty: 0,
+                elapsed: Duration::ZERO,
+            }),
+            head: ApplyStats::default(),
+        }));
+        assert!(Event::Committed(Err(Error::Poisoned)).changes_graph());
     }
 }

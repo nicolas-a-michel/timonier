@@ -22,18 +22,18 @@ import   ../x binds ["ns"]
 import   react binds ["React"]
 import   ./t binds ["T"]
 import   ./z binds ["z"]
-calls Foo ×1
-calls c ×1
-calls h ×1
-calls ns·k ×1 on a receiver
-calls this·n ×1 on a receiver
-references Foo ×1
-references I ×1
-references T ×1
-references U ×1
-implements I ×1 from Foo
-implements J ×1 from Foo
-inherits Bar ×1 from Foo
-inherits Base ×1 from I
+calls Foo ×1 at 12:6
+calls c ×1 at 43:2
+calls h ×1 at 10:2
+calls ns·k ×1 at 11:5 on a receiver
+calls this·n ×1 at 18:16 on a receiver
+references Foo ×1 at 15:21
+references I ×1 at 22:10
+references T ×1 at 17:16
+references U ×1 at 27:5
+implements I ×1 at 15:48 from Foo
+implements J ×1 at 15:51 from Foo
+inherits Bar ×1 at 15:33 from Foo
+inherits Base ×1 at 22:20 from I
 signal   entry_point ×1
 errors   false

@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "typescript"
-version = "1.0.0"
+version = "1.2.0"
 ecosystem = "npm"
 
 [[grammars]]
@@ -59,10 +59,11 @@ ui = [
   "@vscode-elements/elements",
 ]
 
+# Importing `http` or `net` says nothing: a client imports them too. A server is seen in the
+# code (roles.scm: `createServer`, `listen`).
 [[roles]]
 role = "entry_point"
 libraries = ["express", "fastify", "koa", "hono", "commander", "yargs"]
-paths = ["http", "node:http", "https", "node:https", "net", "node:net"]
 confidence = 0.8
 
 [[roles]]
@@ -85,3 +86,21 @@ confidence = 0.5
 role = "background_task"
 paths = ["worker_threads", "node:worker_threads", "child_process", "node:child_process"]
 confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# Globals of the language and of its usual runtimes: a name tree-sitter cannot resolve that is
+# one of them is defined outside the repository, and the language server is not asked.
+outside = [
+  "Array", "ArrayBuffer", "Boolean", "Date", "Error", "Function", "JSON", "Map", "Math", "Number",
+  "Object", "Promise", "Proxy", "Reflect", "RegExp", "Set", "String", "Symbol", "BigInt",
+  "TypeError", "RangeError", "WeakMap", "WeakSet", "Uint8Array", "Iterable", "Iterator",
+  "AsyncIterable", "PromiseLike", "ReadonlyArray", "ReadonlyMap", "ReadonlySet", "Record",
+  "Partial", "Required", "Readonly", "Pick", "Omit", "Exclude", "Extract", "NonNullable",
+  "ReturnType", "Parameters", "InstanceType", "Awaited", "console", "globalThis", "window",
+  "document", "navigator", "HTMLElement", "Element", "Event", "KeyboardEvent", "MouseEvent",
+  "FocusEvent", "CustomEvent", "MessageEvent", "URL", "Response", "Request", "Headers",
+  "AbortController", "AbortSignal", "TextEncoder", "TextDecoder", "setTimeout", "clearTimeout",
+  "setInterval", "clearInterval", "requestAnimationFrame", "queueMicrotask", "fetch",
+  "structuredClone", "NodeJS", "Buffer", "process", "require", "module", "Thenable",
+]

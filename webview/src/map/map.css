@@ -1,0 +1,276 @@
+/* The architecture map (PLAN.md 4.7): tokens only, as everywhere (ADR 0020). */
+
+.tim-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.tim-map .react-flow {
+  background: var(--tim-color-bg);
+}
+
+/* React Flow's own edge path takes the edges' tokens. */
+.tim-map .react-flow__edge-path.tim-edge--confirmed {
+  stroke: var(--tim-edge-confirmed);
+}
+
+.tim-map .react-flow__edge-path.tim-edge--approximate {
+  stroke: var(--tim-edge-approximate);
+  stroke-dasharray: var(--tim-edge-dash);
+}
+
+/*
+ * The wires of the item pointed at or focused: in its colour, and drawn over the others with a
+ * casing of the background, which cuts the lines they cross. Not by colour alone.
+ */
+.tim-map .react-flow__edge-path.tim-edge--active {
+  stroke: var(--tim-role, var(--tim-color-fg));
+}
+
+.tim-map .tim-edge-casing {
+  fill: none;
+  stroke: var(--tim-color-bg);
+  stroke-width: var(--tim-edge-casing-width);
+}
+
+/*
+ * The pins: a dot where edges leave a box, on its right; a triangle where they come in, on its
+ * left. They replace arrowheads: however many edges meet there, the direction is drawn once.
+ */
+.tim-map .tim-map-handle {
+  width: var(--tim-pin-size);
+  height: var(--tim-pin-size);
+  min-width: 0;
+  min-height: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--tim-pin);
+  visibility: hidden;
+}
+
+.tim-map .tim-map-handle--on {
+  visibility: visible;
+}
+
+.tim-map .tim-map-handle.react-flow__handle-left {
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* A node: the focus ring is the IDE's, as on every other element. */
+.tim-map .react-flow__node {
+  border-radius: var(--tim-radius-large);
+}
+
+.tim-map .react-flow__node:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}
+
+.tim-map .react-flow__node .tim-box {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.tim-map .react-flow__node.selected .tim-box {
+  border-color: var(--tim-color-selected-outline);
+  box-shadow: 0 0 0 1px var(--tim-color-selected-outline);
+}
+
+/* A closed role: a card that lists its members, under a title bar in the role's colour */
+.tim-map-role {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius-large);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+  cursor: pointer;
+  transition: border-color var(--tim-duration-short) var(--tim-easing);
+}
+
+.tim-map-role:hover {
+  border-color: var(--tim-color-outline-hover);
+}
+
+.tim-map .react-flow__node.selected .tim-map-role {
+  border-color: var(--tim-color-selected-outline);
+  box-shadow: 0 0 0 1px var(--tim-color-selected-outline);
+}
+
+/* What the edges are: the legend, out of the way. */
+.tim-map .react-flow__panel .tim-legend {
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-map-role__title {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tim-space-2);
+  height: 44px;
+  padding: 0 var(--tim-space-3);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--tim-color-divider);
+  background: var(--tim-role-tint, var(--tim-role-neutral-tint));
+  font-size: var(--tim-font-size-title);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+body.vscode-high-contrast .tim-map-role__title,
+body.vscode-high-contrast .tim-map-frame__header {
+  border-bottom: 2px solid var(--tim-role, var(--tim-color-outline));
+}
+
+.tim-map-role__members {
+  margin: 0;
+  padding: var(--tim-space-3);
+  list-style: none;
+  color: var(--tim-color-muted-on-box);
+  font-size: var(--tim-font-size-small);
+  line-height: 20px;
+}
+
+.tim-map-role__members li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tim-map-role__more {
+  font-style: italic;
+}
+
+/*
+ * An open role or box: a frame around what it holds, as the comment boxes of a node editor. Its
+ * title bar is opaque, so that no edge crosses its name; a faint wash of its colour lets the
+ * edges inside show. Dashes mean one thing on the map, an approximate edge: frames are solid.
+ */
+.tim-map-frame {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius-large);
+  background: var(--tim-role-wash, var(--tim-role-neutral-wash));
+  color: var(--tim-color-fg);
+  cursor: pointer;
+}
+
+.tim-map-frame__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-2);
+  height: 44px;
+  padding: 0 var(--tim-space-3);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--tim-color-divider);
+  background: var(--tim-role-tint, var(--tim-role-neutral-tint));
+}
+
+.tim-map-frame__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-map-frame__meta {
+  flex: none;
+  color: var(--tim-color-muted-on-header);
+  font-size: var(--tim-font-size-small);
+}
+
+/* Details of what the pointer or the focus is on */
+.tim-map-details {
+  max-width: 24rem;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 1px solid var(--tim-color-tooltip-border);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-tooltip-bg);
+  box-shadow: var(--tim-shadow);
+  color: var(--tim-color-tooltip-fg);
+  font-size: var(--tim-font-size-small);
+  line-height: var(--tim-line-height);
+}
+
+.tim-map-details__name {
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-map-details__line {
+  overflow-wrap: anywhere;
+}
+
+.tim-map .react-flow__panel .tim-toolbar {
+  padding: var(--tim-space-1);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+}
+
+.tim-map-details__code {
+  margin-top: var(--tim-space-2);
+}
+
+.tim-map-details__move {
+  display: flex;
+  gap: var(--tim-space-1);
+  margin-top: var(--tim-space-2);
+}
+
+.tim-map-details__step {
+  min-width: var(--tim-space-8);
+}
+
+/*
+ * An open frame: the pointer goes through its body; its title bar moves it. React Flow sets the
+ * node's pointer events in its inline style: only `!important` goes over it.
+ */
+.tim-map .react-flow__node.tim-map-node--frame {
+  pointer-events: none !important;
+}
+
+.tim-map .tim-map-node--frame .tim-map-frame__header {
+  pointer-events: all;
+  cursor: grab;
+}
+
+/* React Flow's attribution, as its authors ask: discreet, with the tokens. */
+.tim-map .react-flow__attribution {
+  padding: var(--tim-space-1) var(--tim-space-2);
+  background: var(--tim-color-surface);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-map .react-flow__attribution a {
+  color: var(--tim-color-muted);
+}
+
+/* Zoomed out: the names, nothing smaller (PLAN.md 4.10). */
+.tim-map--far .tim-box__role,
+.tim-map--far .tim-box__meta,
+.tim-map--far .tim-map-role__members,
+.tim-map--far .tim-map-frame__meta {
+  visibility: hidden;
+}
+
+.tim-map--far .tim-box__name,
+.tim-map--far .tim-map-role__title,
+.tim-map--far .tim-map-frame__title {
+  font-size: var(--tim-font-size-title);
+}

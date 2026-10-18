@@ -201,7 +201,11 @@ fn a_commit_brings_in_no_excluded_file() {
     );
     git(root, &["add", "web/src/a.ts"]);
     git(root, &["commit", "--quiet", "-m", "two"]);
-    let consolidation = pipeline.consolidate().unwrap().expect("a new commit");
+    let consolidation = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a new commit");
     let mut reader = store.reader().unwrap();
     let commit: Vec<String> = reader
         .nodes_at(consolidation.seq)
@@ -520,7 +524,11 @@ fn a_committed_rename_leaves_no_old_path_in_the_snapshot() {
     write(root, "src/lib.rs", "pub mod b;\n");
     git(root, &["commit", "--quiet", "-am", "rename"]);
     // No refresh: the commit is seen first.
-    let consolidation = pipeline.consolidate().unwrap().expect("a new commit");
+    let consolidation = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a new commit");
     let mut reader = store.reader().unwrap();
     let ids: Vec<String> = reader
         .nodes_at(consolidation.seq)

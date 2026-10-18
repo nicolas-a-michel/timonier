@@ -1,26 +1,103 @@
 /*
- * Timonier design tokens: the only colours, fonts, spacings and durations components may use
- * (skill vscode-webview-ui). Each token maps to a VSCode theme variable, so the webview follows
- * the IDE theme (light, dark, high contrast). The fallbacks serve the standalone dev page only.
- * The full design system is built in Phase 4.
+ * Timonier design tokens (ADR 0020): the only colours, fonts, spacings, radii and durations
+ * components may use (skill vscode-webview-ui). Each token maps to a VSCode theme variable, so
+ * the webview follows the IDE theme: light, dark, high contrast dark and light. The fallbacks
+ * serve the standalone dev page only.
+ *
+ * Contrast (WCAG AA) is measured in every built-in theme by `npm run test:a11y`: 4.5:1 for text,
+ * 3:1 for lines, icons and focus. Mixes towards the background keep lines calm while they stay
+ * above 3:1.
  */
 :root {
   /* Surfaces and text */
   --tim-color-bg: var(--vscode-editor-background, #ffffff);
   --tim-color-fg: var(--vscode-foreground, #3b3b3b);
   --tim-color-muted: var(--vscode-descriptionForeground, #616161);
-  --tim-color-border: var(--vscode-panel-border, #e5e5e5);
+  /* Secondary text on a tinted box: a little closer to the text, to keep 4.5:1 over the tint. */
+  --tim-color-muted-on-box: color-mix(in srgb, var(--tim-color-muted) 70%, var(--tim-color-fg));
+  /* On a title bar, tinted more than a box: closer still. */
+  --tim-color-muted-on-header: color-mix(in srgb, var(--tim-color-muted) 40%, var(--tim-color-fg));
+  /* A box on the map, and its pointed or selected states */
+  --tim-color-surface: var(--vscode-editorWidget-background, #f8f8f8);
+  --tim-color-surface-hover: var(--vscode-list-hoverBackground, #f2f2f2);
+  /* High contrast themes give no selection background: their outline shows it instead. */
+  --tim-color-selected: var(--vscode-list-activeSelectionBackground, transparent);
+  --tim-color-selected-fg: var(--vscode-list-activeSelectionForeground, var(--tim-color-fg));
+  --tim-color-selected-outline: var(--vscode-contrastActiveBorder, var(--tim-color-outline));
+  /* The tooltip, as VSCode's own hovers */
+  --tim-color-tooltip-bg: var(--vscode-editorHoverWidget-background, #f8f8f8);
+  --tim-color-tooltip-fg: var(--vscode-editorHoverWidget-foreground, #3b3b3b);
+  --tim-color-tooltip-border: var(--vscode-editorHoverWidget-border, #c8c8c8);
+  --tim-shadow: 0 2px 8px var(--vscode-widget-shadow, transparent);
+
+  /* Lines: dividers are quiet; a box's outline and the edges stay at 3:1 or more */
+  --tim-color-divider: var(--vscode-panel-border, #e5e5e5);
+  --tim-color-outline: var(--vscode-contrastBorder, color-mix(in srgb, var(--tim-color-fg) 55%, var(--tim-color-bg)));
   --tim-color-focus: var(--vscode-focusBorder, #005fb8);
 
+  /*
+   * Edges (spec « Précision affichée »): one known only from tree-sitter looks different from
+   * one confirmed by LSP or SCIP, by its dashes and not by its colour alone.
+   */
+  --tim-edge-confirmed: color-mix(in srgb, var(--tim-color-fg) 80%, var(--tim-color-bg));
+  --tim-edge-approximate: color-mix(in srgb, var(--tim-color-fg) 60%, var(--tim-color-bg));
+  --tim-edge-dash: 5 4;
+  /* One width: thickness is kept for the traffic measured during the tests (spec, Phase 8). */
+  --tim-edge-width: 1.5px;
+  /* Around the wires of the item pointed at: the background, which cuts the lines they cross. */
+  --tim-edge-casing-width: 6px;
+  /* The pins where edges leave (right) and enter (left) a box, in the colour of the lines. */
+  --tim-pin: var(--tim-edge-confirmed);
+  --tim-pin-size: 10px;
+
+  /* The board under the map: faint lines, every 16 px and every 128 px. */
+  --tim-grid-minor: color-mix(in srgb, var(--tim-color-fg) 4%, var(--tim-color-bg));
+  --tim-grid-major: color-mix(in srgb, var(--tim-color-fg) 8%, var(--tim-color-bg));
+
   /* Meaning only (spec: red = violation, orange = attention, green = conformity), never alone */
-  --tim-color-violation: var(--vscode-charts-red, #c72e0f);
-  --tim-color-attention: var(--vscode-charts-orange, #b5520c);
+  /* The list colours of VSCode, made for text and icons on lists, then their editor colours. */
+  --tim-color-violation: var(--vscode-list-errorForeground, var(--vscode-editorError-foreground, #b01011));
+  --tim-color-attention: var(--vscode-list-warningForeground, var(--vscode-editorWarning-foreground, #855f00));
   --tim-color-conformity: var(--vscode-charts-green, #388a34);
+  --tim-color-info: var(--vscode-textLink-foreground, #005fb8);
+
+  /*
+   * Architectural roles (ADR 0017, ADR 0020), for readability, as the human asked on 2026-10-16.
+   * The four calm hues of the themes outside red, orange, yellow and green, which carry
+   * violation, attention and conformity: yellow is the warning colour of several themes. Each
+   * is pulled a little towards the text colour, so that it holds its contrast in light and dark
+   * themes. Background tasks, utilities and external libraries stay neutral. Each role has its
+   * own icon too: colour never alone.
+   */
+  --tim-role-entry-point: color-mix(in srgb, var(--vscode-charts-blue, #0063d3) 85%, var(--tim-color-fg));
+  --tim-role-interface: color-mix(in srgb, var(--vscode-charts-purple, #652d90) 85%, var(--tim-color-fg));
+  --tim-role-data-model: color-mix(in srgb, var(--vscode-terminal-ansiMagenta, #bc05bc) 85%, var(--tim-color-fg));
+  --tim-role-persistence: color-mix(in srgb, var(--vscode-terminal-ansiCyan, #0598bc) 75%, var(--tim-color-fg));
+  --tim-role-neutral: var(--tim-color-outline);
+  /* The title bar of a box, tinted by its role; the body below stays neutral. */
+  --tim-role-entry-point-tint: color-mix(in srgb, var(--tim-role-entry-point) 22%, var(--tim-color-surface));
+  --tim-role-interface-tint: color-mix(in srgb, var(--tim-role-interface) 22%, var(--tim-color-surface));
+  --tim-role-data-model-tint: color-mix(in srgb, var(--tim-role-data-model) 22%, var(--tim-color-surface));
+  --tim-role-persistence-tint: color-mix(in srgb, var(--tim-role-persistence) 22%, var(--tim-color-surface));
+  /* The title bar of a neutral box: utilities, external libraries, no role yet. */
+  --tim-role-neutral-tint: color-mix(in srgb, var(--tim-color-fg) 8%, var(--tim-color-surface));
+  /* An open box or role: a faint wash of its colour, through which its edges show. */
+  --tim-role-entry-point-wash: color-mix(in srgb, var(--tim-role-entry-point) 5%, transparent);
+  --tim-role-interface-wash: color-mix(in srgb, var(--tim-role-interface) 5%, transparent);
+  --tim-role-data-model-wash: color-mix(in srgb, var(--tim-role-data-model) 5%, transparent);
+  --tim-role-persistence-wash: color-mix(in srgb, var(--tim-role-persistence) 5%, transparent);
+  --tim-role-neutral-wash: color-mix(in srgb, var(--tim-color-fg) 3%, transparent);
+  /* A box under the pointer: its outline stands out; its background stays opaque. */
+  --tim-color-outline-hover: var(--tim-edge-confirmed);
 
   /* Typography */
   --tim-font-family: var(--vscode-font-family, system-ui, sans-serif);
   --tim-font-size: var(--vscode-font-size, 13px);
+  --tim-font-size-small: calc(var(--tim-font-size) * 0.92);
+  --tim-font-size-title: calc(var(--tim-font-size) * 1.25);
   --tim-font-family-code: var(--vscode-editor-font-family, ui-monospace, monospace);
+  --tim-font-weight-strong: 600;
+  --tim-line-height: 1.4;
 
   /* Spacing scale (4 px base) and shapes */
   --tim-space-1: 4px;
@@ -30,14 +107,45 @@
   --tim-space-6: 24px;
   --tim-space-8: 32px;
   --tim-radius: 4px;
+  --tim-radius-large: 6px;
   --tim-measure: 60ch;
+  --tim-focus-width: 2px;
 
-  /* Motion: short and soft, and none when the user asks for reduced motion */
+  /* Motion: short and soft, it explains a change; none when the user asks for reduced motion */
   --tim-duration-short: 150ms;
+  --tim-duration-medium: 250ms;
+  --tim-easing: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Compact density: the same layout, tighter. */
+[data-density="compact"] {
+  --tim-space-2: 6px;
+  --tim-space-3: 8px;
+  --tim-space-4: 12px;
+}
+
+/*
+ * High contrast: no tinted backgrounds and no board, the theme's own surfaces; the colour of a
+ * role stays as the line under its title bar.
+ */
+body.vscode-high-contrast {
+  --tim-role-entry-point-tint: var(--tim-color-surface);
+  --tim-role-interface-tint: var(--tim-color-surface);
+  --tim-role-data-model-tint: var(--tim-color-surface);
+  --tim-role-persistence-tint: var(--tim-color-surface);
+  --tim-role-neutral-tint: var(--tim-color-surface);
+  --tim-role-entry-point-wash: transparent;
+  --tim-role-interface-wash: transparent;
+  --tim-role-data-model-wash: transparent;
+  --tim-role-persistence-wash: transparent;
+  --tim-role-neutral-wash: transparent;
+  --tim-grid-minor: transparent;
+  --tim-grid-major: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --tim-duration-short: 0ms;
+    --tim-duration-medium: 0ms;
   }
 }

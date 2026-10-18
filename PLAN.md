@@ -162,6 +162,157 @@ le code, et tu les acceptes ensemble à la validation de la phase.
 - À trancher : accepter les ADR 0008 à 0011 (avec Q14) et le nouveau libellé, ou demander des
   changements avant la suite.
 
+**Q16 — Zoom sémantique à la molette** (Phase 4, relecture I4) — ✅ répondu le 2026-10-16 :
+**(a)**, on garde le clic pour l'instant (« on garde le click pour l'instant »).
+- La spec dit « plus on zoome, plus le niveau de détail change (composants → fichiers →
+  symboles) » et « cliquer ou zoomer sur une boîte ouvre son contenu ».
+- Aujourd'hui, seuls le clic et Entrée ouvrent une boîte. La molette ne fait que grossir ou
+  réduire ; sous un zoom de 0,5, les boîtes ne montrent que leur nom. Je l'ai décidé dans
+  l'ADR 0021, alors que c'est un comportement produit : la relecture a raison de le signaler.
+- Options :
+  - (a) garder le clic seul. C'est prévisible : la carte ne change pas sans qu'on le demande ;
+  - (b) ouvrir aussi à la molette (recommandé, car c'est la lettre de la spec). Zoomer au-delà
+    d'un seuil, par exemple 1,5, sur une boîte l'ouvre. Dézoomer sous 0,5 referme ce qui a été
+    ouvert ainsi. Le risque : la mise en page bouge sous le pointeur, sans clic.
+- À trancher : (a) ou (b). Rien n'est changé avant ta réponse.
+- Suite : l'ADR 0021 le note ; la question pourra revenir après la Phase 5.
+
+**Q17 — `tim daemon stop` avec VSCode ouvert** (Phase 4, relecture m2) — ✅ répondu le
+2026-10-16 : « ok pour le moment », confirmé le 2026-10-17 (« oui ») : on garde le comportement
+actuel pour l'instant, l'extension relance le démon (option b).
+- L'extension voit la connexion se fermer et relance le démon 1 s plus tard. Un arrêt demandé
+  ne se distingue pas d'un plantage. Ni la spec ni l'ADR 0019 ne décrivent ce cas.
+- Options :
+  - (a) un arrêt demandé est respecté (recommandé). Le démon prévient ses clients avant de se
+    fermer ; l'extension ne relance pas, et la carte affiche « Démon arrêté » avec un bouton
+    « Relancer » ;
+  - (b) l'extension relance toujours : le démon est le sien tant qu'une fenêtre est ouverte.
+- À trancher : (a) ou (b).
+
+**Q18 — `.timonier/` créé avant `timonier init`** (Phase 4, relecture m18) — ✅ répondu le
+2026-10-16 : **(a)**, comportement gardé pour le MVP (« ok »).
+- Ouvrir la carte dans n'importe quel dépôt lance le démon. Il crée alors
+  `.timonier/graph.sqlite` et un `.gitignore` qui l'exclut de git.
+- Ensuite, l'extension s'active d'elle-même à chaque ouverture de ce dossier
+  (`workspaceContains:.timonier`).
+- La spec réserve `.timonier/` aux fichiers de suivi de `timonier init`, et propose `init` à
+  l'ouverture d'un dépôt « non configuré ». La Phase 6 devra distinguer ce cas.
+- Options :
+  - (a) garder ce comportement (recommandé pour le MVP). La carte marche partout, sans
+    préalable, et rien n'entre dans git ; la Phase 6 juge « configuré » d'après
+    `plan.json`, pas d'après le dossier ;
+  - (b) avant `init`, mettre la base hors du dépôt (sous `~/.cache/timonier/`), et ne créer
+    `.timonier/` qu'avec `init` ;
+  - (c) demander avant la première indexation d'un dépôt.
+- À trancher : (a), (b) ou (c).
+
+**Q20 — Déplacer les boîtes à la souris** (Phase 4, relecture n° 2, m-k) — ✅ répondu le
+2026-10-17 : « on les calcule par défaut, mais il faut pouvoir les déplacer ». Option **(b)** :
+positions calculées, et chaque boîte déplaçable à la main. Où garder une position déplacée :
+H13.
+- Dans les Blueprints, on déplace les nœuds à la main. Sur la carte de Timonier, les positions
+  sont calculées, et rien ne se déplace à la souris. Je l'ai décidé dans l'ADR 0021, alors que
+  c'est un comportement produit.
+- Options :
+  - (a) garder les positions calculées (recommandé pour le MVP). La mise en page reste stable
+    et identique pour tous ; glisser sur une boîte fait défiler la carte ;
+  - (b) permettre de déplacer une boîte. Sa position serait gardée par la webview, et la mise
+    en page incrémentale la respecterait. Il faudrait décider où la garder (par machine, ou
+    dans le dépôt) et que faire quand le code change autour.
+- À trancher : (a) ou (b).
+
+**Q21 — Les boîtes déplacées : où, et quand le code change** (Phase 4, relecture n° 3, m-2) —
+✅ répondu le 2026-10-17 : « oui ». Les deux choix ci-dessous sont gardés : les positions dans
+l'état de l'espace de travail de VSCode (H13, confirmée), et une boîte déplacée qui reste où tu
+l'as laissée quand le code change.
+- Ta réponse à Q20 ne tranche pas deux points. Je les ai réglés ainsi, à confirmer :
+  - **où** : dans l'état de l'espace de travail de VSCode, sur ta machine, pas dans le dépôt
+    (H13). Pas partagé avec l'équipe, et rien dans git ;
+  - **quand le code change** : une boîte déplacée reste où tu l'as laissée ; une boîte
+    nouvelle ou qui grandit va autour d'elle ; ce qu'elle recouvre descend sous elle. Si la
+    boîte disparaît, sa position est gardée pour son retour. « Revenir aux rôles » garde les
+    positions ; seule « Réinitialiser la disposition » les oublie.
+- Autre option pour le premier point : un fichier `.timonier/layout.json` dans le dépôt,
+  versionné et partagé.
+- À trancher : garder ces choix, ou changer l'un d'eux.
+
+**Q25 — Worktree en chemins relatifs : quand fixer le dossier courant du démon** (Phase 4,
+relectures n° 17 et 18, m17-1, m18-1) — ✅ répondu le 2026-10-18 : **plus tard**.
+- Dans un worktree créé en chemins relatifs (git 2.48 et plus), `.git/info/exclude` ne
+  s'applique que si le démon est lancé depuis le haut du worktree : la crate `ignore` lit ce
+  chemin depuis le dossier courant du processus (ADR 0023).
+- Le correctif, que le démon prenne lui-même ce dossier comme dossier courant, attend la phase
+  où Timonier créera les worktrees des agents : en chemins absolus, ou avec ce correctif.
+
+**Q24 — Clore la tâche 4.12 sur « prête avec réserves »** (Phase 4, relecture n° 18) — ✅
+répondu le 2026-10-18 : **clore ainsi**.
+- La relecture n° 18 ne trouve rien qui empêche « prête » au regard des critères de la phase,
+  de la spec et des ADR, et aucune régression ; ses quatre mineurs sont traités (un test, des
+  textes). Le critère de 4.12 demandait « prête ».
+
+**Q23 — Snapshots de commit faux dans deux cas : quand les corriger** (Phase 4, relecture
+n° 14, I14-1) — ✅ répondu le 2026-10-18 : **en Phase 5**.
+- Le snapshot d'un commit est faux quand un manifeste n'est modifié que dans l'arbre de travail
+  (crate renommée, dépendance ajoutée sans commit), ou quand `src/lib.rs` n'existe que d'un
+  côté : le gel garde les paquets de l'arbre de travail. Défaut de la tâche 3.7 (ADR 0015).
+- La carte n'est pas touchée : elle montre la tête. Ces snapshots ne servent qu'au diff de revue
+  de la Phase 5, qui le corrigera avant de les lire (tâche 5.4).
+- Le troisième cas relevé (un fichier revenu à sa version commitée sans être relu) est corrigé
+  en Phase 4.
+
+**Q22 — Vérification suspendue pendant qu'un fichier source n'est pas enregistré** (Phase 4,
+relecture n° 6, m6-2) — ✅ répondu le 2026-10-18 : **(a)**, garder ce réglage. Tant qu'un
+fichier source est modifié sans être enregistré, aucune vérification n'est faite ; elles
+reprennent à l'enregistrement ou au retour arrière.
+- Les serveurs de langage de VSCode répondent sur ce que montre l'éditeur, enregistré ou non.
+  Le démon, lui, indexe le disque. Une réponse sur un tampon modifié serait enregistrée comme
+  vérifiée pour le contenu du disque : c'est le défaut I-α de la relecture n° 5.
+- Je l'ai réglé ainsi, à confirmer : tant qu'un fichier source (Rust, TypeScript) est modifié
+  sans être enregistré, aucune vérification n'est faite. Ce qui attend reprend à
+  l'enregistrement ou à l'annulation des modifications. La carte garde ce qu'elle montre ; les
+  liens d'un fichier affiché pendant ce temps restent en tirets jusque-là. Une note ou un
+  `PLAN.md` en cours d'écriture ne suspendent rien.
+- Autres options :
+  - (b) ne suspendre que ce qui touche le fichier modifié : moins sûr, car un appel retiré dans
+    le tampon ne se voit pas dans la réponse sur un autre fichier ;
+  - (c) en plus, proposer d'activer l'enregistrement automatique de VSCode, qui rend la pause
+    très courte.
+- À trancher : garder ce réglage, (b) ou (c).
+
+**Q19 — Critère de 4.5 reformulé** (Phase 4) — ✅ répondu le 2026-10-17 : **(b)**, « et on
+optimise le code à fond ». Le critère d'origine reste : définitions et références obtenues par
+l'API de VSCode et reçues par le démon. Compris comme : vérifier aussi les usages autres que les
+appels, et réduire au plus le nombre de requêtes au serveur de langage. L'ADR 0022 le décide ;
+elle complète l'ADR 0014.
+- **De quoi il s'agit.** La tâche 4.5 fait passer les serveurs de langage de VSCode
+  (rust-analyzer, le serveur TypeScript) au démon. Ils confirment ce que tree-sitter devine.
+  Le critère écrit demandait « définitions et références obtenues via l'API VSCode et reçues
+  par le démon ».
+- **Ce qui est fait et testé : les appels.** Pour chaque fonction d'un fichier, le démon
+  demande à VSCode quelles fonctions elle appelle. C'est la « hiérarchie d'appels », celle de
+  la commande « Afficher la hiérarchie d'appels ». La réponse donne, pour chaque fonction
+  appelée, l'endroit exact où elle est définie, et combien de fois elle est appelée. C'est ce
+  qui fait passer un lien de la carte des tirets au trait plein.
+- **Ce qui n'est pas fait : les autres usages.** Un type, une constante ou une interface d'un
+  autre fichier, utilisé sans être appelé, n'est pas vérifié. Il faudrait demander à VSCode
+  « où est défini ce nom ? » (Aller à la définition) pour chaque usage, ou « qui utilise ce
+  symbole ? » (Rechercher toutes les références).
+  - Exemple : `MapView.tsx` utilise le type `ViewData` de `viewModel.ts`, sans rien appeler
+    de ce fichier. Ce lien reste « vu par tree-sitter seulement », donc en tirets, même si
+    VSCode sait exactement où est `ViewData`.
+  - Un lien de la carte qui contient aussi un appel confirmé est en trait plein.
+- **Pourquoi.** C'est ce que tu as accepté dans l'ADR 0014, en Phase 3. Vérifier les usages
+  demanderait une requête « définition » par usage, des centaines par fichier. Et la mémoire du
+  serveur de VSCode est partagée avec ton travail. SCIP (v2) donnera définitions et références
+  d'un coup, sans ce coût.
+- Options :
+  - (a) accepter le nouveau libellé, « appels sortants obtenus par la hiérarchie d'appels de
+    VSCode et reçus par le démon » (recommandé, cohérent avec l'ADR 0014). Les autres usages
+    restent approchés jusqu'à SCIP ;
+  - (b) garder le libellé d'origine. Il faut alors ajouter la vérification des usages, revenir
+    sur l'ADR 0014, et accepter plus de requêtes au serveur de VSCode.
+- À trancher : (a) ou (b).
+
 ## Hypothèses de travail
 
 Ce sont mes interprétations. Elles valent tant que tu ne les corriges pas.
@@ -190,13 +341,18 @@ Ce sont mes interprétations. Elles valent tant que tu ne les corriges pas.
   - en anglais : code, commentaires, commits, ainsi que `CLAUDE.md`, les skills, les
     subagents et les messages des hooks, qui sont des fichiers pour les agents ;
   - en français : `PLAN.md`, les ADR, les rapports de relecture et la documentation
-    utilisateur.
+    utilisateur ;
+  - sauf `README.md`, en anglais à ta demande (2026-10-16).
 - **H10** — L'en-tête de boîte aux lettres est présent dès la Phase 6, avec zéro message non
   lu (la messagerie est en v2).
 - **H11** — TypeScript est figé en 6.0.x : typescript-eslint 8.71 ne prend pas en charge
   TypeScript 7.
 - **H12** — npm workspaces plutôt que pnpm, car `vsce` gère mal les liens symboliques de
   pnpm. Une ADR le confirmera en Phase 1.
+- **H13** — Une boîte déplacée à la main (Q20) garde sa position dans l'espace de travail de
+  VSCode, sur ta machine, et non dans le dépôt : la disposition est à toi, elle n'entre pas
+  dans git. « Réinitialiser la disposition » revient aux positions calculées. Confirmée par
+  ta réponse à Q21 (2026-10-17).
 
 ---
 
@@ -697,8 +853,9 @@ enrichies par l'agent via MCP).
   | extension | interface |
 
   - Les dépendances externes sont rangées par usage (base de données, sérialisation, ui…).
-  - Écart : `timonier-daemon` ne peut pas encore être « serveur ». Il n'a pas de serveur
-    JSON-RPC avant la Phase 4, et le test sera mis à jour alors.
+  - Écart : `timonier-daemon` ne pouvait pas encore être « serveur ». Il n'avait pas de
+    serveur JSON-RPC avant la Phase 4. Avec la tâche 4.2, il devient « point d'entrée », et
+    le test est à jour.
   - Le nommage et la confirmation par l'agent (Q6) arrivent avec les outils MCP de la
     Phase 6.
 - [x] 3.10 Compaction au-delà d'environ 50 000 arêtes de symboles — critère : test de charge
@@ -885,61 +1042,914 @@ Décisions :
 
 ## Phase 4 — Démon, extension et carte
 
-Statut : à faire
+Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, Q24)
 
-- [ ] 4.1 ADR sur le protocole — critère : ADR acceptée. Sujets :
+- [x] 4.1 ADR sur le protocole — critère : ADR écrite (« Proposé »), acceptée à la validation
+  de la phase (Q15). [ADR 0019](docs/adr/0019-protocole-demon-extension.md). Sujets :
   - socket local, un démon par projet avec verrou, découverte ;
   - méthodes et versionnement ;
   - génération des types partagés Rust → TypeScript ;
   - jsonrpsee 0.26 ou implémentation dédiée.
-- [ ] 4.2 Serveur JSON-RPC 2.0 sur socket Unix : `initialize`, abonnement et désabonnement par
+- [x] 4.2 Serveur JSON-RPC 2.0 sur socket Unix : `initialize`, abonnement et désabonnement par
   vue, deltas versionnés, snapshot complet en cas de désynchronisation, arrêt — critère :
   tests d'intégration client Rust ↔ démon, dont une désynchronisation simulée qui renvoie un
   snapshot complet.
-- [ ] 4.3 CLI `timonier daemon start|stop|status` — critère : tests assert_cmd.
-- [ ] 4.4 Extension : lancement et supervision du démon (redémarrage avec backoff, canal de
+  - Messages JSON-RPC et cadrage dans `timonier-core` (`rpc`) ; serveur tokio, fil des vues et
+    client bloquant dans `timonier-daemon`. Les détails sont dans l'ADR 0019.
+  - Tests (`crates/timonier-daemon/tests/server.rs`, un vrai démon sur un socket temporaire) :
+    - `initialize`, version refusée, statut, erreurs JSON-RPC ;
+    - une vue suit le graphe par deltas, jusqu'à l'état d'un nouvel abonnement ;
+    - désynchronisation simulée : le client perd un delta, voit le trou, reçoit un snapshot
+      complet, puis applique de nouveau les deltas ;
+    - abonnements propres à leur connexion, un démon par projet, socket périmé remplacé ;
+    - arrêt sans client après le délai, arrêt demandé qui ferme les autres clients.
+  - Le test des rôles sur Timonier est à jour : `timonier-daemon` devient « point d'entrée »
+    (écart de 3.9 levé).
+  - Mesures (build release, copie de Timonier). Le dépôt grandit, et les lectures avec lui :
+
+    | Mesure | 2026-10-16, 81 fichiers | 2026-10-17, 135 fichiers |
+    | ------ | ----------------------- | ------------------------ |
+    | Lecture de la tête | 2 001 nœuds, 789 arêtes ; p50 2,9 ms | 3 047 nœuds, 1 162 arêtes ; p50 4,5 ms |
+    | Vue du haut | 10 boîtes, 39 arêtes, 7 Kio de JSON ; 0,1 ms | 10 boîtes, 46 arêtes, 8 Kio ; 0,1 ms |
+    | Vue avec paquets et composants ouverts | 127 boîtes, 788 arêtes, 164 Kio ; 0,4 ms | 197 boîtes, 1 161 arêtes, 242 Kio ; 0,7 ms |
+    | `view/subscribe`, de bout en bout | 5 à 6 ms | 7 à 9 ms (relecture n° 5 : 9 à 10 ms) |
+    | Sauvegarde → delta reçu, anti-rebond de 300 ms compris (30 sauvegardes) | p50 346 ms, p95 353 ms | p50 347 ms, p95 350 ms |
+
+    Outil : `cargo run --release -p timonier-daemon --example view_bench`. Après l'anti-rebond
+    (300 à 375 ms selon son pas), l'indexation prend environ 2 ms et les vues environ 5 ms.
+- [x] 4.3 CLI `timonier daemon start|stop|status` — critère : tests assert_cmd.
+  - Plus `run`, le démon au premier plan, que `start` et l'extension lancent.
+  - Comportement (projet trouvé en remontant, journal, codes de sortie) : ADR 0019, « CLI ».
+  - Tests (`crates/timonier-cli/tests/daemon.rs`) :
+    - `status` sans démon sort avec le code 3, et `stop` sans démon n'est pas une erreur ;
+    - `start`, un second `start`, `status`, le journal, `stop`, puis plus de socket ;
+    - le projet est trouvé depuis un sous-dossier ;
+    - `run` au premier plan : un second `run` le voit, et SIGTERM l'arrête proprement.
+- [x] 4.4 Extension : lancement et supervision du démon (redémarrage avec backoff, canal de
   sortie « Timonier »), client JSON-RPC (vscode-jsonrpc 9.0), relais postMessage typé —
   critère : test d'intégration extension ↔ démon réel ; un démon tué est relancé et la vue
   se resynchronise.
-- [ ] 4.5 Relais du LSP de l'IDE vers le démon, si Q5 le retient — critère : définitions et
+  - Extension : superviseur du démon, relais par carte, commandes « Relancer le démon » et
+    « Afficher le journal », réglage `timonier.daemon.path`. Détails : ADR 0019, « Extension ».
+  - Webview : modèle de vue pur, qui applique snapshots et deltas et demande une resync sur
+    un trou. En attendant la carte (4.7), un état pédagogique par situation du démon, en
+    anglais et en français.
+  - Tests d'intégration (`editors/vscode/src/test/integration/daemon.test.ts`, VSCode 1.142,
+    vrai démon sur un projet temporaire) :
+    - connexion au démon lancé ;
+    - la carte reçoit la vue ;
+    - un fichier ajouté arrive par delta ;
+    - démon tué par SIGKILL : relancé après 1 s, la carte reçoit un nouveau snapshot complet.
+  - Tests unitaires : délais de relance, choix du programme, ligne de `daemon run`, messages
+    de la webview (node:test) ; modèle de vue et états pédagogiques (vitest).
+  - `npm run test:integration` construit d'abord le démon (`cargo build -p timonier-cli`). La
+    CI installe Rust dans le job de l'extension.
+  - Licence de vscode-jsonrpc, empaqueté dans `extension.js` :
+    `dist/THIRD-PARTY-NOTICES.md`, écrit au build d'après le metafile d'esbuild.
+  - Rôles du pack TypeScript (version 1.1.0) : importer `net` ou `http` ne fait plus d'un
+    paquet un point d'entrée, puisqu'un client les importe aussi. Les signaux sont dans le code
+    (`createServer`, `listen`). L'extension, cliente du socket, reste « interface ». Test :
+    `a_typescript_server_is_seen_in_the_code`.
+- [x] 4.5 Relais du LSP de l'IDE vers le démon, si Q5 le retient — critère : définitions et
   références obtenues via l'API VSCode et reçues par le démon (test).
-- [ ] 4.6 Système de design minimal, avant la première vue — critère : contraste AA vérifié
+  - Le critère d'origine reste (Q19, réponse b, 2026-10-17) : la tâche, rouverte, est refaite
+    avec l'ADR 0022, qui complète l'ADR 0014.
+  - **Appels** : `lsp/outgoingCalls` vers le client qui relaie. L'affinage attend un relais sans
+    perdre sa file (ADR 0019, « Relais »). Extension : `vscode.prepareCallHierarchy` puis
+    `vscode.provideOutgoingCalls`, colonnes UTF-8 ↔ UTF-16, `editor/opened` pour les éditeurs
+    visibles.
+  - **Définitions** : `lsp/definitions`, un lot par fichier. Les `References`, `Implements` et
+    `Inherits` du fichier sont vérifiés par `vscode.executeDefinitionProvider`, et celles de
+    tree-sitter tombent. Sans réponse, seuls les appels sont vérifiés, comme avant.
+  - **Références** : `lsp/references`. Quand une signature change, `vscode.executeReferenceProvider`
+    nomme les fichiers qui utilisent le symbole : eux seuls retournent en file, au lieu de tous
+    ceux qui citent son nom. Sans réponse, on retombe sur le nom. Une recherche est celle d'un
+    symbole, par son id : après une autre sauvegarde, elle le retrouve à sa nouvelle place.
+  - **Contenu enregistré seulement** (relecture n° 5) : l'extension refuse de répondre
+    (`ContentModified`, comme en LSP) tant qu'un fichier source n'est pas celui du disque
+    (Q22). Le démon garde la tâche de côté et la reprend sur `editor/saved`. Avant
+    d'enregistrer, il vérifie que le disque a toujours le contenu indexé, pour les fichiers
+    qu'il indexe : une réponse dans `node_modules` ne garde rien (relecture n° 6).
+  - **Optimisations** (« on optimise le code à fond ») :
+    - une question par chemin cité distinct, pas par site ;
+    - ni ce qui est local, ni ce qui est dans une dépendance, ni la bibliothèque standard (liste
+      `[lsp] outside` des packs), ni `_` ou `T` ;
+    - un seul aller-retour par fichier, et huit questions en parallèle dans VSCode ;
+    - des dépendants exacts, et une recherche seulement si un fichier vérifié cite le nom ;
+    - un fichier vérifié entier et inchangé n'est pas redemandé quand on l'ouvre ou l'affiche
+      de nouveau ;
+    - rien ne change dans ce qui reste paresseux : l'affiché, l'ouvert et les dépendants
+      seulement.
+  - **Précision d'abord** (relecture n° 3) : une réponse douteuse ne remplace rien. Un nom que
+    tree-sitter place dans un autre fichier, et que le serveur place dans celui-ci ou nulle
+    part, laisse au fichier ses usages de tree-sitter. Le regroupement des chemins de même
+    premier segment, essayé, est retiré : il remplaçait des arêtes justes (ADR 0022).
+  - Mesures sur Timonier (2026-10-17, après la relecture n° 5, `cargo run --release -p
+    timonier-daemon --example lsp_cost`). Le dépôt change, les chiffres avec lui :
+
+    | Langage | Fichiers | Hiérarchies d'appels | Sites d'usage | Chemins cités | Questions |
+    | ------- | -------- | -------------------- | ------------- | ------------- | --------- |
+    | Rust | 69 | 1 012 | 5 532 | 1 764 | 787 |
+    | TypeScript | 66 | 229 | 883 | 417 | 180 |
+
+    Soit 86 % de questions de moins qu'une par site en Rust, 80 % en TypeScript, et 135
+    allers-retours au plus pour les définitions de tout le dépôt.
+
+    Une signature changée : une recherche si un autre fichier cite le nom (1 098 symboles sur
+    2 012 en Rust, 510 sur 837 en TypeScript), au lieu de revérifier les fichiers qui le
+    citent (8,7 et 6,2 en moyenne). Aucune pour les autres symboles.
+  - Défaut trouvé par le test dans VSCode, et corrigé : pendant que le projet se charge, le
+    serveur syntaxique de TypeScript répond seul, depuis le fichier demandé. Un type importé y
+    est « défini » à son import. L'extension redemande alors après 1, 2 puis 4 s, et seulement
+    pour un nom que tree-sitter place ailleurs.
+  - Tests :
+    - intégration VSCode (le projet de test est en TypeScript) : l'appel `run → helper` arrive
+      en provenance LSP ; l'usage du type `Shape` par `area.ts` est vérifié ; quand `helper`
+      change de signature, VSCode nomme ses utilisateurs, et `main.ts` est vérifié de nouveau ;
+      `main.ts` modifié sans être enregistré, rien n'est répondu, la recherche attend, puis
+      reprend au retour arrière, et l'appel enregistré reste celui du disque ; un fichier dont
+      les appels vont dans `node_modules` est vérifié sans être gardé ; une note modifiée ne
+      suspend rien ; un fichier en Latin-1 est vérifié ; dans une crate Rust que rien ne lit,
+      tree-sitter garde ses arêtes.
+      Durées lues dans le journal du démon (`RUST_LOG=timonier_daemon=debug`) : `area.ts` en
+      1,0 s, la recherche des utilisateurs en 18,5 ms ;
+    - intégration Rust sur socket : un client qui relaie répond aux appels, aux définitions et
+      aux références, et le statut compte les recherches ; un client qui refuse
+      (`ContentModified`) n'est plus interrogé, puis l'est de nouveau après `editor/saved` ;
+      quand le relais change de main, ce qui était gardé ou en cours va au client suivant ;
+      `view/displayed` met en file ;
+    - unitaires du relais (canaux, sans socket) : un client qui n'écrit plus, ou qui cesse
+      d'écrire après la question, cesse de relayer et rend la tâche aussitôt ; un lot de
+      définitions a plus de temps ;
+    - pipeline (`tests/refinement.rs`) : usages vérifiés et corrigés par leurs définitions (un
+      `Unit` mal résolu par tree-sitter) ; une réponse douteuse garde tree-sitter ; repli sur
+      les appels seuls ; dépendants nommés par le serveur, ou par nom ; au redémarrage, une
+      vérification dont un fichier ou un symbole a disparu, ou dont la cible a changé, retourne
+      en file ; une recherche périmée retrouve son symbole ; deux symboles à la même position
+      font deux recherches ; un client aux documents non enregistrés (dès les appels ou aux
+      définitions), ou un changement pas encore indexé, font attendre la tâche, fichier ou
+      recherche ; une réponse dans un fichier non indexé ne garde rien ; un fichier vérifié
+      entier n'est pas redemandé, un fichier vérifié en partie l'est, avant et après un
+      redémarrage ; ce que l'affinage doit (recherches, dépendants) survit à un redémarrage ;
+    - unitaires : le relais (les trois questions, les réponses comptées, `ContentModified`),
+      les usages demandés, les positions des noms (`Tr<Q>`), la compaction qui garde les
+      usages, la file (tâches gardées de côté, fichiers vérifiés entiers, recherches par
+      symbole), les questions en parallèle, les colonnes, les chemins, la comparaison d'un
+      document au disque, les fichiers source, et la règle du relais (refus d'emblée, après un
+      changement en cours de question, ou pour un document lu qui n'est pas le disque).
+- [x] 4.6 Système de design minimal, avant la première vue — critère : contraste AA vérifié
   automatiquement (axe-core) en clair, sombre et contraste élevé ; ADR sur le système de
-  design. Contenu :
+  design. [ADR 0020](docs/adr/0020-systeme-de-design.md). Contenu :
   - tokens : couleurs sémantiques sur les variables VSCode, typographie, espacements, rayons,
     durées ;
   - composants : boîte de composant, arête TreeSitter vs arête confirmée, badge, état vide,
     info-bulle, barre d'outils ;
   - une page de démonstration en mode développement.
-- [ ] 4.7 Carte (React Flow 12.12 + elkjs 0.12) — critère : sur Timonier, la vue d'ouverture
+
+  Fait :
+  - jetons dans `webview/src/tokens.css`, composants dans `webview/src/design/`, page
+    `webview/demo.html` (développement seulement) ;
+  - les variables de six thèmes de VSCode 1.142 sont capturées dans VSCode même
+    (`editors/vscode/scripts/capture-themes.mjs`) : Light et Dark 2026, Light et Dark Modern,
+    contraste élevé sombre et clair ;
+  - `npm run test:a11y` (Playwright, Chromium, dans la CI sous Linux) : 20 tests verts.
+    - axe-core, WCAG A et AA, sans violation ni contraste indécis, en anglais et en français ;
+    - 3:1 mesuré pour les contours, les arêtes, les icônes et le focus ;
+    - transitions à 0 s sous réduction des mouvements ;
+  - le test a trouvé trois défauts, corrigés :
+    - le vert « test réussi » de VSCode à 2:1 sur fond clair ;
+    - une icône d'attention à 2,3:1 sur une boîte sélectionnée ;
+    - un texte illisible sur une sélection en contraste élevé, où VSCode ne donne pas de fond de
+      sélection ;
+  - tests de composants (vitest) : noms accessibles, barre d'outils au clavier, info-bulle,
+    arêtes, calcul des contrastes.
+  - À ta demande (2026-10-16), « quelques couleurs pour une meilleure lisibilité » : une couleur
+    calme pour quatre rôles, toujours avec l'icône et le mot (ADR 0020, « Rôles » ; le choix
+    des teintes est le mien).
+  - À ta demande aussi, « inspire-toi des Blueprints d'Unreal Engine ». Les boîtes ont une
+    barre de titre teintée par le rôle et un corps neutre. Des broches marquent la sortie
+    (à droite) et l'entrée (à gauche) des arêtes. Les cadres ouverts ressemblent aux boîtes de
+    commentaire, et un quadrillage discret sert de fond (ADR 0021, « Rendu »).
+  - Le test d'accessibilité mesure aussi les broches, les icônes de rôle et le survol de chaque
+    élément : 36 tests verts, sur les thèmes recapturés dans VSCode 1.142.0.
+- [x] 4.7 Carte (React Flow 12.12 + elkjs 0.12) — critère : sur Timonier, la vue d'ouverture
   tient en quelques boîtes nommées par rôle. Contenu :
   - vue haut niveau par rôles ;
   - zoom sémantique récursif : rôles → composants → sous-composants → fichiers → symboles ;
   - divulgation progressive au survol et au clic.
-- [ ] 4.8 Mise en page stable, avec les positions précédentes comme contraintes d'elkjs —
+
+  [ADR 0021](docs/adr/0021-carte-d-architecture.md). Constat sur la vraie vue de Timonier
+  (`webview/test/views/timonier`, écrite par l'exemple `view_snapshot`) :
+  - 10 nœuds en haut, rangés en 6 boîtes nommées par rôle : point d'entrée (cli, daemon),
+    interface (webview, extension), modèle de données (core), persistance (store),
+    utilitaire (index, mcp, otlp), bibliothèques externes ;
+  - le clic ou Entrée ouvre un rôle sur ses membres, puis une boîte sur son contenu, jusqu'aux
+    symboles ; le survol et le focus montrent un détail ;
+  - 10 tests Playwright : la vue d'ouverture, le français, le clic, Entrée, le retour aux rôles,
+    et WCAG AA avec le 3:1 des lignes dans les six thèmes ;
+  - tests unitaires du modèle de la carte et de la mise en page ; l'intégration VSCode passe
+    avec la carte sous la CSP stricte.
+- [x] 4.8 Mise en page stable, avec les positions précédentes comme contraintes d'elkjs —
   critère : après la modification d'un fichier, le déplacement moyen des nœuds inchangés
   reste sous un seuil mesuré et consigné.
-- [ ] 4.9 Navigation — critère : test d'intégration de l'ouverture du code ; checklist
+  - Méthode (ADR 0021, « Stabilité ») : une mise en page incrémentale, conteneur par conteneur.
+    - Ce qui n'a pas changé garde sa place exacte.
+    - Un conteneur dont un enfant a grandi fait de la place par colonnes : à droite d'un élément
+      plus large, en dessous d'un élément plus haut. Refermer défait ce qu'ouvrir a fait.
+    - ELK ne sert qu'au premier affichage et aux conteneurs ouverts pour la première fois.
+  - Seuil retenu : 22 px, un quart de la hauteur d'une boîte (88 px).
+  - Mesures (2026-10-16, `webview/src/map/stability.test.ts`). Vraie vue de Timonier, tous
+    rôles et boîtes ouverts, 183 éléments ; déplacement moyen des boîtes inchangées :
+
+    | Changement | Stable | Depuis zéro | Temps |
+    | ---------- | ------ | ----------- | ----- |
+    | Un fichier ajouté | 4,9 px | 90,8 px | 2 ms |
+    | Un appel ajouté entre deux paquets éloignés | 0,0 px | 5 511 px | 1 ms |
+    | Un appel retiré | 0,0 px | 4,3 px | 1 ms |
+
+    Premier affichage : 670 ms.
+  - Correction honnête des premiers chiffres (17,6, 13,8 et 17,3 px, méthode à deux
+    candidates). Ils étaient faussés par un défaut : l'indice de position recopiait aussi
+    l'ancienne taille des boîtes. Le défaut est corrigé, et la méthode remplacée.
+  - Test de la place faite par colonnes (`layout.test.ts`). Une fois un rôle ouvert, ce qui le
+    suivait est à sa droite. Le refermer rend la mise en page de départ, au pixel près.
+  - Essais écartés :
+    - ELK en une passe sur toute la hiérarchie : 1 450 px, même relancé sur son propre
+      résultat ;
+    - placement Brandes-Köpf ou `SIMPLE` avec indices : 360 et 625 px ;
+    - une mise en page incrémentale qui ne fait que descendre ce qui chevauche : un groupe
+      ouvert s'élargissait par-dessus la colonne suivante, et ses arêtes repartaient en arrière
+      à travers les boîtes.
+  - **Boîtes déplacées à la main** (Q20, réponse b, 2026-10-17 ; ADR 0021) :
+    - à la souris, ou avec Alt et une flèche, d'une case du quadrillage (16 px). Sans glisser
+      (WCAG 2.5.7) : les quatre boutons du panneau de détail, ou la commande « Déplacer la
+      sélection sur la carte… » ;
+    - un cadre ouvert se déplace par sa barre de titre ; son corps laisse passer le pointeur,
+      et glisser dessus fait défiler la carte ;
+    - une boîte déplacée est épinglée. Les mises en page suivantes la laissent où elle est, et
+      ce qu'elle chevauche descend sous elle ;
+    - « Réinitialiser la disposition » (barre d'outils et palette) revient aux positions
+      calculées ;
+    - les épingles sont gardées dans l'état de l'espace de travail de VSCode (H13), et rendues à
+      chaque nouvelle page ;
+    - tests : la mise en page (une boîte épinglée reste, ce qu'elle couvre descend, une épingle
+      d'un autre conteneur est ignorée), Playwright (glisser, Alt et flèche, boutons du panneau,
+      corps d'un cadre qui fait défiler, réinitialiser), le relais (les épingles rendues à la
+      page, gardées), la validation du message.
+- [x] 4.9 Navigation — critère : test d'intégration de l'ouverture du code ; checklist
   d'accessibilité du skill. Contenu :
   - clic vers le code, ouvert au bon span ;
   - navigation au clavier ;
   - une commande de palette par action ;
   - respect de la réduction des mouvements.
-- [ ] 4.10 Rendu par niveau de détail, avec agrégation au-delà d'un seuil de nœuds — critère :
+
+  Fait :
+  - **Code** : Maj+Entrée, double-clic, ou le bouton « Aller au code » du panneau de détail.
+    Entrée suffit sur ce qui ne s'ouvre pas. L'éditeur s'ouvre à côté de la carte, le curseur
+    au début du span, les colonnes UTF-8 converties en UTF-16.
+  - **Clavier** :
+    - Tab entre les nœuds ;
+    - les flèches vers la boîte la plus proche dans leur direction ;
+    - Début vers la première ;
+    - Entrée ouvre ou ferme.
+  - **Palette** : « Ajuster la carte à la fenêtre », « Zoom avant » et « Zoom arrière sur la
+    carte », « Revenir aux rôles », « Ouvrir ou fermer la sélection », « Aller au code de la
+    sélection », en plus d'« Ouvrir la carte ». Les touches + et − zooment aussi, et la barre
+    d'outils a les deux boutons (relecture m23).
+  - **Échap** range le panneau de détail (WCAG 1.4.13, relecture m15).
+  - Test d'intégration (VSCode 1.142, vrai démon) : la palette déplie le paquet puis le fichier ;
+    « Aller au code » ouvre `src/main.ts` à côté de la carte, le curseur sur la ligne de
+    `run`.
+  - Playwright : flèches, Début, Maj+Entrée, double-clic, bouton du panneau ; nom accessible
+    qui dit ce que fait Entrée.
+  - Deux défauts trouvés par ces tests, corrigés :
+    - une commande envoyée pendant que la webview se rechargeait était perdue. Elle attend
+      maintenant la page, puis la carte ;
+    - le panneau de détail restait sur un élément que le pointeur avait quitté. Il montre
+      désormais le dernier élément survolé ou focalisé.
+  - Checklist d'accessibilité du skill :
+    - [x] contraste 4,5:1 (texte) et 3:1 (lignes, icônes, focus), mesuré dans les six thèmes ;
+    - [x] chaque action au clavier et dans la palette ;
+    - [x] focus visible partout ; nœuds et arêtes nommés pour les lecteurs d'écran ;
+    - [x] jamais la couleur seule : tirets pour les arêtes approchées, mots et formes pour les
+      rôles et les badges ;
+    - [x] réduction des mouvements : transitions à 0 s, cadrage sans animation ;
+    - [x] axe-core dans les tests (`npm run test:a11y`).
+- [x] 4.10 Rendu par niveau de détail, avec agrégation au-delà d'un seuil de nœuds — critère :
   images par seconde mesurées et consignées sur un graphe synthétique de plusieurs milliers
   de nœuds.
-- [ ] 4.11 Test des cinq secondes avec toi — critère : réussi et consigné.
-- [ ] 4.12 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - **Agrégation au-delà de 500 éléments** : la carte dessine des niveaux entiers, du haut vers
+    le bas, tant qu'ils tiennent. Plus bas, une boîte est repliée, avec un badge « N repliés ».
+    Un clic ou Entrée met son contenu en premier et le cadre ; les autres restent repliées.
+  - **Au-delà de 600 arêtes**, celles des éléments les plus profonds remontent à leurs
+    conteneurs, d'un niveau à la fois.
+  - **Au zoom éloigné (sous 0,5)**, les boîtes ne montrent que leur nom.
+  - Tout ce qui est dessiné reste dans le DOM, donc atteignable au clavier et par les lecteurs
+    d'écran. Ne rendre que la partie visible gagnait 6 images par seconde, mais rendait le reste
+    inaccessible : écarté.
+  - Mesures (2026-10-16, `npm run bench:map -w webview`) :
+    - environnement : Chromium 156 sans tête (Playwright 1.64.1), Ryzen 9 5950X ;
+    - dépôt synthétique `webview/src/demo/synthetic.ts` : paquets × 12 composants × 12
+      fichiers, environ deux appels par fichier, tout ouvert ;
+    - « défilement » : glisser sur la carte pendant 3 s ; « zoom » : la molette pendant 3 s.
+
+    | Dépôt | Nœuds de la vue | Dessinés (nœuds, arêtes) | Premier affichage | Défilement | Zoom |
+    | ----- | --------------- | ------------------------ | ----------------- | ---------- | ---- |
+    | 20 × 12 × 12, avant | 3 146 | 3 146, 5 292 | 12,0 s | 5,0 i/s | 59 i/s |
+    | 20 × 12 × 12, après | 3 146 | 266, 194 | 1,7 s | 54 i/s | 60 i/s |
+    | 40 × 12 × 12, avant | 6 286 | 6 286, 10 602 | 23,3 s | 1,2 i/s | 59 i/s |
+    | 40 × 12 × 12, après | 6 286 | 46, 478 | 1,4 s | 60 i/s | 60 i/s |
+    | 20 × 12 × 12, rendu Blueprints | 3 146 | 266, 194 | 1,7 s | 51 à 54 i/s | 60 i/s |
+    | 40 × 12 × 12, rendu Blueprints | 6 286 | 46, 478 | 1,4 s | 60 i/s | 60 i/s |
+
+    Correction (2026-10-17). La relecture n° 2 mesurait 40 à 42 i/s, et moi 45. J'en avais
+    accusé le rendu plus riche, à tort :
+    - le banc saisissait la carte en son centre. Depuis la mise en page qui fait de la place
+      par colonnes, ce centre tombe sur une boîte, et le défilement passait par elle ;
+    - depuis que les boîtes se déplacent (Q20), saisir une boîte la déplace. Le banc saisit
+      donc le fond, comme une personne qui fait défiler : de 50,6 à 54,2 i/s selon les passages
+      du 2026-10-17 (54,1 et 54,2 le matin, 50,6 à 51,9 l'après-midi, machine peu chargée),
+      autour des 54 d'avant le nouveau rendu ;
+    - la correction du survol reste : seules les arêtes de l'élément pointé changent.
+  - Deux lenteurs quadratiques de la mise en page sont corrigées en passant. Seule, elle prend
+    maintenant 1,2 s pour 266 éléments, en trois passes posées.
+  - Conclusion sur ELK dans le fil de la webview (relecture m16). La page ne répond pas pendant
+    le premier affichage et la première ouverture d'un grand conteneur. Un changement du code,
+    lui, ne coûte que 1 à 2 ms : il ne passe plus par ELK (4.8). C'est acceptable pour la
+    Phase 4, et le worker reste écarté. Il sera repris si un premier affichage dépasse 2 s sur
+    un vrai dépôt (ADR 0021).
+  - Test Playwright : une grande carte replie ses fichiers ; Entrée sur un composant replié
+    montre ses 12 fichiers, et les autres restent repliés. Tests unitaires des budgets d'éléments
+    et d'arêtes.
+- [x] 4.11 Test des cinq secondes avec toi — critère : réussi et consigné.
+  - Écran : la carte d'ouverture de Timonier, dans VSCode 1.142, en français, thème Dark 2026 :
+    six boîtes nommées par rôle et leurs arêtes.
+  - Date : 2026-10-16. Testeur : toi.
+  - Réponses, après cinq secondes :
+    - ce que montre l'écran : « l'architecture très haut niveau, avec les liens de partage des
+      données entre les boîtes » ;
+    - ce que tu ferais ensuite : « cliquer sur une boîte pour voir le détail d'implémentation
+      d'une partie, en cas de besoin ».
+  - Résultat : **réussi**. La question principale de l'écran (de quoi est fait ce projet, et où
+    aller voir) a la bonne réponse, et l'action suivante est celle que l'écran propose.
+  - Nuance : tu as lu les arêtes comme des partages de données. Ce sont des dépendances et des
+    appels entre les parties ; la carte ne le dit nulle part.
+  - Correction faite : une légende des arêtes, en haut à droite de la carte. Elle dit « Liens :
+    dépendances et appels », distingue sûr et approché, et montre le sens (sortie à droite,
+    entrée à gauche).
+  - Refait (relecture n° 2, I-a) : le premier test portait sur le rendu d'avant les couleurs et
+    les Blueprints.
+  - Test n° 2 : la carte d'ouverture de Timonier dans VSCode 1.142, en français, thème Dark
+    2026, avec le nouveau rendu. Date : 2026-10-17. Testeur : toi. Réserve : tu avais vu des
+    captures de ce rendu la veille.
+  - Réponses :
+    - ce que montre l'écran : « les différents modules et leur lien de dépendance » ;
+    - ce que tu ferais ensuite : « soit prompter pour la suite, soit cliquer sur une boîte pour
+      voir le contenu, ou les déplacer pour mieux voir les liens ».
+  - Résultat : **réussi**. Les liens sont lus comme des dépendances, ce qu'ils sont, et
+    l'action suivante est celle que l'écran propose. Le souhait de déplacer les boîtes devient
+    la réponse (b) à Q20.
+- [x] 4.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Atteint avec
+  réserves** : la relecture n° 18 rend « prête avec réserves », sans rien qui bloque ; tu as
+  décidé de clore ainsi le 2026-10-18 (Q24).
+  - Relecture n° 1 (2026-10-16) : « pas prête », aucun bloquant, 5 importants, 21 mineurs.
+  - Importants :
+    - I1 : un client relais qui ne lisait plus bloquait le pipeline. Corrigé : la question part
+      sans attendre, et l'attente cède à tout autre travail. Test
+      `a_relaying_client_that_stops_reading_holds_nothing` ;
+    - I2 : un delta perdu en fin de rafale laissait le client désynchronisé sans qu'il le sache.
+      Corrigé : quand sa file se vide, le client reçoit un delta vide qui lui montre le trou.
+      Test `a_client_whose_queue_overflowed_learns_of_the_gap` ;
+    - I3 : `view/displayed` n'était jamais envoyé. Corrigé : la carte dit quels fichiers elle
+      dessine, et le relais les transmet, et les redit à chaque nouvelle connexion (test
+      unitaire du relais) ;
+    - I4 : le zoom sémantique ne se fait qu'au clic, alors que la spec dit « cliquer ou
+      zoomer ». Posé en Q16 ; tu gardes le clic pour l'instant ;
+    - I5 : le relais de vue laissait fuir des abonnements. Corrigé : ses opérations passent une
+      à une. Premiers tests unitaires du relais (six), sans VSCode.
+  - Mineurs corrigés :
+    - m1 : démon lancé détaché. En le vérifiant, j'ai trouvé un vrai défaut : il mourait avec la
+      fenêtre, car `tracing-subscriber` paniquait sur la sortie d'erreur fermée. Corrigé, avec
+      le test « le parent parti, le démon continue » ;
+    - m3 : le relais précédent reprend quand le dernier part ;
+    - m4 : sans `XDG_RUNTIME_DIR`, le dossier d'exécution est sous `~/.cache`, plus sous `/tmp`,
+      où un autre utilisateur pouvait le créer d'avance. L'ordre des contrôles reste : le
+      verrou est créé avant la vérification du dossier, dont l'UID se compare à celui du
+      verrou. Sans `unsafe`, la bibliothèque standard ne donne pas l'UID du processus, et le
+      mode 0700 exigé rend l'ordre sans risque ;
+    - m5 : messages de la webview vérifiés champ par champ, et « Aller au code » limité au
+      dossier du projet ;
+    - m6 : une connexion se ferme même si le fil des vues est mort ;
+    - m7 : ce PLAN.md (Décisions, Écarts) ;
+    - m8 : thèmes recapturés dans VSCode 1.142.0, le plus récent ;
+    - m9 : seuil de 22 px, et méthode de stabilité refaite (4.8) ;
+    - m10 : dépendances transitives consignées, et notice EPL avec le lien de la version
+      exacte ;
+    - m11 : H9 et Journal (README en anglais), page Marketplace et texte d'accueil à jour ;
+    - m13 : une seule épaisseur d'arête ;
+    - m14 : le survol ne touche plus au fond, les barres de titre des cadres sont opaques, et
+      les arêtes restent sous toutes les boîtes. En mode « basic », React Flow les élevait au
+      niveau des nœuds enfants, et elles barraient le texte. Le survol est mesuré ;
+    - m15, m16, m17 (vues de Timonier régénérées), m19 (une resync ratée se réabonne), m23.
+  - Mineurs consignés en écarts : m12 (densité), m20 (tests unitaires de l'extension).
+  - Relecture n° 2 (2026-10-16), contre-vérification : « pas prête », aucun bloquant, 4
+    importants, 17 mineurs. Les corrections de la n° 1 sont vérifiées.
+  - Importants :
+    - I-a : le test des cinq secondes porte sur l'ancien rendu. À refaire avec toi (4.11) ;
+    - I-b : la légende disait « confirmée par le serveur de langage » pour tout trait plein.
+      Or les arêtes déclarées dans un manifeste sont pleines aussi, et ce sont les seules de
+      la carte d'ouverture de Timonier. Corrigé : « Sûre : déclarée dans un manifeste, ou
+      confirmée par un serveur de langage », dans la légende, les noms accessibles et les deux
+      README ;
+    - I-c : la persistance avait la couleur d'attention (`charts.yellow`, identique à
+      `list.warningForeground` dans plusieurs thèmes). Corrigé : la persistance passe en cyan,
+      et la tâche de fond devient neutre. Ta demande se limitait à « quelques couleurs » : le
+      choix des teintes est le mien, et l'ADR 0020 le dit maintenant ;
+    - I-d : le défilement de 4.10 était tombé à 40-42 i/s. Le banc saisissait une boîte : il
+      saisit maintenant le fond, et mesure 51 à 54 i/s, autour d'avant (voir 4.10). Le survol,
+      qui redessinait toutes les arêtes, est corrigé aussi.
+  - Mineurs corrigés :
+    - m-a, m-b : l'ADR 0019 décrit le delta vide qui signale une perte, et l'attente du relais
+      qui cède ;
+    - m-c : le rôle est écrit dans le cadre d'une boîte ouverte, et l'ADR 0020 dit où il l'est ;
+    - m-d : les icônes de rôle, les broches sur leur barre de titre, le triangle de la légende
+      et le survol de chaque élément sont mesurés ;
+    - m-e : les fils survolés ont un liseré du fond, pas seulement une couleur ;
+    - m-f : tests de `view/displayed` côté démon (`files_shown_on_the_map_wait_for_refinement`)
+      et côté webview (`MapView.test.ts`) ;
+    - m-g : tests Playwright des touches + et −, des boutons de zoom et d'Échap ;
+    - m-h : le relais ignore un `rendered` d'une révision qu'il n'a pas transmise ;
+    - m-i : les deux fenêtres de course du signal de perte sont fermées (drapeau posé avant un
+      second essai ; signal attendu, plus jamais perdu) ;
+    - m-j : un nouvel élément va où mènent ses arêtes (test), et l'ADR 0021 dit ce qui n'est pas
+      garanti ;
+    - m-k : posé en question (Q20) ;
+    - m-l : description commune des nœuds neutre ;
+    - m-m : `timonier.daemon.path` en portée `machine`, et pas d'activation dans un dossier non
+      approuvé (tests du manifeste) ;
+    - m-o : daltonisme simulé, consigné (ADR 0020, et Écarts) ;
+    - m-p : les tirets ne veulent plus dire qu'une arête approchée ;
+    - m-q : commentaires des tests.
+  - Restaient m-n (Q17) et I-a (le test des cinq secondes) : faits le 2026-10-17.
+  - Relecture n° 3 (2026-10-17) : « pas prête », aucun bloquant, 4 importants, 9 mineurs. Le
+    critère de 4.5 est atteint tel qu'il est écrit ; les défauts portent sur l'ADR 0022.
+  - Importants, corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 : le regroupement des chemins remplaçait des arêtes justes par des arêtes fausses
+      « sûres », dès qu'une réexportation par `*` passait entre eux. Retiré : une question par
+      chemin distinct ;
+    - I-2 : la position demandée tombait dans les arguments d'un trait générique (`Tr<Q>`).
+      Elle est maintenant cherchée dans le texte du nœud ;
+    - I-3 : au redémarrage, les usages vérifiés n'étaient jamais jugés périmés. Une extrémité
+      disparue (fichier supprimé, bibliothèque renommée) renvoie maintenant le fichier en file ;
+    - I-4 : les recherches de dépendants coûtaient sans mesure, jusqu'à quatre requêtes et 7 s
+      chacune. Elles ne se font plus que si un fichier vérifié cite le nom, sans nouvelle
+      tentative, et leur coût est mesuré (`lsp_cost`). Les nouvelles tentatives des définitions
+      ne portent plus que sur un nom que tree-sitter place ailleurs. En le faisant, j'ai trouvé
+      qu'une règle de « serveur prêt » par langage n'était pas sûre : écartée.
+  - Mineurs corrigés : m-1 (chiffres), m-3 (boutons du panneau), m-4 (cadres déplacés par leur
+    barre de titre), m-5 (Alt et flèche annoncés), m-6 (tests : `main.ts` revérifié, socket pour
+    les trois méthodes), m-7 (le saut vers la déclaration, dans l'ADR), m-8 (commentaire), m-9
+    (tailles mesurées gardées : plus d'avertissement 015).
+  - Question posée : m-2, devenu Q21.
+  - Relecture n° 4 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 7 mineurs. Les corrections de la n° 3 sont vérifiées, par ses sondes.
+  - Important, corrigé avec un test qui échoue sans la correction :
+    - I-A : une recherche de dépendants, devenue périmée par une autre sauvegarde, était
+      abandonnée, et les dépendants perdus. Elle retombe maintenant sur le marquage par nom ; la
+      même recherche demandée de nouveau remplace celle qui attend, avec le contenu récent et les
+      fichiers des deux.
+  - Mineurs corrigés :
+    - m-A : le doute ne porte plus que sur un nom lié par un import ou un chemin ; un nom deviné
+      par tree-sitter se laisse corriger. Seules les questions douteuses sont redemandées ;
+    - m-B : au redémarrage, une arête vers un fichier changé pendant l'absence ne tient plus ;
+    - m-C : tests de l'appel compacté au redémarrage, du filtre des recherches et du repli ;
+    - m-D : les questions abandonnées sont annulées (`$/cancelRequest`) ;
+    - m-E : le défilement de 4.10 consigné avec sa variation (51 à 54 i/s) ;
+    - m-F : les commandes de mesure dans CLAUDE.md ;
+    - m-G : le statut du démon compte les recherches nommées par le serveur ou faites par nom ;
+      le test VSCode exige qu'elle soit nommée par VSCode.
+  - Relecture n° 5 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 2
+    importants, 4 mineurs. Les corrections de la n° 4 sont vérifiées, par ses sondes.
+  - Importants, corrigés, chacun avec un test qui échoue sans la correction :
+    - I-α : un fichier affiné pendant que son éditeur avait des modifications non enregistrées
+      recevait les appels du tampon, enregistrés comme vérifiés au hash du disque (reproduit
+      dans VSCode). L'extension ne répond plus que sur le contenu enregistré, et le démon garde
+      la tâche de côté jusqu'à `editor/saved`. En le corrigeant, j'ai fermé le cas voisin : un
+      changement sur le disque que le démon n'a pas encore indexé, alors que VSCode l'a déjà lu.
+      Tests : `unsaved_documents_hold_the_work_until_saved`,
+      `answers_about_a_change_not_indexed_yet_wait_for_it`, le test sur socket et le test
+      VSCode ;
+    - I-β : deux recherches de dépendants à la même position, sur deux contenus, étaient
+      fusionnées, même pour deux symboles différents : les dépendants du premier se perdaient.
+      Une recherche porte maintenant l'id de son symbole. Périmée, elle le retrouve à sa
+      nouvelle place au lieu de retomber sur le nom. Test
+      `lookups_of_two_symbols_at_one_position_stay_apart`.
+  - Mineurs corrigés :
+    - m-α : au redémarrage, un appel en détail vers un fichier changé pendant l'absence ne
+      tient plus, comme un appel compacté (une signature a pu changer). Le statut de l'ADR 0014,
+      acceptée, renvoie à l'ADR 0022 pour cette règle ;
+    - m-β : un fichier vérifié entier et inchangé n'est plus affiné de nouveau à chaque
+      ouverture ou affichage. Le sont encore un fichier aux usages douteux, compacté, dépendant
+      ou changé ;
+    - m-γ : chiffres de 4.2 et de 4.5 mesurés de nouveau et datés, ADR 0022 et README à jour ;
+    - m-δ : commentaire du compte `byName`, test Rust de `lookups` dans le statut,
+      `lsp_cost.rs` dans la carte du dépôt de CLAUDE.md.
+  - Relecture n° 6 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 4 mineurs. I-α, I-β, m-α, m-β, m-γ et m-δ sont vérifiés, par ses sondes et des
+    mutations.
+  - Important, corrigé avec un test qui échoue sans la correction :
+    - I6-1 : une réponse qui pointait dans un fichier que le démon n'indexe pas (`node_modules`
+      sous la racine) gardait la tâche pour toujours, refaite en entier à chaque libération.
+      Confirmé dans VSCode ; 48 des 66 fichiers TypeScript de Timonier auraient été touchés. Le
+      contrôle au disque ne porte plus que sur les fichiers indexés. Tests
+      `answers_into_files_not_indexed_hold_nothing` et VSCode (une dépendance dans
+      `node_modules` du projet de test). Dans la même famille, l'extension compare un document
+      au disque dans son encodage : un fichier qui n'est pas en UTF-8 ne la fait plus refuser à
+      chaque fois.
+  - Mineurs :
+    - m6-1 : tests ajoutés pour les mutations qui survivaient (recherche face à un changement
+      pas encore indexé, fichier vérifié en partie redemandé avant et après un redémarrage,
+      relais qui part, définitions refusées, et les trois contrôles de l'extension, devenus une
+      fonction pure testée sans VSCode) ;
+    - m6-2 : seuls les fichiers source, ceux que lisent les packs, suspendent les réponses. Le
+      démon en donne les extensions à `initialize`. Posé en Q22 : la pause elle-même se voit ;
+    - m6-3 : une question perdue quand le relais change de main rend sa tâche à la file, au
+      lieu de la faire sortir sans vérification (défaut d'avant la relecture n° 5) ;
+    - m6-4 : l'ADR 0022 dit que les références ne lisent que le fichier demandé, comme le code.
+  - Relecture n° 7 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 4 mineurs. I6-1 est fermé dans VSCode et dans sa famille (cible trop grande,
+    ignorée par git, fichier en Latin-1) ; m6-1, m6-2 et m6-4 sont vérifiés.
+  - Important, corrigé avec un test qui échoue sans la correction :
+    - I7-1 : un client relais dont la connexion n'écrivait plus, sans être parti, faisait
+      tourner le démon à 100 % d'un cœur : ma correction m6-3 rendait la tâche à la file, qui
+      la lui renvoyait aussitôt. Un tel client cesse maintenant de relayer. Test
+      `a_client_that_writes_no_more_relays_no_longer`.
+  - Mineurs :
+    - m7-1 : tests ajoutés pour les mutations qui survivaient : le filtre des définitions
+      (N2), une question dont le client part (N12), un fichier compacté rechargé (M5e), le
+      suivi des fichiers source, devenu une classe pure (E7, E14), l'encodage (E8, un fichier
+      Latin-1 dans le projet de test VSCode), l'absence de serveur (E11, E16, une crate Rust
+      sans rust-analyzer). Pour ces derniers, le statut compte maintenant les questions sans
+      réponse (`lspAnswers.failed`). Le test VSCode d'I6-1 exige un appel vérifié ;
+    - m7-2 : le cache des comparaisons au disque se vide à la fermeture d'un document ;
+    - m7-3 : une réponse à `initialize` sans extensions laisse compter tous les fichiers ;
+    - m7-4 : l'ADR 0022 dit que, sans relais, une recherche attend le client suivant.
+  - En plus, pour l'hypothèse de la relecture d'un index durablement en retard sur le disque :
+    le démon relit lui-même un fichier trouvé différent, sans attendre son observateur. Test
+    `the_watch_reads_a_file_found_stale_at_once`.
+  - Trouvé en relançant les contrôles : le test d'accessibilité des lignes de la carte échouait
+    une fois sur quatre. Il mesurait une couleur en pleine transition (lue `oklab(…)`), juste
+    après un clic, et parfois avant qu'un survol ne lance la sienne. Il attend maintenant une
+    image, puis la fin de toute animation : 8 passages sur 8.
+  - Relecture n° 8 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 6 mineurs. I7-1 est fermé (la sonde du client à moitié fermé passe de 3 000 à
+    10 ms de CPU par 3 s) ; les mutations de la n° 7 sont tuées.
+  - Important, corrigé avec un test qui échoue sans la correction :
+    - I8-1 : la relecture immédiate tournait sans fin sur un fichier illisible : relu, il ne
+      changeait pas, mais le rafraîchissement libérait tout, et la tâche repartait (31 000
+      questions en 2 s ; 500 par seconde au serveur TypeScript dans VSCode). Un rafraîchissement
+      qui ne change rien ne libère plus rien ; après la relecture, la tâche n'est libérée que si
+      le fichier a changé ou correspond de nouveau à l'index. Tests
+      `a_file_out_of_reach_holds_without_asking_again`,
+      `the_watch_does_not_loop_on_a_file_out_of_reach` et
+      `a_change_undone_before_it_is_read_releases_what_it_held`. Une tâche gardée dit
+      maintenant pourquoi (documents non enregistrés, ou disque différent de l'index).
+  - Mineurs :
+    - m8-1 : une connexion qui cesse d'écrire après le départ d'une question ne la fait plus
+      attendre 10 s puis sauter : l'attente le voit, et rend la tâche aussitôt ;
+    - m8-2 : le pipeline voit lui-même que le client qui relaie a changé, et redemande ce que le
+      précédent avait refusé, même quand aucun réveil ne vient (double détachement) ;
+    - m8-3 : tests ajoutés pour les mutations qui survivaient : l'événement de vue après la
+      relecture (R4), la relecture vidée (U1), le délai des lots de définitions (P1),
+      l'annulation des nouvelles tentatives, devenues une fonction pure testée (X5), et les
+      colonnes UTF-8 d'un nom après des accents (X6, test VSCode). Le cache des comparaisons
+      est maintenant par document, ce qui rend son nettoyage inutile (M72). X3 survit, mais il
+      est équivalent : VSCode annule les modifications d'un document avant de le fermer, et
+      c'est cette annulation qui libère ; le test VSCode le montre de bout en bout. Le test
+      « client qui n'écrit plus » est rangé parmi les tests unitaires, ce qu'il est ;
+    - m8-4 : le test du verrou attend qu'il se libère : un processus qu'un autre test lance le
+      tient jusqu'à ce qu'il exécute son programme ;
+    - m8-5 : clippy 1.96 propre (`is_none_or`) ;
+    - m8-6 : les tests d'intégration effacent leur projet temporaire en fin de passage ; les 64
+      dossiers laissés dans `/tmp` sont effacés.
+  - Relecture n° 9 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 2
+    importants, 4 mineurs. I8-1, m8-1, m8-2, m8-4 et m8-5 sont vérifiés ; X3 est confirmé
+    équivalent dans le code de VSCode.
+  - Importants, corrigés avec un test qui échoue sans la correction :
+    - I9-1 : ma correction m8-6 effaçait le projet de test dès que js-debug listait la
+      configuration, avant d'ouvrir VSCode : « Extension Tests » (F5) s'ouvrait sur un dossier
+      effacé. Rien n'est effacé quand le fichier n'est que listé ; vérifié avec
+      `--list-configuration` ;
+    - I9-2 (défaut plus ancien) : un démon arrêté oubliait les recherches de dépendants et les
+      dépendants pas encore revérifiés ; leur vérification d'avant passait pour sûre, même à la
+      réouverture. La base garde maintenant ce que l'affinage doit (migration 0004), et le
+      démon le reprend au démarrage. Test `work_owed_survives_a_restart` (recherche en
+      attente, gardée, dépendant en attente) et test de migration depuis le schéma 3.
+  - Mineurs :
+    - m9-1 : un fichier demandé ou vérifié n'est plus gardé ; une recherche du même symbole
+      emporte celle qui était gardée ;
+    - m9-2 : tests ajoutés pour la raison d'une tâche gardée (A15), une cible supprimée avant
+      d'être vue, et la conversion des colonnes dans le fichier interrogé (X6b, test VSCode).
+      Une cible qui n'est plus indexée ne compte plus comme différente du disque, ce qui rend
+      A2 équivalente. X5c reste sans test : produire dans VSCode une annulation pendant une
+      nouvelle tentative n'est pas déterministe ; la règle elle-même est testée (`askAgain`) ;
+    - m9-3 : le test 4.9 cherche l'éditeur parmi les éditeurs visibles, sans dépendre du focus
+      de la fenêtre ;
+    - m9-4 : textes de PLAN.md et de l'ADR 0022 corrigés (ce qui libère un fichier illisible),
+      lignes trop longues de l'ADR 0022 coupées, l'ADR 0021 renvoie à Q21.
+  - Relecture n° 10 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 5 mineurs. I9-2 et m9-1 tiennent, par les sondes de la n° 9 et de nouvelles
+    (changement de paquets, commits, fichiers renommés pendant l'arrêt, base du schéma 3,
+    réindexation de secours).
+  - Important, corrigé :
+    - I10-1 : « Extension Tests » (F5) restait rouge (9 tests sur 19) et laissait son projet.
+      js-debug ne passe à VSCode que les arguments de la configuration listée : ni
+      `--disable-workspace-trust`, que la ligne de commande ajoute seule, ni le nettoyage. Le
+      drapeau est maintenant dans `launchArgs`, et les tests effacent eux-mêmes leur projet à la
+      fin (`cleanup.test.ts`). Vérifié en relançant VSCode comme js-debug, avec ces seuls
+      arguments : 19 réussis, rien ne reste.
+  - Mineurs :
+    - m10-1 : la dette s'écrit avant le lot d'un rafraîchissement, et au démarrage les remises
+      à zéro partent avec le lot ; une vérification dont le fichier a changé pendant l'arrêt
+      n'est plus reprise. Test `a_file_changed_while_away_is_asked_again`, qui manquait ;
+    - m10-2 : seul ce qui change dans la dette est écrit. Un pas, sur une dette de 55 000
+      lignes : 2,3 ms au lieu de 106 (ADR 0022) ;
+    - m10-3 : un échec d'écriture de la dette est noté sans faire échouer le pas ;
+    - m10-4 : le filtre redondant de `refine` est retiré, celui du contrôle au disque reste et
+      est testé ; le test de fusion d'une recherche gardée vérifie les fichiers cités des deux
+      (D16). X5b reste : une pause de plus avant d'abandonner, sans effet sur le résultat ;
+    - m10-5 : le retour à l'arbre de travail après un commit ne cherchait plus de dépendants.
+      Retiré à la relecture n° 11 (I11-1) : il en faisait manquer de vrais.
+  - Relecture n° 11 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 6 mineurs. I10-1 est fermé (F5 rejoué avec les arguments exacts de js-debug,
+    deux passages en parallèle compris) ; m10-1, m10-2 et m10-4 tiennent.
+  - Important, corrigé :
+    - I11-1 : ma correction m10-5 faisait manquer des dépendants. Le retour à l'arbre de
+      travail après un commit relit le disque : une signature changée que le démon n'avait pas
+      encore lue y était lue, et ses dépendants jetés (0 cas suivi sur 6 dans la sonde de la
+      relecture, dès 50 ms entre le commit et l'écriture). m10-5 est retirée : ce n'était
+      qu'une optimisation. Tests `a_signature_change_read_when_a_commit_comes_back_is_followed`
+      et, pour le rattrapage du commit, `a_signature_change_committed_before_it_is_read_is_followed`.
+  - Mineurs :
+    - m11-1 : un lot et sa dette s'écrivent dans la même transaction (`apply_all_owing`) : un
+      échec d'écriture de la dette ne laisse plus le lot enregistré sans elle. Test
+      `a_debt_that_cannot_be_written_holds_back_its_batch` (un déclencheur SQLite refuse la
+      dette) ;
+    - m11-2 : tests de la recherche seulement déplacée (S6) et du rattrapage (N9) ; ceux de
+      l'échec d'écriture après un pas (N4, N5) sont venus à la relecture n° 12 (m12-3) ;
+    - m11-3 : la configuration des tests efface les projets de plus d'un jour laissés par un
+      listage seul ou un passage interrompu ;
+    - m11-4 : F5 « Extension Tests » compile aussi le démon (`.vscode/tasks.json`) ;
+    - m11-5 : le banc de la dette est dans le dépôt (`examples/debt_bench.rs`, CLAUDE.md), le
+      commentaire de la migration 0004 dit qu'elle s'écrit par différence ;
+    - m11-6 : le test du verrou réessaie aussi de le reprendre.
+  - Relecture n° 12 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 5 mineurs. I11-1 est fermé de bout en bout (24 cas suivis sur 24, avec le vrai
+    watch) ; m11-1 tient sur ses chemins nominaux.
+  - Important, corrigé avec un test qui échoue sans la correction :
+    - I12-1 : ma correction d'I11-1 suivait toutes les signatures au retour de l'arbre de
+      travail après un commit : des centaines de recherches par commit sur ce dépôt, et non
+      « quelques questions » comme je l'avais écrit. Seul un fichier dont le contenu relu diffère
+      de ce que l'index tenait avant le gel est suivi, et un fichier qui revient tel quel
+      retrouve sa vérification LSP, que le gel faisait tomber : 0 question par commit au lieu de
+      221 à 678 recherches et 131 à 2 132 questions d'appels. Test
+      `a_commit_asks_nothing_about_what_the_working_tree_brings_back` ; les deux tests d'I11-1
+      tiennent.
+  - Mineurs :
+    - m12-1 : une réindexation de secours garde la dette du lot qui a échoué (les vérifiés
+      périmés sont repris avant de relire la base) ;
+    - m12-2 : si elle échoue aussi, le rafraîchissement suivant refait d'abord une
+      réindexation complète : la base ne reste plus en retard pour la session. Test
+      `an_update_that_failed_twice_loses_nothing` pour les deux ;
+    - m12-3 : test de l'échec d'écriture de la dette après un pas
+      (`a_debt_not_written_after_a_step_goes_at_the_next`) ;
+    - m12-4 : test de deux démarrages sans pas (`a_debt_survives_starts_without_a_step`) ;
+    - m12-5 : le skill graph-model dit que la dette s'écrit par différence, avec son lot.
+  - Relecture n° 13 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 2
+    importants, 3 mineurs. Le coût d'un commit est bien de 0 question ; m12-1 à m12-5
+    tiennent ; 12 cas jumeaux (un dépôt qui commite, l'autre non) restent identiques.
+  - Importants, corrigés avec un test qui échoue sans la correction :
+    - I13-1 : au retour de l'arbre de travail, un fichier qui avait changé sans être vu était
+      comparé à la version commitée, pas à celle que le serveur avait vue : une signature
+      ramenée à sa forme commitée, ou un symbole ajouté puis retiré, n'était plus suivi, et un
+      dépendant gardé « vérifié » ne l'était plus vraiment. Test
+      `a_signature_brought_back_to_the_commit_is_followed_at_a_commit` ;
+    - I13-2 : un paquet trouvé au retour faisait tomber les vérifications dans la base, pas
+      dans la file. Test `a_package_found_around_a_commit_keeps_the_queue_and_the_store_in_line`.
+    - Les deux venaient de ma correction d'I12-1. Elle est remplacée par un retour en deux
+      temps : l'état d'avant le gel, depuis la mémoire (`Indexer::restore`, vérification
+      comprise), puis le disque, relu comme tout changement. Plus de mode « retour », plus de
+      fenêtre `drifted` : l'écart qui la décrivait est retiré. Toujours 0 question par commit.
+  - Mineurs :
+    - m13-1 : les chemins non testés (M1, M5, M14, M17) disparaissent avec le mode « retour » ;
+      M10 est tuée (`store_behind`) ;
+    - m13-2 : un commit rattrape la base avant de figer son snapshot. Test
+      `a_commit_while_the_store_is_behind_describes_the_commit` ;
+    - m13-3 : l'ADR 0022 cite l'ADR 0015 ; le skill graph-model décrit le retour.
+  - Relecture n° 14 (2026-10-17), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 4 mineurs. I13-1 et I13-2 sont fermés : 16 cas jumeaux sur 16 identiques, 25
+    cas sur 25 avec le vrai watch, 0 question par commit.
+  - Important :
+    - I14-1 (défaut de la tâche 3.7, pas une régression) : le snapshot d'un commit ne décrit
+      pas toujours l'arbre commité. Trois cas :
+      - un fichier revenu à sa version commitée sans être relu : corrigé, l'index est remis au
+        niveau du disque avant le gel. Test
+        `files_back_to_their_committed_version_unseen_are_frozen_as_committed` ;
+      - un manifeste modifié sans commit, ou un `src/lib.rs` présent d'un seul côté : reportés
+        en Phase 5 par ta réponse à Q23 (tâche 5.4).
+  - Mineurs :
+    - m14-1 : un retour qui échoue fait réindexer tout aussitôt, au lieu d'attendre l'événement
+      suivant (régression de ce tour). Test `a_return_that_fails_brings_the_disk_back_at_once` ;
+    - m14-2 : test `a_commit_leaves_the_head_as_it_was` pour les chemins d'`Indexer::restore`
+      (fichiers que le gel remet, résolution par nom des autres fichiers) ;
+    - m14-3 : la mesure « 0 question par commit » est datée et attribuée au retour en deux
+      temps ;
+    - m14-4 : les tests du redémarrage ne laissent plus de dossiers temporaires.
+  - Relecture n° 15 (2026-10-18), contre-vérification : « pas prête », aucun bloquant, 1
+    important, 4 mineurs. Aucune régression : les corrections de la n° 14 tiennent (0 snapshot
+    faux sur 35 avec le vrai watch, contre 10 à la n° 14) ; le report de Q23 est consigné.
+  - Important, corrigé à ta demande (« maintenant, en Phase 4 »), avec un test qui échoue sans
+    la correction :
+    - I15-1 (défaut des tâches 3.5 et 3.7) : un fichier déjà indexé que `.gitignore` se met à
+      sauter restait dans la tête et dans les snapshots de commit jusqu'au redémarrage ; un
+      fichier qu'il ne sautait plus n'entrait qu'au commit suivant. Un fichier d'exclusion qui
+      change (`.gitignore`, `.ignore`, `.git/info/exclude`, dont le dossier est maintenant
+      surveillé) fait refaire le parcours : ce qu'il saute sort, ce qu'il ne saute plus entre.
+      Avant le gel d'un commit, l'index refait aussi le parcours. (Relecture n° 16 : vrai
+      seulement pour une racine en haut d'un dépôt ordinaire ; le worktree et la racine en
+      sous-dossier sont corrigés depuis, m16-3 et m16-4.) Tests
+      `a_file_an_ignore_file_skips_leaves_the_head`, `a_file_git_skips_now_is_left_out_of_a_commit`,
+      `the_watch_follows_an_ignore_file` et `the_watch_follows_git_s_own_ignore_file`.
+  - Mineurs :
+    - m15-1 : test de l'échec de la mise au niveau du disque avant le gel : pas de snapshot,
+      plutôt qu'un snapshot faux (`a_commit_snapshot_waits_for_the_disk`) ;
+    - m15-2 : les chemins d'`Indexer::restore` sont testés chacun à part (nom retrouvé
+      ailleurs, fichier supprimé, et dépendant). X5 (le retrait de la portée) est équivalente :
+      le lot de structure du retour retire déjà le fichier et sa portée. (Faux, relevé par la
+      relecture n° 16, m16-2 : sans ce retrait, la base refuse le lot du retour, et le repli
+      perd la vérification des fichiers sales. Test ajouté.) ;
+    - m15-3 : le rattrapage d'une base en retard est rapporté avec le rafraîchissement qui le
+      fait, et un commit ne rattrape la base que s'il fige un snapshot, qui prévient les vues.
+      (Inexact, relevé par la relecture n° 16, m16-1 et m16-5 : corrigé depuis, tout changement
+      du dossier git rattrape la base, et les vues sont prévenues sans snapshot.) ;
+    - m15-4 : skill graph-model, ligne de statut de l'ADR 0015, coût de la mise au niveau du
+      disque dans l'ADR 0022, et la durée d'une consolidation sur un grand dépôt notée pour la
+      Phase 8 (dans les Écarts de la Phase 4 seulement ; dans la section Phase 8 depuis la
+      relecture n° 16, m16-9).
+    - En corrigeant, un test de la watch réussissait pour une mauvaise raison (il écrivait le
+      `.gitignore` avant la première indexation de la watch) : il attend maintenant cette
+      indexation.
+  - Relecture n° 16 (2026-10-18), contre-vérification : « prête avec réserves », aucun
+    bloquant ni important, 9 mineurs. Les corrections de la n° 15 tiennent dans le cas courant
+    (11 états de fichiers d'exclusion comparés à une indexation neuve : 0 différence).
+  - Mineurs, chacun corrigé avec un test qui échoue sans la correction (mutation vérifiée) :
+    - m16-1 (régression de ce tour) : un changement du dossier git sans nouveau commit ne
+      rattrapait plus une base en retard. Le rattrapage passe en tête de la consolidation.
+      Test `a_git_change_without_a_new_commit_catches_the_store_up` ;
+    - m16-5 : la consolidation rapporte ce qu'elle a changé dans la tête en route (rattrapage,
+      changements que la watch n'avait pas encore dits), et les vues sont prévenues même sans
+      snapshot, ou après un échec. Tests `a_commit_without_a_snapshot_tells_what_changed_the_head`
+      et `a_consolidation_tells_the_views_what_changed_the_head` ;
+    - m16-2 : X5 n'était pas équivalente. Test
+      `a_commit_keeps_the_verification_next_to_a_deleted_file` ;
+    - m16-3 et m16-4 (défauts antérieurs, famille d'I15-1) : dans un dépôt git, le parcours
+      applique les règles de git comme git, `info/exclude` du dossier commun d'un worktree
+      compris ; la watch surveille aussi ce dossier et les dossiers entre le haut du dépôt et
+      la racine ([ADR 0023](docs/adr/0023-fichiers-d-exclusion-suivis.md)). Tests
+      `a_worktree_follows_the_main_repository_s_ignore_file` et
+      `the_watch_follows_the_ignore_files_above_the_root` ;
+    - m16-6 : tests de `.ignore`, d'un `.gitignore` imbriqué, et d'un fichier ignoré comparé à
+      un fichier supprimé (tête, file, dette, puis questions posées) : G1, G3, G8, G9 et G10
+      sont tuées. Tests `every_ignore_file_is_followed` et
+      `an_ignored_file_goes_as_a_deleted_one` ;
+    - m16-7 : le test Playwright du cadre attend que le cadre ne bouge plus, et vérifie que le
+      point visé laisse passer le pointeur vers la carte. 160 sur 160 en répétition, et la
+      suite d'accessibilité 160 sur 160 répétée quatre fois ;
+    - m16-8 : coût quadratique d'un fichier créé ou supprimé (défaut antérieur), consigné pour
+      la Phase 8 ;
+    - m16-9 : statuts des ADR 0013 et 0015 (complétées par l'ADR 0023), durée de consolidation
+      reportée dans la section Phase 8.
+  - Relecture n° 17 (2026-10-18), contre-vérification : « prête avec réserves », aucun
+    bloquant ni important, 7 mineurs, aucun venu de ce tour. Les neuf corrections de la n° 16
+    tiennent, sondes rejouées et 23 mutations tuées par les tests du dépôt.
+  - Mineurs :
+    - m17-4 : trois mutations que seules les sondes tuaient, tuées maintenant (`.ignore`
+      au-dessus de la racine, dossiers plus haut que le parent, relecture par le diff d'un
+      commit quand `git status` échoue). Le test des dossiers au-dessus de la racine passe à
+      deux niveaux ; test `a_commit_git_cannot_read_tells_what_its_diff_changed` ;
+    - m17-5 : une indexation qui échoue fait relire la tête aux vues, comme une consolidation
+      qui échoue : la tête a pu changer avant l'échec. Test
+      `a_consolidation_tells_the_views_what_changed_the_head` ;
+    - m17-3 (test antérieur) : le test de la grande carte attend jusqu'à 30 s sa première mise
+      en page, au lieu des 5 s d'une action. Suite d'accessibilité : 40/40 dans 3 passages sous
+      32 boucles de calcul ;
+    - m17-6 : l'ADR 0022 décrit le rattrapage tel qu'il est depuis m16-1 et m16-5 ;
+    - m17-1, m17-2 et m17-7 : consignés dans l'ADR 0023 (« Conséquences ») et dans les
+      Écarts. Ce sont des limites de la crate `ignore` (worktree en chemins relatifs,
+      sous-module), des sources d'exclusion appliquées sans être suivies, et une hypothèse de
+      coût sous macOS.
+  - Relecture n° 18 (2026-10-18), contre-vérification : « prête avec réserves ». Rien n'empêche
+    « prête » au regard des critères de la Phase 4, de la spec et des ADR ; aucune régression,
+    36 mutations rejouées (30 tuées par les tests du dépôt, 5 équivalentes). 4 mineurs, traités
+    sans changer le comportement :
+    - m18-3 (code antérieur) : un manifeste modifié et commité avant que la watch l'apporte
+      n'était couvert par aucun test (mutation I-Z). Test
+      `a_manifest_committed_unseen_is_read_from_the_commit`, qui compare la tête et le
+      snapshot du commit à une indexation neuve ;
+    - m18-1 et m18-2 : les limites consignées à la n° 17 sont décrites exactement (le worktree
+      en chemins relatifs dépend du dossier courant du démon ; hors dépôt git, un `.gitignore`
+      ou un `.ignore` au-dessus de la racine compte au parcours suivant) ;
+    - m18-4 : l'hypothèse macOS est reportée dans la section Phase 8 ; les liens de l'ADR 0023
+      citent les relectures n° 17 et 18.
+  - Les quatre démons orphelins relevés par la relecture venaient de mes essais. Leur sortie
+    d'erreur était fermée, et le défaut de journal d'avant m1 faisait mourir leurs tâches
+    d'inactivité et de signaux, sans arrêter le démon. Arrêtés ; le correctif de m1 couvre ce
+    cas.
+  - Questions posées : m2 (Q17) et m18 (Q18), tranchées le 2026-10-16 : comportements
+    actuels gardés.
 
 Critère de sortie : la carte de Timonier s'affiche, reste stable quand tu modifies un fichier,
 et passe le test des cinq secondes avec toi.
 
-Décisions : —
-Écarts : —
+Décisions :
+- [ADR 0019](docs/adr/0019-protocole-demon-extension.md) : protocole démon ↔ clients,
+  un démon par projet, vues et révisions, file par client.
+- [ADR 0020](docs/adr/0020-systeme-de-design.md) : système de design, jetons sur
+  les variables de VSCode, couleurs des rôles, contrastes mesurés dans six thèmes.
+- [ADR 0021](docs/adr/0021-carte-d-architecture.md) : carte par rôles, zoom
+  sémantique, mise en page incrémentale, rendu inspiré des Blueprints, boîtes déplaçables.
+- [ADR 0022](docs/adr/0022-verification-des-usages-par-le-lsp.md) : usages et
+  dépendants vérifiés par le serveur de langage ; complète l'ADR 0014 (Q19).
+- [ADR 0023](docs/adr/0023-fichiers-d-exclusion-suivis.md) : fichiers
+  d'exclusion suivis, règles de git dans un dépôt, worktree et racine en sous-dossier ;
+  complète les ADR 0013 et 0015.
+Écarts :
+- Les vues relisent toute la tête à chaque changement. Mesures de la relecture, sur un dépôt
+  synthétique de 12 331 nœuds (2026-10-16) :
+  - lecture de la tête : 28,5 ms ;
+  - calcul d'une vue : 13,5 ms ;
+  - `view/subscribe` : 149 ms et 3,5 Mio de JSON ;
+  - sauvegarde → delta : p50 424 ms, anti-rebond de 300 ms compris.
+
+  C'est acceptable pour le MVP. Un cache par vue viendra si un vrai dépôt le demande.
+- Densité réglable (spec « Expérience et design ») : seuls les jetons de densité compacte
+  existent. Sur la carte, les tailles des boîtes sont fixes, car la mise en page en dépend. Un
+  réglage « confortable / compact » qui change ces tailles est reporté à la Phase 5, qui
+  retouche la carte (relecture m12).
+- Daltonisme (spec « palette sûre pour les daltoniens ») : il n'y a que quatre teintes libres
+  de sens. En deutéranopie simulée, les teintes des barres de titre de l'interface et de la
+  persistance se confondent dans les thèmes sombres (ΔE 0,5 à 0,7). Les icônes restent
+  distinctes (ΔE ≥ 4,1), et le rôle est écrit : la couleur n'est jamais seule (ADR 0020).
+- Une arête apparue après le premier affichage peut aller de droite à gauche jusqu'à
+  « Revenir aux rôles » : elle ne relance pas la mise en page (ADR 0021).
+- `view/displayed` est testé de chaque côté (webview, relais, démon), sans test d'intégration
+  de bout en bout dans VSCode : la carte du projet de test ne dessine aucun fichier à
+  l'ouverture.
+- Tests unitaires de l'extension : le relais de vue, les messages, les chemins et les colonnes
+  en ont. Le superviseur du démon et le relais LSP n'ont que des tests d'intégration, car ils
+  pilotent un vrai processus et l'API de VSCode (relecture m20).
+- Un fichier dont la hiérarchie d'appels n'est pas prête (serveur de langage en démarrage)
+  sort de la file d'affinage sans être vérifié. Il y revient quand on l'ouvre ou l'affiche de
+  nouveau.
+- Un serveur de langage voit un fichier qu'aucun éditeur n'a ouvert avec le retard de son
+  propre observateur de fichiers. Dans cet intervalle, une réponse peut s'appuyer sur l'ancien
+  contenu d'un fichier que la question ne lit pas : ni l'extension ni le démon ne peuvent le
+  voir (ADR 0022, « Conséquences »).
+- Mesuré par la relecture n° 15, pour la Phase 8 : sur un dépôt synthétique de 40 000 fichiers,
+  la consolidation d'un commit prend 39 à 50 s, surtout pour le recalcul des composants, et
+  bloque le fil du pipeline pendant ce temps ; environ 2 s pour 10 000 fichiers.
+- Mesuré par la relecture n° 16, pour la Phase 8 : créer ou supprimer un fichier coûte environ
+  2 s à 10 000 fichiers (21 à 24 ms à 1 000), dont 1,8 s dans `Indexer::refresh` : un coût
+  quadratique, antérieur à la Phase 4. Un fichier d'exclusion qui fait entrer ou sortir des
+  fichiers coûte autant. La spec demande une mise à jour « immédiate à la sauvegarde » ;
+  enregistrer un fichier existant reste à 1 ms.
+- Le snapshot d'un commit est faux quand un manifeste n'est modifié que dans l'arbre de travail,
+  ou quand `src/lib.rs` n'existe que d'un côté (défaut de la tâche 3.7). Reporté en Phase 5 par
+  ta réponse à Q23 (tâche 5.4) : la carte montre la tête, juste ; seul le diff de revue lira ces
+  snapshots.
+- Un fichier devenu illisible garde ce qui pointe vers lui jusqu'au changement suivant qui
+  modifie l'index, jusqu'à `editor/saved`, ou jusqu'à ce qu'on rouvre le fichier gardé :
+  redevenu lisible, il ne fait pas d'événement (ADR 0022).
+- Windows (named pipe) attend H8 : le socket et le verrou sont ceux d'Unix.
+- La tâche 4.12 est close sur « prête avec réserves » (relecture n° 18), par ta décision (Q24).
+- Fichiers d'exclusion (ADR 0023, relecture n° 17) :
+  - dans un worktree créé en chemins relatifs (git 2.48 et plus), `info/exclude` n'est
+    appliqué que si le démon a pour dossier courant le haut du worktree, ce que ni la CLI ni
+    l'extension ne fixent ; dans un sous-module pris comme racine, il ne l'est jamais. Cause :
+    la crate `ignore` 0.4.33 (relectures n° 17 et 18). Les worktrees que Timonier créera pour
+    les agents devront l'être en chemins absolus, ou le démon prendre ce dossier courant
+    (Q25 : plus tard) ;
+  - le fichier d'exclusion global de git, un `.ignore` au-dessus du haut du dépôt et, hors
+    dépôt git, un `.gitignore` ou un `.ignore` au-dessus de la racine comptent au parcours
+    suivant (fichier d'exclusion suivi, commit ou redémarrage), mais leur propre changement
+    n'en déclenche aucun ;
+  - sous macOS, surveiller le haut d'un monorepo pourrait faire filtrer dans le processus les
+    événements de tout le dépôt (notify 8.2, FSEvents) : hypothèse à mesurer, reportée dans
+    la section Phase 8.
 
 ## Phase 5 — Diff de revue
 
-Statut : à faire
+Statut : en cours
 
 - [ ] 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
   JSON-RPC) avec une confirmation discrète — critère : test d'intégration.
@@ -955,7 +1965,11 @@ Statut : à faire
 - [ ] 5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre
   « seulement les changements », résumé — critère : checklist d'accessibilité ; test des
   cinq secondes.
-- [ ] 5.4 Relecture par `phase-reviewer` — critère : verdict « prête ».
+- [ ] 5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la
+  présence de `src/lib.rs` — critère : tests d'un manifeste modifié sans commit (crate
+  renommée, dépendance ajoutée) et d'un `src/lib.rs` présent d'un seul côté, dont le snapshot
+  décrit le commit.
+- [ ] 5.5 Relecture par `phase-reviewer` — critère : verdict « prête ».
 
 Critère de sortie (proposé, à valider) : après « marquer comme revu », on ajoute à Timonier
 une dépendance entre deux crates et un module ; la carte montre exactement ces changements, et
@@ -1100,7 +2114,10 @@ Statut : à faire
 - [ ] 8.7 Vues — critère : test des cinq secondes. Contenu :
   - timeline par test (spans emboîtés, ressources du processus dessous, uPlot) ;
   - carte annotée (temps cumulé, nombre d'appels, arêtes épaissies selon le trafic) ;
-  - évolution par commit.
+  - évolution par commit ;
+  - à ta demande (2026-10-18), s'inspirer des panneaux « Performances » des outils de
+    développement de Chrome et de Firefox : un arbre des appels qu'on déplie, avec le temps
+    passé en ms et les ressources utilisées à chaque niveau.
 - [ ] 8.8 Budgets — critère : un budget dépassé volontairement est visible sur la carte et
   lisible via MCP. Contenu :
   - chaque note budget de l'intention est comparée à la médiane de plusieurs runs ;
@@ -1116,6 +2133,16 @@ Statut : à faire
   - « probable », puis « confirmée » après un nouveau run ;
   - référence réinitialisée si l'empreinte de la machine change.
 - [ ] 8.10 Relecture par `phase-reviewer` — critère : verdict « prête ».
+
+Reporté de la Phase 4 (Écarts) : le coût de Timonier lui-même sur un grand dépôt, mesuré par
+les relectures n° 15 et 16 sur des dépôts synthétiques (build release, tmpfs) :
+- consolidation d'un commit : 39 à 50 s à 40 000 fichiers, environ 2 s à 10 000, surtout pour
+  le recalcul des composants ; le fil du pipeline est bloqué pendant ce temps ;
+- fichier créé ou supprimé, ou fichier d'exclusion qui fait entrer ou sortir des fichiers :
+  environ 2 s à 10 000 fichiers, coût quadratique (1,8 s dans `Indexer::refresh`) ;
+- hypothèse non mesurée, à vérifier sous macOS (H8) : surveiller le haut d'un monorepo y fait
+  filtrer dans le processus les événements de tout le dépôt (notify 8.2, FSEvents ; ADR 0023,
+  relecture n° 17, m17-7).
 
 Critère de sortie (proposé, à valider) : `timonier test` sur Timonier produit une timeline par
 test, avec des spans rattachés aux nœuds du graphe ; une régression provoquée est détectée ;
@@ -1180,7 +2207,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | rayon | 1.12.0 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; extraction parallèle (ADR 0013) |
 | toml | 1.1.8 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; manifestes des packs et de Cargo, features `std`, `serde`, `parse` |
 | serde / serde_json / schemars | 1.0.229 / 1.0.154 / 1.2.3 | MIT (OR Apache-2.0) | |
-| jsonrpsee | 0.26.1 | MIT | |
+| jsonrpsee | 0.26.1 | MIT | **Écarté** (ADR 0019) : serveurs HTTP et WebSocket seulement |
+| ts-rs | 12.0.1 | MIT | Vérifié le 2026-10-16 ; types TypeScript du protocole (ADR 0019). specta écarté (2.0.0-rc.25) |
 | async-lsp / tower-lsp-server | 0.2.4 / 0.23.0 | MIT OR Apache-2.0 | tower-lsp n'est plus maintenu ; lsp-types est figé |
 | rmcp | 3.5.1 | Apache-2.0 (parties en MIT) | SDK Rust officiel de MCP |
 | tonic / prost / axum | 0.14.6 / 0.14.4 / 0.8.9 | MIT / Apache-2.0 / MIT | |
@@ -1192,8 +2220,10 @@ avant ajout si plus d'un mois s'est écoulé.
 | scip | 0.10.0 | Apache-2.0 | v2 ; dépend de rust-protobuf, pas de prost |
 | procfs / cgroups-rs | 0.18.0 / 0.5.1 | MIT OR Apache-2.0 | |
 | insta / proptest / tempfile / assert_cmd | 1.49.0 / 1.12.0 / 3.27.0 / 2.2.2 | Apache-2.0 / MIT OR Apache-2.0 | |
-| @xyflow/react | 12.12.0 | MIT | Pas `reactflow` (figé) |
-| elkjs | 0.12.0 | EPL-2.0 OR GPL-3.0-or-later | |
+| @xyflow/react | 12.12.0 | MIT | Pas `reactflow` (figé). Revérifié et utilisé le 2026-10-16 (ADR 0021) ; zustand, classcat, @xyflow/system, use-sync-external-store en MIT |
+| d3-drag, -zoom, -selection, -transition, -interpolate, -color, -dispatch, -timer / d3-ease | 3.x | ISC / BSD-3-Clause | Vérifiés le 2026-10-16 ; tirés par @xyflow/system, empaquetés dans la webview avec leur notice |
+| scheduler | 0.28.0 | MIT | Vérifié le 2026-10-16 ; tiré par react-dom |
+| elkjs | 0.12.0 | EPL-2.0 OR GPL-3.0-or-later | Utilisé sous EPL-2.0, sans worker (ADR 0021) ; la notice lie le paquet de cette version |
 | tldraw | 5.5.2 | Propriétaire, avec clé | **Écarté** (Q3) |
 | uplot / pixi.js | 1.6.32 / 8.22.0 | MIT | |
 | react, react-dom | 19.3.0 | MIT | |
@@ -1203,8 +2233,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | @vscode/vsce / test-cli / test-electron | 4.0.0 / 0.0.15 / 3.1.0 | MIT | Node ≥ 22 |
 | @types/vscode | 1.140.0 | MIT | VSCode stable : 1.141.2 |
 | @vscode-elements/elements | 2.5.1 | MIT | `@vscode/webview-ui-toolkit` est déprécié |
-| vscode-jsonrpc | 9.0.3 | MIT | |
-| axe-core / @playwright/test | 4.14.0 / 1.64.1 | MPL-2.0 / Apache-2.0 | Développement seulement |
+| vscode-jsonrpc | 9.0.3 | MIT | Utilisé (ADR 0019) ; revérifié le 2026-10-16, sans dépendance |
+| axe-core / @playwright/test | 4.14.0 / 1.64.1 | MPL-2.0 / Apache-2.0 | Développement seulement ; revérifiés et utilisés le 2026-10-16 (ADR 0020) |
 | esbuild | 0.28.2 | MIT | Bundle de l'extension |
 | @eslint/js / eslint-plugin-react-hooks | 10.0.1 / 7.1.1 | MIT | |
 | @types/node / @types/react / @types/react-dom / @types/mocha | 24.19.2 / 19.3.0 / 19.3.0 / 10.0.10 | MIT | `@types/node` 24 = Node 24.21 de VSCode 1.141 |
@@ -1212,7 +2242,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | Swatinem/rust-cache | v2.9.2 (`6323deb`) | LGPL-3.0 | Action tierce, épinglée par SHA |
 
 Toolchain : Rust stable 1.99.1 (installée en local le 2026-10-16 ; 1.96 reste pour la MSRV), édition 2024 stable depuis 1.85 ;
-Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
+Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.142.0 pour les tests d'intégration et la
+capture des thèmes.
 
 ## Journal
 
@@ -1273,3 +2304,104 @@ Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.141.2.
   corrigés, avec deux tests de régression. 3.12 est décochée.
 - 2026-10-16 — Contre-vérification : F1 et P1 corrigés ; m-f ne l'était qu'en partie (un crate
   vu d'abord par un autre parcours). Corrigé, avec un troisième test.
+- 2026-10-16 — Phase 4 :
+  - ADR 0019 à 0021 ;
+  - démon JSON-RPC sur socket Unix, CLI `daemon`, extension qui le supervise, relais LSP,
+    système de design, carte par rôles, mise en page stable, niveau de détail, navigation ;
+  - `README.md` passé en anglais et enrichi, à ta demande (« en anglais je veux dire ») ;
+  - test des cinq secondes réussi avec toi (4.11) ;
+  - à ta demande, des couleurs par rôle (« quelques couleurs pour une meilleure
+    lisibilité »), puis un rendu inspiré des Blueprints d'Unreal Engine ;
+  - relecture n° 1 « pas prête » (aucun bloquant, 5 importants, 21 mineurs). Tout est corrigé,
+    consigné ou posé en question (Q16 à Q19). En passant, j'ai trouvé deux défauts de plus :
+    le démon mourait avec la fenêtre qui l'avait lancé, et les arêtes d'une boîte ouverte
+    barraient le texte des autres boîtes.
+- 2026-10-16 — Relecture n° 2 de la Phase 4 « pas prête » (aucun bloquant, 4 importants,
+  17 mineurs). Tout est corrigé ou consigné, sauf le test des cinq secondes, à refaire avec
+  toi sur le nouveau rendu. Q16 à Q18 tranchées ; Q19 et Q20 ouvertes ; Q17 à confirmer.
+- 2026-10-17 — Tes réponses : test des cinq secondes n° 2 réussi ; Q17 confirmée (b) ; Q19 (b),
+  « et on optimise le code à fond » ; Q20 (b), boîtes déplaçables.
+  - 4.5 rouverte puis refaite (ADR 0022) : usages vérifiés par leurs définitions, dépendants
+    nommés par les références, environ 670 questions pour 6 100 sites sur Timonier ;
+  - boîtes déplaçables, épinglées, gardées par espace de travail (H13) ;
+  - le banc de 4.10 saisit le fond : 54 i/s, comme avant le nouveau rendu.
+- 2026-10-17 — Relecture n° 3 « pas prête » (aucun bloquant, 4 importants, 9 mineurs, tous sur
+  l'ADR 0022 et les boîtes déplacées). Corrigés : plus de regroupement des chemins, position
+  des noms génériques, vérifications périmées au redémarrage, coût des recherches mesuré et
+  réduit, réponses douteuses écartées. Q21 posée.
+- 2026-10-17 — Relecture n° 4 « pas prête » (1 important, 7 mineurs). Corrigés : recherche de
+  dépendants périmée qui retombe sur le nom, doute réservé aux noms liés par un import,
+  redémarrage face à un fichier changé, annulation des questions abandonnées, comptes des
+  recherches dans le statut.
+- 2026-10-17 — Relecture n° 5 « pas prête » (2 importants, 4 mineurs). Corrigés : rien n'est
+  vérifié sur un contenu non enregistré, ni sur un changement pas encore indexé ; recherches de
+  dépendants par symbole ; appels en détail revérifiés après un changement pendant l'absence ;
+  fichiers vérifiés entiers plus redemandés ; chiffres mesurés de nouveau.
+- 2026-10-17 — À ta demande, les commits de ce dépôt utilisent l'adresse « noreply » de
+  GitHub (`git config --local user.email`), et non plus ton adresse personnelle.
+- 2026-10-17 — Relecture n° 6 « pas prête » (1 important, 4 mineurs). Corrigés : une réponse
+  dans `node_modules` ne garde plus la tâche, seuls les fichiers source suspendent les
+  réponses (Q22 posée), une question perdue au changement de relais rend sa tâche, tests des
+  mutations survivantes.
+- 2026-10-17 — Relecture n° 7 « pas prête » (1 important, 4 mineurs). Corrigés : un client
+  relais qui n'écrit plus cesse de relayer (le démon tournait à vide), le démon relit un
+  fichier trouvé différent du disque, tests des mutations survivantes.
+- 2026-10-17 — Relecture n° 8 « pas prête » (1 important, 6 mineurs). Corrigés : plus de
+  boucle sur un fichier illisible, une question perdue rend sa tâche aussitôt, le changement de
+  relais libère ce qui était gardé, tests des mutations survivantes, tests sans fichiers
+  laissés dans `/tmp`.
+- 2026-10-17 — Relecture n° 9 « pas prête » (2 importants, 4 mineurs). Corrigés : « Extension
+  Tests » (F5) retrouve son projet, ce que l'affinage doit survit au redémarrage (migration
+  0004), tests des mutations survivantes.
+- 2026-10-17 — Relecture n° 10 « pas prête » (1 important, 5 mineurs). Corrigés : « Extension
+  Tests » (F5) passe et ne laisse rien, la dette s'écrit dans un ordre sûr et seulement ce qui
+  change, un commit ne relance plus de recherches.
+- 2026-10-17 — Relecture n° 11 « pas prête » (1 important, 6 mineurs). Corrigés : l'optimisation
+  des commits (m10-5) est retirée, elle faisait manquer des dépendants ; un lot et sa dette
+  s'écrivent ensemble ; F5 compile le démon ; tests des chemins qui n'en avaient pas.
+- 2026-10-17 — Relecture n° 12 « pas prête » (1 important, 5 mineurs). Corrigés : un commit ne
+  coûte plus aucune question pour ce qui revient tel quel (sa vérification est gardée), une
+  mise à jour qui échoue deux fois ne perd plus rien, tests des chemins d'échec.
+- 2026-10-17 — Tes réponses : Q21 « oui » (positions gardées sur ta machine, boîtes qui restent
+  en place) ; l'adresse « noreply » de GitHub aussi dans ta configuration Git globale. À ta
+  demande, les 11 commits publiés sont réécrits avec cette adresse, signés, mêmes arbres,
+  mêmes messages et mêmes dates (`main` : fc60270 → 5f1152a, poussée forcée) ; l'ancien
+  historique reste dans la branche locale `backup/before-email-rewrite`.
+- 2026-10-17 — Relecture n° 13 « pas prête » (2 importants, 3 mineurs). Corrigés : le retour de
+  l'arbre de travail après un commit se fait en deux temps (l'état d'avant le gel, puis le
+  disque), ce qui suit les vrais changements sans coûter de question ; un commit rattrape une
+  base en retard avant de figer son snapshot.
+- 2026-10-18 — Relecture n° 14 « pas prête » (1 important, 4 mineurs). Corrigés : l'index est
+  remis au niveau du disque avant le gel d'un commit, un retour qui échoue est rattrapé aussitôt,
+  tests de `Indexer::restore`. Ta réponse à Q23 : les deux autres cas de snapshots de commit
+  faux sont pour la Phase 5 (tâche 5.4).
+- 2026-10-18 — Relecture n° 15 « pas prête » (1 important, 4 mineurs), sans régression. À ta
+  demande, I15-1 corrigé en Phase 4 : un fichier d'exclusion qui change fait refaire le
+  parcours, et l'index refait le parcours avant le gel d'un commit.
+- 2026-10-18 — Tes réponses : Q22 (a), la pause des vérifications tant qu'un fichier source n'est
+  pas enregistré est gardée ; le serveur Vite du 16 octobre est arrêté ; la branche locale
+  `backup/before-email-rewrite` est supprimée.
+- 2026-10-18 — Ta demande pour la Phase 8 : les vues de performance s'inspirent des panneaux
+  « Performances » de Chrome et de Firefox (arbre des appels dépliable, temps en ms, ressources) ;
+  consignée dans la tâche 8.7.
+- 2026-10-18 — Relecture n° 16 « prête avec réserves » (9 mineurs). Corrigés : un changement du
+  dossier git rattrape toujours une base en retard, et les vues sont prévenues même sans
+  snapshot ; dans un worktree et dans un sous-dossier, les fichiers d'exclusion sont suivis
+  (ADR 0023) ; tests ajoutés ; test Playwright stabilisé. Le coût d'un fichier créé ou
+  supprimé sur un grand dépôt est noté pour la Phase 8.
+- 2026-10-18 — Relecture n° 17 « prête avec réserves » (7 mineurs, aucun venu du tour
+  précédent). Corrigés : trois trous de test, une indexation qui échoue prévient les vues, le
+  test de la grande carte tient sous charge, ADR 0022 à jour. Limites des fichiers
+  d'exclusion consignées dans l'ADR 0023.
+- 2026-10-18 — Relecture n° 18 « prête avec réserves », sans rien qui bloque « prête » au regard
+  des critères. Traités : un test pour un manifeste commité avant d'être relu, les limites de
+  l'ADR 0023 décrites exactement, l'hypothèse macOS reportée en Phase 8.
+- 2026-10-18 — Tes réponses : Q24, clore 4.12 sur « prête avec réserves » ; Q25, le dossier
+  courant du démon pour les worktrees en chemins relatifs, plus tard. Phase 4 terminée, en
+  attente de ta validation.
+- 2026-10-18 — Phase 4 validée par toi (« commit push et passe à la suite ») :
+  - ADR 0019 à 0023 acceptées ;
+  - 18 relectures, la dernière « prête avec réserves », close ainsi par ta décision (Q24) ;
+  - 320 tests Rust, 148 tests unitaires Node, 19 tests d'intégration et 40 tests
+    d'accessibilité verts ;
+  - Phase 5 commencée.

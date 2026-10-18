@@ -148,6 +148,11 @@ impl Reader {
         crate::extraction::load(&self.connection)
     }
 
+    /// What the LSP refinement owed when it was last saved (ADR 0022).
+    pub fn refinement_debt(&self) -> Result<crate::RefinementDebt> {
+        crate::refinement::load(&self.connection)
+    }
+
     /// The open snapshot every change is recorded in.
     pub fn head(&self) -> Result<Snapshot> {
         let raw = self

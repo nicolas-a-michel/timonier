@@ -1,4 +1,12 @@
 {
   "Timonier map": "Carte Timonier",
-  "Timonier could not open the map: {0}": "Timonier n'a pas pu ouvrir la carte : {0}"
+  "Timonier could not open the map: {0}": "Timonier n'a pas pu ouvrir la carte : {0}",
+  "The program {0} was not found. Set timonier.daemon.path.": "Le programme {0} est introuvable. Renseignez timonier.daemon.path.",
+  "Open a folder: Timonier maps the project it holds.": "Ouvrez un dossier : Timonier cartographie le projet qu'il contient.",
+  "Open the map first: « Timonier: Open Map ».": "Ouvrez d'abord la carte : « Timonier : Ouvrir la carte ».",
+  "Left": "Gauche",
+  "Right": "Droite",
+  "Up": "Haut",
+  "Down": "Bas",
+  "Which way does the selection move?": "Dans quel sens déplacer la sélection ?"
 }

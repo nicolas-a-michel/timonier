@@ -106,12 +106,18 @@ fn the_oldest_verified_files_keep_their_calls_between_files() {
         [("file:src/a.rs".into(), "file:src/util.rs".into())]
     );
     assert_eq!(verified_calls(&store, "demo::b").len(), 2);
-    // a stays verified: tree-sitter's calls do not come back.
+    // a stays verified: tree-sitter's calls do not come back. It cites nothing of another file
+    // but calls: its other usages are verified too, with nothing to ask (ADR 0022).
     let reader = store.reader().unwrap();
     let a = ScopeKey::of_file(&NodeId::file("src/a.rs").unwrap()).unwrap();
     assert_eq!(
         reader.verified(&a, Provenance::Lsp).unwrap(),
-        [EdgeKind::Calls]
+        [
+            EdgeKind::Calls,
+            EdgeKind::Implements,
+            EdgeKind::Inherits,
+            EdgeKind::References
+        ]
     );
 
     // Opened again, a gets its detail back, and b is compacted in turn.
@@ -191,4 +197,117 @@ fn a_synthetic_load_stays_within_the_budget() {
     );
     assert_eq!(symbol_calls, detailed);
     assert!(compacted > 0);
+}
+
+/// Review n° 4, m-C, and n° 5, m-α: verified calls are checked at a restart, compacted between
+/// files or held in detail. Their target file changed while the daemon was away: the callee may
+/// have left it, or its signature changed, and the file is verified again (ADR 0022).
+#[test]
+fn calls_to_a_file_changed_while_away_are_verified_again() {
+    let repo = tempfile::tempdir().unwrap();
+    let db = tempfile::tempdir().unwrap();
+    write(repo.path(), "Cargo.toml", "[package]\nname = \"demo\"\n");
+    write(
+        repo.path(),
+        "src/lib.rs",
+        "pub mod a;\npub mod b;\npub mod util;\n",
+    );
+    write(
+        repo.path(),
+        "src/util.rs",
+        "pub fn helper() {}\npub fn helper2() {}\n",
+    );
+    let mut table = BTreeMap::new();
+    for name in ["a", "b"] {
+        write(
+            repo.path(),
+            &format!("src/{name}.rs"),
+            &format!(
+                "use crate::util::{{helper, helper2}};\npub fn f{name}() {{ helper(); helper2(); }}\n"
+            ),
+        );
+        table.insert(
+            (format!("src/{name}.rs"), 1),
+            vec![target("src/util.rs", 0), target("src/util.rs", 1)],
+        );
+    }
+    let open = || Store::open(db.path().join("graph.sqlite")).unwrap();
+    {
+        let mut pipeline = Pipeline::new(repo.path(), open()).unwrap();
+        pipeline.index_all().unwrap();
+        pipeline.set_symbol_edge_budget(3);
+        let mut server = Table(table);
+        for file in ["src/a.rs", "src/b.rs"] {
+            pipeline.request_refinement(file, Priority::Opened);
+            pipeline.refine_next(&mut server, || false).unwrap();
+        }
+        // a, verified first, holds its calls between files only.
+        assert_eq!(pipeline.symbol_edges(), (2, 1));
+    }
+    // util.rs changes while the daemon is away, its functions kept.
+    write(
+        repo.path(),
+        "src/util.rs",
+        "pub fn helper() {}\npub fn helper2() {}\npub fn helper3() {}\n",
+    );
+    let mut pipeline = Pipeline::new(repo.path(), open()).unwrap();
+    pipeline.index_all().unwrap();
+    // a's calls, between files, and b's, between symbols that still exist, lead to a file
+    // changed meanwhile: both wait again.
+    assert_eq!(pipeline.refinements_waiting(), 2);
+    assert_eq!(pipeline.symbol_edges(), (0, 0));
+}
+
+/// Review n° 7, m7-1 (M5e): a file compacted before a restart is still verified, but has its
+/// detail to get back: asked for again, it is refined. A file held in detail is not.
+#[test]
+fn a_file_compacted_before_a_restart_gets_its_detail_back() {
+    let repo = tempfile::tempdir().unwrap();
+    let db = tempfile::tempdir().unwrap();
+    write(repo.path(), "Cargo.toml", "[package]\nname = \"demo\"\n");
+    write(
+        repo.path(),
+        "src/lib.rs",
+        "pub mod a;\npub mod b;\npub mod util;\n",
+    );
+    write(
+        repo.path(),
+        "src/util.rs",
+        "pub fn helper() {}\npub fn helper2() {}\n",
+    );
+    let mut table = BTreeMap::new();
+    for name in ["a", "b"] {
+        write(
+            repo.path(),
+            &format!("src/{name}.rs"),
+            &format!(
+                "use crate::util::{{helper, helper2}};\npub fn f{name}() {{ helper(); helper2(); }}\n"
+            ),
+        );
+        table.insert(
+            (format!("src/{name}.rs"), 1),
+            vec![target("src/util.rs", 0), target("src/util.rs", 1)],
+        );
+    }
+    let open = || Store::open(db.path().join("graph.sqlite")).unwrap();
+    {
+        let mut pipeline = Pipeline::new(repo.path(), open()).unwrap();
+        pipeline.index_all().unwrap();
+        pipeline.set_symbol_edge_budget(3);
+        let mut server = Table(table);
+        for file in ["src/a.rs", "src/b.rs"] {
+            pipeline.request_refinement(file, Priority::Opened);
+            pipeline.refine_next(&mut server, || false).unwrap();
+        }
+        // a, verified first, holds its calls between files only.
+        assert_eq!(pipeline.symbol_edges(), (2, 1));
+    }
+    let mut pipeline = Pipeline::new(repo.path(), open()).unwrap();
+    pipeline.index_all().unwrap();
+    assert_eq!(pipeline.refinements_waiting(), 0);
+    assert_eq!(pipeline.symbol_edges(), (2, 1));
+    pipeline.request_refinement("src/b.rs", Priority::Opened);
+    assert_eq!(pipeline.refinements_waiting(), 0, "b holds its detail");
+    pipeline.request_refinement("src/a.rs", Priority::Opened);
+    assert_eq!(pipeline.refinements_waiting(), 1, "a gets its detail back");
 }

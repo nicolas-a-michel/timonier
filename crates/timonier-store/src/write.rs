@@ -90,6 +90,15 @@ pub(crate) fn head_seq(connection: &Connection) -> Result<u64> {
 
 /// Applies a batch of scope updates in one transaction.
 pub(crate) fn apply(connection: &mut Connection, updates: &[ScopeUpdate]) -> Result<ApplyStats> {
+    apply_owing(connection, updates, &crate::DebtChange::default())
+}
+
+/// [`apply`], and what the LSP refinement owes after it, in the same transaction (ADR 0022).
+pub(crate) fn apply_owing(
+    connection: &mut Connection,
+    updates: &[ScopeUpdate],
+    debt: &crate::DebtChange,
+) -> Result<ApplyStats> {
     let tx = connection.transaction()?;
     let head = head_seq(&tx)?;
     let mut stats = ApplyStats::default();
@@ -98,6 +107,7 @@ pub(crate) fn apply(connection: &mut Connection, updates: &[ScopeUpdate]) -> Res
         apply_one(&tx, head, update, &mut stats, &mut checks)?;
     }
     check_tree(&tx, &checks)?;
+    crate::refinement::write_change(&tx, debt)?;
     tx.commit()?;
     Ok(stats)
 }

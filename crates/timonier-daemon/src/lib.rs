@@ -2,13 +2,22 @@
 //!
 //! One daemon per project; it wires the other crates together. See the `rust-daemon` skill.
 
+pub mod client;
 mod error;
 mod git;
 pub mod indexing;
+mod relay;
+pub mod runtime;
+pub mod server;
+mod subscriptions;
+pub mod view;
 pub mod watch;
 
+pub use client::{Client, ClientError};
 pub use error::{Error, Result};
-pub use indexing::{Consolidation, Pipeline, Refinement, Report};
+pub use indexing::{Consolidated, Consolidation, Pipeline, Refinement, Report};
+pub use runtime::{Lock, Paths};
+pub use server::{Daemon, Options};
 pub use watch::{Event, Watch};
 
 #[cfg(test)]

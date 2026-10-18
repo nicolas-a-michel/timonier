@@ -1,6 +1,8 @@
 # 0013 — Extraction tree-sitter, résolution approchée et cache
 
-- Statut : Accepté (2026-10-16, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-16, validation de la phase par l'humain) ; complété par 0023 (un
+  fichier d'exclusion qui change fait refaire le parcours ; dans un dépôt git, les règles de
+  git comme git les applique)
 - Date : 2026-10-16
 - Phase : 3
 - Liens : spec « Indexation et modèle de graphe », « Décisions techniques » (granularité des

@@ -40,10 +40,12 @@ fn render(facts: &FileFacts) -> String {
         };
         let _ = writeln!(
             out,
-            "{:<10} {} ×{}{source}{receiver}",
+            "{:<10} {} ×{} at {}:{}{source}{receiver}",
             reference.kind,
             reference.path.join("·"),
-            reference.count
+            reference.count,
+            reference.at.line,
+            reference.at.column
         );
     }
     for signal in &facts.signals {
@@ -387,4 +389,46 @@ fn facts_round_trip_through_json() {
     let facts = extract("src/lib.rs", RUST);
     let json = serde_json::to_string(&facts).unwrap();
     assert_eq!(serde_json::from_str::<FileFacts>(&json).unwrap(), facts);
+}
+
+/// A server is seen in the code, not in its imports: a client of `node:net` is not one.
+#[test]
+fn a_typescript_server_is_seen_in_the_code() {
+    let servers = |path: &str, source: &str| -> u32 {
+        extract(path, source)
+            .signals
+            .iter()
+            .filter(|s| s.role == timonier_core::Role::EntryPoint)
+            .map(|s| s.count)
+            .sum()
+    };
+    let client = "import { createConnection } from \"node:net\";\nexport const s = createConnection(\"/run/a.sock\");\n";
+    assert_eq!(servers("src/client.ts", client), 0);
+    let server = "import { createServer } from \"node:http\";\ncreateServer(() => {});\n";
+    assert!(servers("src/server.ts", server) > 0);
+    let member = "import * as net from \"node:net\";\nnet.createServer();\n";
+    assert!(servers("src/net.ts", member) > 0);
+}
+
+/// ADR 0022: the language server is asked at the name of each path, wherever it sits in the
+/// cited node: a generic trait carries its arguments after its name.
+#[test]
+fn a_path_is_asked_about_at_its_name() {
+    let source = "pub trait Tr<T> {}\npub struct S;\npub struct Q;\nimpl Tr<Q> for S {}\nimpl crate::a::Long<Q, Q> for S {}\npub fn f(x: Option<Q>) {}\n";
+    let facts = extract("src/lib.rs", source);
+    let lines: Vec<&str> = source.lines().collect();
+    let named = |kind: timonier_core::EdgeKind, path: &[&str]| {
+        let fact = facts
+            .references
+            .iter()
+            .find(|r| r.kind == kind && r.path == path)
+            .unwrap_or_else(|| panic!("no {kind} {path:?}"));
+        let line = lines[fact.at.line as usize];
+        let column = fact.at.column as usize;
+        line[column..].to_owned()
+    };
+    use timonier_core::EdgeKind::{Implements, References};
+    assert!(named(Implements, &["Tr"]).starts_with("Tr<Q>"));
+    assert!(named(Implements, &["crate", "a", "Long"]).starts_with("Long<Q, Q>"));
+    assert!(named(References, &["Option"]).starts_with("Option<Q>"));
 }

@@ -30,32 +30,32 @@ import   super::store binds ["storage"]
 import   std::fmt::* binds []
 import   serde::Deserialize binds ["Deserialize"]
 import   serde::Serialize binds ["Serialize"]
-calls Edge·default ×1
-calls Node·new ×1
-calls Ok ×1
-calls T·default ×1
-calls helper ×1
-calls inner·platform ×1
-calls join ×1 on a receiver
-calls push ×1 on a receiver
-calls std·thread·spawn ×1
-calls storage·save ×1
-calls unwrap ×1 on a receiver
-references Alias ×1
-references Clone ×1
-references Default ×1
-references Foo ×4
-references Kind ×1
-references Output ×1
-references Self ×2
-references Shape ×1
-references T ×5
-references Unit ×1
-references Vec ×1
-references std·fmt·Formatter ×2
-references std·fmt·Result ×2
-implements std·fmt·Debug ×1 from Foo
-implements std·fmt·Display ×1 from Foo
+calls Edge·default ×1 at 20:27
+calls Node·new ×1 at 18:22
+calls Ok ×1 at 32:73
+calls T·default ×1 at 21:24
+calls helper ×1 at 18:26
+calls inner·platform ×1 at 58:46
+calls join ×1 at 59:11 on a receiver
+calls push ×1 at 20:16 on a receiver
+calls std·thread·spawn ×1 at 58:30
+calls storage·save ×1 at 19:17
+calls unwrap ×1 at 59:18 on a receiver
+references Alias ×1 at 55:5
+references Clone ×1 at 35:17
+references Default ×1 at 16:40
+references Foo ×4 at 8:11
+references Kind ×1 at 53:9
+references Output ×1 at 36:9
+references Self ×2 at 16:26
+references Shape ×1 at 35:10
+references T ×5 at 8:15
+references Unit ×1 at 13:11
+references Vec ×1 at 55:13
+references std·fmt·Formatter ×2 at 26:36
+references std·fmt·Result ×2 at 26:64
+implements std·fmt·Debug ×1 at 31:15 from Foo
+implements std·fmt·Display ×1 at 25:15 from Foo
 signal   entry_point ×1
 signal   data_model ×1
 signal   background_task ×1

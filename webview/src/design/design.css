@@ -1,0 +1,318 @@
+/* Components of the design system (ADR 0020): tokens only (tokens.css), a test enforces it. */
+
+.tim-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* Focus: always visible, the IDE's own colour. */
+.tim-box:focus-visible,
+.tim-button:focus-visible,
+.tim-toolbar__button:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}
+
+/* The colour of each role: for its icon and lines, and the tint of its title bar (tokens.css). */
+[data-role="entry_point"] {
+  --tim-role: var(--tim-role-entry-point);
+  --tim-role-tint: var(--tim-role-entry-point-tint);
+  --tim-role-wash: var(--tim-role-entry-point-wash);
+}
+
+[data-role="interface"] {
+  --tim-role: var(--tim-role-interface);
+  --tim-role-tint: var(--tim-role-interface-tint);
+  --tim-role-wash: var(--tim-role-interface-wash);
+}
+
+[data-role="data_model"] {
+  --tim-role: var(--tim-role-data-model);
+  --tim-role-tint: var(--tim-role-data-model-tint);
+  --tim-role-wash: var(--tim-role-data-model-wash);
+}
+
+[data-role="persistence"] {
+  --tim-role: var(--tim-role-persistence);
+  --tim-role-tint: var(--tim-role-persistence-tint);
+  --tim-role-wash: var(--tim-role-persistence-wash);
+}
+
+.tim-icon--role {
+  color: var(--tim-role, var(--tim-color-muted));
+}
+
+/*
+ * A box of the map, built as the nodes of a node editor: a title bar in the colour of its role,
+ * with its icon and name; a neutral body that says what it is and what it holds.
+ */
+.tim-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  max-width: 16rem;
+  overflow: hidden;
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius-large);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+  line-height: var(--tim-line-height);
+  transition: border-color var(--tim-duration-short) var(--tim-easing);
+}
+
+.tim-box__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tim-space-2);
+  min-height: var(--tim-space-8);
+  padding: 0 var(--tim-space-3);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--tim-color-divider);
+  background: var(--tim-role-tint, var(--tim-role-neutral-tint));
+}
+
+/* High contrast keeps the role's colour as the line under the title bar. */
+body.vscode-high-contrast .tim-box__header {
+  border-bottom: 2px solid var(--tim-role, var(--tim-color-outline));
+}
+
+.tim-box__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  padding: var(--tim-space-2) var(--tim-space-3);
+}
+
+/* Under the pointer, its outline stands out; its background stays opaque. */
+.tim-box:hover {
+  border-color: var(--tim-color-outline-hover);
+}
+
+.tim-box--selected {
+  border-color: var(--tim-color-selected-outline);
+  box-shadow: 0 0 0 1px var(--tim-color-selected-outline);
+}
+
+/*
+ * Quieter, yet readable: a dimmed box keeps its text contrast, and loses the tint of its title
+ * bar. Not dashed: on the map, dashes mean an approximate edge.
+ */
+.tim-box--dimmed .tim-box__header {
+  background: var(--tim-role-neutral-tint);
+}
+
+.tim-box--dimmed .tim-box__name {
+  font-weight: normal;
+}
+
+.tim-box__role {
+  color: var(--tim-color-muted-on-box);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-box__name {
+  overflow: hidden;
+  font-weight: var(--tim-font-weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tim-box__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tim-space-2);
+  color: var(--tim-color-muted-on-box);
+  font-size: var(--tim-font-size-small);
+}
+
+/* Edges: dashes for tree-sitter alone, a solid line once confirmed (spec « Précision affichée »). */
+.tim-edge {
+  fill: none;
+  stroke-width: var(--tim-edge-width);
+  stroke-linecap: round;
+  transition: stroke var(--tim-duration-short) var(--tim-easing);
+}
+
+.tim-edge--confirmed {
+  stroke: var(--tim-edge-confirmed);
+}
+
+.tim-edge--approximate {
+  stroke: var(--tim-edge-approximate);
+  stroke-dasharray: var(--tim-edge-dash);
+}
+
+.tim-legend {
+  margin: 0;
+}
+
+.tim-legend__title {
+  margin-bottom: var(--tim-space-1);
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-legend__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tim-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-2);
+}
+
+.tim-legend__sample {
+  flex: none;
+}
+
+.tim-legend__pin {
+  fill: var(--tim-pin);
+}
+
+/* Badges: a shape and words */
+.tim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  color: var(--tim-color-fg);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-badge--neutral .tim-icon {
+  color: var(--tim-color-muted);
+}
+
+.tim-badge--violation .tim-icon {
+  color: var(--tim-color-violation);
+}
+
+.tim-badge--attention .tim-icon {
+  color: var(--tim-color-attention);
+}
+
+.tim-badge--conformity .tim-icon {
+  color: var(--tim-color-conformity);
+}
+
+/* Empty states: they teach what to do next */
+.tim-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tim-space-4);
+  height: 100%;
+  padding: var(--tim-space-8) var(--tim-space-4);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.tim-empty__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tim-space-2);
+}
+
+.tim-empty__title {
+  margin: 0;
+  font-size: var(--tim-font-size-title);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-empty__text {
+  max-width: var(--tim-measure);
+  margin: 0;
+  color: var(--tim-color-muted);
+  line-height: 1.5;
+}
+
+/* The daemon's own words (an error, a path): as written, in the code font. */
+.tim-empty__detail {
+  max-width: var(--tim-measure);
+  margin: 0;
+  font-family: var(--tim-font-family-code);
+  color: var(--tim-color-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Buttons, as VSCode's secondary ones */
+.tim-button {
+  padding: var(--tim-space-1) var(--tim-space-3);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tim-button:hover {
+  background: var(--tim-color-surface-hover);
+}
+
+/* Tooltips, as VSCode's hovers */
+.tim-tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.tim-tooltip {
+  position: absolute;
+  top: calc(100% + var(--tim-space-1));
+  left: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: 24rem;
+  padding: var(--tim-space-1) var(--tim-space-2);
+  border: 1px solid var(--tim-color-tooltip-border);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-tooltip-bg);
+  box-shadow: var(--tim-shadow);
+  color: var(--tim-color-tooltip-fg);
+  font-size: var(--tim-font-size-small);
+  line-height: var(--tim-line-height);
+}
+
+.tim-tooltip[hidden] {
+  display: none;
+}
+
+/* Toolbars: icons or words, one tab stop */
+.tim-toolbar {
+  display: inline-flex;
+  gap: var(--tim-space-1);
+}
+
+.tim-toolbar__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  min-height: 24px;
+  padding: var(--tim-space-1) var(--tim-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--tim-radius);
+  background: transparent;
+  color: var(--tim-color-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tim-toolbar__button:hover {
+  background: var(--tim-color-surface-hover);
+}
+
+.tim-toolbar__button[aria-pressed="true"] {
+  border-color: var(--tim-color-selected-outline);
+  background: var(--tim-color-selected);
+  color: var(--tim-color-selected-fg);
+}

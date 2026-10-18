@@ -11,6 +11,8 @@ mod error;
 pub mod fusion;
 mod id;
 mod node;
+pub mod protocol;
+pub mod rpc;
 mod snapshot;
 pub mod tree;
 mod update;

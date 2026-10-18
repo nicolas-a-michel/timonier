@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "rust"
-version = "1.0.0"
+version = "1.1.0"
 ecosystem = "cargo"
 
 [[grammars]]
@@ -79,3 +79,20 @@ role = "background_task"
 libraries = ["notify", "notify-debouncer-full", "notify-debouncer-mini", "crossbeam-channel", "cron"]
 paths = ["std::thread::spawn", "tokio::spawn", "tokio::task::spawn_blocking", "notify::Watcher"]
 confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# Names of the standard library and its prelude: a path tree-sitter cannot resolve that starts
+# with one of them is defined outside the repository, and the language server is not asked.
+# A crate that defines its own `Result` or `Error` is resolved by tree-sitter first.
+outside = [
+  "std", "core", "alloc", "Self",
+  "Option", "Some", "None", "Result", "Ok", "Err", "String", "Vec", "Box", "Rc", "Arc", "Weak",
+  "Cell", "RefCell", "Mutex", "RwLock", "Cow", "HashMap", "HashSet", "BTreeMap", "BTreeSet",
+  "VecDeque", "BinaryHeap", "Path", "PathBuf", "Duration", "Instant", "SystemTime", "PhantomData",
+  "Default", "Clone", "Copy", "Debug", "Display", "Eq", "PartialEq", "Ord", "PartialOrd", "Hash",
+  "Send", "Sync", "Sized", "Unpin", "Iterator", "IntoIterator", "DoubleEndedIterator",
+  "ExactSizeIterator", "Extend", "FromIterator", "From", "Into", "TryFrom", "TryInto", "AsRef",
+  "AsMut", "Borrow", "Deref", "DerefMut", "Drop", "Fn", "FnMut", "FnOnce", "ToString", "ToOwned",
+  "Future", "Pin", "Formatter",
+]

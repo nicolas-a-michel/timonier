@@ -4,7 +4,13 @@ target/
 **/out/
 **/node_modules/
 **/.vscode-test/
+# Playwright's results and reports (npm run test:a11y)
+**/test-results/
+**/playwright-report/
 package-lock.json
 Cargo.lock
+# Written by a Rust test from the protocol types (ADR 0019); it checks the file byte for byte
+webview/src/protocol/generated.ts
+editors/vscode/src/protocol/generated.ts
 # Markdown is written by hand (PLAN.md is parsed by the hooks; docs/spec.md belongs to the human)
 *.md

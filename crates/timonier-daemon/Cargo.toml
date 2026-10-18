@@ -14,14 +14,20 @@ timonier-core = { workspace = true }
 timonier-store = { workspace = true }
 timonier-index = { workspace = true }
 timonier-otlp = { workspace = true }
+blake3 = { workspace = true }
 notify-debouncer-full = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
 ignore = { workspace = true }
+# A test makes the store fail on purpose, with an SQLite trigger.
+rusqlite = { workspace = true }
 tempfile = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true

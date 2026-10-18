@@ -1,8 +1,8 @@
 //! Criterion of PLAN.md 3.9: on Timonier itself, the expected roles (ADR 0017). The repository
 //! is only read: the database lives in a temporary directory.
 //!
-//! Phase 3 has no JSON-RPC server in the daemon nor an MCP SDK in `timonier-mcp`: the daemon is
-//! a background task for now, and becomes an entry point with Phase 4.
+//! With its JSON-RPC server (Phase 4), the daemon is an entry point. `timonier-mcp` has no MCP
+//! SDK before Phase 6: a utility until then.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -29,7 +29,7 @@ fn timonier_s_packages_get_the_expected_roles() {
     for (package, role) in [
         ("pkg:cargo/timonier-cli", Role::EntryPoint),
         ("pkg:cargo/timonier-core", Role::DataModel),
-        ("pkg:cargo/timonier-daemon", Role::BackgroundTask),
+        ("pkg:cargo/timonier-daemon", Role::EntryPoint),
         ("pkg:cargo/timonier-index", Role::Utility),
         ("pkg:cargo/timonier-store", Role::Persistence),
         ("pkg:npm/@timonier/webview", Role::Interface),

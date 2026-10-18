@@ -2,5 +2,17 @@
   "extension.description": "Pilotez des agents IA sans lire tout le code qu'ils produisent : architecture vivante, tableau blanc d'intention, performances mesurées, plan en direct.",
   "command.openMap.title": "Ouvrir la carte",
   "view.home.name": "Vue d'ensemble",
-  "view.home.welcome": "Timonier n'a pas encore indexé ce projet : la carte est encore vide.\n[Ouvrir la carte](command:timonier.openMap)\nLe plan, la todo et le journal des sessions apparaîtront ici dans les prochaines versions."
+  "view.home.welcome": "La carte montre l'architecture de ce projet, telle que le démon de Timonier la lit dans le code. Elle suit chaque changement.\n[Ouvrir la carte](command:timonier.openMap)\nLe plan, la todo et le journal des sessions apparaîtront ici dans les prochaines versions.",
+  "command.restartDaemon.title": "Relancer le démon",
+  "command.showLog.title": "Afficher le journal",
+  "capabilities.untrustedWorkspaces": "Timonier lance un programme sur le projet et indexe son code : il attend que le dossier soit approuvé.",
+  "config.daemon.path": "Chemin du programme `timonier` qui fait tourner le démon du projet. Vide : `timonier` dans le `PATH`.",
+  "command.map.fitView.title": "Ajuster la carte à la fenêtre",
+  "command.map.zoomIn.title": "Zoom avant sur la carte",
+  "command.map.zoomOut.title": "Zoom arrière sur la carte",
+  "command.map.closeAll.title": "Revenir aux rôles sur la carte",
+  "command.map.moveSelection.title": "Déplacer la sélection sur la carte…",
+  "command.map.resetLayout.title": "Réinitialiser la disposition de la carte",
+  "command.map.toggle.title": "Ouvrir ou fermer la sélection sur la carte",
+  "command.map.openCode.title": "Aller au code de la sélection sur la carte"
 }

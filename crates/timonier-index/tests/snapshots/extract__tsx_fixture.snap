@@ -5,7 +5,7 @@ expression: "render(&extract(\"src/main.tsx\", TSX))"
 function Main                                     under -                        at 3:7  `function Main({ locale }: { locale: string })`  #e3d96d75
 import   ./App binds ["App"]
 import   react-dom/client binds ["createRoot"]
-calls App ×1
-calls Main ×1
-calls render ×1 on a receiver
+calls App ×1 at 4:10
+calls Main ×1 at 7:34
+calls render ×1 at 7:26 on a receiver
 errors   false

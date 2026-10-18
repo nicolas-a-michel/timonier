@@ -9,6 +9,7 @@ mod codec;
 mod error;
 mod extraction;
 mod read;
+mod refinement;
 mod schema;
 mod write;
 mod writer;
@@ -22,6 +23,7 @@ use timonier_core::{Freeze, ScopeUpdate, Snapshot};
 pub use error::{Error, Result};
 pub use extraction::CachedExtraction;
 pub use read::Reader;
+pub use refinement::{DebtChange, PendingLookup, RefinementDebt};
 pub use write::ApplyStats;
 
 use writer::Writer;
@@ -94,6 +96,25 @@ impl Store {
         self.inner
             .writer
             .run(move |connection| extraction::save(connection, &put, &remove))
+    }
+
+    /// A batch of scope updates, and what changed in what the LSP refinement owes after it, in
+    /// one transaction (ADR 0022): a stop, or a failure, never leaves one without the other.
+    pub fn apply_all_owing(
+        &self,
+        updates: Vec<ScopeUpdate>,
+        debt: DebtChange,
+    ) -> Result<ApplyStats> {
+        self.inner
+            .writer
+            .run(move |connection| write::apply_owing(connection, &updates, &debt))
+    }
+
+    /// Writes what changed in what the LSP refinement owes (ADR 0022): kept across a restart.
+    pub fn update_refinement_debt(&self, change: DebtChange) -> Result<()> {
+        self.inner
+            .writer
+            .run(move |connection| refinement::update(connection, &change))
     }
 
     /// Rows written since the store was opened (SQLite's `total_changes`): lets tests prove that

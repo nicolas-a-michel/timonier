@@ -1,0 +1,537 @@
+{
+  "snapshot": {
+    "edges": [
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 4,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 10
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 4,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 4
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 2
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 3
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-daemon",
+        "edges": 3,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 5
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-daemon",
+        "edges": 3,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 6
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-daemon",
+        "edges": 2,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 8
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-daemon",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 1
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-mcp",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-cli",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 11,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-core",
+        "weight": 22
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 4,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-core",
+        "weight": 4
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 12,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 37
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 7,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 7
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 47,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 117
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 24,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 75
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 39,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 244
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-index",
+        "edges": 10,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 33
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-index",
+        "edges": 6,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 15
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-index",
+        "edges": 12,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 61
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-index",
+        "edges": 5,
+        "kind": "implements",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 5
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-index",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 1
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-otlp",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-store",
+        "edges": 17,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 17
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-store",
+        "edges": 12,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 35
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-store",
+        "edges": 14,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 32
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-store",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-daemon",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 10,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 20
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 11,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 11
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 27,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 53
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 23,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 66
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 27,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 169
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-index",
+        "weight": 1
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-mcp",
+        "weight": 1
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-otlp",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 7,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 16
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 3,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 3
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 39,
+        "kind": "imports",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 110
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 26,
+        "kind": "calls",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 142
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 39,
+        "kind": "references",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 270
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "pkg:cargo/timonier-core",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:cargo/timonier-store",
+        "weight": 1
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 15,
+        "kind": "imports",
+        "src": "pkg:npm/@timonier/webview",
+        "weight": 16
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 4,
+        "kind": "depends_on",
+        "src": "pkg:npm/@timonier/webview",
+        "weight": 4
+      },
+      {
+        "approximateOnly": true,
+        "best": "tree_sitter",
+        "dst": "component:external",
+        "edges": 4,
+        "kind": "imports",
+        "src": "pkg:npm/timonier",
+        "weight": 4
+      },
+      {
+        "approximateOnly": false,
+        "best": "manifest",
+        "dst": "component:external",
+        "edges": 1,
+        "kind": "depends_on",
+        "src": "pkg:npm/timonier",
+        "weight": 1
+      }
+    ],
+    "nodes": [
+      {
+        "children": 9,
+        "file": null,
+        "id": "component:external",
+        "kind": "component",
+        "language": null,
+        "name": "external",
+        "parent": null,
+        "role": "external_libraries",
+        "span": null
+      },
+      {
+        "children": 6,
+        "file": null,
+        "id": "pkg:cargo/timonier-cli",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-cli",
+        "parent": null,
+        "role": "entry_point",
+        "span": null
+      },
+      {
+        "children": 13,
+        "file": null,
+        "id": "pkg:cargo/timonier-core",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-core",
+        "parent": null,
+        "role": "data_model",
+        "span": null
+      },
+      {
+        "children": 13,
+        "file": null,
+        "id": "pkg:cargo/timonier-daemon",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-daemon",
+        "parent": null,
+        "role": "entry_point",
+        "span": null
+      },
+      {
+        "children": 4,
+        "file": null,
+        "id": "pkg:cargo/timonier-index",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-index",
+        "parent": null,
+        "role": "utility",
+        "span": null
+      },
+      {
+        "children": 1,
+        "file": null,
+        "id": "pkg:cargo/timonier-mcp",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-mcp",
+        "parent": null,
+        "role": "utility",
+        "span": null
+      },
+      {
+        "children": 1,
+        "file": null,
+        "id": "pkg:cargo/timonier-otlp",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-otlp",
+        "parent": null,
+        "role": "utility",
+        "span": null
+      },
+      {
+        "children": 10,
+        "file": null,
+        "id": "pkg:cargo/timonier-store",
+        "kind": "package",
+        "language": null,
+        "name": "timonier-store",
+        "parent": null,
+        "role": "persistence",
+        "span": null
+      },
+      {
+        "children": 38,
+        "file": null,
+        "id": "pkg:npm/@timonier/webview",
+        "kind": "package",
+        "language": null,
+        "name": "@timonier/webview",
+        "parent": null,
+        "role": "interface",
+        "span": null
+      },
+      {
+        "children": 21,
+        "file": null,
+        "id": "pkg:npm/timonier",
+        "kind": "package",
+        "language": null,
+        "name": "timonier",
+        "parent": null,
+        "role": "interface",
+        "span": null
+      }
+    ],
+    "revision": 0,
+    "subscription": 1
+  },
+  "spec": {
+    "expanded": []
+  }
+}

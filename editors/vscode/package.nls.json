@@ -2,5 +2,17 @@
   "extension.description": "Steer AI coding agents without reading all the code they produce: living architecture map, intent whiteboard, measured performance, live plan.",
   "command.openMap.title": "Open Map",
   "view.home.name": "Overview",
-  "view.home.welcome": "Timonier has not indexed this project yet, so the map is still empty.\n[Open Map](command:timonier.openMap)\nThe plan, todo and session log will appear here in later versions."
+  "view.home.welcome": "The map shows this project's architecture, as Timonier's daemon reads it from the code. It follows each change.\n[Open Map](command:timonier.openMap)\nThe plan, todo and session log will appear here in later versions.",
+  "command.restartDaemon.title": "Restart the Daemon",
+  "command.showLog.title": "Show the Log",
+  "capabilities.untrustedWorkspaces": "Timonier runs a program on the project and indexes its code: it waits until the folder is trusted.",
+  "config.daemon.path": "Path to the `timonier` program that runs the project's daemon. Empty: `timonier` on the `PATH`.",
+  "command.map.fitView.title": "Fit the Map to the Window",
+  "command.map.zoomIn.title": "Zoom In on the Map",
+  "command.map.zoomOut.title": "Zoom Out on the Map",
+  "command.map.closeAll.title": "Back to the Roles on the Map",
+  "command.map.moveSelection.title": "Move the Selection on the Map…",
+  "command.map.resetLayout.title": "Reset the Layout of the Map",
+  "command.map.toggle.title": "Open or Close the Selection on the Map",
+  "command.map.openCode.title": "Go to the Code of the Selection on the Map"
 }

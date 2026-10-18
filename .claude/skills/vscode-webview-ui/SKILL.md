@@ -102,6 +102,18 @@ fails when a string has no French translation.
   confirmed by LSP or SCIP. The exact encoding is decided in the design system, and it must
   not rely on colour alone.
 
+## Where the design system lives (ADR 0020)
+
+- Tokens: `webview/src/tokens.css`. Components: `webview/src/design/` (component box, edge,
+  badge, empty state, tooltip, toolbar), styled in `design.css` with tokens only.
+- Every component appears, in every state, on the demonstration page `webview/demo.html`
+  (`npm run dev -w webview`, then `/demo.html?theme=<name>&locale=fr`).
+- `npm run test:a11y` runs axe-core and measures 3:1 for lines, icons and focus on that page,
+  in the VSCode themes captured in `webview/test/themes/`. Recapture them with
+  `editors/vscode/scripts/capture-themes.mjs` when VSCode changes its themes.
+- A new graphic that carries meaning gets `data-contrast` (`outline`, `stroke` or `icon`) so
+  that the test measures it.
+
 ## Accessibility checklist (for every screen)
 
 - [ ] Contrast at least 4.5:1 for text and 3:1 for UI and graphics, in light, dark and high

@@ -46,15 +46,25 @@ pub struct Manifest {
     pub dependencies: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub roles: Vec<RoleRule>,
-    /// Reserved for later phases (ADR 0012): read, not interpreted.
     #[serde(default)]
-    pub lsp: Option<toml::Table>,
+    pub lsp: LspRules,
+    /// Reserved for later phases (ADR 0012): read, not interpreted.
     #[serde(default)]
     pub tests: Option<toml::Table>,
     #[serde(default)]
     pub instrumentation: Option<toml::Table>,
     #[serde(default)]
     pub security: Option<toml::Table>,
+}
+
+/// What refinement needs to know of the language (ADR 0022).
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LspRules {
+    /// Names defined outside any repository (the standard library, globals): a path tree-sitter
+    /// leaves unresolved that starts with one of them is not asked about.
+    #[serde(default)]
+    pub outside: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -585,6 +595,13 @@ impl Packs {
         Some((pack, &pack.grammars[*g]))
     }
 
+    /// The file extensions the packs read, sorted (`.d.ts` reads as `.ts`).
+    pub fn extensions(&self) -> Vec<String> {
+        let mut extensions: Vec<String> = self.by_extension.keys().cloned().collect();
+        extensions.sort();
+        extensions
+    }
+
     /// Whether some pack reads this file.
     pub fn reads(&self, path: &str) -> bool {
         self.for_path(path).is_some()
@@ -700,7 +717,8 @@ mod tests {
         assert!(with("format = 1", "format = 1\ncolour = \"red\"").contains("colour"));
         assert!(with("format = 1", "format = 2").contains("format 2"));
         assert!(with("language = \"rust\"", "language = \"file\"").contains("reserved"));
-        assert!(with("version = \"1.0.0\"", "version = \"1.0\"").contains("major.minor.patch"));
+        assert!(with("version = \"1.1.0\"", "version = \"1.0\"").contains("major.minor.patch"));
+        assert!(with("[lsp]", "[lsp]\nserver = \"rust-analyzer\"").contains("server"));
         assert!(with("ecosystem = \"cargo\"", "ecosystem = \"maven\"").contains("maven"));
         assert!(with("name = \"rust\"", "name = \"cobol\"").contains("not compiled"));
         assert!(with("role = \"persistence\"", "role = \"database\"").contains("database"));

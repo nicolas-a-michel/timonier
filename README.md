@@ -1,57 +1,154 @@
 # Timonier
 
-Timonier permet à un développeur de piloter des agents IA sans lire tout le code qu'ils
-produisent. Le timonier tient la barre et garde le cap pendant que l'équipage, ici les agents,
-fait avancer le navire.
+Timonier lets a developer steer AI coding agents without reading all the code they produce.
+When an agent writes the code, the bottleneck is no longer writing it but understanding it: the
+code changes faster than the developer's mental model of it. Timonier keeps that model for you,
+and shows it.
 
-Il répond en permanence à quatre questions :
+It aims to answer four questions at any time:
 
-- **ce que je veux** : l'architecture voulue, dessinée librement sur un tableau blanc ;
-- **ce qui existe** : l'architecture réelle, les technologies, la santé du code ;
-- **comment ça se comporte** : temps d'exécution et ressources, mesurés pendant les tests ;
-- **ce qui se passe** : le plan, la todo en direct, ce que l'agent a fait et où regarder.
+- **What I want**: the intended architecture, drawn freely on a whiteboard.
+- **What exists**: the real architecture, the technologies, the health of the code.
+- **How it behaves**: execution time and resources, measured while the tests run.
+- **What is happening**: the plan, the live todo, what the agent did and where to look.
 
-Un démon Rust local, un par projet, tient un graphe unifié du code, construit à partir de
-tree-sitter et du LSP. L'extension VSCode l'affiche, et les agents le lisent et l'écrivent
-par MCP.
+A local Rust daemon, one per project, keeps a unified graph of the code. The VSCode extension
+shows it as a living architecture map. Agents will read and write the same model through MCP.
 
-## État
+The name: the *timonier* is the helmsman, who holds the wheel and keeps the course while the
+crew, here the agents, move the ship.
 
-**Squelette (0.1.0).** Le dépôt contient le workspace Rust, la webview et l'extension VSCode,
-qui ouvre un panneau vide. La spécification est dans [docs/spec.md](docs/spec.md), la feuille
-de route dans [PLAN.md](PLAN.md), et les décisions techniques dans [docs/adr/](docs/adr/README.md).
+## Status
 
-## Construire et tester
+**Early development, not released.** The MVP is planned in nine phases ([PLAN.md](PLAN.md)):
+phases 0 to 3 are done, phase 4 (daemon, extension and map) is nearly done. Nothing is
+published on crates.io, npm or the VSCode Marketplace yet. It runs on Linux and macOS; Windows
+is not supported yet.
 
-Prérequis : Rust stable (`rustup`), Node.js 24 ou plus récent.
+## What works today
+
+### Code graph
+
+- **Indexing with tree-sitter** for Rust and TypeScript (including TSX), through versioned
+  language packs. Symbols, imports, calls and references, with a stable identity for each symbol
+  (crate or package, path, qualified name) and a hash of its normalised body.
+- **Incremental updates**: a file watcher with a 300 ms debounce re-indexes what changed, with
+  an extraction cache. On Timonier itself: under half a second from scratch, about 10 ms (p95) per
+  save after the debounce.
+- **Calls and usages verified by the IDE's language servers**: tree-sitter resolution is
+  approximate, so the extension relays VSCode's language servers (rust-analyzer, TypeScript…)
+  to the daemon, for the files shown on the map or open in the editor: the call hierarchy of
+  each function, the definition of each type or name used from another file, and the users of
+  a symbol whose signature changed. One question per path, not per site: on Timonier, about
+  970 for 6,400 usage sites, one round trip per file. A doubtful answer replaces nothing, and
+  nothing is verified from unsaved changes: the language servers answer about the open
+  buffers, so the daemon waits until they match the files on disk. Each edge keeps its
+  provenance and confidence.
+- **Components and roles**: packages are split into components by directory, then by graph
+  clustering (Leiden) when a level is too large. Each package and component gets an
+  architectural role: entry point, interface, data model, persistence, background task, utility,
+  external libraries. External dependencies are grouped by use.
+- **History**: the graph lives in SQLite with a snapshot per commit and a working-tree head. A
+  diff between two snapshots is a query, and it detects moved symbols instead of reporting
+  « deleted, then added ».
+
+### Daemon and CLI
+
+- One daemon per project, found through a lock and a Unix socket in a private runtime directory.
+- JSON-RPC 2.0 protocol: views subscribed to by clients, versioned deltas, a full snapshot when a
+  client misses one. The daemon stops on its own after 15 minutes without clients.
+- `timonier daemon start | stop | status | run` (also installed as `tim`).
+
+### VSCode extension
+
+- Launches the project's daemon, and launches it again if it dies (backoff from 1 s to 30 s).
+  Its log is in the « Timonier » output channel.
+- **Architecture map**:
+  - it opens on a few boxes named by role, each with a title bar in the role's colour.
+    Timonier itself fits in six boxes;
+  - a click or Enter opens a role on its packages, then a package on its components, files and
+    symbols. An open box becomes a frame around its contents;
+  - edges are dependencies and calls. As in a node editor, they leave a box on its right and
+    enter the other on its left. Edges known only from tree-sitter are dashed. Edges declared
+    in a manifest (`Cargo.toml`, `package.json`) or confirmed by a language server are solid.
+    Pointing at a box colours its edges;
+  - the layout stays stable when the code changes: on Timonier, unchanged boxes move less than
+    5 px on average when a file is added, and not at all when a call is. Opening a box makes
+    room to its right, and closing it puts everything back;
+  - the layout is computed, but any box can be moved by hand, with the mouse or Alt and an
+    arrow key. It stays where it was left; « Reset the layout » puts it back;
+  - beyond 500 boxes or 600 edges, the deeper levels are folded, so that large maps stay fluid.
+    A synthetic map of 6,000 nodes pans at 60 frames per second in headless Chromium;
+  - **Go to the code** (Shift+Enter, double click) opens the file beside the map, at the symbol;
+  - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
+    command for each action.
+- Follows the IDE theme, light, dark and high contrast. WCAG AA contrast is checked automatically
+  with axe-core in six built-in VSCode themes. The interface is in English and French.
+
+## Planned
+
+From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
+
+- **Review diff** (phase 5): what changed between two snapshots, on the map; « mark as
+  reviewed ».
+- **MCP tools for agents** (phase 6): the agent reads the graph and writes sessions, plan, todo
+  and journal; `timonier init` and `timonier doctor` configure a project and its agent.
+- **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be
+  typed as constraints, compared to the real architecture.
+- **Performance** (phase 8): `timonier test` wraps the test runner, collects OpenTelemetry traces
+  and resource use, and checks performance budgets written on the whiteboard.
+- **End of the MVP** (phase 9): a real project steered end to end without reading the code line
+  by line.
+
+Later versions add SCIP indexing, more languages, multi-agent work and team use.
+
+## Try it
+
+Requirements: Rust stable (`rustup`), Node.js 24 or later, VSCode 1.140 or later.
+
+```sh
+npm ci
+npm run build                          # the webview, then the extension
+cargo install --path crates/timonier-cli   # puts timonier and tim on the PATH
+```
+
+Then open this repository in VSCode and press F5 (« Run Extension »). In the window that opens,
+open a Rust or TypeScript project, click the Timonier icon (a ship's wheel) in the activity bar,
+then **Open Map**. The command **Timonier: Open Map** in the palette does the same.
+
+Instead of installing the CLI, you can build it with `cargo build -p timonier-cli` and set
+`timonier.daemon.path` to `target/debug/timonier`.
+
+The daemon writes its database to `.timonier/graph.sqlite` in the project, with a `.gitignore`
+that keeps it out of git. From a terminal:
+
+```sh
+tim daemon start     # in the project, or with --root <dir>
+tim daemon status
+tim daemon stop
+```
+
+## Develop
 
 ```sh
 # Rust
 cargo build --workspace
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all
 
-# Webview et extension
-npm ci
-npm run build              # webview puis extension
-npm test                   # tests unitaires (webview, extension, hooks)
-npm run test:integration   # tests dans un vrai VSCode (télécharge VSCode la première fois)
+# Webview and extension
+npm test                   # unit tests: webview, extension, Claude Code hooks
+npm run test:integration   # builds the daemon, then runs the extension in a real VSCode
+npm run test:a11y          # WCAG AA in every captured VSCode theme (npx playwright install chromium)
 npm run lint
 npm run typecheck
-npm run package            # produit editors/vscode/timonier.vsix
+npm run package            # editors/vscode/timonier.vsix
 ```
 
-Pour essayer l'extension, ouvrez le dépôt dans VSCode et lancez « Run Extension » (F5). Dans
-la fenêtre de développement qui s'ouvre, cliquez sur l'icône Timonier (une barre à roue) dans
-la barre d'activité, puis sur **Ouvrir la carte**. La commande **Timonier : Ouvrir la carte**
-de la palette fait la même chose.
+The specification, the plan and the architecture decision records are in French:
+[docs/spec.md](docs/spec.md), [PLAN.md](PLAN.md), [docs/adr/](docs/adr/README.md).
 
-Une fois le binaire construit, la CLI s'appelle `timonier` ou `tim` :
+## License
 
-```sh
-cargo run --bin tim -- --version
-```
-
-## Licence
-
-[MIT](LICENSE) © 2026 Nicolas Michel.
+[MIT](LICENSE) © 2026 Nicolas Michel. Third-party notices ship with the extension.

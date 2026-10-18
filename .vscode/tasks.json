@@ -11,7 +11,7 @@
     {
       "label": "timonier: build and compile tests",
       "type": "shell",
-      "command": "npm run build && npm run compile -w editors/vscode",
+      "command": "cargo build -p timonier-cli && npm run build && npm run compile -w editors/vscode",
       "group": "test",
       "problemMatcher": ["$tsc"]
     }

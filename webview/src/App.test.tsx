@@ -6,23 +6,73 @@ import { describe, expect, it } from "vitest";
 
 import { App } from "./App";
 import { resolveLocale } from "./i18n";
-import { PROTOCOL_VERSION, readyMessage } from "./protocol";
+import { isHostMessage, PROTOCOL_VERSION, readyMessage, subscribeTo, type ViewNode } from "./protocol";
+import { initialModel, type ViewModel } from "./viewModel";
 
-describe("empty state", () => {
+function withDaemon(state: ViewModel["daemon"]["state"], detail: string | null = null): ViewModel {
+  return { ...initialModel, daemon: { state, detail } };
+}
+
+function withBoxes(count: number): ViewModel {
+  const nodes = new Map<string, ViewNode>();
+  for (let i = 0; i < count; i++) {
+    const id = `pkg:cargo/p${i}`;
+    nodes.set(id, {
+      id,
+      kind: "package",
+      name: `p${i}`,
+      parent: null,
+      role: null,
+      language: null,
+      children: 0,
+      file: null,
+      span: null,
+    });
+  }
+  return { ...withDaemon("connected"), view: { subscription: 1, revision: 0, nodes, edges: new Map() } };
+}
+
+describe("teaching states", () => {
   it("speaks French when the IDE does", () => {
     const html = renderToStaticMarkup(<App locale="fr" />);
-    expect(html).toContain("Pas encore de carte");
-    expect(html).toContain("une fois le projet indexé");
+    expect(html).toContain("Démarrage de Timonier");
+    expect(html).toContain("Le démon indexe le projet");
   });
 
   it("speaks English otherwise", () => {
-    expect(renderToStaticMarkup(<App locale="en" />)).toContain("No map yet");
+    expect(renderToStaticMarkup(<App locale="en" />)).toContain("Starting Timonier");
   });
 
-  it("names its region after its title, for screen readers", () => {
+  it("says what to do when the daemon cannot start, with its reason", () => {
+    const html = renderToStaticMarkup(
+      <App locale="en" model={withDaemon("unavailable", "The program timonier was not found.")} />,
+    );
+    expect(html).toContain("Timonier cannot start");
+    expect(html).toContain("Show the Log");
+    expect(html).toContain("The program timonier was not found.");
+  });
+
+  it("says the map comes back by itself while the daemon restarts", () => {
+    const html = renderToStaticMarkup(<App locale="fr" model={withDaemon("restarting", "connection closed")} />);
+    expect(html).toContain("Reconnexion");
+    expect(html).toContain("la carte revient d&#x27;elle-même");
+  });
+
+  it("draws the map once the daemon has sent boxes, and says when it reconnects", () => {
+    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain("Nothing indexed yet");
+    const map = renderToStaticMarkup(<App locale="fr" model={withBoxes(5)} />);
+    expect(map).toContain('aria-label="Carte d&#x27;architecture"');
+    expect(map).not.toContain('role="status"');
+    const restarting = { ...withBoxes(2), daemon: { state: "restarting" as const, detail: null } };
+    expect(renderToStaticMarkup(<App locale="en" model={restarting} />)).toMatch(/role="status"[^>]*>Reconnecting/);
+  });
+
+  it("names its region after its title and announces changes, for screen readers", () => {
     const html = renderToStaticMarkup(<App locale="en" />);
-    expect(html).toMatch(/<main[^>]*aria-labelledby="tim-empty-title"/);
-    expect(html).toMatch(/<h1 id="tim-empty-title"/);
+    const labelledBy = /<section[^>]*aria-labelledby="([^"]+)"/.exec(html)?.[1];
+    expect(labelledBy).toBeTruthy();
+    expect(html).toContain(`<h1 id="${labelledBy}"`);
+    expect(html).toMatch(/role="status" aria-live="polite"/);
   });
 });
 
@@ -72,7 +122,10 @@ describe("design tokens", () => {
     ).toEqual([]);
   });
 
-  const sources = readdirSync(import.meta.dirname).filter((f) => f.endsWith(".css") && f !== "tokens.css");
+  // Every stylesheet of src/, subfolders included.
+  const sources = readdirSync(import.meta.dirname, { recursive: true, encoding: "utf8" }).filter(
+    (f) => f.endsWith(".css") && path.basename(f) !== "tokens.css",
+  );
 
   it("checks at least one stylesheet", () => {
     expect(sources.length).toBeGreaterThan(0);
@@ -84,7 +137,17 @@ describe("design tokens", () => {
 });
 
 describe("protocol", () => {
-  it("announces readiness with the protocol version", () => {
+  it("announces readiness with the protocol version, then asks for the top of the map", () => {
     expect(readyMessage()).toEqual({ type: "ready", protocol: PROTOCOL_VERSION });
+    expect(subscribeTo()).toEqual({ type: "subscribe", view: { expanded: [] } });
+    expect(subscribeTo(["pkg:cargo/a"])).toEqual({ type: "subscribe", view: { expanded: ["pkg:cargo/a"] } });
+  });
+
+  it("recognises the host's messages only", () => {
+    expect(isHostMessage({ type: "daemon", state: "connected", detail: null })).toBe(true);
+    expect(isHostMessage({ type: "snapshot" })).toBe(true);
+    expect(isHostMessage({ type: "ready" })).toBe(false);
+    expect(isHostMessage("snapshot")).toBe(false);
+    expect(isHostMessage(null)).toBe(false);
   });
 });

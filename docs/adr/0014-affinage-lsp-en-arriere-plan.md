@@ -1,6 +1,9 @@
 # 0014 — Vitesse 2 : affinage LSP en arrière-plan
 
-- Statut : Accepté (2026-10-16, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-16, validation de la phase par l'humain) ; complété par 0022
+  (« Ce qui est vérifié » et « Dépendants », Q19 ; « Après un redémarrage » : un appel vers un
+  fichier changé pendant l'absence ne tient plus, et ce que l'affinage devait survit dans la
+  base)
 - Date : 2026-10-16
 - Phase : 3
 - Liens : spec « Indexation et modèle de graphe », « Décisions techniques » (trois vitesses,

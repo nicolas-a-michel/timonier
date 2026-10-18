@@ -26,3 +26,6 @@ editors/vscode/LICENSE
 .DS_Store
 *.swp
 .idea/
+# Playwright's results and reports (npm run test:a11y)
+**/test-results/
+**/playwright-report/

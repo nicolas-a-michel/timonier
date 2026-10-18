@@ -4,7 +4,16 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 // Globals of the Node.js scripts (hooks, build scripts, configs).
-const nodeGlobals = { console: "readonly", process: "readonly", Buffer: "readonly", URL: "readonly" };
+const nodeGlobals = {
+  console: "readonly",
+  process: "readonly",
+  Buffer: "readonly",
+  URL: "readonly",
+  setTimeout: "readonly",
+  clearTimeout: "readonly",
+  fetch: "readonly",
+  WebSocket: "readonly",
+};
 
 export default defineConfig([
   globalIgnores(["**/dist/", "**/out/", "**/node_modules/", "target/", "**/.vscode-test/", "**/coverage/"]),

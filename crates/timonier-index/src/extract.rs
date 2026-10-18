@@ -12,7 +12,7 @@ use crate::tokens;
 use crate::{Error, Result};
 
 /// Bumped when the extraction itself changes meaning: it keys the cache with the pack version.
-pub const EXTRACTOR_VERSION: u32 = 2;
+pub const EXTRACTOR_VERSION: u32 = 3;
 
 /// What tree-sitter says about one file, before name resolution.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -65,6 +65,9 @@ pub struct ReferenceFact {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub receiver: bool,
     pub count: u32,
+    /// Where the last segment of the path starts, at its first site: the language server is
+    /// asked about this name once for all its sites (ADR 0022).
+    pub at: Position,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -95,6 +98,10 @@ pub(crate) fn extract(
     let facts = Extraction::new(pack, grammar, source).run(tree.root_node());
     Ok((facts, tree))
 }
+
+/// A path cited, as references are counted: its kind, its segments, the symbol that implements
+/// or inherits, and whether it is a call on a receiver.
+type CitedPath = (EdgeKind, Vec<String>, Option<usize>, bool);
 
 /// A path cited at a node: the pattern that found it, the node, its kind and whether it is a
 /// call on a receiver, and the `@reference.source` of the match.
@@ -435,8 +442,8 @@ impl<'a> Extraction<'a> {
         let mut cited: Vec<(Node<'_>, (EdgeKind, bool), Option<Node<'_>>)> =
             cited.into_values().map(|(_, n, k, s)| (n, k, s)).collect();
         cited.sort_by_key(|(n, ..)| (n.start_byte(), std::cmp::Reverse(n.end_byte())));
-        let mut counts: BTreeMap<(EdgeKind, Vec<String>, Option<usize>, bool), u32> =
-            BTreeMap::new();
+        // Per cited path: its sites, and where the first one names it.
+        let mut counts: BTreeMap<CitedPath, (u32, Position)> = BTreeMap::new();
         let mut outer_end = 0;
         for (node, (kind, receiver), source) in cited {
             if node.start_byte() < outer_end || root_of(node).is_some() {
@@ -457,17 +464,24 @@ impl<'a> Extraction<'a> {
                 (EdgeKind::Implements | EdgeKind::Inherits, None) => continue,
                 _ => None,
             };
-            *counts.entry((kind, path, source, receiver)).or_default() += 1;
+            let at = name_start(node, self.text(node), path.last().map_or(0, String::len));
+            counts
+                .entry((kind, path, source, receiver))
+                .or_insert((0, at))
+                .0 += 1;
         }
         let references = counts
             .into_iter()
-            .map(|((kind, path, source, receiver), count)| ReferenceFact {
-                kind,
-                path,
-                source,
-                receiver,
-                count,
-            })
+            .map(
+                |((kind, path, source, receiver), (count, at))| ReferenceFact {
+                    kind,
+                    path,
+                    source,
+                    receiver,
+                    count,
+                    at,
+                },
+            )
             .collect();
         (imports, references)
     }
@@ -578,6 +592,46 @@ impl<'a> Extraction<'a> {
 fn point(p: tree_sitter::Point) -> Position {
     let narrow = |n: usize| u32::try_from(n).unwrap_or(u32::MAX);
     Position::new(narrow(p.row), narrow(p.column))
+}
+
+/// Where the last segment of a cited path starts, in the node's own text: the path is that text
+/// without its whitespace and its generic arguments (`split_path`), so the segment is the last
+/// `len` bytes kept. `a::b::C` and `ns.T` end with it; `Tr<Q>` does not.
+fn name_start(node: Node<'_>, text: &str, len: usize) -> Position {
+    let start = node.start_position();
+    let Some(offset) = last_segment_offset(text, len) else {
+        return point(start);
+    };
+    let before = &text[..offset];
+    let point_at = match before.rfind('\n') {
+        Some(newline) => tree_sitter::Point::new(
+            start.row + before.matches('\n').count(),
+            offset - newline - 1,
+        ),
+        None => tree_sitter::Point::new(start.row, start.column + offset),
+    };
+    point(point_at)
+}
+
+/// The byte offset in `text` where the last `len` bytes `split_path` keeps begin.
+fn last_segment_offset(text: &str, len: usize) -> Option<usize> {
+    // The bytes kept, with where each comes from; a call or an index cuts what came before.
+    let mut kept: Vec<usize> = Vec::with_capacity(text.len());
+    let mut depth = 0_u32;
+    for (at, c) in text.char_indices() {
+        match c {
+            '<' => depth += 1,
+            '>' if depth > 0 => depth -= 1,
+            ')' | ']' if depth == 0 => kept.clear(),
+            c if depth == 0 && !c.is_whitespace() => {
+                kept.extend((at..at + c.len_utf8()).take(c.len_utf8()));
+            }
+            _ => {}
+        }
+    }
+    kept.len()
+        .checked_sub(len)
+        .and_then(|first| kept.get(first).copied())
 }
 
 fn span(node: Node<'_>) -> Span {

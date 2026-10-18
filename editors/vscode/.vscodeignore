@@ -2,6 +2,7 @@
 # .vsix. vsce gives negations priority, so list exactly what to keep.
 **
 !dist/extension.js
+!dist/THIRD-PARTY-NOTICES.md
 !dist/webview/assets/**
 !dist/webview/.vite/manifest.json
 !dist/webview/THIRD-PARTY-NOTICES.md

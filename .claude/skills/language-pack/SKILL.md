@@ -96,6 +96,11 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
    becomes a root span.
 9. **LSP**: which server the pack relies on and which capabilities (definition, references,
    call hierarchy).
+   - `[lsp] outside` (ADR 0022): names no repository defines (the standard library, the
+     language's globals). A path tree-sitter leaves unresolved that starts with one of them is
+     not asked about: keep the list to names that are never a repository's own, since a
+     crate's own `Result` is resolved by tree-sitter first. Bump the pack version when the
+     list changes.
    - Decided by the human (Q5): one LSP interface with two back-ends. The first relays the
      IDE's language servers through the extension and comes first in the MVP. The second is
      servers launched by the daemon, for headless or CI use, later.

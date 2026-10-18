@@ -12,7 +12,7 @@ use tree_sitter::{InputEdit, Parser, Point, Tree};
 use crate::components::Components;
 use crate::ecosystem::{self, MANIFESTS, PackageInfo};
 use crate::extract::{self, EXTRACTOR_VERSION};
-use crate::project::Project;
+use crate::project::{FileEntry, Project};
 use crate::{Error, FileFacts, Packs, Result};
 
 /// Larger files are generated or minified code: they are not indexed (ADR 0013).
@@ -50,8 +50,10 @@ pub struct Batch {
     pub changed: BTreeSet<String>,
     /// Files that disappeared.
     pub removed: BTreeSet<String>,
-    /// Other files citing a symbol whose signature changed (ADR 0014).
+    /// Other files citing a symbol that disappeared (ADR 0014).
     pub dependents: BTreeSet<String>,
+    /// Symbols whose dependents the language server should name (ADR 0022).
+    pub lookups: Vec<crate::lsp::Lookup>,
     /// The packages changed: ids may have changed too (ADR 0013).
     pub packages_changed: bool,
     /// What could not be indexed, and why: a broken manifest, an unusable path.
@@ -249,10 +251,23 @@ impl Indexer {
     }
 
     /// Files or directories changed on disk: created, modified, deleted or renamed. Paths are
-    /// absolute or relative to the root.
+    /// absolute or relative to the root. An ignore file among them (`.gitignore`, `.ignore`)
+    /// calls for the walk again: what it no longer accepts goes, what it accepts now comes
+    /// (ADR 0023).
     pub fn refresh(&mut self, paths: &[PathBuf]) -> Result<Batch> {
+        self.refresh_with(paths, false)
+    }
+
+    /// [`Indexer::refresh`], and the walk again as if an ignore file changed: one outside the
+    /// root, or one the watcher has yet to name before a commit snapshot (ADR 0015, 0023).
+    pub fn reconcile(&mut self, paths: &[PathBuf]) -> Result<Batch> {
+        self.refresh_with(paths, true)
+    }
+
+    fn refresh_with(&mut self, paths: &[PathBuf], reconcile: bool) -> Result<Batch> {
         let relative: BTreeSet<String> = paths.iter().filter_map(|p| self.relative(p)).collect();
         let mut batch = Batch::default();
+        let ignore_named = reconcile || relative.iter().any(|p| is_ignore_file(p));
         // A manifest, or a Cargo library that appears or disappears, may move packages
         // (ADR 0013). A library saved again changes nothing of the kind. A directory that
         // appears may hold a manifest: the walk tells.
@@ -268,7 +283,7 @@ impl Indexer {
                 && self.root.join(p).exists()
         });
         let mut accepted: Option<BTreeSet<String>> = None;
-        if lib_appears || manifest_named || dir_named || new_path {
+        if lib_appears || manifest_named || dir_named || new_path || ignore_named {
             let walk = self.walk();
             let found: BTreeSet<String> = walk.manifests.iter().cloned().collect();
             if lib_appears || manifest_named || found != self.manifests {
@@ -300,6 +315,29 @@ impl Indexer {
         let mut changed = BTreeSet::new();
         let mut resolve = BTreeSet::new();
         let mut removed = BTreeSet::new();
+        // The walk accepts other files now: those it no longer accepts go, though still on disk
+        // (review n° 15, I15-1), and those it accepts now come.
+        if ignore_named && let Some(accepted) = &accepted {
+            let known: Vec<String> = self.project.files().map(|f| f.path.clone()).collect();
+            for file in known.iter().filter(|f| !accepted.contains(*f)) {
+                let affected = self.project.remove(file);
+                structure |= affected.structure;
+                batch.dependents.extend(affected.dependents);
+                resolve.extend(affected.files);
+                removed.insert(file.clone());
+                self.trees.remove(file);
+            }
+            let new: Vec<String> = accepted
+                .iter()
+                .filter(|p| self.project.file(p).is_none())
+                .cloned()
+                .collect();
+            for file in new {
+                let before = changed.len();
+                self.reindex(&file, &mut batch, &mut changed, &mut resolve)?;
+                structure |= changed.len() > before;
+            }
+        }
         for path in &relative {
             let on_disk = self.root.join(path);
             let known: Vec<String> = self.project.paths_under(path).map(str::to_owned).collect();
@@ -355,6 +393,7 @@ impl Indexer {
             .filter(|p| !changed.contains(*p))
             .cloned()
             .collect();
+        batch.lookups.retain(|l| !removed.contains(&l.path));
         batch.stats.resolved = resolve.difference(&changed).count();
         let mut updates = self.project.updates(structure, &changed, &resolve);
         updates.append(&mut batch.updates);
@@ -412,6 +451,7 @@ impl Indexer {
         changed.insert(path.to_owned());
         resolve.extend(affected.files);
         batch.dependents.extend(affected.dependents);
+        batch.lookups.extend(affected.lookups);
         Ok(())
     }
 
@@ -476,6 +516,57 @@ impl Indexer {
             let affected = self
                 .project
                 .upsert(path, pack.language.clone(), hash, facts)?;
+            changed.insert(path.clone());
+            resolve.extend(affected.files);
+        }
+        let resolve: BTreeSet<String> = resolve.difference(&removed).cloned().collect();
+        batch.updates = self.project.updates(structure, &changed, &resolve);
+        for file in &removed {
+            if let Ok(scope) = NodeId::file(file).and_then(|id| ScopeKey::of_file(&id)) {
+                batch.updates.push(ScopeUpdate::removal(scope));
+            }
+        }
+        batch.stats.removed = removed.len();
+        batch.stats.files = self.project.files().count();
+        batch.changed = changed;
+        batch.removed = removed;
+        Ok(batch)
+    }
+
+    /// Puts these files back as the project held them (`None`: not indexed), from the facts
+    /// kept, without reading the disk: the working tree after a commit snapshot (ADR 0015,
+    /// 0022). Like [`Indexer::apply_contents`], no signature is followed: the state comes back.
+    pub fn restore(&mut self, files: &BTreeMap<String, Option<FileEntry>>) -> Result<Batch> {
+        let mut batch = Batch::default();
+        let mut structure = false;
+        let mut changed = BTreeSet::new();
+        let mut resolve = BTreeSet::new();
+        let mut removed = BTreeSet::new();
+        for (path, entry) in files {
+            let Some(entry) = entry else {
+                if self.project.file(path).is_some() {
+                    let affected = self.project.remove(path);
+                    structure |= affected.structure;
+                    resolve.extend(affected.files);
+                    removed.insert(path.clone());
+                }
+                continue;
+            };
+            if self
+                .project
+                .file(path)
+                .is_some_and(|f| f.content_hash == entry.content_hash)
+            {
+                batch.stats.unchanged += 1;
+                continue;
+            }
+            structure |= self.project.file(path).is_none();
+            let affected = self.project.upsert(
+                path,
+                entry.language.clone(),
+                entry.content_hash,
+                entry.facts.clone(),
+            )?;
             changed.insert(path.clone());
             resolve.extend(affected.files);
         }
@@ -558,6 +649,7 @@ impl Indexer {
         batch.changed = changed;
         batch.removed = removed;
         batch.dependents.clear();
+        batch.lookups.clear();
         batch.packages_changed = true;
         Ok(batch)
     }
@@ -567,9 +659,16 @@ impl Indexer {
     fn walk(&mut self) -> Walk {
         let mut walk = Walk::default();
         let mut walked = BTreeSet::from([String::new()]);
+        // Inside a repository, git's rules as git applies them: none above its top, and
+        // `info/exclude` from the directory a worktree shares. Outside one, `.gitignore` still
+        // counts (ADR 0023).
+        let in_git = std::fs::canonicalize(&self.root)
+            .unwrap_or_else(|_| self.root.clone())
+            .ancestors()
+            .any(|d| d.join(".git").exists());
         let walker = WalkBuilder::new(&self.root)
             .hidden(true)
-            .require_git(false)
+            .require_git(in_git)
             .build();
         for entry in walker.flatten() {
             if entry.file_type().is_some_and(|t| t.is_dir()) {
@@ -692,6 +791,14 @@ fn file_path(id: &NodeId) -> Option<&str> {
 fn is_manifest(path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
     MANIFESTS.iter().any(|(file, _)| *file == name)
+}
+
+/// A file of the repository that says which files the walk skips (ADR 0023). Those outside
+/// the root, git's own `info/exclude` among them, are the watcher's to name:
+/// [`Indexer::reconcile`].
+fn is_ignore_file(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    name == ".gitignore" || name == ".ignore"
 }
 
 /// Creating or deleting a library changes how `src/main.rs` is named (ADR 0013).

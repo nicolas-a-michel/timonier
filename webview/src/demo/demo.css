@@ -1,0 +1,91 @@
+/* The demonstration page only: tokens as everywhere else. */
+html,
+body,
+#root {
+  height: auto;
+}
+
+.tim-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-6);
+  max-width: 64rem;
+  padding: var(--tim-space-6);
+}
+
+.tim-demo__title {
+  margin: 0;
+  font-size: var(--tim-font-size-title);
+}
+
+.tim-demo__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-3);
+}
+
+.tim-demo__themes a {
+  color: var(--tim-color-info);
+}
+
+.tim-demo__themes a[aria-current="page"] {
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-demo__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-3);
+}
+
+.tim-demo__section h2 {
+  margin: 0;
+  font-size: var(--tim-font-size);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-demo__section p {
+  margin: 0;
+}
+
+.tim-demo__muted {
+  color: var(--tim-color-muted);
+}
+
+.tim-demo__code {
+  font-family: var(--tim-font-family-code);
+}
+
+.tim-demo__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-4);
+}
+
+.tim-demo__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-4);
+}
+
+.tim-demo__edges {
+  max-width: 100%;
+}
+
+/* Room for the open tooltip. */
+.tim-demo__section:has(.tim-tooltip) {
+  padding-bottom: var(--tim-space-8);
+}
+
+.tim-demo__empty .tim-empty {
+  height: auto;
+  padding: var(--tim-space-4);
+  border: 1px dashed var(--tim-color-divider);
+  border-radius: var(--tim-radius-large);
+}
+
+/* The map of a real repository, as tall as the window. */
+.tim-demo-map {
+  position: fixed;
+  inset: 0;
+}

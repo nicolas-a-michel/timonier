@@ -35,11 +35,32 @@ pub(crate) fn head(root: &Path) -> Option<String> {
     git(root, &["rev-parse", "--verify", "--quiet", "HEAD^{commit}"]).and_then(text)
 }
 
-/// The repository's git directory (`.git`, or elsewhere for a worktree).
-pub(crate) fn git_dir(root: &Path) -> Option<PathBuf> {
-    git(root, &["rev-parse", "--absolute-git-dir"])
+/// Where git keeps what the watcher follows, as absolute paths (ADR 0015).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Places {
+    /// The git directory of this working tree: HEAD and its log move there.
+    pub(crate) dir: PathBuf,
+    /// The git directory worktrees share, the same one outside a worktree: its
+    /// `info/exclude` says what the walk skips.
+    pub(crate) common: PathBuf,
+    /// The top of the working tree: its folders down to the root hold ignore files too.
+    pub(crate) top: PathBuf,
+}
+
+/// Where git keeps what the watcher follows; `None` outside a repository. Each answer is asked
+/// on its own: a git that cannot give the shared directory or the top gives the git directory
+/// and the root in their place.
+pub(crate) fn places(root: &Path) -> Option<Places> {
+    let dir = PathBuf::from(git(root, &["rev-parse", "--absolute-git-dir"]).and_then(text)?);
+    // Relative to the root, or absolute.
+    let common = git(root, &["rev-parse", "--git-common-dir"])
         .and_then(text)
-        .map(PathBuf::from)
+        .and_then(|common| std::fs::canonicalize(root.join(common)).ok())
+        .unwrap_or_else(|| dir.clone());
+    let top = git(root, &["rev-parse", "--show-toplevel"])
+        .and_then(text)
+        .map_or_else(|| root.to_path_buf(), PathBuf::from);
+    Some(Places { dir, common, top })
 }
 
 /// Paths, relative to the root, whose working-tree content differs from HEAD: modified,
@@ -180,7 +201,7 @@ mod tests {
         assert_eq!(head(dir.path()), None);
         run(dir.path(), &["init", "--quiet"]);
         assert_eq!(head(dir.path()), None);
-        assert!(git_dir(dir.path()).is_some());
+        assert!(places(dir.path()).is_some());
     }
 
     #[test]
@@ -227,8 +248,25 @@ mod tests {
             &main,
             &["worktree", "add", "--quiet", worktree.to_str().unwrap()],
         );
-        let git_dir = git_dir(&worktree).unwrap();
-        assert!(!git_dir.starts_with(&worktree), "{git_dir:?}");
+        let places = places(&worktree).unwrap();
+        assert!(!places.dir.starts_with(&worktree), "{places:?}");
+        // `info/exclude` is the main repository's (ADR 0023).
+        let real = |p: &Path| p.canonicalize().unwrap();
+        assert_eq!(real(&places.common), real(&main).join(".git"));
+        assert_eq!(real(&places.top), real(&worktree));
         assert_eq!(head(&worktree), head(&main));
+    }
+
+    #[test]
+    fn a_root_in_a_subdirectory_has_its_top_above() {
+        let dir = tempfile::tempdir().unwrap();
+        let top = dir.path().canonicalize().unwrap();
+        std::fs::create_dir_all(top.join("app")).unwrap();
+        run(&top, &["init", "--quiet"]);
+        let places = places(&top.join("app")).unwrap();
+        let real = |p: &Path| p.canonicalize().unwrap();
+        assert_eq!(real(&places.dir), top.join(".git"));
+        assert_eq!(real(&places.common), top.join(".git"));
+        assert_eq!(real(&places.top), top);
     }
 }

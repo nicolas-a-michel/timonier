@@ -82,7 +82,10 @@ fn the_commit_snapshot_is_the_committed_tree_and_the_head_keeps_the_work() {
         first.commit_sha.as_deref(),
         Some(git(root, &["rev-parse", "HEAD"]).as_str())
     );
-    assert!(pipeline.consolidate().unwrap().is_none(), "nothing new");
+    assert!(
+        pipeline.consolidate().unwrap().snapshot.is_none(),
+        "nothing new"
+    );
 
     // Work in progress: lib.rs modified, new.rs untracked. Only b.rs is committed.
     write(
@@ -102,7 +105,11 @@ fn the_commit_snapshot_is_the_committed_tree_and_the_head_keeps_the_work() {
             PathBuf::from("src/b.rs"),
         ])
         .unwrap();
-    let consolidation = pipeline.consolidate().unwrap().expect("a new commit");
+    let consolidation = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a new commit");
     assert_eq!(consolidation.sha, sha);
     assert_eq!(consolidation.dirty, 2);
 
@@ -147,7 +154,10 @@ fn the_watcher_sees_a_commit() {
     pipeline.index_all().unwrap();
     let (send, receive) = mpsc::channel();
     let watch = Watch::start(pipeline, Duration::from_millis(100), None, move |event| {
-        if let Event::Committed(result) = event {
+        // The commits that got a snapshot, and the failures.
+        if let Event::Committed(result) = event
+            && let Some(result) = result.map(|c| c.snapshot).transpose()
+        {
             let _ = send.send(result);
         }
     })

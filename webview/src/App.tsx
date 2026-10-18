@@ -1,26 +1,94 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
+import { EmptyState } from "./design/components";
 import { messages, type Locale } from "./i18n";
+import type { Toggle } from "./map/mapModel";
+import type { Span } from "./protocol";
+import type { Pins } from "./map/layout";
+import { MapView, type MapCommands } from "./map/MapView";
+import { initialUi, type UiState } from "./uiState";
+import { initialModel, type ViewModel } from "./viewModel";
 
 export interface AppProps {
   locale: Locale;
+  model?: ViewModel;
+  ui?: UiState;
+  onToggle?: (toggle: Toggle) => void;
+  onCloseAll?: () => void;
+  onOpenCode?: (file: string, span: Span | null) => void;
+  /** The files the map draws, when they change. */
+  onDisplayed?: (paths: string[]) => void;
+  /** The boxes moved by hand, and where they go when moved again (ADR 0021). */
+  pins?: Pins;
+  onPins?: (pins: Pins) => void;
+  /** Where the palette's commands for the map come in. */
+  commandsRef?: MapCommands;
   /** Called once, after the first render reached the DOM. */
   onReady?: () => void;
 }
 
-/** Phase 1: the webview only shows a teaching empty state. */
-export function App({ locale, onReady }: AppProps) {
+/** The map once the daemon has sent boxes; before, a teaching state for each situation. */
+export function App({
+  locale,
+  model = initialModel,
+  ui = initialUi,
+  onToggle,
+  onCloseAll,
+  onOpenCode,
+  onDisplayed,
+  pins,
+  onPins,
+  commandsRef,
+  onReady,
+}: AppProps) {
   useEffect(() => {
     onReady?.();
   }, [onReady]);
+  const openRoles = useMemo(() => new Set(ui.openRoles), [ui.openRoles]);
 
   const t = messages[locale];
+  const { daemon, view } = model;
+  if (view && view.nodes.size > 0) {
+    const status =
+      daemon.state === "restarting" ? t.restartingTitle : daemon.state === "unavailable" ? t.unavailableTitle : null;
+    return (
+      <main className="tim-app">
+        {status && (
+          <p className="tim-app__status" role="status">
+            {status}
+          </p>
+        )}
+        <MapView
+          view={view}
+          locale={locale}
+          openRoles={openRoles}
+          focus={ui.focus}
+          onToggle={(toggle) => onToggle?.(toggle)}
+          onCloseAll={() => onCloseAll?.()}
+          onOpenCode={onOpenCode}
+          onDisplayed={onDisplayed}
+          pins={pins}
+          onPins={onPins}
+          commandsRef={commandsRef}
+        />
+      </main>
+    );
+  }
+  let title: string;
+  let text: string;
+  let detail: string | null = null;
+  if (daemon.state === "unavailable") {
+    [title, text, detail] = [t.unavailableTitle, t.unavailableText, daemon.detail];
+  } else if (daemon.state === "restarting") {
+    [title, text, detail] = [t.restartingTitle, t.restartingText, daemon.detail];
+  } else if (!view) {
+    [title, text] = [t.startingTitle, t.startingText];
+  } else {
+    [title, text] = [t.indexingTitle, t.indexingText];
+  }
   return (
-    <main className="tim-empty" aria-labelledby="tim-empty-title">
-      <h1 id="tim-empty-title" className="tim-empty__title">
-        {t.emptyTitle}
-      </h1>
-      <p className="tim-empty__text">{t.emptyText}</p>
+    <main className="tim-app">
+      <EmptyState title={title} text={text} detail={detail} live />
     </main>
   );
 }

@@ -13,11 +13,20 @@
   "engines": {
     "vscode": "^1.140.0"
   },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "%capabilities.untrustedWorkspaces%"
+    }
+  },
   "categories": [
     "Visualization",
     "AI"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:.timonier"
+  ],
   "l10n": "./l10n",
   "contributes": {
     "viewsContainers": {
@@ -51,6 +60,56 @@
         "title": "%command.openMap.title%",
         "category": "Timonier",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "timonier.restartDaemon",
+        "title": "%command.restartDaemon.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.showLog",
+        "title": "%command.showLog.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.fitView",
+        "title": "%command.map.fitView.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.zoomIn",
+        "title": "%command.map.zoomIn.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.zoomOut",
+        "title": "%command.map.zoomOut.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.closeAll",
+        "title": "%command.map.closeAll.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.moveSelection",
+        "title": "%command.map.moveSelection.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.resetLayout",
+        "title": "%command.map.resetLayout.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.toggle",
+        "title": "%command.map.toggle.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.openCode",
+        "title": "%command.map.openCode.title%",
+        "category": "Timonier"
       }
     ],
     "menus": {
@@ -61,6 +120,17 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "Timonier",
+      "properties": {
+        "timonier.daemon.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.daemon.path%",
+          "scope": "machine"
+        }
+      }
     }
   },
   "scripts": {
@@ -79,5 +149,8 @@
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "vscode-jsonrpc": "^9.0.3"
   }
 }

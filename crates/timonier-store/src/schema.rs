@@ -13,6 +13,7 @@ const MIGRATION_SLICE: &[M<'_>] = &[
     M::up(include_str!("../migrations/0001_initial.sql")),
     M::up(include_str!("../migrations/0002_extraction_cache.sql")),
     M::up(include_str!("../migrations/0003_node_role.sql")),
+    M::up(include_str!("../migrations/0004_refinement_debt.sql")),
 ];
 
 pub(crate) const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
@@ -81,7 +82,7 @@ mod tests {
         let version: i64 = connection
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
     }
 
     #[test]
@@ -109,6 +110,34 @@ mod tests {
             .query_row("SELECT count(*) FROM extraction", [], |r| r.get(0))
             .unwrap();
         assert_eq!(cached, 0);
+    }
+
+    /// Review n° 9, I9-2: a database of the previous schema keeps its rows, and owes nothing.
+    #[test]
+    fn a_database_of_the_third_schema_migrates_and_owes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("graph.sqlite");
+        {
+            let mut connection = Connection::open(&path).unwrap();
+            Migrations::from_slice(&MIGRATION_SLICE[..3])
+                .to_latest(&mut connection)
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO scope (key, content_hash) VALUES ('structure', NULL)",
+                    [],
+                )
+                .unwrap();
+        }
+        let connection = open_writer(&path).unwrap();
+        let scopes: i64 = connection
+            .query_row("SELECT count(*) FROM scope", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(scopes, 1);
+        assert_eq!(
+            crate::refinement::load(&connection).unwrap(),
+            crate::RefinementDebt::default()
+        );
     }
 
     #[test]

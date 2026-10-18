@@ -139,8 +139,12 @@ function, method, field, constant. Each node has a name, a language, a span and 
 - **LSP** (ADR 0014): `Lsp` observations are function → function `Calls`, `verifying([Calls])`,
   `computed_on` the hash read at request time. Beyond 50 000 of them (ADR 0018), the oldest
   verified files keep `Lsp` file → file `Calls`, still verified.
-- **Commit snapshots** (ADR 0015) describe the committed tree: dirty files take their HEAD
-  version for the freeze, then the working tree comes back.
+- **Commit snapshots** (ADR 0015) describe the committed tree: the index is first brought in
+  line with the disk, walk included (what an ignore file skips now goes); dirty files take their
+  HEAD version for the freeze; then the working tree comes back in two steps (ADR 0022): first
+  as the index held it, from memory, with the LSP verification the freeze dropped; then the
+  disk, read as any change. Known gap, for Phase 5 (Q23): a manifest or a `src/lib.rs` that
+  differs from the commit keeps the working tree's packages.
 - **Components** (ADR 0016): keys `dir/<path>`, `cluster/<smallest member path>`, `external`,
   `external/<category>`. Clustering happens at a commit, at the first indexing, and when
   packages change; a restart takes the head's components back as they are. Leiden is
@@ -150,6 +154,10 @@ function, method, field, constant. Each node has a name, a language, a span and 
 - **Extraction cache** (ADR 0013, migration 0002): table `extraction`, opaque JSON for the
   store, keyed by content hash, language, pack version and extractor version. Not graph facts:
   no `valid_from`/`valid_to`.
+- **Refinement debt** (ADR 0022, migration 0004): tables `refinement_dependent`,
+  `refinement_lookup` and `refinement_lookup_citer`, what the LSP refinement still owes (stale
+  verified files, lookups of dependents), written by difference, with the batch that changes
+  it, read back at start. Not graph facts either.
 
 ## Update by difference
 

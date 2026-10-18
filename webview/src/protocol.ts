@@ -1,18 +1,24 @@
 /**
- * Messages between the webview and its host (the VSCode extension first).
- * Phase 1 only has the handshake; the full protocol (subscriptions, versioned deltas) comes in
- * Phase 4, with types generated from a single source (PLAN.md task 4.1).
+ * Messages between the webview and its host (the VSCode extension first). Their types are
+ * generated from the Rust protocol (ADR 0019): `protocol/generated.ts`, never edited by hand.
  */
-export const PROTOCOL_VERSION = 1;
+import { PROTOCOL_VERSION, type HostMessage, type WebviewMessage } from "./protocol/generated";
+
+export * from "./protocol/generated";
 
 /** Sent once the webview has rendered: the host knows the bundle runs under its CSP. */
-export interface ReadyMessage {
-  type: "ready";
-  protocol: number;
+export function readyMessage(): WebviewMessage {
+  return { type: "ready", protocol: PROTOCOL_VERSION };
 }
 
-export type WebviewToHost = ReadyMessage;
+/** The view with `expanded` open; the top of the map when it is empty. */
+export function subscribeTo(expanded: string[] = []): WebviewMessage {
+  return { type: "subscribe", view: { expanded } };
+}
 
-export function readyMessage(): ReadyMessage {
-  return { type: "ready", protocol: PROTOCOL_VERSION };
+/** Whether `data`, received by `postMessage`, is one of the host's messages. */
+export function isHostMessage(data: unknown): data is HostMessage {
+  if (typeof data !== "object" || data === null) return false;
+  const { type } = data as { type?: unknown };
+  return type === "snapshot" || type === "delta" || type === "daemon" || type === "command" || type === "pins";
 }

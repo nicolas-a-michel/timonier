@@ -1,6 +1,11 @@
 # 0015 — Vitesse 3 : consolidation au commit
 
-- Statut : Accepté (2026-10-16, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-16, validation de la phase par l'humain) ; complété par 0022 (avant
+  le gel, l'index est remis au niveau du disque, parcours compris ; le retour de l'arbre de
+  travail après le gel garde la vérification LSP de ce qui revient tel quel, et suit le reste)
+  et par 0023 (sont surveillés aussi `info/` du dossier git commun et les dossiers entre le
+  haut du dépôt et la racine) ; écart connu, un manifeste ou un `src/lib.rs` différents du
+  commit, à corriger en Phase 5 (Q23)
 - Date : 2026-10-16
 - Phase : 3
 - Liens : spec « Décisions techniques » (trois vitesses), « Stockage » ; H4 ; ADR 0010

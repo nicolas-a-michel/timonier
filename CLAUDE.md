@@ -30,14 +30,14 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles) and `timonier-store` (SQLite history, single writer, extraction cache; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3; `otlp`, `mcp`, `cli` are skeletons | in progress |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`); `cli` has `timonier daemon start|stop|status|run`; `otlp` and `mcp` are skeletons | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
-| `webview/`                   | React + Vite webview, shared by future front-ends; `src/tokens.css` = design tokens | skeleton |
-| `editors/vscode/`            | VSCode extension: activity-bar container with the « Overview » view (ADR 0007, icon in `media/`), esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | skeleton |
+| `webview/`                   | React + Vite webview, shared by future front-ends. `src/tokens.css` = design tokens, `src/design/` = components (ADR 0020), `src/map/` = architecture map with React Flow and elkjs (ADR 0021), `demo.html` = development page; `test/a11y` (Playwright + axe-core), `test/themes` (captured VSCode themes), `test/views` (Timonier's views from `view_snapshot`) | in progress |
+| `editors/vscode/`            | VSCode extension: activity-bar container with the « Overview » view (ADR 0007, icon in `media/`), daemon supervisor and JSON-RPC client, view relay, LSP relay that answers about saved content only, map panel (ADR 0019, 0022), esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | in progress |
 | `.vscode/`                   | `launch.json`: « Run Extension » (F5) and « Extension Tests » (needs the recommended Extension Test Runner); `tasks.json`; `extensions.json` | exists |
-| `LICENSE`, `README.md`       | MIT licence (Nicolas Michel); French README                      | exists   |
+| `LICENSE`, `README.md`       | MIT licence (Nicolas Michel); English README (what works, what is planned, how to try it) | exists   |
 | `.github/workflows/ci.yml`   | CI on ubuntu-latest and macos-latest                             | exists   |
 
 ## Commands
@@ -55,7 +55,9 @@ cargo fmt --all                    # CI runs --check
 npm ci
 npm run build                      # webview (Vite) then extension (esbuild)
 npm test                           # unit tests: webview (vitest), extension (node:test), hooks (node:test)
-npm run test:integration           # builds, then runs the extension inside a real VSCode (needs a display; CI uses xvfb-run)
+npm run test:integration           # builds the daemon (cargo) and the extension, then runs it inside a real VSCode against a real daemon (needs a display; CI uses xvfb-run)
+npm run test:a11y                  # WCAG AA of the design system (webview/demo.html) in every captured VSCode theme; needs `npx playwright install chromium`
+node editors/vscode/scripts/capture-themes.mjs   # captures VSCode's theme variables into webview/test/themes (after `npm run build`)
 npm run lint                       # ESLint, type-aware
 npm run typecheck                  # tsc --noEmit for each workspace; the Stop hook runs it
 npm run format                     # Prettier (format:check in CI)
@@ -64,8 +66,15 @@ npm run package                    # build + vsce package → editors/vscode/tim
 # CLI
 cargo run --bin tim -- --version   # `timonier` and `tim` are the same program
 
-# Store baseline timings (record changes in PLAN.md)
+# Baseline timings (record changes in PLAN.md)
 cargo run --release -p timonier-store --example bench [packages] [files] [symbols]
+cargo run --release -p timonier-daemon --example lsp_cost [repository]   # questions refinement asks the language servers (ADR 0022)
+npm run bench:map -w webview       # map frames per second on synthetic repositories (PLAN.md 4.10)
+cargo run --release -p timonier-store --example debt_bench   # cost of a refinement debt write (ADR 0022)
+cargo run --release -p timonier-daemon --example view_bench [repository] [saves]   # RUST_LOG=timonier_daemon=debug for logs
+
+# Protocol types → TypeScript (a test fails when webview/src/protocol/generated.ts is stale)
+TIMONIER_UPDATE_TS=1 cargo test -p timonier-core
 
 # Indexing timings on a repository (default: this one, copied to a temp dir), and its graph
 cargo run --release -p timonier-daemon --example index_bench [repository] [saves]
@@ -91,7 +100,8 @@ cargo test --release -p timonier-daemon --test compaction -- --ignored   # load 
 
    `PLAN.md` lists what was verified, and when.
 5. **Quality.**
-   - Language: code, identifiers, comments and commit messages in English; user documentation in French. Files read
+   - Language: code, identifiers, comments and commit messages in English; user documentation in French, except
+     `README.md`, in English at the human's request (2026-10-16). Files read
      by the human to steer the project (`PLAN.md`, ADRs, review reports) are in French. Agent-facing files
      (`CLAUDE.md`, skills, subagents, hook messages) are in English.
    - Commits follow Conventional Commits. **Commit only when the human asks.**

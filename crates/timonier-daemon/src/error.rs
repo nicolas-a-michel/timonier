@@ -20,6 +20,24 @@ pub enum Error {
     #[error("the file watcher's lock is poisoned: a thread panicked while holding it")]
     Poisoned,
 
+    #[error("`{path}`: {source}")]
+    Io {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error(
+        "the runtime directory `{path}` must belong to this user and be closed to others (mode 0700)"
+    )]
+    RuntimeDir { path: std::path::PathBuf },
+
+    #[error("cannot start the async runtime: {0}")]
+    Runtime(#[source] std::io::Error),
+
+    #[error("a daemon task failed: {0}")]
+    Join(String),
+
     #[error("the cached extraction of `{path}` cannot be encoded: {source}")]
     Cache {
         path: String,

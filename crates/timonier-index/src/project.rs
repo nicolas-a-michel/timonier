@@ -1,15 +1,16 @@
 //! The project model (ADR 0013): packages, files and their facts, in memory; the approximate
 //! resolution of the paths they cite; the scope updates for the store.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use timonier_core::{
-    Confidence, ContentHash, EdgeKind, Language, Node, NodeId, NodeKind, Observation, Provenance,
-    ScopeKey, ScopeUpdate, SourceObservations, SymbolKind,
+    Confidence, ContentHash, EdgeKind, Language, Node, NodeId, NodeKind, Observation, Position,
+    Provenance, ScopeKey, ScopeUpdate, SourceObservations, SymbolKind,
 };
 
 use crate::components::Components;
 use crate::ecosystem::{self, ModulePath, PackageInfo};
+use crate::lsp::{Lookup, Usage};
 use crate::pack::{Ecosystem, Naming, Packs, RoleRule};
 use crate::{FileFacts, Result};
 
@@ -25,6 +26,8 @@ pub(crate) struct LanguageRules {
     pub(crate) ecosystem: Ecosystem,
     pub(crate) separators: Vec<String>,
     pub(crate) roles: Vec<RoleRule>,
+    /// Names no repository defines: not asked about when tree-sitter leaves them (ADR 0022).
+    pub(crate) outside: HashSet<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -53,9 +56,12 @@ pub struct Affected {
     pub structure: bool,
     /// Files whose resolution may have changed, the changed file included.
     pub files: BTreeSet<String>,
-    /// Other files that cite a symbol whose signature changed, appeared or disappeared: their
-    /// LSP verification may be out of date (ADR 0014).
+    /// Other files that cite a symbol which disappeared: their LSP verification may be out of
+    /// date (ADR 0014).
     pub dependents: BTreeSet<String>,
+    /// Symbols whose signature changed, or that appeared: the language server says which files
+    /// use them (ADR 0022).
+    pub lookups: Vec<Lookup>,
 }
 
 #[derive(Debug)]
@@ -104,6 +110,7 @@ impl Project {
                         ecosystem: pack.manifest.ecosystem,
                         separators: pack.manifest.paths.separators.clone(),
                         roles: pack.manifest.roles.clone(),
+                        outside: pack.manifest.lsp.outside.iter().cloned().collect(),
                     },
                 )
             })
@@ -210,12 +217,44 @@ impl Project {
         if structure {
             changed.extend(self.files[path].module.segments.last().cloned());
         }
-        let mut dependents = self.citing_any(&signed, path);
-        dependents.remove(path);
+        // A symbol still here: the language server names its dependents, the files citing its
+        // name if it cannot. One gone: the files citing its name. A file that uses a symbol
+        // cites its name: with no other file citing it, there is nothing to look up.
+        let mut dependents = BTreeSet::new();
+        let mut lookups = Vec::new();
+        let file = &self.files[path];
+        for name in &signed {
+            let mut by_name = self.citing_any(&BTreeSet::from([name.clone()]), path);
+            by_name.remove(path);
+            if by_name.is_empty() {
+                continue;
+            }
+            let mut found = false;
+            for (index, symbol) in file.facts.symbols.iter().enumerate() {
+                if symbol.name() != name {
+                    continue;
+                }
+                let Some(id) = self.symbol_id(file, index) else {
+                    continue;
+                };
+                found = true;
+                lookups.push(Lookup {
+                    path: path.to_owned(),
+                    symbol: id,
+                    at: symbol.name_at,
+                    content_hash,
+                    by_name: by_name.clone(),
+                });
+            }
+            if !found {
+                dependents.extend(by_name);
+            }
+        }
         Ok(Affected {
             structure,
             files: self.citing_any(&changed, path),
             dependents,
+            lookups,
         })
     }
 
@@ -232,7 +271,13 @@ impl Project {
             structure: true,
             dependents: files.clone(),
             files,
+            lookups: Vec::new(),
         }
+    }
+
+    /// The files whose code cites `name` (ADR 0022: the users of a symbol are among them).
+    pub fn citing(&self, name: &str) -> impl Iterator<Item = &String> {
+        self.citing.get(name).into_iter().flatten()
     }
 
     fn citing_any(&self, names: &BTreeSet<String>, path: &str) -> BTreeSet<String> {
@@ -433,6 +478,15 @@ impl Project {
         files
     }
 
+    /// Where the name of `symbol` starts in the current content of `path`: a lookup made on an
+    /// older content finds its symbol again (ADR 0022).
+    pub fn name_at(&self, path: &str, symbol: &NodeId) -> Option<Position> {
+        let file = self.files.get(path)?;
+        (0..file.facts.symbols.len())
+            .find(|i| self.symbol_id(file, *i).as_ref() == Some(symbol))
+            .map(|i| file.facts.symbols[i].name_at)
+    }
+
     /// The qualified id of a symbol of a file (ADR 0013).
     pub fn symbol_id(&self, file: &FileEntry, symbol: usize) -> Option<NodeId> {
         let naming = &self.rules.get(&file.language)?.naming;
@@ -557,6 +611,67 @@ impl Project {
             })
             .collect();
         SourceObservations::new(Provenance::TreeSitter, observations).computed_on(file.content_hash)
+    }
+
+    /// The usages of a file the language server is asked about (ADR 0022): one per path cited,
+    /// at its first site, not one per site. Left out: a path tree-sitter finds in the file
+    /// itself (no edge between files), one it leads to a dependency outside the repository, an
+    /// unresolved one whose first segment the pack says is defined outside any repository, and
+    /// an unresolved name of one character (`_`, a type parameter such as `T`): declared in the
+    /// item itself.
+    ///
+    /// Paths are not grouped further: two paths with the same first segment may be defined in
+    /// two files (a re-export by `*` between them, an `impl` in another file), and the answer
+    /// for one would replace a right edge of the other.
+    pub(crate) fn usages(&self, file: &FileEntry) -> Vec<Usage> {
+        let outside = self.rules.get(&file.language).map(|r| &r.outside);
+        let mut usages = Vec::new();
+        for reference in &file.facts.references {
+            let source = match reference.kind {
+                EdgeKind::References => file.id.clone(),
+                EdgeKind::Implements | EdgeKind::Inherits => {
+                    match reference.source.and_then(|s| self.symbol_id(file, s)) {
+                        Some(source) => source,
+                        None => continue,
+                    }
+                }
+                _ => continue,
+            };
+            let Some(first) = reference.path.first() else {
+                continue;
+            };
+            let elsewhere = match self.resolve_reference(file, &reference.path, reference.receiver)
+            {
+                Some((Target::External(_), _)) => continue,
+                // Within the file, a `References` makes no edge. An `Implements` does: asked.
+                Some((Target::File(path), _))
+                    if path == file.path && reference.kind == EdgeKind::References =>
+                {
+                    continue;
+                }
+                // Bound by an import or a path: there, a server that answers « here » points at
+                // the import, and does not know yet. By a name alone, tree-sitter guesses: the
+                // server's « here » corrects it.
+                Some((Target::File(path), confidence)) => {
+                    path != file.path && confidence >= BY_PATH
+                }
+                Some((Target::Package(_), _)) => true,
+                None if first.chars().count() == 1
+                    || outside.is_some_and(|o| o.contains(first)) =>
+                {
+                    continue;
+                }
+                None => false,
+            };
+            usages.push(Usage {
+                kind: reference.kind,
+                source,
+                at: reference.at,
+                sites: reference.count,
+                elsewhere,
+            });
+        }
+        usages
     }
 
     /// The type or trait of that name in a file, if exactly one.
@@ -1187,6 +1302,74 @@ mod tests {
         );
     }
 
+    /// ADR 0022: what refinement asks the language server about a file.
+    #[test]
+    fn usages_are_asked_once_per_path_and_never_for_what_cannot_lead_elsewhere() {
+        let kind = "pub enum Kind { A, B }\npub struct Here;\n";
+        let user = "use crate::kind::Kind;\nuse serde::Serialize;\n\
+            pub struct Mine;\n\
+            pub fn f(a: Kind, b: Kind, c: Mine, d: Vec<u8>, e: Serialize) -> Kind { Kind::A }\n\
+            pub fn g<T>(t: T, u: Option<_>) -> Kind { Kind::B }\n";
+        let project = project(
+            vec![cargo("app", "", &[("serde", true)])],
+            &[
+                ("src/lib.rs", "pub mod kind;\npub mod user;\n"),
+                ("src/kind.rs", kind),
+                ("src/user.rs", user),
+            ],
+        );
+        let file = project.file("src/user.rs").unwrap();
+        let usages = project.usages(file);
+        // One question per path, at its first site: `Kind` (four sites), `Kind::A`, `Kind::B`.
+        // `Mine` is in the file, `Serialize` in a dependency, `Vec` and `Option` in the standard
+        // library, `T` and `_` in the item itself: none is asked.
+        let mut asked: Vec<_> = usages.iter().map(|u| (u.kind, u.at, u.sites)).collect();
+        asked.sort();
+        assert_eq!(
+            asked,
+            [
+                (EdgeKind::References, Position::new(3, 12), 4),
+                // At the variant's name: `A` of `Kind::A`, `B` of `Kind::B`.
+                (EdgeKind::References, Position::new(3, 78), 1),
+                (EdgeKind::References, Position::new(4, 48), 1),
+            ],
+            "{usages:?}"
+        );
+    }
+
+    /// ADR 0022, review n° 4, m-A: a name bound by an import is placed elsewhere by tree-sitter
+    /// for sure, and a server's « here » is doubtful; a name found by its name alone is a guess,
+    /// which the server's « here » may correct.
+    #[test]
+    fn a_usage_is_elsewhere_only_when_an_import_or_a_path_binds_it() {
+        let project = project(
+            vec![cargo("app", "", &[])],
+            &[
+                (
+                    "src/lib.rs",
+                    "pub mod kind;\npub mod item;\npub mod user;\n",
+                ),
+                ("src/kind.rs", "pub struct Kind;\n"),
+                ("src/item.rs", "pub struct Item;\n"),
+                (
+                    "src/user.rs",
+                    "use crate::kind::Kind;\npub fn f(k: Kind, i: Item) {}\n",
+                ),
+            ],
+        );
+        let file = project.file("src/user.rs").unwrap();
+        let mut found: Vec<(Position, bool)> = project
+            .usages(file)
+            .iter()
+            .map(|u| (u.at, u.elsewhere))
+            .collect();
+        found.sort();
+        assert_eq!(
+            found,
+            [(Position::new(1, 12), true), (Position::new(1, 21), false)]
+        );
+    }
+
     #[test]
     fn changes_reresolve_only_the_files_that_cite_changed_names() {
         let packs = Packs::builtin().unwrap();
@@ -1206,9 +1389,11 @@ mod tests {
                 structure: false,
                 files: ["crates/store/src/util.rs".to_owned()].into(),
                 dependents: BTreeSet::new(),
+                lookups: Vec::new(),
             }
         );
-        // A changed signature marks the citers of that name, not the file itself.
+        // A changed signature asks the language server for its users (ADR 0022). Should it not
+        // answer, they are the citers of that name, not the file itself.
         let text = "pub fn unique_helper(x: u32) {}\n";
         let facts = packs
             .extract("crates/store/src/util.rs", text.as_bytes())
@@ -1220,11 +1405,29 @@ mod tests {
             affected.files,
             ["crates/store/src/util.rs".to_owned()].into()
         );
-        assert_eq!(
-            affected.dependents,
-            ["crates/store/src/lib.rs".to_owned()].into()
+        assert_eq!(affected.dependents, BTreeSet::new());
+        // The symbol, by its id: found again at its position in the current content.
+        let symbol = affected.lookups[0].symbol.clone();
+        assert!(
+            symbol.as_str().ends_with("::util::unique_helper"),
+            "{symbol}"
         );
-        // Renaming a definition re-resolves the files citing either name.
+        assert_eq!(
+            project.name_at("crates/store/src/util.rs", &symbol),
+            Some(Position::new(0, 7))
+        );
+        assert_eq!(
+            affected.lookups,
+            [Lookup {
+                path: "crates/store/src/util.rs".into(),
+                symbol,
+                at: Position::new(0, 7),
+                content_hash: hash(text),
+                by_name: ["crates/store/src/lib.rs".to_owned()].into(),
+            }]
+        );
+        // Renaming a definition re-resolves the files citing either name. The name gone is
+        // looked up by name: no position is left to ask about.
         let text = "pub fn other_helper() {}\n";
         let facts = packs
             .extract("crates/store/src/util.rs", text.as_bytes())
@@ -1245,6 +1448,15 @@ mod tests {
                 .iter()
                 .any(|e| e.contains("util.rs")),
             "the call no longer resolves"
+        );
+        assert_eq!(
+            affected.dependents,
+            ["crates/store/src/lib.rs".to_owned()].into()
+        );
+        assert_eq!(
+            affected.lookups,
+            [],
+            "the new name, cited nowhere yet: no file can use it"
         );
         // Removing a file updates the structure and its citers.
         let affected = project.remove("crates/core/src/node.rs");

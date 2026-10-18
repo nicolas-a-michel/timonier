@@ -23,3 +23,8 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0016 | [Composants : structure, clustering stable, identité](0016-composants-et-clustering.md) | Accepté | 3 |
 | 0017 | [Rôles architecturaux et dépendances externes](0017-roles-architecturaux.md) | Accepté | 3 |
 | 0018 | [Compaction des arêtes de symboles](0018-compaction-des-aretes-de-symboles.md) | Accepté | 3 |
+| 0019 | [Protocole entre le démon et l'extension](0019-protocole-demon-extension.md) | Accepté | 4 |
+| 0020 | [Système de design de la webview](0020-systeme-de-design.md) | Accepté | 4 |
+| 0021 | [Carte d'architecture : rôles, zoom sémantique, mise en page](0021-carte-d-architecture.md) | Accepté | 4 |
+| 0022 | [Vérifier les usages et les dépendants par le serveur de langage](0022-verification-des-usages-par-le-lsp.md) | Accepté | 4 |
+| 0023 | [Suivre les fichiers d'exclusion](0023-fichiers-d-exclusion-suivis.md) | Accepté | 4 |

@@ -7,7 +7,9 @@ import { describe, it } from "node:test";
 const root = path.resolve(__dirname, "..", "..", "..");
 
 interface Manifest {
+  capabilities?: { untrustedWorkspaces?: { supported: boolean | "limited" } };
   contributes: {
+    configuration?: { properties: Record<string, { scope?: string }> };
     viewsContainers: { activitybar: { id: string; title: string; icon: string }[] };
     views: Record<string, { id: string; name: string; icon?: string }[]>;
     viewsWelcome: { view: string; contents: string }[];
@@ -67,5 +69,16 @@ describe("activity bar entry", () => {
     assert.equal(action.group, "navigation");
     const command = contributes.commands.find((c) => c.command === "timonier.openMap");
     assert.match(command?.icon ?? "", /^\$\([a-z-]+\)$/);
+  });
+});
+
+describe("the program the extension runs", () => {
+  it("is chosen in the user's settings only, never by the folder it serves", () => {
+    // A folder's .vscode/settings.json could otherwise name a program of its own.
+    assert.equal(contributes.configuration?.properties["timonier.daemon.path"]?.scope, "machine");
+  });
+
+  it("is not run in a folder that is not trusted", () => {
+    assert.equal(manifest.capabilities?.untrustedWorkspaces?.supported, false);
   });
 });

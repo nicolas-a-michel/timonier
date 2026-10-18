@@ -1,0 +1,70 @@
+/**
+ * The design system's demonstration page (ADR 0020), in development only: `npm run dev -w webview`,
+ * then /demo.html. `?theme=<name>` applies the variables VSCode gives a webview in that theme
+ * (test/themes, captured by editors/vscode/scripts/capture-themes.mjs); `?locale=fr`, French;
+ * `?map=timonier`, the map of a real repository (test/views).
+ * The contrast tests (`npm run test:a11y`) read this page in every theme.
+ */
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+
+import { resolveLocale } from "../i18n";
+import type { ViewSnapshot } from "../protocol";
+import { Demo } from "./Demo";
+import { MapDemo } from "./MapDemo";
+import { synthetic } from "./synthetic";
+import "../tokens.css";
+import "../design/design.css";
+import "../map/map.css";
+import "../app.css";
+import "./demo.css";
+
+interface Theme {
+  bodyClass: string;
+  variables: Record<string, string>;
+}
+
+const themes = import.meta.glob<Theme>("../../test/themes/*.json", { import: "default" });
+/** Views of real repositories (the `view_snapshot` example): `?map=<name>`. */
+const views = import.meta.glob<{ snapshot: ViewSnapshot }>("../../test/views/*/open.json", { import: "default" });
+
+/** Applies the theme as VSCode does: variables on <html>, its kind as a class of <body>. */
+async function applyTheme(name: string | null): Promise<string[]> {
+  const names = Object.keys(themes).map((file) => file.replace(/^.*\//, "").replace(/\.json$/, ""));
+  const load = name ? themes[`../../test/themes/${name}.json`] : undefined;
+  if (load) {
+    const theme = await load();
+    for (const [variable, value] of Object.entries(theme.variables)) {
+      document.documentElement.style.setProperty(variable, value);
+    }
+    document.body.className = theme.bodyClass;
+  }
+  return names.sort();
+}
+
+const params = new URLSearchParams(location.search);
+const theme = params.get("theme");
+const locale = resolveLocale(params.get("locale") ?? "en");
+const container = document.getElementById("root");
+if (!container) throw new Error("demo: the #root element is missing.");
+
+const map = params.get("map");
+/** `?map=synthetic&size=20x12x12&open=all`: a synthetic repository, everything open. */
+const size = (params.get("size") ?? "20x12x12").split("x").map(Number);
+const openAll = params.get("open") === "all";
+const ready = () => (document.body.dataset.ready = "true");
+
+void applyTheme(theme).then(async (names) => {
+  const view =
+    map === "synthetic"
+      ? () => Promise.resolve({ snapshot: synthetic(size[0] ?? 20, size[1] ?? 12, size[2] ?? 12) })
+      : map
+        ? views[`../../test/views/${map}/open.json`]
+        : undefined;
+  const content = view ? (
+    <MapDemo locale={locale} open={(await view()).snapshot} openAll={openAll} onRendered={ready} />
+  ) : (
+    <Demo locale={locale} theme={theme} themes={names} onRendered={ready} />
+  );
+  createRoot(container).render(<StrictMode>{content}</StrictMode>);
+});

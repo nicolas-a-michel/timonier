@@ -63,6 +63,17 @@ jobs:
       - run: npm run typecheck
       - name: Unit tests (webview, extension, Claude Code hooks)
         run: npm test
+      # WCAG AA of the design system in every VSCode theme (ADR 0020). The themes are the same on
+      # every system: Linux is enough.
+      - name: Accessibility tests (axe-core in Chromium)
+        if: runner.os == 'Linux'
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:a11y
+      # The integration tests launch a real daemon: `npm run test:integration` builds it.
+      - name: Install the toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Integration tests in VSCode (Linux, virtual display)
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:integration
