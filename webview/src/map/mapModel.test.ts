@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Role, ViewEdge, ViewNode } from "../protocol";
+import { NO_REVIEW, type Role, type ViewEdge, type ViewNode } from "../protocol";
 import type { ViewData } from "../viewModel";
 import { edgeKey } from "../viewModel";
 import { layout, roleHeight } from "./layout";
@@ -17,11 +17,21 @@ function node(id: string, role: Role | null, parent: string | null = null, child
     children,
     file: null,
     span: null,
+    review: null,
   };
 }
 
 function edge(src: string, dst: string, approximateOnly = true, weight = 1): ViewEdge {
-  return { src, dst, kind: "calls", weight, edges: 1, best: approximateOnly ? "tree_sitter" : "lsp", approximateOnly };
+  return {
+    src,
+    dst,
+    kind: "calls",
+    weight,
+    edges: 1,
+    best: approximateOnly ? "tree_sitter" : "lsp",
+    approximateOnly,
+    review: null,
+  };
 }
 
 function view(nodes: ViewNode[], edges: ViewEdge[] = []): ViewData {
@@ -30,6 +40,7 @@ function view(nodes: ViewNode[], edges: ViewEdge[] = []): ViewData {
     revision: 0,
     nodes: new Map(nodes.map((n) => [n.id, n])),
     edges: new Map(edges.map((e) => [edgeKey(e), e])),
+    review: NO_REVIEW,
   };
 }
 

@@ -5,7 +5,7 @@
  * Semantic zoom: the opening shows one box per role; a role opens on its components; a component
  * opens on what it holds (the daemon expands it), down to the symbols.
  */
-import type { Role, ViewEdge, ViewNode } from "../protocol";
+import type { EdgeReview, Role, ViewEdge, ViewNode } from "../protocol";
 import type { ViewData } from "../viewModel";
 
 /** A role group's id on the map: no view node can have it (ids have a `<prefix>:`). */
@@ -20,6 +20,8 @@ export interface MapGroup {
   /** Its members, sorted by name. */
   members: ViewNode[];
   open: boolean;
+  /** Its members changed since the last review (ADR 0024). */
+  changes: number;
 }
 
 export interface MapBox {
@@ -49,6 +51,11 @@ export interface MapEdge {
   weight: number;
   edges: number;
   kinds: ViewEdge["kind"][];
+  /**
+   * New since the last review when every edge it stands for is (ADR 0024); in a cycle added
+   * when one of them is.
+   */
+  review: EdgeReview | null;
 }
 
 export interface MapContent {
@@ -91,8 +98,16 @@ export function mapContent(view: ViewData, openRoles: ReadonlySet<string>, optio
   const groups = new Map<string, MapGroup>();
   for (const node of top) {
     const id = roleGroupId(node.role);
-    const group = groups.get(id) ?? { kind: "role", id, role: node.role, members: [], open: openRoles.has(id) };
+    const group = groups.get(id) ?? {
+      kind: "role",
+      id,
+      role: node.role,
+      members: [],
+      open: openRoles.has(id),
+      changes: 0,
+    };
     group.members.push(node);
+    if (node.review) group.changes++;
     groups.set(id, group);
   }
   const ordered = [...groups.values()].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
@@ -143,17 +158,27 @@ export function mapContent(view: ViewData, openRoles: ReadonlySet<string>, optio
 
   const lines = (ends: (id: string) => string | undefined): Map<string, MapEdge> => {
     const merged = new Map<string, MapEdge>();
+    const reviews = new Map<string, EdgeReview>();
     for (const edge of view.edges.values()) {
       const source = ends(edge.src);
       const target = ends(edge.dst);
       if (!source || !target || source === target) continue;
       const id = `${source}→${target}`;
-      const line = merged.get(id) ?? { id, source, target, approximate: true, weight: 0, edges: 0, kinds: [] };
+      const known = merged.get(id);
+      const line = known ?? { id, source, target, approximate: true, weight: 0, edges: 0, kinds: [], review: null };
       line.approximate &&= edge.approximateOnly;
       line.weight += edge.weight;
       line.edges += edge.edges;
       if (!line.kinds.includes(edge.kind)) line.kinds.push(edge.kind);
+      const seen = reviews.get(id);
+      const added = edge.review?.added ?? false;
+      const cycle = edge.review?.cycle ?? false;
+      reviews.set(id, seen ? { added: seen.added && added, cycle: seen.cycle || cycle } : { added, cycle });
       merged.set(id, line);
+    }
+    for (const [id, review] of reviews) {
+      const line = merged.get(id);
+      if (line) line.review = review.added || review.cycle ? review : null;
     }
     return merged;
   };
@@ -224,6 +249,11 @@ function budget(groups: MapGroup[], children: Map<string, ViewNode[]>, limit: nu
     level = next;
   }
   return drawn;
+}
+
+/** Whether something about `item` changed since the last review (ADR 0024). */
+export function changed(item: MapItem): boolean {
+  return item.kind === "role" ? item.changes > 0 : item.node.review !== null;
 }
 
 /** What a click on `item` asks: open or close a role group, expand or fold a box. */

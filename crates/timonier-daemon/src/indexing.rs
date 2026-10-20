@@ -7,9 +7,11 @@ use std::time::{Duration, Instant};
 
 use timonier_core::{
     ContentHash, EdgeKind, Freeze, Language, NodeId, NodeKind, Provenance, ScopeKey, ScopeUpdate,
-    SnapshotKind, SourceObservations,
+    Snapshot, SnapshotKind, SourceObservations,
 };
 use timonier_index::components::{Component, Components, Parent};
+use timonier_index::ecosystem::PackageInfo;
+use timonier_index::indexer::is_manifest;
 use timonier_index::lsp::{
     self, Call, LanguageServer, Lookup, LspError, Outcome, Priority, Queue, Task, USAGE_KINDS,
     Verified,
@@ -366,6 +368,15 @@ impl Pipeline {
         self.indexer.walked_dirs()
     }
 
+    /// Freezes the head as reviewed (ADR 0024). The review must be the working tree, as before a
+    /// commit snapshot: a store behind the indexer catches up first, and what the disk holds
+    /// that the watcher has yet to bring is read, a save made just before the click included.
+    pub fn mark_reviewed(&mut self) -> Result<Snapshot> {
+        self.catch_up()?;
+        self.sync_with_disk()?;
+        Ok(self.store.freeze(Freeze::ReviewMark)?)
+    }
+
     /// Where git keeps what the watcher follows; `None` outside a repository.
     pub(crate) fn git_places(&self) -> Option<git::Places> {
         git::places(self.root())
@@ -425,35 +436,54 @@ impl Pipeline {
                 head,
             });
         };
-        let Some(dirty) = self.indexable(&root, dirty) else {
+        // The manifests too: the commit's packages are those of its manifests (Q23).
+        let Some((dirty, manifests)) = self.indexable(&root, dirty) else {
             tracing::warn!(%sha, "git check-ignore failed: no commit snapshot this time");
             return Ok(Consolidated {
                 snapshot: None,
                 head,
             });
         };
-        let Some(committed) = git::committed(&root, &sha, &dirty) else {
+        let (Some(committed), Some(committed_manifests)) = (
+            git::committed(&root, &sha, &dirty),
+            git::committed(&root, &sha, &manifests),
+        ) else {
             tracing::warn!(%sha, "git could not read the commit: no commit snapshot this time");
             return Ok(Consolidated {
                 snapshot: None,
                 head,
             });
         };
+        let mut overlay = committed.clone();
+        overlay.extend(committed_manifests);
+        let packages = self.indexer.committed_packages(&overlay);
         // What the index holds of them before the freeze: the working tree the LSP followed,
-        // and the LSP verification of that content, which the freeze drops.
+        // and the LSP verification of that content, which the freeze drops. When the commit has
+        // other packages, every file is placed again, and every file's verification is kept.
         let held: BTreeMap<String, Option<FileEntry>> = dirty
             .iter()
             .map(|p| (p.clone(), self.indexer.project().file(p).cloned()))
             .collect();
-        let kept = self.verifications_of(&held)?;
-        let frozen = self.freeze_commit(&sha, &committed);
-        if !dirty.is_empty() {
+        let held_packages = packages.as_ref().map(|_| self.indexer.packages());
+        let kept = if held_packages.is_some() {
+            let every: BTreeMap<String, Option<FileEntry>> = self
+                .indexer
+                .project()
+                .files()
+                .map(|f| (f.path.clone(), Some(f.clone())))
+                .collect();
+            self.verifications_of(&every)?
+        } else {
+            self.verifications_of(&held)?
+        };
+        let frozen = self.freeze_commit(&sha, &committed, packages);
+        if !dirty.is_empty() || held_packages.is_some() {
             // Back to the working tree, in two steps (review n° 13, I13-1, I13-2). First as the
             // index held it, from memory: the state before the freeze comes back whole, its LSP
             // verification included, and nothing is asked (review n° 12, I12-1). Then the disk,
             // read as any change: what changed since the index last read it is followed from
             // what the LSP saw, not from the commit (review n° 11, I11-1).
-            match self.restore(&held, &kept) {
+            match self.restore(&held, &kept, held_packages) {
                 Ok(()) => {
                     let paths: Vec<PathBuf> = dirty.iter().map(PathBuf::from).collect();
                     head = add(head, self.refresh(&paths)?.apply);
@@ -527,9 +557,19 @@ impl Pipeline {
         &mut self,
         held: &BTreeMap<String, Option<FileEntry>>,
         kept: &HashMap<String, SourceObservations>,
+        packages: Option<Vec<PackageInfo>>,
     ) -> Result<()> {
         let start = Instant::now();
-        let restored = self.indexer.restore(held).map(|mut batch| {
+        let restored = self.indexer.restore(held).and_then(|mut batch| {
+            // The working tree's packages, when the commit had others (Q23).
+            if let Some(packages) = packages {
+                let placed = self.indexer.place_under(packages, true)?;
+                batch.updates.extend(placed.updates);
+                batch.changed.extend(placed.changed);
+            }
+            Ok(batch)
+        });
+        let restored = restored.map(|mut batch| {
             for (path, observations) in kept {
                 if let Some(entry) = self.indexer.project().file(path)
                     && observations.computed_on == Some(entry.content_hash)
@@ -552,30 +592,38 @@ impl Pipeline {
         recorded
     }
 
-    /// The dirty paths the walk would index (ADR 0013, 0015): read by a pack, a valid id, and
-    /// accepted by the walk; or, gone from the working tree, in no hidden directory and not
-    /// ignored by git. `None` if git fails.
-    fn indexable(&mut self, root: &Path, dirty: Vec<String>) -> Option<Vec<String>> {
-        let candidates: Vec<String> = dirty
+    /// The dirty source files and manifests the walk would read (ADR 0013, 0015, 0025): a
+    /// source read by a pack, with a valid id; accepted by the walk, or, gone from the working
+    /// tree, in no hidden directory and not ignored by git (review n° 2 of Phase 5, m-7, for the
+    /// manifests). `None` if git fails.
+    fn indexable(&mut self, root: &Path, dirty: Vec<String>) -> Option<(Vec<String>, Vec<String>)> {
+        let (manifests, sources): (Vec<String>, Vec<String>) =
+            dirty.into_iter().partition(|p| is_manifest(p));
+        let sources: Vec<String> = sources
             .into_iter()
             .filter(|p| self.indexer.packs().reads(p) && NodeId::file(p).is_ok())
             .collect();
-        if candidates.is_empty() {
-            return Some(candidates);
+        if sources.is_empty() && manifests.is_empty() {
+            return Some((sources, manifests));
         }
-        let sources = self.indexer.walk_sources();
-        let gone: Vec<String> = candidates
+        let (walked_sources, walked_manifests) = self.indexer.walk_files();
+        let gone: Vec<String> = sources
             .iter()
+            .chain(&manifests)
             .filter(|p| !root.join(p).exists() && !p.split('/').any(|s| s.starts_with('.')))
             .cloned()
             .collect();
         let ignored = git::ignored(root, &gone)?;
-        Some(
-            candidates
+        let kept = |walked: &BTreeSet<String>, paths: Vec<String>| -> Vec<String> {
+            paths
                 .into_iter()
-                .filter(|p| sources.contains(p) || (gone.contains(p) && !ignored.contains(p)))
-                .collect(),
-        )
+                .filter(|p| walked.contains(p) || (gone.contains(p) && !ignored.contains(p)))
+                .collect()
+        };
+        Some((
+            kept(&walked_sources, sources),
+            kept(&walked_manifests, manifests),
+        ))
     }
 
     /// The committed versions in, the full re-clustering (spec, ADR 0016), the freeze.
@@ -583,12 +631,32 @@ impl Pipeline {
         &mut self,
         sha: &str,
         committed: &BTreeMap<String, Option<Vec<u8>>>,
+        packages: Option<Vec<PackageInfo>>,
     ) -> Result<timonier_core::Snapshot> {
         if !committed.is_empty() {
             let batch = self.indexer.apply_contents(committed)?;
             if !batch.updates.is_empty() {
                 self.store.apply_all(batch.updates)?;
             }
+        }
+        // The commit's packages (Q23): every file placed again, its ids may change. Its LSP
+        // verification would hang from ids the commit has not, and hide tree-sitter's edges: it
+        // goes for the freeze, and comes back with the working tree.
+        if let Some(packages) = packages {
+            let mut batch = self.indexer.place_under(packages, false)?;
+            for path in &batch.changed {
+                if let Some(entry) = self.indexer.project().file(path)
+                    && let Ok(scope) = ScopeKey::of_file(&entry.id)
+                {
+                    batch.updates.push(
+                        ScopeUpdate::new(scope).with_observations(
+                            SourceObservations::new(Provenance::Lsp, Vec::new())
+                                .computed_on(entry.content_hash),
+                        ),
+                    );
+                }
+            }
+            self.store.apply_all(batch.updates)?;
         }
         let structure = self.indexer.recluster();
         self.store.apply_all(structure.updates)?;

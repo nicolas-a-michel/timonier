@@ -1,6 +1,7 @@
 //! Package ecosystems (ADR 0012, 0013): packages found in manifests, and the module path of a
 //! file. Cargo and npm are compiled in; a pack names its ecosystem.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
@@ -76,6 +77,16 @@ struct Candidate {
 /// A manifest that cannot be read or parsed is left out and reported, with the others kept: a
 /// broken fixture, or a manifest being edited, must not stop the indexing.
 pub(crate) fn discover(root: &Path, manifests: &[String]) -> (Vec<PackageInfo>, Vec<Error>) {
+    discover_with(root, manifests, &BTreeMap::new())
+}
+
+/// [`discover`], with the files of `overlay` in place of the disk's (`None`: absent): a
+/// commit's manifests and Cargo libraries, for its snapshot (Q23).
+pub(crate) fn discover_with(
+    root: &Path,
+    manifests: &[String],
+    overlay: &BTreeMap<String, Option<Vec<u8>>>,
+) -> (Vec<PackageInfo>, Vec<Error>) {
     let mut problems = Vec::new();
     let mut candidates = Vec::new();
     for manifest in manifests {
@@ -89,7 +100,14 @@ pub(crate) fn discover(root: &Path, manifests: &[String]) -> (Vec<PackageInfo>, 
             .trim_end_matches('/')
             .to_owned();
         let path = root.join(manifest);
-        let text = match std::fs::read_to_string(&path) {
+        let read = match overlay.get(manifest) {
+            Some(Some(bytes)) => String::from_utf8(bytes.clone())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e)),
+            // Absent from the overlay's tree.
+            Some(None) => continue,
+            None => std::fs::read_to_string(&path),
+        };
+        let text = match read {
             Ok(text) => text,
             Err(source) => {
                 problems.push(Error::Io { path, source });
@@ -155,7 +173,15 @@ pub(crate) fn discover(root: &Path, manifests: &[String]) -> (Vec<PackageInfo>, 
     for package in &mut accepted {
         if package.ecosystem == Ecosystem::Cargo {
             let lib = package.lib_path.as_deref().unwrap_or("src/lib.rs");
-            package.has_lib = root.join(&package.dir).join(lib).is_file();
+            let relative = if package.dir.is_empty() {
+                lib.to_owned()
+            } else {
+                format!("{}/{lib}", package.dir)
+            };
+            package.has_lib = match overlay.get(&relative) {
+                Some(content) => content.is_some(),
+                None => root.join(&package.dir).join(lib).is_file(),
+            };
         }
     }
     accepted.sort_by(|a, b| a.id.cmp(&b.id));

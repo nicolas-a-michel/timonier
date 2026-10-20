@@ -7,6 +7,9 @@
   "command.showLog.title": "Show the Log",
   "capabilities.untrustedWorkspaces": "Timonier runs a program on the project and indexes its code: it waits until the folder is trusted.",
   "config.daemon.path": "Path to the `timonier` program that runs the project's daemon. Empty: `timonier` on the `PATH`.",
+  "config.map.density": "How dense the architecture map is drawn: the size of its boxes and the room between them.",
+  "config.map.density.comfortable": "Room to read: larger boxes, wider gaps.",
+  "config.map.density.compact": "More on screen: smaller boxes, tighter gaps.",
   "command.map.fitView.title": "Fit the Map to the Window",
   "command.map.zoomIn.title": "Zoom In on the Map",
   "command.map.zoomOut.title": "Zoom Out on the Map",
@@ -14,5 +17,8 @@
   "command.map.moveSelection.title": "Move the Selection on the Map…",
   "command.map.resetLayout.title": "Reset the Layout of the Map",
   "command.map.toggle.title": "Open or Close the Selection on the Map",
-  "command.map.openCode.title": "Go to the Code of the Selection on the Map"
+  "command.map.openCode.title": "Go to the Code of the Selection on the Map",
+  "command.map.onlyChanges.title": "Highlight the Changes Since the Last Review on the Map (On or Off)",
+  "command.map.reviewDetails.title": "Show or Hide the Details of the Review Summary on the Map",
+  "command.markReviewed.title": "Mark as Reviewed"
 }

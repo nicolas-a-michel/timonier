@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use timonier_core::NodeKind;
 use timonier_core::protocol::ViewSpec;
 use timonier_daemon::Pipeline;
-use timonier_daemon::view::{Graph, ViewState};
+use timonier_daemon::view::{self, ViewState};
 use timonier_store::Store;
 
 fn main() {
@@ -27,7 +27,7 @@ fn main() {
     let mut pipeline = Pipeline::new(&root, store.clone()).expect("pipeline");
     let report = pipeline.index_all().expect("index");
     let mut reader = store.reader().expect("reader");
-    let graph = Graph::load(&mut reader).expect("graph");
+    let graph = view::load(&mut reader).expect("graph");
     let head = reader.head().expect("head").seq;
     let open: Vec<_> = reader
         .nodes_at(head)
@@ -41,7 +41,7 @@ fn main() {
         ("top", ViewSpec::default()),
         ("open", ViewSpec { expanded: open }),
     ] {
-        let snapshot = ViewState::compute(&graph, &spec).snapshot(1, 0);
+        let snapshot = ViewState::compute(&graph, &spec, None).snapshot(1, 0);
         let file = out.join(format!("{name}.json"));
         let json = serde_json::to_string_pretty(&serde_json::json!({
             "spec": spec,

@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ViewEdge, ViewNode, ViewSnapshot } from "../protocol";
+import { NO_REVIEW, type ViewEdge, type ViewNode, type ViewSnapshot } from "../protocol";
 import { edgeKey, type ViewData } from "../viewModel";
 import { BOX, layout } from "./layout";
 import { mapContent, roleGroupId } from "./mapModel";
@@ -22,6 +22,7 @@ function data(nodes: ViewNode[], edges: ViewEdge[]): ViewData {
     revision: 0,
     nodes: new Map(nodes.map((n) => [n.id, n])),
     edges: new Map(edges.map((e) => [edgeKey(e), e])),
+    review: NO_REVIEW,
   };
 }
 
@@ -45,6 +46,7 @@ function changes(): { name: string; nodes: ViewNode[]; edges: ViewEdge[] }[] {
     edges: 1,
     best: "tree_sitter",
     approximateOnly: true,
+    review: null,
   };
   return [
     { name: "a file added", nodes: [...open.nodes, added], edges: open.edges },

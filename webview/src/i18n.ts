@@ -31,6 +31,7 @@ export interface Messages {
   closeAll: string;
   /** Forget the boxes moved by hand (ADR 0021). */
   resetLayout: string;
+  markReviewed: string;
   mapTools: string;
   openHint: string;
   /** What every node says to screen readers, besides its own name: how to move on. */
@@ -47,6 +48,60 @@ export interface Messages {
   /** An edge of the map, for screen readers. */
   edgeLabel: (source: string, target: string, links: number, approximate: boolean) => string;
   kinds: Record<"repo" | "component" | "package" | "file" | "symbol", string>;
+  /** The review diff (ADR 0024). */
+  review: ReviewMessages;
+}
+
+export interface ReviewMessages {
+  /** The words of the badges. */
+  added: string;
+  modified: string;
+  cycle: string;
+  fanIn: (before: number, after: number) => string;
+  fanOut: (before: number, after: number) => string;
+  /** The same, in full: the details panel and screen readers. */
+  addedLong: string;
+  modifiedLong: string;
+  cycleLong: string;
+  fanInLong: (before: number, after: number) => string;
+  fanOutLong: (before: number, after: number) => string;
+  /** The count of a closed role's changed members, in words (« 2 modifiés »). */
+  changedCount: (count: number) => string;
+  /** The legend of the marks. */
+  legendTitle: string;
+  legendCycle: string;
+  legendJump: string;
+  /** On a line of the map. */
+  linkAdded: string;
+  linkCycle: string;
+  /** Members of a role changed since the review. */
+  changes: (count: number) => string;
+  changedMembers: (names: string) => string;
+  /** The filter that quiets what did not change (Q31). */
+  onlyChanges: string;
+  /** The summary. */
+  summaryLabel: string;
+  noReviewTitle: string;
+  noReviewText: string;
+  since: (date: string) => string;
+  nothing: string;
+  details: string;
+  hideDetails: string;
+  addedBoxes: (count: number) => string;
+  modifiedBoxes: (count: number) => string;
+  removedBoxes: (count: number) => string;
+  dependenciesAdded: (count: number) => string;
+  dependenciesRemoved: (count: number) => string;
+  cycles: (count: number) => string;
+  jumps: (count: number) => string;
+  /** The headings of the lists. */
+  addedHeading: string;
+  modifiedHeading: string;
+  removedHeading: string;
+  dependenciesAddedHeading: string;
+  dependenciesRemovedHeading: string;
+  cyclesHeading: string;
+  jumpsHeading: string;
 }
 
 export const messages: Record<Locale, Messages> = {
@@ -82,6 +137,7 @@ export const messages: Record<Locale, Messages> = {
     zoomOut: "Zoom out",
     closeAll: "Back to the roles",
     resetLayout: "Reset the layout",
+    markReviewed: "Mark as reviewed",
     mapTools: "Map",
     openHint: "Enter opens it.",
     nodeHint: "Arrow keys go to the nearest box; Alt and an arrow move it.",
@@ -95,6 +151,48 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} to ${target}: ${links === 1 ? "1 link" : `${links} links`}, ${approximate ? "approximate" : "certain"}`,
     kinds: { repo: "Repository", component: "Component", package: "Package", file: "File", symbol: "Symbol" },
+    review: {
+      added: "New",
+      modified: "Modified",
+      cycle: "Cycle",
+      fanIn: (before, after) => `Fan-in ${before} → ${after}`,
+      fanOut: (before, after) => `Fan-out ${before} → ${after}`,
+      addedLong: "New since the last review",
+      modifiedLong: "Modified since the last review",
+      cycleLong: "In a cycle added since the last review",
+      fanInLong: (before, after) => `${after} boxes depend on it, against ${before} at the review`,
+      fanOutLong: (before, after) => `Depends on ${after} boxes, against ${before} at the review`,
+      linkAdded: "New",
+      linkCycle: "Cycle",
+      changes: (count) => (count === 1 ? "1 change" : `${count} changes`),
+      changedCount: (count) => `${count} modified`,
+      legendTitle: "Changes since the review",
+      legendCycle: "In a cycle added",
+      legendJump: "Fan-in or fan-out that jumped",
+      changedMembers: (names) => `Changed since the last review: ${names}.`,
+      onlyChanges: "Highlight the changes",
+      summaryLabel: "Since the last review",
+      noReviewTitle: "No review yet",
+      noReviewText: "Mark the map as reviewed: what changes afterwards shows here and on the map.",
+      since: (date) => `Since your review of ${date}`,
+      nothing: "Nothing has changed since.",
+      details: "Details",
+      hideDetails: "Hide the details",
+      addedBoxes: (count) => (count === 1 ? "1 new box" : `${count} new boxes`),
+      modifiedBoxes: (count) => (count === 1 ? "1 modified" : `${count} modified`),
+      removedBoxes: (count) => (count === 1 ? "1 removed" : `${count} removed`),
+      dependenciesAdded: (count) => (count === 1 ? "1 dependency added" : `${count} dependencies added`),
+      dependenciesRemoved: (count) => (count === 1 ? "1 dependency removed" : `${count} dependencies removed`),
+      cycles: (count) => (count === 1 ? "1 cycle added" : `${count} cycles added`),
+      jumps: (count) => (count === 1 ? "1 jump of fan-in or fan-out" : `${count} jumps of fan-in or fan-out`),
+      addedHeading: "New",
+      modifiedHeading: "Modified",
+      removedHeading: "Removed",
+      dependenciesAddedHeading: "Dependencies added",
+      dependenciesRemovedHeading: "Dependencies removed",
+      cyclesHeading: "Cycles added",
+      jumpsHeading: "Fan-in and fan-out that jumped",
+    },
   },
   fr: {
     startingTitle: "Démarrage de Timonier",
@@ -128,6 +226,7 @@ export const messages: Record<Locale, Messages> = {
     zoomOut: "Zoom arrière",
     closeAll: "Revenir aux rôles",
     resetLayout: "Réinitialiser la disposition",
+    markReviewed: "Marquer comme revu",
     mapTools: "Carte",
     openHint: "Entrée l'ouvre.",
     nodeHint: "Les flèches mènent à la boîte la plus proche ; Alt et une flèche la déplacent.",
@@ -146,6 +245,48 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} vers ${target} : ${links === 1 ? "1 lien" : `${links} liens`}, ${approximate ? "approché" : "sûr"}`,
     kinds: { repo: "Dépôt", component: "Composant", package: "Paquet", file: "Fichier", symbol: "Symbole" },
+    review: {
+      added: "Nouveau",
+      modified: "Modifié",
+      cycle: "Cycle",
+      fanIn: (before, after) => `Fan-in ${before} → ${after}`,
+      fanOut: (before, after) => `Fan-out ${before} → ${after}`,
+      addedLong: "Nouveau depuis la dernière revue",
+      modifiedLong: "Modifié depuis la dernière revue",
+      cycleLong: "Dans un cycle ajouté depuis la dernière revue",
+      fanInLong: (before, after) => `${after} boîtes en dépendent, contre ${before} à la revue`,
+      fanOutLong: (before, after) => `Dépend de ${after} boîtes, contre ${before} à la revue`,
+      linkAdded: "Nouveau",
+      linkCycle: "Cycle",
+      changes: (count) => (count === 1 ? "1 changement" : `${count} changements`),
+      changedCount: (count) => (count === 1 ? "1 modifié" : `${count} modifiés`),
+      legendTitle: "Changements depuis la revue",
+      legendCycle: "Dans un cycle ajouté",
+      legendJump: "Fan-in ou fan-out qui a bondi",
+      changedMembers: (names) => `Changé depuis la dernière revue : ${names}.`,
+      onlyChanges: "Mettre en avant les changements",
+      summaryLabel: "Depuis la dernière revue",
+      noReviewTitle: "Pas encore de revue",
+      noReviewText: "Marquez la carte comme revue : ce qui change ensuite apparaîtra ici et sur la carte.",
+      since: (date) => `Depuis votre revue du ${date}`,
+      nothing: "Rien n'a changé depuis.",
+      details: "Détails",
+      hideDetails: "Masquer les détails",
+      addedBoxes: (count) => (count === 1 ? "1 nouvelle boîte" : `${count} nouvelles boîtes`),
+      modifiedBoxes: (count) => (count === 1 ? "1 modifiée" : `${count} modifiées`),
+      removedBoxes: (count) => (count === 1 ? "1 supprimée" : `${count} supprimées`),
+      dependenciesAdded: (count) => (count === 1 ? "1 dépendance ajoutée" : `${count} dépendances ajoutées`),
+      dependenciesRemoved: (count) => (count === 1 ? "1 dépendance retirée" : `${count} dépendances retirées`),
+      cycles: (count) => (count === 1 ? "1 cycle ajouté" : `${count} cycles ajoutés`),
+      jumps: (count) => (count === 1 ? "1 bond de fan-in ou de fan-out" : `${count} bonds de fan-in ou de fan-out`),
+      addedHeading: "Nouvelles",
+      modifiedHeading: "Modifiées",
+      removedHeading: "Supprimées",
+      dependenciesAddedHeading: "Dépendances ajoutées",
+      dependenciesRemovedHeading: "Dépendances retirées",
+      cyclesHeading: "Cycles ajoutés",
+      jumpsHeading: "Fan-in et fan-out qui ont bondi",
+    },
   },
 };
 

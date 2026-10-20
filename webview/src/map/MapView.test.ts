@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ViewSnapshot } from "../protocol";
+import { NO_REVIEW, type ViewSnapshot } from "../protocol";
 import { edgeKey, type ViewData } from "../viewModel";
 import { mapContent, roleGroupId } from "./mapModel";
 import { displayedFiles } from "./MapView";
@@ -20,6 +20,7 @@ function view(name: string): ViewData {
     revision: 0,
     nodes: new Map(snapshot.nodes.map((n) => [n.id, n])),
     edges: new Map(snapshot.edges.map((e) => [edgeKey(e), e])),
+    review: NO_REVIEW,
   };
 }
 

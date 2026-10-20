@@ -1,7 +1,7 @@
 // Generated from crates/timonier-core/src/protocol.rs by its test `typescript_is_up_to_date`.
 // Do not edit: change the Rust types, then run `TIMONIER_UPDATE_TS=1 cargo test -p timonier-core`.
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export type NodeKind = "repo" | "component" | "package" | "file" | "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
 
@@ -60,7 +60,54 @@ lspAnswers: LspAnswers,
 /**
  * Lookups of dependents since the start (ADR 0022).
  */
-lookups: LookupCounts, };
+lookups: LookupCounts, 
+/**
+ * The last review mark; `null` before the first review (ADR 0024).
+ */
+lastReview: ReviewMark | null, };
+
+export type ReviewMark = { seq: number, 
+/**
+ * Milliseconds since the Unix epoch.
+ */
+timestampMs: number, };
+
+export type ReviewChange = "added" | "modified";
+
+export type FanJump = { before: number, after: number, };
+
+export type NodeReview = { change: ReviewChange | null, fanIn: FanJump | null, fanOut: FanJump | null, 
+/**
+ * In a cycle added since the review.
+ */
+cycle: boolean, };
+
+export type EdgeReview = { 
+/**
+ * No edge linked these two nodes at the review, and a change of the code explains it.
+ */
+added: boolean, 
+/**
+ * Between two boxes of a cycle added since the review.
+ */
+cycle: boolean, };
+
+export type ReviewBox = { id: string, kind: NodeKind, name: string, role: Role | null, 
+/**
+ * The name of the box that holds it, to tell apart two of the same name; `null` at the
+ * top.
+ */
+within: string | null, };
+
+export type ReviewDependency = { src: ReviewBox, dst: ReviewBox, };
+
+export type ReviewFan = { item: ReviewBox, fanIn: FanJump | null, fanOut: FanJump | null, };
+
+export type ReviewSummary = { 
+/**
+ * The review the diff starts from; `null` before the first one: no diff then (Q27).
+ */
+since: ReviewMark | null, added: Array<ReviewBox>, modified: Array<ReviewBox>, removed: Array<ReviewBox>, dependenciesAdded: Array<ReviewDependency>, dependenciesRemoved: Array<ReviewDependency>, cycles: Array<Array<ReviewBox>>, fans: Array<ReviewFan>, };
 
 export type ViewSpec = { expanded: string[], };
 
@@ -80,7 +127,12 @@ children: number,
 /**
  * The file to open, relative to the root: the file itself, or the symbol's.
  */
-file: string | null, span: Span | null, };
+file: string | null, span: Span | null, 
+/**
+ * What changed in it since the last review; `null` without change, and before the first
+ * review (ADR 0024).
+ */
+review: NodeReview | null, };
 
 export type ViewEdge = { src: string, dst: string, kind: EdgeKind, weight: number, 
 /**
@@ -94,11 +146,15 @@ best: Provenance,
 /**
  * Tree-sitter alone: drawn differently (spec « Précision affichée »).
  */
-approximateOnly: boolean, };
+approximateOnly: boolean, 
+/**
+ * What changed since the last review; `null` without change (ADR 0024).
+ */
+review: EdgeReview | null, };
 
 export type EdgeRef = { src: string, dst: string, kind: EdgeKind, };
 
-export type ViewSnapshot = { subscription: number, revision: number, nodes: Array<ViewNode>, edges: Array<ViewEdge>, };
+export type ViewSnapshot = { subscription: number, revision: number, nodes: Array<ViewNode>, edges: Array<ViewEdge>, review: ReviewSummary, };
 
 export type ViewDelta = { subscription: number, base: number, revision: number, 
 /**
@@ -108,7 +164,11 @@ nodes: Array<ViewNode>, removedNodes: string[],
 /**
  * Edges added or changed.
  */
-edges: Array<ViewEdge>, removedEdges: Array<EdgeRef>, };
+edges: Array<ViewEdge>, removedEdges: Array<EdgeRef>, 
+/**
+ * The review summary, when it changed.
+ */
+review: ReviewSummary | null, };
 
 export type FilesParams = { paths: Array<string>, };
 
@@ -186,17 +246,19 @@ parent: string, x: number, y: number, };
 
 export type Direction = "left" | "right" | "up" | "down";
 
+export type Density = "comfortable" | "compact";
+
 export type DaemonState = "starting" | "connected" | "restarting" | "unavailable";
 
-export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" };
+export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" };
 
 export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "type": "delta", delta: ViewDelta, } | { "type": "daemon", state: DaemonState, 
 /**
  * Why, for a person: the error, the program looked for.
  */
-detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, };
+detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -212,6 +274,7 @@ export const METHODS = {
   OUTGOING_CALLS: "lsp/outgoingCalls",
   DEFINITIONS: "lsp/definitions",
   REFERENCES: "lsp/references",
+  REVIEW_MARK: "review/mark",
 } as const;
 
 export const ERRORS = {

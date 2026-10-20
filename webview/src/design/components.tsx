@@ -6,7 +6,7 @@ import { cloneElement, useId, useRef, useState, type KeyboardEvent, type ReactEl
 
 import { messages, type Locale } from "../i18n";
 import type { Role } from "../protocol";
-import { RoleIcon, ToneIcon, type Tone } from "./icons";
+import { ChangeIcon, RoleIcon, ToneIcon, type Tone } from "./icons";
 
 export interface ComponentBoxProps {
   name: string;
@@ -18,6 +18,8 @@ export interface ComponentBoxProps {
   /** Out of the current focus: shown, but quieter. */
   dimmed?: boolean;
   badges?: ReactNode;
+  /** After the name, in the title bar: what changed since the last review (ADR 0024). */
+  flag?: ReactNode;
   /** Takes the focus and carries its name. Off where a container does it (a map node). */
   focusable?: boolean;
 }
@@ -31,6 +33,7 @@ export function ComponentBox({
   selected,
   dimmed,
   badges,
+  flag,
   focusable = true,
 }: ComponentBoxProps) {
   const t = messages[locale];
@@ -49,6 +52,7 @@ export function ComponentBox({
       <div className="tim-box__header" data-contrast="icon">
         <RoleIcon role={role} />
         <span className="tim-box__name">{name}</span>
+        {flag && <span className="tim-box__flag">{flag}</span>}
       </div>
       <div className="tim-box__body">
         <span className="tim-box__role">{roleLabel}</span>
@@ -81,7 +85,8 @@ export function EdgeLine({ d, approximate, label }: EdgeLineProps) {
 }
 
 /** What the two kinds of edges mean. */
-export function EdgeLegend({ locale }: { locale: Locale }) {
+/** The legend of the lines, and of the change marks once there is a review (ADR 0024). */
+export function EdgeLegend({ locale, changes = false }: { locale: Locale; changes?: boolean }) {
   const t = messages[locale];
   const sample = (approximate: boolean, label: string) => (
     <li className="tim-legend__item">
@@ -106,6 +111,28 @@ export function EdgeLegend({ locale }: { locale: Locale }) {
           <span>{t.edgeDirection}</span>
         </li>
       </ul>
+      {changes && (
+        <>
+          <p className="tim-legend__title tim-legend__subtitle">{t.review.legendTitle}</p>
+          <ul className="tim-legend__list tim-legend__changes">
+            {(
+              [
+                ["added", t.review.added],
+                ["modified", t.review.modified],
+                ["cycle", t.review.legendCycle],
+                ["fanIn", t.review.legendJump],
+              ] as const
+            ).map(([kind, label]) => (
+              <li key={kind} className="tim-legend__item">
+                <span className="tim-legend__mark" data-contrast="icon">
+                  <ChangeIcon kind={kind} />
+                </span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </figure>
   );
 }
@@ -114,13 +141,15 @@ export interface BadgeProps {
   tone: Tone;
   /** Says the meaning in words: the icon only repeats it. */
   label: string;
+  /** In place of the tone's shape, where the meaning has its own (a change, ADR 0024). */
+  icon?: ReactNode;
 }
 
 /** A discreet summary next to a box or a title: a shape and words, never a colour alone. */
-export function Badge({ tone, label }: BadgeProps) {
+export function Badge({ tone, label, icon }: BadgeProps) {
   return (
     <span className={`tim-badge tim-badge--${tone}`} data-contrast="icon">
-      <ToneIcon tone={tone} />
+      {icon ?? <ToneIcon tone={tone} />}
       <span>{label}</span>
     </span>
   );

@@ -42,6 +42,8 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
       return typeof message.file === "string" && isSpan(message.span);
     case "pins":
       return isPins(message.pins);
+    case "markReviewed":
+      return true;
     case "rendered":
       return isCount(message.subscription) && isCount(message.revision) && isCount(message.nodes);
     default:

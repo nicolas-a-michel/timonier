@@ -2,13 +2,15 @@
  * What the webview keeps of its view, and what it does with each host message (ADR 0019).
  * Pure: `main.tsx` feeds it the messages and posts the effects back to the host.
  */
-import type { DaemonState, EdgeRef, HostMessage, ViewEdge, ViewNode, WebviewMessage } from "./protocol";
+import type { DaemonState, EdgeRef, HostMessage, ReviewSummary, ViewEdge, ViewNode, WebviewMessage } from "./protocol";
 
 export interface ViewData {
   subscription: number;
   revision: number;
   nodes: Map<string, ViewNode>;
   edges: Map<string, ViewEdge>;
+  /** What changed since the last review, whatever the zoom (ADR 0024). */
+  review: ReviewSummary;
 }
 
 export interface ViewModel {
@@ -43,6 +45,7 @@ export function reduce(model: ViewModel, message: HostMessage): Reduced {
     // For the map itself (main.tsx), not for the view's data.
     case "command":
     case "pins":
+    case "density":
       return { model, effects: [] };
     case "daemon":
       return { model: { ...model, daemon: { state: message.state, detail: message.detail } }, effects: [] };
@@ -53,6 +56,7 @@ export function reduce(model: ViewModel, message: HostMessage): Reduced {
         revision: snapshot.revision,
         nodes: new Map(snapshot.nodes.map((node) => [node.id, node])),
         edges: new Map(snapshot.edges.map((edge) => [edgeKey(edge), edge])),
+        review: snapshot.review,
       };
       return { model: { ...model, view, resyncing: false }, effects: [rendered(view)] };
     }
@@ -74,7 +78,13 @@ export function reduce(model: ViewModel, message: HostMessage): Reduced {
       for (const edge of delta.removedEdges) edges.delete(edgeKey(edge));
       for (const node of delta.nodes) nodes.set(node.id, node);
       for (const edge of delta.edges) edges.set(edgeKey(edge), edge);
-      const next: ViewData = { subscription: view.subscription, revision: delta.revision, nodes, edges };
+      const next: ViewData = {
+        subscription: view.subscription,
+        revision: delta.revision,
+        nodes,
+        edges,
+        review: delta.review ?? view.review,
+      };
       return { model: { ...model, view: next }, effects: [rendered(next)] };
     }
   }

@@ -424,6 +424,54 @@ fn snapshots_are_listed_and_the_last_review_mark_is_found() {
     ));
 }
 
+/// ADR 0024: a review mark keeps the content of each file as reviewed, for the last review only.
+#[test]
+fn a_review_mark_keeps_the_content_of_each_file() {
+    let (_dir, store) = open();
+    demo(&store);
+    let contents = || store.reader().unwrap().file_contents().unwrap();
+    let reviewed = |seq| store.reader().unwrap().reviewed_contents(seq).unwrap();
+    let first_contents = contents();
+    assert_eq!(first_contents.len(), 2, "{first_contents:?}");
+    let commit = store
+        .freeze(Freeze::Commit {
+            sha: "6d3e0f8".into(),
+        })
+        .unwrap();
+    assert!(reviewed(commit.seq).is_empty(), "a commit keeps none");
+    let first = store.freeze(Freeze::ReviewMark).unwrap();
+    assert_eq!(reviewed(first.seq), first_contents);
+    store
+        .apply_all(vec![file_scope("src/b.rs", &[("h", 4)], &[])])
+        .unwrap();
+    let second_contents = contents();
+    assert_ne!(second_contents, first_contents);
+    assert_eq!(reviewed(first.seq), first_contents, "as reviewed");
+    let second = store.freeze(Freeze::ReviewMark).unwrap();
+    assert!(reviewed(first.seq).is_empty(), "only the last review");
+    assert_eq!(reviewed(second.seq), second_contents);
+}
+
+/// Review n° 1 of Phase 5, m11: reads in one transaction see one state, whatever the writer
+/// commits meanwhile.
+#[test]
+fn reads_in_one_transaction_see_one_state() {
+    let (_dir, store) = open();
+    demo(&store);
+    let mut reader = store.reader().unwrap();
+    let (first, again) = reader
+        .consistent(|reader| -> timonier_store::Result<_> {
+            let first = reader.file_contents()?;
+            store
+                .apply_all(vec![file_scope("src/b.rs", &[("h", 9)], &[])])
+                .expect("the writer goes on");
+            Ok((first, reader.file_contents()?))
+        })
+        .unwrap();
+    assert_eq!(first, again, "one state inside");
+    assert_ne!(reader.file_contents().unwrap(), first, "the new one after");
+}
+
 #[test]
 fn the_diff_since_a_review_lists_additions_removals_and_changes() {
     let (_dir, store) = open();

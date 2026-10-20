@@ -8,5 +8,8 @@
   "Right": "Droite",
   "Up": "Haut",
   "Down": "Bas",
-  "Which way does the selection move?": "Dans quel sens déplacer la sélection ?"
+  "Which way does the selection move?": "Dans quel sens déplacer la sélection ?",
+  "Timonier: marked as reviewed": "Timonier : marqué comme revu",
+  "Timonier could not mark the map as reviewed: {0}": "Timonier n'a pas pu marquer la carte comme revue : {0}",
+  "Timonier is not connected to its daemon yet.": "Timonier n'est pas encore connecté à son démon."
 }

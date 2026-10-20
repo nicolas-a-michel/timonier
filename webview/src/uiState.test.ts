@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import { roleGroupId } from "./map/mapModel";
-import type { ViewNode } from "./protocol";
-import { applyToggle, closeAll, initialUi, parseUi } from "./uiState";
+import { NO_REVIEW, type ViewNode } from "./protocol";
+import { applyToggle, closeAll, initialUi, parseUi, toggleChanges } from "./uiState";
 import type { ViewData } from "./viewModel";
 
 function node(id: string, parent: string | null, children: number): ViewNode {
-  return { id, kind: "package", name: id, parent, role: null, language: null, children, file: null, span: null };
+  return {
+    id,
+    kind: "package",
+    name: id,
+    parent,
+    role: null,
+    language: null,
+    children,
+    file: null,
+    span: null,
+    review: null,
+  };
 }
 
 const view: ViewData = {
@@ -17,6 +28,7 @@ const view: ViewData = {
     ["file:a.rs", node("file:a.rs", "pkg:cargo/a", 0)],
   ]),
   edges: new Map(),
+  review: NO_REVIEW,
 };
 
 describe("view state", () => {
@@ -43,6 +55,15 @@ describe("view state", () => {
     expect(focused).toEqual({ ui: { ...initialUi, focus: "pkg:cargo/a" } });
     expect(parseUi(focused.ui).focus).toBe("pkg:cargo/a");
     expect(closeAll(focused.ui).ui.focus).toBeUndefined();
+  });
+
+  it("turns the filter of the changes on and off, keeps it, and reads it back (ADR 0024)", () => {
+    const on = toggleChanges(initialUi).ui;
+    expect(on.onlyChanges).toBe(true);
+    expect(toggleChanges(on).ui).toEqual(initialUi);
+    expect(closeAll({ ...on, openRoles: ["@role/utility"] }).ui).toEqual(on);
+    expect(parseUi({ openRoles: [], expanded: [], onlyChanges: true }).onlyChanges).toBe(true);
+    expect(parseUi({ openRoles: [], expanded: [], onlyChanges: "yes" }).onlyChanges).toBeUndefined();
   });
 
   it("goes back to the opening, asking the daemon only when something was expanded", () => {

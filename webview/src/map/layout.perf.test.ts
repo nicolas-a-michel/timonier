@@ -1,6 +1,7 @@
 import { it } from "vitest";
 
 import { synthetic } from "../demo/synthetic";
+import { NO_REVIEW } from "../protocol";
 import { edgeKey } from "../viewModel";
 import { layout } from "./layout";
 import { mapContent, roleGroupId } from "./mapModel";
@@ -19,6 +20,7 @@ it.skipIf(!process.env.BENCH)(
         revision: 0,
         nodes: new Map(open.nodes.map((n) => [n.id, n])),
         edges: new Map(open.edges.map((e) => [edgeKey(e), e])),
+        review: NO_REVIEW,
       };
       const roles = new Set(open.nodes.filter((n) => n.parent === null).map((n) => roleGroupId(n.role)));
       let t = performance.now();

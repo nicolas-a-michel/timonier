@@ -39,6 +39,7 @@ describe("webview messages", () => {
       { type: "openCode", file: "src/a.ts", span: null },
       { type: "openCode", file: "src/a.ts", span: { start: { line: 1, column: 0 }, end: { line: 2, column: 4 } } },
       { type: "rendered", subscription: 1, revision: 0, nodes: 6 },
+      { type: "markReviewed" },
       { type: "pins", pins: {} },
       { type: "pins", pins: { "@role/utility": { parent: "@root", x: -40, y: 128 } } },
     ];

@@ -414,4 +414,16 @@ describe("Timonier daemon (ADR 0019)", () => {
     // Beside the map, which stays open.
     assert.notEqual(editor.viewColumn, vscode.ViewColumn.One);
   });
+
+  it("marks the head as reviewed, from the palette (PLAN.md 5.1, ADR 0024)", async () => {
+    await waitFor("connected", () => timonier.daemonStatus().state === "connected");
+    const status = () => timonier.daemonRequest<StatusResult>(METHODS.STATUS, {});
+    const before = await status();
+    await vscode.commands.executeCommand("timonier.markReviewed");
+    const after = await status();
+    assert.ok(after.lastReview, "no review mark");
+    assert.ok(after.lastReview.seq >= before.head, "the head at the time is what is reviewed");
+    assert.ok(!before.lastReview || after.lastReview.seq > before.lastReview.seq);
+    assert.equal(after.head, after.lastReview.seq + 1);
+  });
 });

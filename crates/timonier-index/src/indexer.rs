@@ -12,6 +12,7 @@ use tree_sitter::{InputEdit, Parser, Point, Tree};
 use crate::components::Components;
 use crate::ecosystem::{self, MANIFESTS, PackageInfo};
 use crate::extract::{self, EXTRACTOR_VERSION};
+use crate::pack::Ecosystem;
 use crate::project::{FileEntry, Project};
 use crate::{Error, FileFacts, Packs, Result};
 
@@ -468,6 +469,72 @@ impl Indexer {
         }
     }
 
+    /// The packages of a commit (Q23). `committed` holds the commit's version of the files
+    /// that differ from it, `None` for one absent from it, manifests and Cargo libraries
+    /// included; the other files are as on disk. `None` when they are the packages the disk
+    /// gives, those of the working tree.
+    pub fn committed_packages(
+        &self,
+        committed: &BTreeMap<String, Option<Vec<u8>>>,
+    ) -> Option<Vec<PackageInfo>> {
+        let libraries: BTreeSet<String> = self
+            .project
+            .packages()
+            .iter()
+            .filter(|p| p.ecosystem == Ecosystem::Cargo)
+            .map(|p| {
+                let lib = p.lib_path.as_deref().unwrap_or("src/lib.rs");
+                if p.dir.is_empty() {
+                    lib.to_owned()
+                } else {
+                    format!("{}/{lib}", p.dir)
+                }
+            })
+            .collect();
+        let touches = committed
+            .keys()
+            .any(|p| is_manifest(p) || is_cargo_lib(p) || libraries.contains(p));
+        if !touches {
+            return None;
+        }
+        let current: Vec<String> = self.manifests.iter().cloned().collect();
+        // A manifest only the commit has; one it has not, the overlay says absent.
+        let mut manifests = self.manifests.clone();
+        manifests.extend(committed.keys().filter(|p| is_manifest(p)).cloned());
+        let manifests: Vec<String> = manifests.into_iter().collect();
+        // Against what the disk gives, rather than the project: a manifest being edited keeps
+        // its previous package in the project, and would read as a change.
+        let (on_disk, _) = ecosystem::discover(&self.root, &current);
+        let (packages, _) = ecosystem::discover_with(&self.root, &manifests, committed);
+        (packages != on_disk).then_some(packages)
+    }
+
+    /// Every file placed and named again under `packages`, from the facts kept, without
+    /// reading the disk: a commit's packages for the time of its snapshot, then the working
+    /// tree's (Q23). `recluster`: the components follow, as when packages change.
+    pub fn place_under(&mut self, packages: Vec<PackageInfo>, recluster: bool) -> Result<Batch> {
+        let affected = self.project.set_packages(packages)?;
+        if recluster {
+            let previous = self.project.components().assignment.clone();
+            self.project.recluster(&previous);
+        }
+        let mut batch = Batch {
+            updates: self
+                .project
+                .updates(true, &affected.files, &BTreeSet::new()),
+            packages_changed: true,
+            ..Batch::default()
+        };
+        batch.stats.files = self.project.files().count();
+        batch.changed = affected.files;
+        Ok(batch)
+    }
+
+    /// The packages, as the project holds them now.
+    pub fn packages(&self) -> Vec<PackageInfo> {
+        self.project.packages().to_vec()
+    }
+
     /// Applies contents given in memory, `None` for an absent file: a commit's versions of the
     /// files that differ from it (ADR 0015). Nothing is cached and no tree is kept; `refresh`
     /// on the same paths brings the working tree back. Paths no pack reads, or that make no
@@ -588,6 +655,16 @@ impl Indexer {
     /// what the consolidation may take from a commit (ADR 0015).
     pub fn walk_sources(&mut self) -> BTreeSet<String> {
         self.walk().sources.into_iter().collect()
+    }
+
+    /// The source files and the manifests the walk accepts now: what the consolidation may take
+    /// from a commit (ADR 0015, 0025).
+    pub fn walk_files(&mut self) -> (BTreeSet<String>, BTreeSet<String>) {
+        let walk = self.walk();
+        (
+            walk.sources.into_iter().collect(),
+            walk.manifests.into_iter().collect(),
+        )
     }
 
     /// Whether the last walk entered this directory: a file in a directory it skipped (hidden,
@@ -788,7 +865,8 @@ fn file_path(id: &NodeId) -> Option<&str> {
     id.as_str().strip_prefix("file:")
 }
 
-fn is_manifest(path: &str) -> bool {
+/// Whether a path, relative to the root, is a manifest the indexer reads (ADR 0013).
+pub fn is_manifest(path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
     MANIFESTS.iter().any(|(file, _)| *file == name)
 }

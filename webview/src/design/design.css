@@ -113,6 +113,7 @@ body.vscode-high-contrast .tim-box__header {
 }
 
 .tim-box__name {
+  min-width: 0;
   overflow: hidden;
   font-weight: var(--tim-font-weight-strong);
   text-overflow: ellipsis;
@@ -178,6 +179,18 @@ body.vscode-high-contrast .tim-box__header {
   fill: var(--tim-pin);
 }
 
+/* The marks of the changes since the review, in the attention tone (ADR 0024). */
+.tim-legend__subtitle {
+  margin-top: var(--tim-space-2);
+}
+
+.tim-legend__mark {
+  display: inline-flex;
+  justify-content: center;
+  width: 40px;
+  color: var(--tim-color-attention);
+}
+
 /* Badges: a shape and words */
 .tim-badge {
   display: inline-flex;
@@ -201,6 +214,13 @@ body.vscode-high-contrast .tim-box__header {
 
 .tim-badge--conformity .tim-icon {
   color: var(--tim-color-conformity);
+}
+
+/* What changed since the last review, after a box's name (ADR 0024): the name gives way. */
+.tim-box__flag {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
 }
 
 /* Empty states: they teach what to do next */
@@ -260,6 +280,18 @@ body.vscode-high-contrast .tim-box__header {
   background: var(--tim-color-surface-hover);
 }
 
+/* The main action of a place, as VSCode's primary buttons: one per place. */
+.tim-button--primary {
+  border-color: var(--tim-button-primary-border);
+  background: var(--tim-button-primary-bg);
+  color: var(--tim-button-primary-fg);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-button--primary:hover {
+  background: var(--tim-button-primary-hover);
+}
+
 /* Tooltips, as VSCode's hovers */
 .tim-tooltip-anchor {
   position: relative;
@@ -311,8 +343,16 @@ body.vscode-high-contrast .tim-box__header {
   background: var(--tim-color-surface-hover);
 }
 
-.tim-toolbar__button[aria-pressed="true"] {
+.tim-toolbar__button[aria-pressed="true"],
+.tim-button[aria-pressed="true"] {
   border-color: var(--tim-color-selected-outline);
   background: var(--tim-color-selected);
   color: var(--tim-color-selected-fg);
+}
+
+/* A button that is a toggle: on, it also shows a tick, not its colours alone (WCAG 1.4.1). */
+.tim-button[aria-pressed] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
 }

@@ -11,9 +11,10 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use timonier_core::SnapshotKind;
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, LookupCounts, PROTOCOL_VERSION, StatusResult,
-    SubscribeParams, SubscriptionParams, errors, methods,
+    FilesParams, InitializeParams, InitializeResult, LookupCounts, PROTOCOL_VERSION, ReviewMark,
+    StatusResult, SubscribeParams, SubscriptionParams, errors, methods,
 };
 use timonier_core::rpc::{Decoder, ErrorObject, Id, InvalidMessage, Message};
 use timonier_index::lsp::Priority;
@@ -465,6 +466,7 @@ impl Session {
                 Err(error) => Err(error),
             },
             methods::STATUS => self.status().await,
+            methods::REVIEW_MARK => self.mark_reviewed().await,
             methods::SHUTDOWN => {
                 self.send(Message::result(id, Value::Null)).await;
                 tracing::info!(connection, "shutdown asked");
@@ -560,7 +562,9 @@ impl Session {
     async fn status(&self) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
         let read = tokio::task::spawn_blocking(move || -> Result<StatusResult> {
-            let head = shared.store.reader()?.head()?.seq;
+            let reader = shared.store.reader()?;
+            let head = reader.head()?.seq;
+            let last_review = reader.latest(SnapshotKind::ReviewMark)?;
             let (refinements, held) = shared
                 .watch
                 .lock()
@@ -580,10 +584,32 @@ impl Session {
                     named: shared.lookups[0].load(Ordering::SeqCst),
                     by_name: shared.lookups[1].load(Ordering::SeqCst),
                 },
+                last_review: last_review.as_ref().map(ReviewMark::from),
             })
         });
         match read.await {
             Ok(Ok(status)) => Ok(json(&status)),
+            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
+    /// `review/mark`: the pipeline thread freezes the head between two of its steps (ADR 0024).
+    async fn mark_reviewed(&self) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let marked = tokio::task::spawn_blocking(move || -> Result<ReviewMark> {
+            // Asked with the watch held, waited for without it.
+            let pending = shared
+                .watch
+                .lock()
+                .map_err(|_| Error::Poisoned)?
+                .as_ref()
+                .ok_or(Error::Stopped)?
+                .mark_reviewed()?;
+            Ok(ReviewMark::from(&pending.wait()?))
+        });
+        match marked.await {
+            Ok(Ok(mark)) => Ok(json(&mark)),
             Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
             Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
         }

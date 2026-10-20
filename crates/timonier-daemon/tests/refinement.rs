@@ -361,7 +361,7 @@ fn quiet_watch(pipeline: Pipeline) -> (Watch, mpsc::Receiver<Step>) {
             let step = match event {
                 Event::Refined(refined) => Step::Refined(refined.expect("test helper")),
                 Event::Indexed(_) => Step::Indexed,
-                Event::Committed(_) => return,
+                Event::Committed(_) | Event::Reviewed(_) => return,
             };
             let _ = send.send(step);
         },
@@ -2964,6 +2964,60 @@ fn later_at_head(store: &Store) -> bool {
     head_state(store).0.iter().any(|n| n.contains("::later "))
 }
 
+/// ADR 0024: a store behind the indexer catches up before the head is marked as reviewed: the
+/// review is the working tree, and the content kept for it too.
+#[test]
+fn a_review_mark_catches_the_store_up_first() {
+    let (repo, db, mut pipeline, store, _server) = committed_repository();
+    store_left_behind(repo.path(), db.path(), &mut pipeline);
+    let review = pipeline.mark_reviewed().unwrap();
+    assert!(!pipeline.store_behind());
+    let mut reader = store.reader().unwrap();
+    assert!(
+        reader
+            .nodes_at(review.seq)
+            .unwrap()
+            .iter()
+            .any(|n| n.id.as_str().ends_with("::later")),
+        "the review has what the disk has"
+    );
+    let reviewed = reader.reviewed_contents(review.seq).unwrap();
+    assert_eq!(reviewed, reader.file_contents().unwrap());
+    assert!(reviewed.contains_key("file:crates/core/src/util.rs"));
+}
+
+/// Review n° 1 of Phase 5, m10: a save the watcher has yet to bring when the head is marked as
+/// reviewed is in the review, with its content: it does not show as changed since.
+#[test]
+fn a_review_mark_takes_what_the_disk_holds() {
+    let (repo, _db, mut pipeline, store, _server) = committed_repository();
+    let root = repo.path();
+    write(
+        root,
+        "crates/core/src/util.rs",
+        &format!("{UTIL}\npub fn saved() {{}}\n"),
+    );
+    let review = pipeline.mark_reviewed().unwrap();
+    let mut reader = store.reader().unwrap();
+    assert!(
+        reader
+            .nodes_at(review.seq)
+            .unwrap()
+            .iter()
+            .any(|n| n.id.as_str().ends_with("::saved")),
+        "the save is in the review"
+    );
+    assert_eq!(
+        reader.reviewed_contents(review.seq).unwrap(),
+        reader.file_contents().unwrap()
+    );
+    // The watcher's late event changes nothing.
+    let late = pipeline
+        .refresh(&[root.join("crates/core/src/util.rs")])
+        .unwrap();
+    assert!(late.apply.is_empty(), "{late:?}");
+}
+
 /// Review n° 16, m16-1: the store fell behind, and something moves in the git directory with
 /// no new commit. The store catches up, and says what that changed, for the views (m16-5).
 #[test]
@@ -3009,4 +3063,371 @@ fn a_commit_without_a_snapshot_tells_what_changed_the_head() {
         "the change on disk"
     );
     assert!(!consolidated.head.is_empty(), "{consolidated:?}");
+}
+
+/// Nodes and edges, as text.
+type Facts = (Vec<String>, Vec<String>);
+
+/// The graph as the map's facts: the nodes and edges, components aside (their ids come from
+/// clustering), and the repository named after its directory.
+fn facts_at(store: &Store, seq: Option<u64>) -> Facts {
+    let mut reader = store.reader().expect("test helper");
+    let seq = seq.unwrap_or_else(|| reader.head().expect("test helper").seq);
+    let kept =
+        |id: &NodeId| !id.as_str().starts_with("component:") && !id.as_str().starts_with("repo:");
+    let mut nodes: Vec<String> = reader
+        .nodes_at(seq)
+        .expect("test helper")
+        .into_iter()
+        .filter(|n| kept(&n.id))
+        .map(|n| format!("{} {:?} {} {:?}", n.id, n.kind, n.name, n.signature))
+        .collect();
+    nodes.sort();
+    let mut edges: Vec<String> = reader
+        .edges_at(seq)
+        .expect("test helper")
+        .into_iter()
+        .filter(|e| kept(&e.src) && kept(&e.dst))
+        .map(|e| format!("{} -{:?}-> {} {:?}", e.src, e.kind, e.dst, e.provenance))
+        .collect();
+    edges.sort();
+    (nodes, edges)
+}
+
+/// What a fresh indexing of `root` gives.
+fn fresh_facts(root: &Path) -> Facts {
+    let db = tempfile::tempdir().expect("test helper");
+    let store = Store::open(db.path().join("graph.sqlite")).expect("test helper");
+    Pipeline::new(root, store.clone())
+        .expect("test helper")
+        .index_all()
+        .expect("test helper");
+    facts_at(&store, None)
+}
+
+/// What a fresh indexing of the commit HEAD points at gives: a clone of it.
+fn committed_facts(root: &Path) -> Facts {
+    let clone = tempfile::tempdir().expect("test helper");
+    git(
+        clone.path(),
+        &["clone", "--quiet", root.to_str().expect("utf-8"), "."],
+    );
+    fresh_facts(clone.path())
+}
+
+/// Q23, PLAN.md 5.4: `change` touches the working tree without a commit, then another file is
+/// committed. The commit snapshot is the commit, as a fresh indexing of it says; the head is
+/// the working tree, as a fresh indexing of it says.
+fn a_commit_around_packages(
+    committed: &[(&str, Option<&str>)],
+    change: &[(&str, Option<&str>)],
+) -> (Facts, Facts) {
+    let (repo, db) = repository();
+    let root = repo.path();
+    let apply = |files: &[(&str, Option<&str>)]| {
+        for (path, text) in files {
+            match text {
+                Some(text) => write(root, path, text),
+                None => {
+                    let _ = std::fs::remove_file(root.join(path));
+                }
+            }
+        }
+    };
+    apply(committed);
+    git(root, &["init", "--quiet", "--initial-branch=main"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "--quiet", "-m", "first"]);
+    let store = Store::open(db.path().join("graph.sqlite")).expect("test helper");
+    let mut pipeline = Pipeline::new(root, store.clone()).expect("test helper");
+    pipeline.index_all().expect("test helper");
+    apply(change);
+    let paths: Vec<PathBuf> = change.iter().map(|(p, _)| root.join(p)).collect();
+    pipeline.refresh(&paths).expect("test helper");
+    write(root, "NOTES.md", "A note.\n");
+    git(root, &["add", "NOTES.md"]);
+    git(root, &["commit", "--quiet", "-m", "second"]);
+    let seq = pipeline
+        .consolidate()
+        .expect("test helper")
+        .snapshot
+        .expect("a commit snapshot")
+        .seq;
+    assert_eq!(
+        facts_at(&store, Some(seq)),
+        committed_facts(root),
+        "the commit snapshot"
+    );
+    assert_eq!(facts_at(&store, None), fresh_facts(root), "the head");
+    (facts_at(&store, Some(seq)), facts_at(&store, None))
+}
+
+/// Q23, PLAN.md 5.4: the crate renamed in the working tree only. The commit snapshot keeps the
+/// commit's name, the head the new one.
+#[test]
+fn a_commit_snapshot_has_the_commit_s_crate_name() {
+    let ((commit, _), (head, _)) = a_commit_around_packages(
+        &[],
+        &[(
+            "crates/core/Cargo.toml",
+            Some("[package]\nname = \"demo-kernel\"\n"),
+        )],
+    );
+    let named = |nodes: &[String], name: &str| nodes.iter().any(|n| n.contains(name));
+    assert!(named(&commit, "rust:demo_core::util::helper"), "{commit:?}");
+    assert!(!named(&commit, "demo_kernel"));
+    assert!(named(&head, "rust:demo_kernel::util::helper"), "{head:?}");
+}
+
+/// Q23, PLAN.md 5.4: a dependency added in the working tree only.
+#[test]
+fn a_commit_snapshot_has_the_commit_s_dependencies() {
+    let ((commit, commit_edges), (head, head_edges)) = a_commit_around_packages(
+        &[],
+        &[(
+            "crates/core/Cargo.toml",
+            Some("[package]\nname = \"demo-core\"\n\n[dependencies]\nserde = \"1\"\n"),
+        )],
+    );
+    let serde = |nodes: &[String]| nodes.iter().any(|n| n.starts_with("pkg:cargo/serde "));
+    assert!(!serde(&commit) && serde(&head));
+    let depends = |edges: &[String]| {
+        edges
+            .iter()
+            .any(|e| e.starts_with("pkg:cargo/demo-core -DependsOn-> pkg:cargo/serde"))
+    };
+    assert!(
+        !depends(&commit_edges) && depends(&head_edges),
+        "{head_edges:?}"
+    );
+}
+
+/// Q23, PLAN.md 5.4: `src/lib.rs` deleted in the working tree only, then created there only.
+/// It decides how `src/main.rs` is named (ADR 0013).
+#[test]
+fn a_commit_snapshot_has_the_commit_s_library() {
+    let main = ("crates/core/src/main.rs", Some("fn main() {}\n"));
+    let ((commit, _), (head, _)) =
+        a_commit_around_packages(&[main], &[("crates/core/src/lib.rs", None)]);
+    let file = |nodes: &[String], path: &str| {
+        nodes
+            .iter()
+            .any(|n| n.starts_with(&format!("file:{path} ")))
+    };
+    assert!(file(&commit, "crates/core/src/lib.rs") && !file(&head, "crates/core/src/lib.rs"));
+    assert_ne!(commit, head);
+    let ((commit, _), (head, _)) = a_commit_around_packages(
+        &[main, ("crates/core/src/lib.rs", None)],
+        &[(
+            "crates/core/src/lib.rs",
+            Some("pub mod node;\npub mod util;\n"),
+        )],
+    );
+    assert!(!file(&commit, "crates/core/src/lib.rs") && file(&head, "crates/core/src/lib.rs"));
+}
+
+/// Q23, PLAN.md 5.4: the crate renamed in the working tree, and node.rs verified since. The
+/// commit snapshot has none of that verification, whose ids the commit has not; the head gets
+/// it back whole, and nothing is asked again.
+#[test]
+fn a_commit_with_other_packages_keeps_the_verification() {
+    let (repo, db, mut pipeline, store, mut server) = committed_repository();
+    let root = repo.path();
+    write(
+        root,
+        "crates/core/Cargo.toml",
+        "[package]\nname = \"demo-kernel\"\n",
+    );
+    pipeline
+        .refresh(&[root.join("crates/core/Cargo.toml")])
+        .unwrap();
+    pipeline.request_refinement("crates/core/src/node.rs", Priority::Opened);
+    while pipeline
+        .refine_next(&mut server, || false)
+        .unwrap()
+        .is_some()
+    {}
+    let verified = "rust:demo_kernel::node::make -Calls-> rust:demo_kernel::util::helper Lsp";
+    assert!(facts_at(&store, None).1.iter().any(|e| e == verified));
+    let asked = server.asked.len();
+    write(root, "NOTES.md", "A note.\n");
+    git(root, &["add", "NOTES.md"]);
+    git(root, &["commit", "--quiet", "-m", "second"]);
+    let seq = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a commit snapshot")
+        .seq;
+    assert_eq!(
+        facts_at(&store, Some(seq)),
+        committed_facts(root),
+        "the commit snapshot"
+    );
+    let (_, edges) = facts_at(&store, None);
+    assert!(edges.iter().any(|e| e == verified), "{edges:?}");
+    assert_eq!(pipeline.refinements_waiting(), 0);
+    while pipeline
+        .refine_next(&mut server, || false)
+        .unwrap()
+        .is_some()
+    {}
+    assert_eq!(server.asked.len(), asked, "nothing asked again");
+    drop(db);
+}
+
+/// Q23, PLAN.md 5.4: a crate added in the working tree only, not committed yet.
+#[test]
+fn a_commit_snapshot_has_not_the_crate_added_since() {
+    let ((commit, _), (head, _)) = a_commit_around_packages(
+        &[],
+        &[
+            (
+                "crates/extra/Cargo.toml",
+                Some("[package]\nname = \"demo-extra\"\n"),
+            ),
+            ("crates/extra/src/lib.rs", Some("pub fn extra() {}\n")),
+        ],
+    );
+    let extra = |nodes: &[String]| nodes.iter().any(|n| n.starts_with("pkg:cargo/demo-extra "));
+    assert!(!extra(&commit) && extra(&head), "{head:?}");
+}
+
+/// Q23, PLAN.md 5.4: a package deleted in the working tree only: the commit still has it.
+#[test]
+fn a_commit_snapshot_has_the_package_deleted_since() {
+    let ((commit, _), (head, _)) =
+        a_commit_around_packages(&[], &[("web/package.json", None), ("web/src/a.ts", None)]);
+    let web = |nodes: &[String]| nodes.iter().any(|n| n.starts_with("pkg:npm/web "));
+    assert!(web(&commit) && !web(&head), "{commit:?}");
+}
+
+/// Review n° 1 of Phase 5, m2: a manifest in a hidden folder, which the walk never enters,
+/// changed since the commit: it makes no package of the commit.
+#[test]
+fn a_commit_snapshot_ignores_a_hidden_manifest() {
+    let (commit, head) = a_commit_around_packages(
+        &[(".hidden/Cargo.toml", Some("[package]\nname = \"hidden\"\n"))],
+        &[(
+            ".hidden/Cargo.toml",
+            Some("[package]\nname = \"hidden-two\"\n"),
+        )],
+    );
+    assert_eq!(commit, head);
+}
+
+/// Review n° 2 of Phase 5, m-7: a manifest git tracks in a folder the walk skips (forced past
+/// `.gitignore`), changed since the commit, makes no package of the commit: the commit is
+/// frozen under the working tree's packages, its files not placed again, their verification
+/// kept (ADR 0025).
+#[test]
+fn a_commit_snapshot_ignores_a_manifest_the_walk_skips() {
+    let (repo, _db, mut pipeline, store, mut server) = committed_repository();
+    let root = repo.path();
+    while pipeline
+        .refine_next(&mut server, || false)
+        .unwrap()
+        .is_some()
+    {}
+    let verified = "rust:demo_core::node::make -Calls-> rust:demo_core::util::helper Lsp";
+    assert!(facts_at(&store, None).1.iter().any(|e| e == verified));
+    write(root, ".gitignore", "vendor/\n");
+    write(
+        root,
+        "vendor/Cargo.toml",
+        "[package]\nname = \"vendored\"\n",
+    );
+    write(root, "vendor/src/lib.rs", "pub fn vendored() {}\n");
+    git(root, &["add", ".gitignore"]);
+    git(root, &["add", "--force", "vendor"]);
+    git(root, &["commit", "--quiet", "-m", "vendor"]);
+    pipeline.consolidate().unwrap();
+    write(
+        root,
+        "vendor/Cargo.toml",
+        "[package]\nname = \"vendored-two\"\n",
+    );
+    write(root, "NOTES.md", "A note.\n");
+    git(root, &["add", "NOTES.md"]);
+    git(root, &["commit", "--quiet", "-m", "second"]);
+    let seq = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a commit snapshot")
+        .seq;
+    let (nodes, edges) = facts_at(&store, Some(seq));
+    assert!(edges.iter().any(|e| e == verified), "{edges:?}");
+    assert!(!nodes.iter().any(|n| n.contains("vendored")), "{nodes:?}");
+}
+
+/// Review n° 1 of Phase 5, m2: the crate renamed in the working tree only, the crate large
+/// enough to have components. Back from the commit snapshot, its files are in components again,
+/// under the working tree's package.
+#[test]
+fn a_commit_with_other_packages_gives_the_components_back() {
+    let (repo, db) = repository();
+    let root = repo.path();
+    for folder in ["a", "b"] {
+        for n in 0..7 {
+            write(
+                root,
+                &format!("crates/core/src/{folder}/f{n}.rs"),
+                &format!("pub fn f{n}() {{}}\n"),
+            );
+        }
+    }
+    git(root, &["init", "--quiet", "--initial-branch=main"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "--quiet", "-m", "first"]);
+    let store = Store::open(db.path().join("graph.sqlite")).unwrap();
+    let mut pipeline = Pipeline::new(root, store.clone()).unwrap();
+    pipeline.index_all().unwrap();
+    write(
+        root,
+        "crates/core/Cargo.toml",
+        "[package]\nname = \"demo-kernel\"\n",
+    );
+    pipeline
+        .refresh(&[root.join("crates/core/Cargo.toml")])
+        .unwrap();
+    // Each file and the chain of what holds it.
+    let placement = |store: &Store, seq: Option<u64>| {
+        let mut reader = store.reader().unwrap();
+        let seq = seq.unwrap_or_else(|| reader.head().unwrap().seq);
+        let nodes = reader.nodes_at(seq).unwrap();
+        let parent: HashMap<String, Option<String>> = nodes
+            .iter()
+            .map(|n| (n.id.to_string(), n.parent.as_ref().map(|p| p.to_string())))
+            .collect();
+        let mut files: Vec<String> = nodes
+            .iter()
+            .filter(|n| n.id.as_str().starts_with("file:crates/core/src/a/"))
+            .map(|n| {
+                let mut chain = vec![n.id.to_string()];
+                while let Some(Some(up)) = parent.get(chain.last().expect("one at least")) {
+                    chain.push(up.clone());
+                }
+                chain.join(" < ")
+            })
+            .collect();
+        files.sort();
+        files
+    };
+    let before = placement(&store, None);
+    assert!(
+        before[0].contains("component:") && before[0].contains("pkg:cargo/demo-kernel"),
+        "{before:?}"
+    );
+    write(root, "NOTES.md", "A note.\n");
+    git(root, &["add", "NOTES.md"]);
+    git(root, &["commit", "--quiet", "-m", "second"]);
+    let seq = pipeline
+        .consolidate()
+        .unwrap()
+        .snapshot
+        .expect("a commit snapshot")
+        .seq;
+    assert!(placement(&store, Some(seq))[0].contains("pkg:cargo/demo-core"));
+    assert_eq!(placement(&store, None), before);
 }

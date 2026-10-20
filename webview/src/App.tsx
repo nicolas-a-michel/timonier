@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { EmptyState } from "./design/components";
 import { messages, type Locale } from "./i18n";
 import type { Toggle } from "./map/mapModel";
-import type { Span } from "./protocol";
+import type { Density, Span } from "./protocol";
 import type { Pins } from "./map/layout";
 import { MapView, type MapCommands } from "./map/MapView";
 import { initialUi, type UiState } from "./uiState";
@@ -21,6 +21,12 @@ export interface AppProps {
   /** The boxes moved by hand, and where they go when moved again (ADR 0021). */
   pins?: Pins;
   onPins?: (pins: Pins) => void;
+  /** How dense the map is drawn (Q32). */
+  density?: Density;
+  /** The map's « Mark as reviewed » button (ADR 0024). */
+  onMarkReviewed?: () => void;
+  /** The filter « only the changes » (ADR 0024). */
+  onToggleChanges?: () => void;
   /** Where the palette's commands for the map come in. */
   commandsRef?: MapCommands;
   /** Called once, after the first render reached the DOM. */
@@ -38,6 +44,9 @@ export function App({
   onDisplayed,
   pins,
   onPins,
+  density,
+  onMarkReviewed,
+  onToggleChanges,
   commandsRef,
   onReady,
 }: AppProps) {
@@ -69,6 +78,10 @@ export function App({
           onDisplayed={onDisplayed}
           pins={pins}
           onPins={onPins}
+          density={density}
+          onMarkReviewed={onMarkReviewed}
+          onlyChanges={ui.onlyChanges ?? false}
+          onToggleChanges={onToggleChanges}
           commandsRef={commandsRef}
         />
       </main>

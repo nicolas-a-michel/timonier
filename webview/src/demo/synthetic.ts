@@ -3,7 +3,7 @@
  * files, as the daemon would send them with every package and component open, and calls between
  * files. Deterministic: the same arguments give the same view.
  */
-import type { Role, ViewEdge, ViewNode, ViewSnapshot } from "../protocol";
+import { NO_REVIEW, type Role, type ViewEdge, type ViewNode, type ViewSnapshot } from "../protocol";
 
 const ROLES: Role[] = ["entry_point", "interface", "background_task", "data_model", "persistence", "utility"];
 
@@ -37,6 +37,7 @@ function node(
     children,
     file: kind === "file" ? name : null,
     span: null,
+    review: null,
   };
 }
 
@@ -75,8 +76,9 @@ export function synthetic(packages: number, components: number, files: number, c
         edges: 1,
         best: approximateOnly ? "tree_sitter" : "lsp",
         approximateOnly,
+        review: null,
       });
     }
   }
-  return { subscription: 1, revision: 0, nodes, edges: [...edges.values()] };
+  return { subscription: 1, revision: 0, nodes, edges: [...edges.values()], review: NO_REVIEW };
 }

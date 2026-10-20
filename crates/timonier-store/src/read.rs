@@ -31,6 +31,21 @@ impl Reader {
         })
     }
 
+    /// Runs `read` in one read transaction: every query sees the same state of the database,
+    /// whatever the writer commits meanwhile (WAL).
+    pub fn consistent<T, E: From<Error>>(
+        &mut self,
+        read: impl FnOnce(&mut Self) -> std::result::Result<T, E>,
+    ) -> std::result::Result<T, E> {
+        self.connection
+            .execute_batch("BEGIN DEFERRED")
+            .map_err(|e| E::from(e.into()))?;
+        let result = read(self);
+        // A read transaction has nothing to keep: ended either way.
+        let _ = self.connection.execute_batch("COMMIT");
+        result
+    }
+
     /// The scopes that hold something: `structure` and the files whose content was recorded.
     pub fn scopes(&self) -> Result<Vec<timonier_core::ScopeKey>> {
         let mut statement = self.connection.prepare_cached(
@@ -204,7 +219,8 @@ impl Reader {
 
     /// Every node valid at `seq`, sorted by id.
     pub fn nodes_at(&mut self, seq: u64) -> Result<Vec<Node>> {
-        let tx = self.connection.transaction()?;
+        // A savepoint: within the transaction of `consistent`, when there is one.
+        let tx = self.connection.savepoint()?;
         let sql = format!("SELECT {NODE_COLUMNS} FROM node WHERE {{valid}} ORDER BY id");
         let raws = rows_at(&tx, &sql, seq, |row| RawNode::read(row, 0))?;
         raws.into_iter().map(RawNode::into_node).collect()
@@ -213,7 +229,8 @@ impl Reader {
     /// Every merged edge valid at `seq`, sorted by key. Dangling edges are included: views
     /// filter them (ADR 0009).
     pub fn edges_at(&mut self, seq: u64) -> Result<Vec<Edge>> {
-        let tx = self.connection.transaction()?;
+        // A savepoint: within the transaction of `consistent`, when there is one.
+        let tx = self.connection.savepoint()?;
         edges_valid_at(&tx, seq)
     }
 
@@ -232,6 +249,36 @@ impl Reader {
             )
             .optional()?;
         Ok(hash.flatten().map(ContentHash::from_bytes))
+    }
+
+    /// The content hash of every file scope at the head, by scope key.
+    pub fn file_contents(&self) -> Result<HashMap<String, ContentHash>> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT key, content_hash FROM scope \
+             WHERE key LIKE 'file:%' AND content_hash IS NOT NULL",
+        )?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, [u8; 32]>(1)?))
+            })?
+            .map(|row| row.map(|(key, hash)| (key, ContentHash::from_bytes(hash))))
+            .collect::<rusqlite::Result<HashMap<_, _>>>()?;
+        Ok(rows)
+    }
+
+    /// The content hash of every file scope when snapshot `seq` was marked as reviewed, by
+    /// scope key; empty for any other snapshot (ADR 0024).
+    pub fn reviewed_contents(&self, seq: u64) -> Result<HashMap<String, ContentHash>> {
+        let mut statement = self
+            .connection
+            .prepare_cached("SELECT scope, content_hash FROM snapshot_content WHERE seq = ?1")?;
+        let rows = statement
+            .query_map([seq_param(seq)], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, [u8; 32]>(1)?))
+            })?
+            .map(|row| row.map(|(key, hash)| (key, ContentHash::from_bytes(hash))))
+            .collect::<rusqlite::Result<HashMap<_, _>>>()?;
+        Ok(rows)
     }
 
     /// Edge kinds `source` analysed completely in `scope`, at its current content hash: the
@@ -257,7 +304,8 @@ impl Reader {
         if to < from {
             return Err(Error::BackwardDiff { from, to });
         }
-        let tx = self.connection.transaction()?;
+        // A savepoint: within the transaction of `consistent`, when there is one.
+        let tx = self.connection.savepoint()?;
         known(&tx, from)?;
         known(&tx, to)?;
 
@@ -311,7 +359,8 @@ impl Reader {
     /// Edges at a zoom level: every edge valid at `seq`, re-attached to the nearest visible
     /// ancestor of its endpoints (ADR 0009). Nothing is stored.
     pub fn aggregate(&mut self, seq: u64, visible: &[NodeId]) -> Result<Vec<AggregatedEdge>> {
-        let tx = self.connection.transaction()?;
+        // A savepoint: within the transaction of `consistent`, when there is one.
+        let tx = self.connection.savepoint()?;
         let rows = rows_at(
             &tx,
             "SELECT id, parent FROM node WHERE {valid}",

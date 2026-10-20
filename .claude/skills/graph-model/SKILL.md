@@ -108,6 +108,41 @@ function, method, field, constant. Each node has a name, a language, a span and 
   - A row created in the head is rewritten in place.
   - Otherwise the old version is closed and a new one opened.
   - The span is not versioned (updated in place).
+- **Review diff** (ADR 0024, `timonier_core::review`): between the last `review_mark` and the
+  head, at the level of boxes (components and packages), under the head's ids. The content
+  hash of each file at the review is kept in `snapshot_content` (migration 0005), for the last
+  review only. `timonier_core::graph::Graph` is the in-memory snapshot both the views and the
+  review diff read.
+  - Renames: a file gone from one path and found at one other with the same content is moved,
+    with its symbols (paired by their names from the file down and their span); so are the
+    symbols of an unchanged file whose ids changed (it changed crate). A box gone and a new
+    box of the same kind are one when each holds the majority of the other's files.
+  - Boxes (Q30, Q33, Q34, Q35): only code changes count, never a regrouping. A box is added
+    when it brings a new file or holds none (external packages); removed when one of its files
+    was deleted or it held none; otherwise modified when it holds a changed or moved file, at
+    the review or now. A package comes and goes with its manifest (Q35): new is added, gone is
+    removed, unless renamed. A package renamed, or one that lost or gained all its files
+    (internal ↔ external), is modified. A package new, gone or changed by its manifest
+    (`ReviewDiff::by_manifest`) counts for the boxes above it, as a file does, and its files
+    as moved ones for the boxes they leave or join (Q37).
+  - `ReviewDiff::regrouped`: boxes a regrouping alone made or undid (new and not added, gone
+    and not removed).
+  - Dependencies between sibling boxes compare the edges themselves, under the head's ids
+    (Q36, refining Q28): a dependency is added or removed when one of its edges appears or
+    goes and touches an edited, new or deleted file (a move is no edit; manifest edges always
+    count), or exists at both ends but carries another dependency because an end changed
+    box: a file moved to another folder (one renamed in its folder does not move, Q40), a file
+    of a package its manifest made, undid or turned internal ↔ external, or that package
+    itself (a renamed package stays the same box). Each end counts for its own move (Q41),
+    when, at the dependency's level, neither the box it leaves nor the one it joins is a
+    regrouping (Q38), and, its package staying, they are not above that package
+    (`Edges::end_moves`, `moved_dependencies`). A regrouping never changes a dependency. The
+    map's new links follow the same rule. Known gap (Q39): a file regrouped at a commit and
+    edited to call another file of the same box lists a dependency removed and one added.
+  - Cycles added (Tarjan, no review cycle holds them), looked for in the head's boxes as they
+    are, without what the language server alone brought, and counted only when a dependency
+    added closes them; fan-in and fan-out jumps (+3 and +50 %), for boxes present at both
+    ends, on the review's dependencies with those added and without those removed.
 - **Diff** (ADR 0010, `Reader::diff`): it reads only the rows whose `valid_from` or `valid_to`
   falls in ]from, to], then `timonier_core::diff::assemble` pairs moves:
   - first pass: same body is a move. A body shared by several symbols only pairs symbols that
@@ -143,8 +178,9 @@ function, method, field, constant. Each node has a name, a language, a span and 
   line with the disk, walk included (what an ignore file skips now goes); dirty files take their
   HEAD version for the freeze; then the working tree comes back in two steps (ADR 0022): first
   as the index held it, from memory, with the LSP verification the freeze dropped; then the
-  disk, read as any change. Known gap, for Phase 5 (Q23): a manifest or a `src/lib.rs` that
-  differs from the commit keeps the working tree's packages.
+  disk, read as any change. The freeze also takes the commit's packages (ADR 0025): its
+  manifests and Cargo libraries over the disk; every file placed again under them, its LSP
+  verification out for the freeze and back after.
 - **Components** (ADR 0016): keys `dir/<path>`, `cluster/<smallest member path>`, `external`,
   `external/<category>`. Clustering happens at a commit, at the first indexing, and when
   packages change; a restart takes the head's components back as they are. Leiden is

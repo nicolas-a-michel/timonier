@@ -4,7 +4,7 @@ import { revealCode } from "./code";
 import { DaemonSupervisor, type DaemonStatus } from "./daemon";
 import { daemonProgram } from "./launch";
 import { MapPanel } from "./mapPanel";
-import type { Direction, MapCommand, Pin } from "./protocol/generated";
+import { METHODS, type Direction, type MapCommand, type Pin, type ReviewMark } from "./protocol/generated";
 import type { DaemonSource, Rendered } from "./viewRelay";
 
 /** What `activate` exports. Only the integration tests use it for now. */
@@ -84,6 +84,24 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       }
     }),
     vscode.commands.registerCommand("timonier.showLog", () => log.show()),
+    // The review diff starts again from here (ADR 0024); a discreet confirmation.
+    vscode.commands.registerCommand("timonier.markReviewed", async () => {
+      const client = daemon.client;
+      if (!client) {
+        void vscode.window.showInformationMessage(
+          daemon.status.detail ?? vscode.l10n.t("Timonier is not connected to its daemon yet."),
+        );
+        return;
+      }
+      try {
+        await client.sendRequest<ReviewMark>(METHODS.REVIEW_MARK, null);
+        vscode.window.setStatusBarMessage(`$(pass) ${vscode.l10n.t("Timonier: marked as reviewed")}`, 4000);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        log.warn(`review mark failed: ${reason}`);
+        void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not mark the map as reviewed: {0}", reason));
+      }
+    }),
     // Moving a box without dragging it (WCAG 2.5.7): a direction, picked from the palette.
     vscode.commands.registerCommand("timonier.map.moveSelection", async () => {
       const directions: (vscode.QuickPickItem & { direction: Direction })[] = [
@@ -110,6 +128,8 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         ["timonier.map.toggle", { name: "toggle", target: null }],
         ["timonier.map.openCode", { name: "openCode", target: null }],
         ["timonier.map.resetLayout", { name: "resetLayout" }],
+        ["timonier.map.onlyChanges", { name: "toggleChanges" }],
+        ["timonier.map.reviewDetails", { name: "toggleReviewDetails" }],
       ] as const
     ).map(([id, command]) =>
       vscode.commands.registerCommand(id, async () => {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { HostMessage, ViewDelta, ViewEdge, ViewNode, ViewSnapshot } from "./protocol";
+import {
+  NO_REVIEW,
+  type HostMessage,
+  type ViewDelta,
+  type ViewEdge,
+  type ViewNode,
+  type ViewSnapshot,
+} from "./protocol";
 import { initialModel, reduce, type ViewModel } from "./viewModel";
 
 function node(id: string, name = id): ViewNode {
@@ -14,15 +21,16 @@ function node(id: string, name = id): ViewNode {
     children: 0,
     file: null,
     span: null,
+    review: null,
   };
 }
 
 function edge(src: string, dst: string): ViewEdge {
-  return { src, dst, kind: "calls", weight: 1, edges: 1, best: "tree_sitter", approximateOnly: true };
+  return { src, dst, kind: "calls", weight: 1, edges: 1, best: "tree_sitter", approximateOnly: true, review: null };
 }
 
 function snapshot(subscription: number, revision: number, nodes: ViewNode[], edges: ViewEdge[] = []): HostMessage {
-  const value: ViewSnapshot = { subscription, revision, nodes, edges };
+  const value: ViewSnapshot = { subscription, revision, nodes, edges, review: NO_REVIEW };
   return { type: "snapshot", snapshot: value };
 }
 
@@ -34,6 +42,7 @@ function delta(partial: Partial<ViewDelta> & Pick<ViewDelta, "base">): HostMessa
     removedNodes: [],
     edges: [],
     removedEdges: [],
+    review: null,
     ...partial,
   };
   return { type: "delta", delta: value };
@@ -59,6 +68,24 @@ describe("view model", () => {
     expect(model.view?.nodes.size).toBe(2);
     expect(model.view?.edges.size).toBe(1);
     expect(effects).toEqual([{ type: "rendered", subscription: 1, revision: 0, nodes: 2 }]);
+  });
+
+  it("keeps the review summary of a snapshot, and takes the one a delta brings (ADR 0024)", () => {
+    const since = { seq: 2, timestampMs: 1 };
+    const first = reduce(initialModel, {
+      type: "snapshot",
+      snapshot: { subscription: 1, revision: 0, nodes: [node("pkg:a")], edges: [], review: { ...NO_REVIEW, since } },
+    }).model;
+    expect(first.view?.review.since).toEqual(since);
+    const unchanged = reduce(first, delta({ base: 0, nodes: [node("pkg:a", "a")] })).model;
+    expect(unchanged.view?.review.since).toEqual(since);
+    const modified = {
+      ...NO_REVIEW,
+      since,
+      modified: [{ id: "pkg:a", kind: "package" as const, name: "a", role: null, within: null }],
+    };
+    const next = reduce(unchanged, delta({ base: 1, review: modified })).model;
+    expect(next.view?.review).toEqual(modified);
   });
 
   it("applies a delta from its revision", () => {

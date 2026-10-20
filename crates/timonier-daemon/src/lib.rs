@@ -18,7 +18,7 @@ pub use error::{Error, Result};
 pub use indexing::{Consolidated, Consolidation, Pipeline, Refinement, Report};
 pub use runtime::{Lock, Paths};
 pub use server::{Daemon, Options};
-pub use watch::{Event, Watch};
+pub use watch::{Event, PendingReview, Watch};
 
 #[cfg(test)]
 mod tests {

@@ -14,6 +14,7 @@ const MIGRATION_SLICE: &[M<'_>] = &[
     M::up(include_str!("../migrations/0002_extraction_cache.sql")),
     M::up(include_str!("../migrations/0003_node_role.sql")),
     M::up(include_str!("../migrations/0004_refinement_debt.sql")),
+    M::up(include_str!("../migrations/0005_snapshot_content.sql")),
 ];
 
 pub(crate) const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
@@ -82,7 +83,7 @@ mod tests {
         let version: i64 = connection
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
 
     #[test]

@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 
 import { App } from "../App";
 import type { Locale } from "../i18n";
-import type { ViewSnapshot } from "../protocol";
-import { applyToggle, closeAll, initialUi, type Applied, type UiState } from "../uiState";
+import type { Density, ViewSnapshot } from "../protocol";
+import { applyToggle, closeAll, initialUi, toggleChanges, type Applied, type UiState } from "../uiState";
 import { initialModel, reduce, type ViewModel } from "../viewModel";
 import type { Pins } from "../map/layout";
 import { roleGroupId } from "../map/mapModel";
 import { viewOf } from "./fakeDaemon";
+import { justReviewed, withReview } from "./review";
 
 export interface MapDemoProps {
   locale: Locale;
@@ -15,8 +16,16 @@ export interface MapDemoProps {
   open: ViewSnapshot;
   /** Every role and every container open from the start: for the measurements. */
   openAll?: boolean;
+  /** A review diff on the map, some time after a review (ADR 0024). */
+  review?: boolean;
+  /** The filter « highlight the changes » on from the start, as a page reloaded keeps it. */
+  only?: boolean;
+  density?: Density;
   onRendered?: () => void;
 }
+
+/** When the demonstration's review was marked: yesterday, at a fixed time. */
+const REVIEWED_AT = Date.UTC(2026, 9, 17, 16, 45);
 
 function everythingOpen(open: ViewSnapshot): UiState {
   const top = open.nodes.filter((n) => n.parent === null);
@@ -27,8 +36,14 @@ function everythingOpen(open: ViewSnapshot): UiState {
 }
 
 /** The webview's App, as main.tsx runs it, with a daemon that answers from a snapshot. */
-export function MapDemo({ locale, open, openAll, onRendered }: MapDemoProps) {
-  const [ui, setUi] = useState<UiState>(() => (openAll ? everythingOpen(open) : initialUi));
+export function MapDemo({ locale, open: snapshot, openAll, review, only, density, onRendered }: MapDemoProps) {
+  // Marked as reviewed again on the page: nothing changed since.
+  const [markedAt, setMarkedAt] = useState<number | undefined>();
+  const open = markedAt ? justReviewed(snapshot, markedAt) : review ? withReview(snapshot, REVIEWED_AT) : snapshot;
+  const [ui, setUi] = useState<UiState>(() => ({
+    ...(openAll ? everythingOpen(open) : initialUi),
+    ...(only ? { onlyChanges: true } : {}),
+  }));
   // The host keeps the pins: here, the page, which the tests read.
   const [pins, setPins] = useState<Pins>({});
   const [model, setModel] = useState<ViewModel>(() => {
@@ -54,6 +69,7 @@ export function MapDemo({ locale, open, openAll, onRendered }: MapDemoProps) {
         onToggle={(toggle) => apply(applyToggle(ui, toggle, model.view))}
         onCloseAll={() => apply(closeAll(ui))}
         pins={pins}
+        density={density}
         onPins={(next) => {
           setPins(next);
           document.body.dataset.pins = JSON.stringify(next);
@@ -61,6 +77,18 @@ export function MapDemo({ locale, open, openAll, onRendered }: MapDemoProps) {
         onOpenCode={(file, span) => {
           // What the host would open: the tests read it.
           document.body.dataset.opened = JSON.stringify({ file, span });
+        }}
+        onToggleChanges={() => apply(toggleChanges(ui))}
+        onMarkReviewed={() => {
+          // What the daemon would do: a new review, the diff starts from it.
+          const now = Date.now();
+          setMarkedAt(now);
+          document.body.dataset.reviewed = "true";
+          setModel(
+            (current) =>
+              reduce(current, { type: "snapshot", snapshot: viewOf(justReviewed(snapshot, now), ui.expanded, 0) })
+                .model,
+          );
         }}
       />
     </div>

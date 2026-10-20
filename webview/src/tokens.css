@@ -49,10 +49,18 @@
   /* The pins where edges leave (right) and enter (left) a box, in the colour of the lines. */
   --tim-pin: var(--tim-edge-confirmed);
   --tim-pin-size: 10px;
+  /* What a filter leaves out: still there, quieter (ADR 0024). */
+  --tim-opacity-quiet: 0.4;
 
   /* The board under the map: faint lines, every 16 px and every 128 px. */
   --tim-grid-minor: color-mix(in srgb, var(--tim-color-fg) 4%, var(--tim-color-bg));
   --tim-grid-major: color-mix(in srgb, var(--tim-color-fg) 8%, var(--tim-color-bg));
+
+  /* The main action of a place, as VSCode's primary buttons. */
+  --tim-button-primary-bg: var(--vscode-button-background, #005fb8);
+  --tim-button-primary-fg: var(--vscode-button-foreground, #ffffff);
+  --tim-button-primary-hover: var(--vscode-button-hoverBackground, #0258a8);
+  --tim-button-primary-border: var(--vscode-button-border, var(--tim-button-primary-bg));
 
   /* Meaning only (spec: red = violation, orange = attention, green = conformity), never alone */
   /* The list colours of VSCode, made for text and icons on lists, then their editor colours. */
@@ -110,6 +118,10 @@
   --tim-radius-large: 6px;
   --tim-measure: 60ch;
   --tim-focus-width: 2px;
+  /* The map's measures: its layout gives the same (layout.ts, METRICS). */
+  --tim-map-header: 44px;
+  --tim-map-line: 20px;
+  --tim-map-box-header: 32px;
 
   /* Motion: short and soft, it explains a change; none when the user asks for reduced motion */
   --tim-duration-short: 150ms;
@@ -117,11 +129,14 @@
   --tim-easing: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Compact density: the same layout, tighter. */
+/* Compact density (Q32, setting timonier.map.density): the same layout, tighter. */
 [data-density="compact"] {
   --tim-space-2: 6px;
   --tim-space-3: 8px;
   --tim-space-4: 12px;
+  --tim-map-header: 36px;
+  --tim-map-line: 18px;
+  --tim-map-box-header: 28px;
 }
 
 /*

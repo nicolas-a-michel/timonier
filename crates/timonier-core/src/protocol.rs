@@ -10,11 +10,12 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    AggregatedEdge, EdgeKind, Language, NodeId, NodeKind, Position, Provenance, Role, Span,
+    AggregatedEdge, EdgeKind, Language, NodeId, NodeKind, Position, Provenance, Role, Snapshot,
+    Span,
 };
 
 /// Bumped when a change breaks clients; a client with another version is refused.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// Method names (ADR 0019).
 pub mod methods {
@@ -36,6 +37,8 @@ pub mod methods {
     pub const OUTGOING_CALLS: &str = "lsp/outgoingCalls";
     pub const DEFINITIONS: &str = "lsp/definitions";
     pub const REFERENCES: &str = "lsp/references";
+    /// A request from the client: the head is marked as reviewed (ADR 0024).
+    pub const REVIEW_MARK: &str = "review/mark";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -108,6 +111,28 @@ pub struct StatusResult {
     pub lsp_answers: LspAnswers,
     /// Lookups of dependents since the start (ADR 0022).
     pub lookups: LookupCounts,
+    /// The last review mark; `null` before the first review (ADR 0024).
+    pub last_review: Option<ReviewMark>,
+}
+
+/// A review mark: the snapshot the review diff starts from (ADR 0024).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewMark {
+    #[ts(type = "number")]
+    pub seq: u64,
+    /// Milliseconds since the Unix epoch.
+    #[ts(type = "number")]
+    pub timestamp_ms: i64,
+}
+
+impl From<&Snapshot> for ReviewMark {
+    fn from(snapshot: &Snapshot) -> Self {
+        Self {
+            seq: snapshot.seq,
+            timestamp_ms: snapshot.timestamp_ms,
+        }
+    }
 }
 
 /// Lookups of the dependents of changed signatures, by how they ended.
@@ -176,6 +201,93 @@ pub struct ViewNode {
     pub file: Option<String>,
     #[ts(type = "Span | null")]
     pub span: Option<Span>,
+    /// What changed in it since the last review; `null` without change, and before the first
+    /// review (ADR 0024).
+    pub review: Option<NodeReview>,
+}
+
+/// What changed in a box or a file since the last review (ADR 0024).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum ReviewChange {
+    Added,
+    Modified,
+}
+
+/// A fan-in or a fan-out that jumped: at the review, and now (ADR 0024).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct FanJump {
+    pub before: u32,
+    pub after: u32,
+}
+
+/// The review diff on a node of the map.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeReview {
+    pub change: Option<ReviewChange>,
+    pub fan_in: Option<FanJump>,
+    pub fan_out: Option<FanJump>,
+    /// In a cycle added since the review.
+    pub cycle: bool,
+}
+
+/// The review diff on an edge of the map.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct EdgeReview {
+    /// No edge linked these two nodes at the review, and a change of the code explains it.
+    pub added: bool,
+    /// Between two boxes of a cycle added since the review.
+    pub cycle: bool,
+}
+
+/// A box, as the review summary names it: one gone from the map too.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewBox {
+    #[ts(type = "string")]
+    pub id: NodeId,
+    #[ts(type = "NodeKind")]
+    pub kind: NodeKind,
+    pub name: String,
+    #[ts(type = "Role | null")]
+    pub role: Option<Role>,
+    /// The name of the box that holds it, to tell apart two of the same name; `null` at the
+    /// top.
+    pub within: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewDependency {
+    pub src: ReviewBox,
+    pub dst: ReviewBox,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewFan {
+    pub item: ReviewBox,
+    pub fan_in: Option<FanJump>,
+    pub fan_out: Option<FanJump>,
+}
+
+/// The review diff, whatever the zoom (ADR 0024): what the summary lists. What is gone from the
+/// map is only here (Q26).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewSummary {
+    /// The review the diff starts from; `null` before the first one: no diff then (Q27).
+    pub since: Option<ReviewMark>,
+    pub added: Vec<ReviewBox>,
+    pub modified: Vec<ReviewBox>,
+    pub removed: Vec<ReviewBox>,
+    pub dependencies_added: Vec<ReviewDependency>,
+    pub dependencies_removed: Vec<ReviewDependency>,
+    pub cycles: Vec<Vec<ReviewBox>>,
+    pub fans: Vec<ReviewFan>,
 }
 
 /// An edge between two nodes of the map, standing for every edge between their contents.
@@ -197,6 +309,8 @@ pub struct ViewEdge {
     pub best: Provenance,
     /// Tree-sitter alone: drawn differently (spec « Précision affichée »).
     pub approximate_only: bool,
+    /// What changed since the last review; `null` without change (ADR 0024).
+    pub review: Option<EdgeReview>,
 }
 
 impl From<AggregatedEdge> for ViewEdge {
@@ -209,6 +323,7 @@ impl From<AggregatedEdge> for ViewEdge {
             edges: edge.edges,
             best: edge.best,
             approximate_only: edge.approximate_only,
+            review: None,
         }
     }
 }
@@ -245,6 +360,7 @@ pub struct ViewSnapshot {
     pub revision: u64,
     pub nodes: Vec<ViewNode>,
     pub edges: Vec<ViewEdge>,
+    pub review: ReviewSummary,
 }
 
 /// From revision `base` to `revision` (`base + 1`). A client whose last revision is not `base`
@@ -265,6 +381,8 @@ pub struct ViewDelta {
     /// Edges added or changed.
     pub edges: Vec<ViewEdge>,
     pub removed_edges: Vec<EdgeRef>,
+    /// The review summary, when it changed.
+    pub review: Option<ReviewSummary>,
 }
 
 impl ViewDelta {
@@ -273,6 +391,7 @@ impl ViewDelta {
             && self.removed_nodes.is_empty()
             && self.edges.is_empty()
             && self.removed_edges.is_empty()
+            && self.review.is_none()
     }
 }
 
@@ -391,6 +510,19 @@ pub enum HostMessage {
         #[ts(type = "Record<string, Pin>")]
         pins: BTreeMap<String, Pin>,
     },
+    /// How dense the map is drawn, from the settings (spec « Densité réglable », Q32).
+    Density {
+        density: Density,
+    },
+}
+
+/// The density of the map: the sizes of its boxes and the room between them (Q32).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum Density {
+    #[default]
+    Comfortable,
+    Compact,
 }
 
 /// Where a box moved by hand stays (ADR 0021): in pixels, relative to its container. A pin
@@ -439,6 +571,10 @@ pub enum MapCommand {
     },
     /// Forget the boxes moved by hand: the layout is computed again.
     ResetLayout,
+    /// Quiet what did not change since the last review, or no longer (ADR 0024).
+    ToggleChanges,
+    /// Show or hide the lists of the review summary.
+    ToggleReviewDetails,
 }
 
 /// From the webview to its host.
@@ -465,6 +601,8 @@ pub enum WebviewMessage {
         #[ts(type = "Record<string, Pin>")]
         pins: BTreeMap<String, Pin>,
     },
+    /// The map's « Mark as reviewed » button: the host runs the command (ADR 0024).
+    MarkReviewed,
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]
@@ -499,6 +637,15 @@ pub fn typescript() -> String {
         InitializeParams::decl(&cfg),
         InitializeResult::decl(&cfg),
         StatusResult::decl(&cfg),
+        ReviewMark::decl(&cfg),
+        ReviewChange::decl(&cfg),
+        FanJump::decl(&cfg),
+        NodeReview::decl(&cfg),
+        EdgeReview::decl(&cfg),
+        ReviewBox::decl(&cfg),
+        ReviewDependency::decl(&cfg),
+        ReviewFan::decl(&cfg),
+        ReviewSummary::decl(&cfg),
         ViewSpec::decl(&cfg),
         SubscribeParams::decl(&cfg),
         SubscriptionParams::decl(&cfg),
@@ -518,6 +665,7 @@ pub fn typescript() -> String {
         LookupCounts::decl(&cfg),
         Pin::decl(&cfg),
         Direction::decl(&cfg),
+        Density::decl(&cfg),
         DaemonState::decl(&cfg),
         MapCommand::decl(&cfg),
         HostMessage::decl(&cfg),
@@ -541,6 +689,7 @@ pub fn typescript() -> String {
         ("OUTGOING_CALLS", methods::OUTGOING_CALLS),
         ("DEFINITIONS", methods::DEFINITIONS),
         ("REFERENCES", methods::REFERENCES),
+        ("REVIEW_MARK", methods::REVIEW_MARK),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -594,9 +743,20 @@ mod tests {
             children: 2,
             file: Some("src/a.rs".into()),
             span: None,
+            review: Some(NodeReview {
+                change: Some(ReviewChange::Added),
+                fan_in: Some(FanJump {
+                    before: 1,
+                    after: 4,
+                }),
+                fan_out: None,
+                cycle: false,
+            }),
         };
         let json = serde_json::to_value(&node).unwrap();
         assert_eq!(json["kind"], "file");
+        assert_eq!(json["review"]["change"], "added");
+        assert_eq!(json["review"]["fanIn"]["after"], 4);
         assert_eq!(json["parent"], "pkg:cargo/a");
         assert_eq!(serde_json::from_value::<ViewNode>(json).unwrap(), node);
         let delta = ViewDelta {
@@ -607,9 +767,12 @@ mod tests {
             removed_nodes: vec![NodeId::file("src/b.rs").unwrap()],
             edges: Vec::new(),
             removed_edges: Vec::new(),
+            review: Some(ReviewSummary::default()),
         };
         let json = serde_json::to_value(&delta).unwrap();
         assert_eq!(json["removedNodes"][0], "file:src/b.rs");
+        assert_eq!(json["review"]["dependenciesAdded"], serde_json::json!([]));
+        assert_eq!(json["review"]["since"], serde_json::Value::Null);
     }
 
     /// The TypeScript in the repository is what the Rust types say (ADR 0019).

@@ -2,8 +2,17 @@
 
 .tim-map {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+/* The board, under the review's banner. */
+.tim-map__flow {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .tim-map .react-flow {
@@ -77,6 +86,11 @@
   cursor: pointer;
 }
 
+/* The title bar's height: the pins are level with its middle (layout.ts, METRICS). */
+.tim-map .react-flow__node .tim-box__header {
+  min-height: var(--tim-map-box-header);
+}
+
 .tim-map .react-flow__node.selected .tim-box {
   border-color: var(--tim-color-selected-outline);
   box-shadow: 0 0 0 1px var(--tim-color-selected-outline);
@@ -109,6 +123,8 @@
 
 /* What the edges are: the legend, out of the way. */
 .tim-map .react-flow__panel .tim-legend {
+  /* Narrow enough to leave the toolbar room, in French too. */
+  max-width: 22rem;
   padding: var(--tim-space-2) var(--tim-space-3);
   border: 1px solid var(--tim-color-divider);
   border-radius: var(--tim-radius);
@@ -121,7 +137,7 @@
   flex: none;
   align-items: center;
   gap: var(--tim-space-2);
-  height: 44px;
+  height: var(--tim-map-header);
   padding: 0 var(--tim-space-3);
   box-sizing: border-box;
   border-bottom: 1px solid var(--tim-color-divider);
@@ -135,19 +151,42 @@ body.vscode-high-contrast .tim-map-frame__header {
   border-bottom: 2px solid var(--tim-role, var(--tim-color-outline));
 }
 
+.tim-map-role__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tim-map-role__members {
   margin: 0;
   padding: var(--tim-space-3);
   list-style: none;
   color: var(--tim-color-muted-on-box);
   font-size: var(--tim-font-size-small);
-  line-height: 20px;
+  line-height: var(--tim-map-line);
 }
 
 .tim-map-role__members li {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tim-map-role__member {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A member changed since the last review: the card's name says which (ADR 0024). */
+.tim-map-role__change {
+  display: inline-flex;
+  flex: none;
+  color: var(--tim-color-attention);
 }
 
 .tim-map-role__more {
@@ -175,7 +214,7 @@ body.vscode-high-contrast .tim-map-frame__header {
   display: flex;
   align-items: center;
   gap: var(--tim-space-2);
-  height: 44px;
+  height: var(--tim-map-header);
   padding: 0 var(--tim-space-3);
   box-sizing: border-box;
   border-bottom: 1px solid var(--tim-color-divider);
@@ -273,4 +312,147 @@ body.vscode-high-contrast .tim-map-frame__header {
 .tim-map--far .tim-map-role__title,
 .tim-map--far .tim-map-frame__title {
   font-size: var(--tim-font-size-title);
+}
+
+/*
+ * The review diff (ADR 0024). A line new since the review, or in a cycle added: the colour of
+ * attention, and a mark halfway that says it in words. Not thicker: thickness is for traffic.
+ */
+.tim-map .react-flow__edge-path.tim-edge--review {
+  stroke: var(--tim-color-attention);
+}
+
+.tim-edge-flag {
+  position: absolute;
+  padding: 0 var(--tim-space-1);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-bg);
+  pointer-events: none;
+}
+
+/* Out of the filter « only the changes »: drawn, quieter; boxes keep their text contrast. */
+.tim-map .react-flow__edge-path.tim-edge--quiet {
+  opacity: var(--tim-opacity-quiet);
+}
+
+.tim-map--quiet .tim-map-role__title,
+.tim-map--quiet .tim-map-frame__header {
+  background: var(--tim-role-neutral-tint);
+}
+
+/*
+ * The summary of the review: a banner above the map, the first thing read (five-second test
+ * n° 1, PLAN.md 5.3). The counts on the left, the actions on the right; the lists under them.
+ */
+.tim-review {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tim-space-2) var(--tim-space-4);
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border-bottom: 1px solid var(--tim-color-divider);
+  background: var(--tim-color-surface);
+}
+
+.tim-review__summary {
+  display: flex;
+  flex: 1 1 24rem;
+  align-items: flex-start;
+  gap: var(--tim-space-2);
+}
+
+.tim-review__mark {
+  display: inline-flex;
+  flex: none;
+  margin-top: 2px;
+  color: var(--tim-color-attention);
+}
+
+.tim-review__title {
+  margin: 0;
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-review__title::after {
+  content: " :";
+}
+
+.tim-review__text {
+  margin: 0;
+}
+
+/* The actions, on the right, larger than the map's tools: they are what to do next. */
+.tim-review__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-2);
+  margin-left: auto;
+}
+
+.tim-review__actions .tim-button {
+  padding: var(--tim-space-2) var(--tim-space-4);
+}
+
+/* The count of changes in a title: it never wraps, the title gives way. */
+.tim-map-changes {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.tim-review__lists {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0 var(--tim-space-6);
+  max-height: 40vh;
+  overflow: auto;
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-review__lists:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}
+
+.tim-review__heading {
+  margin: var(--tim-space-2) 0 0;
+  font-size: var(--tim-font-size-small);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-review__list {
+  margin: var(--tim-space-1) 0 0;
+  padding-left: var(--tim-space-4);
+}
+
+/*
+ * Beside the editor, the map is narrow (review n° 1 of Phase 5, m6): the toolbar wraps, and the
+ * panels share the width; the banner keeps its counts and « Details ».
+ */
+@media (max-width: 760px) {
+  .tim-map .react-flow__panel .tim-toolbar {
+    flex-wrap: wrap;
+    max-width: 46vw;
+  }
+
+  .tim-map .react-flow__panel .tim-legend,
+  .tim-map .tim-map-details {
+    max-width: 46vw;
+    box-sizing: border-box;
+  }
+
+  /* The legend keeps what the lines are; each line's own name says the rest. */
+  .tim-map .react-flow__panel .tim-legend__list,
+  .tim-map .react-flow__panel .tim-legend__subtitle {
+    display: none;
+  }
+
+  /* Folded, the summary keeps its counts and « Details »; its actions come with the details,
+     and stay in the palette. */
+  .tim-map .tim-review:not(.tim-review--open) .tim-review__more {
+    display: none;
+  }
 }

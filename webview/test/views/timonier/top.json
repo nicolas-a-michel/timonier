@@ -8,7 +8,8 @@
         "edges": 4,
         "kind": "imports",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 10
+        "weight": 10,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -17,7 +18,8 @@
         "edges": 4,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 4
+        "weight": 4,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -26,7 +28,8 @@
         "edges": 1,
         "kind": "imports",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 2
+        "weight": 2,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -35,7 +38,8 @@
         "edges": 1,
         "kind": "references",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 3
+        "weight": 3,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -44,7 +48,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -53,7 +58,8 @@
         "edges": 3,
         "kind": "imports",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 5
+        "weight": 5,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -62,7 +68,8 @@
         "edges": 3,
         "kind": "calls",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 6
+        "weight": 6,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -71,7 +78,8 @@
         "edges": 2,
         "kind": "references",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 8
+        "weight": 8,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -80,7 +88,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -89,7 +98,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-cli",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -98,7 +108,8 @@
         "edges": 11,
         "kind": "imports",
         "src": "pkg:cargo/timonier-core",
-        "weight": 22
+        "weight": 22,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -107,7 +118,8 @@
         "edges": 4,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-core",
-        "weight": 4
+        "weight": 4,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -116,7 +128,8 @@
         "edges": 12,
         "kind": "imports",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 37
+        "weight": 37,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -125,7 +138,8 @@
         "edges": 7,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 7
+        "weight": 7,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -134,7 +148,8 @@
         "edges": 47,
         "kind": "imports",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 117
+        "weight": 117,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -143,7 +158,8 @@
         "edges": 24,
         "kind": "calls",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 75
+        "weight": 75,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -152,7 +168,8 @@
         "edges": 39,
         "kind": "references",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 244
+        "weight": 244,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -161,7 +178,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -170,7 +188,8 @@
         "edges": 10,
         "kind": "imports",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 33
+        "weight": 33,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -179,7 +198,8 @@
         "edges": 6,
         "kind": "calls",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 15
+        "weight": 15,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -188,7 +208,8 @@
         "edges": 12,
         "kind": "references",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 61
+        "weight": 61,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -197,7 +218,8 @@
         "edges": 5,
         "kind": "implements",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 5
+        "weight": 5,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -206,7 +228,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -215,7 +238,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -224,7 +248,8 @@
         "edges": 17,
         "kind": "imports",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 17
+        "weight": 17,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -233,7 +258,8 @@
         "edges": 12,
         "kind": "calls",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 35
+        "weight": 35,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -242,7 +268,8 @@
         "edges": 14,
         "kind": "references",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 32
+        "weight": 32,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -251,7 +278,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-daemon",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -260,7 +288,8 @@
         "edges": 10,
         "kind": "imports",
         "src": "pkg:cargo/timonier-index",
-        "weight": 20
+        "weight": 20,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -269,7 +298,8 @@
         "edges": 11,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-index",
-        "weight": 11
+        "weight": 11,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -278,7 +308,8 @@
         "edges": 27,
         "kind": "imports",
         "src": "pkg:cargo/timonier-index",
-        "weight": 53
+        "weight": 53,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -287,7 +318,8 @@
         "edges": 23,
         "kind": "calls",
         "src": "pkg:cargo/timonier-index",
-        "weight": 66
+        "weight": 66,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -296,7 +328,8 @@
         "edges": 27,
         "kind": "references",
         "src": "pkg:cargo/timonier-index",
-        "weight": 169
+        "weight": 169,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -305,7 +338,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-index",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -314,7 +348,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-mcp",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -323,7 +358,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-otlp",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -332,7 +368,8 @@
         "edges": 7,
         "kind": "imports",
         "src": "pkg:cargo/timonier-store",
-        "weight": 16
+        "weight": 16,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -341,7 +378,8 @@
         "edges": 3,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-store",
-        "weight": 3
+        "weight": 3,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -350,7 +388,8 @@
         "edges": 39,
         "kind": "imports",
         "src": "pkg:cargo/timonier-store",
-        "weight": 110
+        "weight": 110,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -359,7 +398,8 @@
         "edges": 26,
         "kind": "calls",
         "src": "pkg:cargo/timonier-store",
-        "weight": 142
+        "weight": 142,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -368,7 +408,8 @@
         "edges": 39,
         "kind": "references",
         "src": "pkg:cargo/timonier-store",
-        "weight": 270
+        "weight": 270,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -377,7 +418,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:cargo/timonier-store",
-        "weight": 1
+        "weight": 1,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -386,7 +428,8 @@
         "edges": 15,
         "kind": "imports",
         "src": "pkg:npm/@timonier/webview",
-        "weight": 16
+        "weight": 16,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -395,7 +438,8 @@
         "edges": 4,
         "kind": "depends_on",
         "src": "pkg:npm/@timonier/webview",
-        "weight": 4
+        "weight": 4,
+        "review": null
       },
       {
         "approximateOnly": true,
@@ -404,7 +448,8 @@
         "edges": 4,
         "kind": "imports",
         "src": "pkg:npm/timonier",
-        "weight": 4
+        "weight": 4,
+        "review": null
       },
       {
         "approximateOnly": false,
@@ -413,7 +458,8 @@
         "edges": 1,
         "kind": "depends_on",
         "src": "pkg:npm/timonier",
-        "weight": 1
+        "weight": 1,
+        "review": null
       }
     ],
     "nodes": [
@@ -426,7 +472,8 @@
         "name": "external",
         "parent": null,
         "role": "external_libraries",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 6,
@@ -437,7 +484,8 @@
         "name": "timonier-cli",
         "parent": null,
         "role": "entry_point",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 13,
@@ -448,7 +496,8 @@
         "name": "timonier-core",
         "parent": null,
         "role": "data_model",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 13,
@@ -459,7 +508,8 @@
         "name": "timonier-daemon",
         "parent": null,
         "role": "entry_point",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 4,
@@ -470,7 +520,8 @@
         "name": "timonier-index",
         "parent": null,
         "role": "utility",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 1,
@@ -481,7 +532,8 @@
         "name": "timonier-mcp",
         "parent": null,
         "role": "utility",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 1,
@@ -492,7 +544,8 @@
         "name": "timonier-otlp",
         "parent": null,
         "role": "utility",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 10,
@@ -503,7 +556,8 @@
         "name": "timonier-store",
         "parent": null,
         "role": "persistence",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 38,
@@ -514,7 +568,8 @@
         "name": "@timonier/webview",
         "parent": null,
         "role": "interface",
-        "span": null
+        "span": null,
+        "review": null
       },
       {
         "children": 21,
@@ -525,11 +580,22 @@
         "name": "timonier",
         "parent": null,
         "role": "interface",
-        "span": null
+        "span": null,
+        "review": null
       }
     ],
     "revision": 0,
-    "subscription": 1
+    "subscription": 1,
+    "review": {
+      "since": null,
+      "added": [],
+      "modified": [],
+      "removed": [],
+      "dependenciesAdded": [],
+      "dependenciesRemoved": [],
+      "cycles": [],
+      "fans": []
+    }
   },
   "spec": {
     "expanded": []

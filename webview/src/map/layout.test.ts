@@ -8,9 +8,9 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ViewEdge, ViewNode, ViewSnapshot } from "../protocol";
+import { NO_REVIEW, type ViewEdge, type ViewNode, type ViewSnapshot } from "../protocol";
 import { edgeKey, type ViewData } from "../viewModel";
-import { layout, ROOT, type Layout } from "./layout";
+import { layout, METRICS, ROOT, type Layout } from "./layout";
 import { mapContent, roleGroupId } from "./mapModel";
 
 const fixture = path.join(import.meta.dirname, "..", "..", "test", "views", "timonier", "top.json");
@@ -20,7 +20,26 @@ const view: ViewData = {
   revision: 0,
   nodes: new Map(top.nodes.map((n) => [n.id, n])),
   edges: new Map(top.edges.map((e) => [edgeKey(e), e])),
+  review: NO_REVIEW,
 };
+
+describe("the density (Q32)", () => {
+  it("draws the compact map smaller and tighter, and the comfortable one as before", async () => {
+    const content = mapContent(view, new Set());
+    const comfortable = await layout(content);
+    const compact = await layout(content, undefined, {}, "compact");
+    const role = content.items.find((item) => item.kind === "role");
+    if (!role) throw new Error("no role in the fixture");
+    expect(comfortable.get(role.id)?.width).toBe(METRICS.comfortable.role.width);
+    expect(compact.get(role.id)?.width).toBe(METRICS.compact.role.width);
+    expect(compact.get(role.id)?.height).toBeLessThan(comfortable.get(role.id)?.height ?? 0);
+    const extent = (placed: Map<string, { x: number; y: number; width: number; height: number }>) =>
+      Math.max(...[...placed.values()].map((at) => at.x + at.width));
+    expect(extent(compact)).toBeLessThan(extent(comfortable));
+    // Back to comfortable: the same as before.
+    expect(await layout(content)).toEqual(comfortable);
+  });
+});
 
 describe("the incremental layout", () => {
   it("pushes what came after an opened role to its right, and back when it closes", async () => {
@@ -65,6 +84,7 @@ describe("the incremental layout", () => {
       edges: 1,
       best: "tree_sitter",
       approximateOnly: true,
+      review: null,
     };
     const grown: ViewData = {
       ...view,

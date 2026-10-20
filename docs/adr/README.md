@@ -28,3 +28,6 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0021 | [Carte d'architecture : rôles, zoom sémantique, mise en page](0021-carte-d-architecture.md) | Accepté | 4 |
 | 0022 | [Vérifier les usages et les dépendants par le serveur de langage](0022-verification-des-usages-par-le-lsp.md) | Accepté | 4 |
 | 0023 | [Suivre les fichiers d'exclusion](0023-fichiers-d-exclusion-suivis.md) | Accepté | 4 |
+| 0024 | [Diff de revue](0024-diff-de-revue.md) | Accepté | 5 |
+| 0025 | [Snapshot de commit : les paquets du commit](0025-paquets-du-commit.md) | Accepté | 5 |
+| 0026 | [Densité de la carte](0026-densite-de-la-carte.md) | Accepté | 5 |

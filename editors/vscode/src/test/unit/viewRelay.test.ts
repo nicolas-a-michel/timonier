@@ -42,7 +42,22 @@ class FakeConnection {
 }
 
 function snapshot(subscription: number): ViewSnapshot {
-  return { subscription, revision: 0, nodes: [], edges: [] };
+  return {
+    subscription,
+    revision: 0,
+    nodes: [],
+    edges: [],
+    review: {
+      since: null,
+      added: [],
+      modified: [],
+      removed: [],
+      dependenciesAdded: [],
+      dependenciesRemoved: [],
+      cycles: [],
+      fans: [],
+    },
+  };
 }
 
 /** A supervisor: its connection can change, as when the daemon restarts. */

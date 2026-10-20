@@ -1214,6 +1214,16 @@ pub(crate) fn freeze(
         "INSERT INTO snapshot (seq, kind, commit_sha, timestamp_ms, frozen) VALUES (?1, 'working_tree', NULL, ?2, 0)",
         params![seq_param(head + 1), timestamp_ms],
     )?;
+    if matches!(freeze, Freeze::ReviewMark) {
+        // The content of each file as reviewed, for the last review only (ADR 0024).
+        tx.execute("DELETE FROM snapshot_content", [])?;
+        tx.execute(
+            "INSERT INTO snapshot_content (seq, scope, content_hash) \
+             SELECT ?1, key, content_hash FROM scope \
+             WHERE key LIKE 'file:%' AND content_hash IS NOT NULL",
+            params![seq_param(head)],
+        )?;
+    }
     tx.commit()?;
     Ok(Snapshot {
         seq: head,

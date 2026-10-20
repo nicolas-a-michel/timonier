@@ -21,12 +21,13 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { EdgeLegend, Toolbar } from "../design/components";
 import { ArrowIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
-import type { MapCommand, Role, Span } from "../protocol";
+import type { Density, MapCommand, Role, Span } from "../protocol";
 import type { ViewData } from "../viewModel";
 import { edgeTypes, nodeTypes, type BoxNode, type LineEdge, type RoleNode, type Sides } from "./elements";
 import { layout, ROOT, type Layout, type Pins } from "./layout";
-import { mapContent, toggleOf, type MapContent, type MapItem, type Toggle } from "./mapModel";
+import { changed, mapContent, toggleOf, type MapContent, type MapItem, type Toggle } from "./mapModel";
 import { directionOf, nearest, type Direction } from "./navigation";
+import { reviewLines, ReviewSummaryPanel } from "./review";
 import { absolute } from "./stability";
 
 export interface MapViewProps {
@@ -50,6 +51,13 @@ export interface MapViewProps {
   pins?: Pins;
   /** Boxes were moved, or put back where computed: every pin, as they are now. */
   onPins?: (pins: Pins) => void;
+  /** How dense the map is drawn: the sizes of its boxes and the room between them (Q32). */
+  density?: Density;
+  /** The « Mark as reviewed » button (ADR 0024). */
+  onMarkReviewed?: () => void;
+  /** What did not change since the last review is quieter (ADR 0024). */
+  onlyChanges?: boolean;
+  onToggleChanges?: () => void;
 }
 
 /** Where the palette's commands come in; those that came before the map are kept in `pending`. */
@@ -64,10 +72,16 @@ function describe(item: MapItem, locale: Locale): { name: string; label: string;
   if (item.kind === "role") {
     const name = item.role ? t.roles[item.role] : t.noRole;
     const members = item.members.map((m) => m.name).join(", ");
+    const changes = item.members.filter((m) => m.review).map((m) => m.name);
+    const changedLine = changes.length > 0 ? [t.review.changedMembers(changes.join(", "))] : [];
     return {
       name,
-      label: `${name}, ${t.members(item.members.length)}: ${members}. ${item.open ? t.closeHint : t.openHint}`,
-      lines: [t.members(item.members.length), members],
+      label: [
+        `${name}, ${t.members(item.members.length)}: ${members}.`,
+        ...changedLine,
+        item.open ? t.closeHint : t.openHint,
+      ].join(" "),
+      lines: [t.members(item.members.length), members, ...changedLine],
     };
   }
   const { node } = item;
@@ -83,19 +97,28 @@ function describe(item: MapItem, locale: Locale): { name: string; label: string;
       : node.file
         ? ` ${t.codeHint}`
         : "";
+  const changes = reviewLines(node.review, locale);
+  const said = changes.map((line) => ` ${line}.`).join("");
   return {
     name: node.name,
-    label: `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${hint}`,
-    lines: [`${kind} · ${role}`, t.items(node.children), ...(node.file ? [node.file] : [])],
+    label: `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${said}${hint}`,
+    lines: [`${kind} · ${role}`, t.items(node.children), ...(node.file ? [node.file] : []), ...changes],
   };
 }
 
-function flowNodes(content: MapContent, placed: Layout, locale: Locale): Node[] {
+function flowNodes(
+  content: MapContent,
+  placed: Layout,
+  locale: Locale,
+  onlyChanges: boolean,
+  density: Density,
+): Node[] {
   const nodes: Node[] = [];
   const ins = new Set(content.edges.map((edge) => edge.target));
   const outs = new Set(content.edges.map((edge) => edge.source));
   for (const item of content.items) {
     const sides: Sides = { in: ins.has(item.id), out: outs.has(item.id) };
+    const quiet = onlyChanges && !changed(item);
     const at = placed.get(item.id);
     if (!at) continue;
     const common = {
@@ -112,13 +135,13 @@ function flowNodes(content: MapContent, placed: Layout, locale: Locale): Node[] 
       ...(item.open ? { dragHandle: ".tim-map-frame__header", className: "tim-map-node--frame" } : {}),
     };
     if (item.kind === "role") {
-      nodes.push({ ...common, type: "role", data: { group: item, locale, sides } } satisfies RoleNode);
+      nodes.push({ ...common, type: "role", data: { group: item, locale, sides, quiet, density } } satisfies RoleNode);
     } else {
       nodes.push({
         ...common,
         type: "box",
         parentId: item.parent.startsWith("@role/") || placed.has(item.parent) ? item.parent : undefined,
-        data: { box: item, locale, sides },
+        data: { box: item, locale, sides, quiet, density },
       } satisfies BoxNode);
     }
   }
@@ -132,7 +155,7 @@ function wireColour(item: MapItem | undefined): Role | "neutral" | null {
 }
 
 /** The edges, as React Flow wants them: built once per layout. */
-function flowEdges(content: MapContent, locale: Locale): LineEdge[] {
+function flowEdges(content: MapContent, locale: Locale, onlyChanges: boolean): LineEdge[] {
   const t = messages[locale];
   const names = new Map(content.items.map((item) => [item.id, describe(item, locale).name]));
   return content.edges.map(
@@ -142,17 +165,21 @@ function flowEdges(content: MapContent, locale: Locale): LineEdge[] {
         source: line.source,
         target: line.target,
         type: "line",
-        data: { line, active: null },
+        data: { line, active: null, locale, quiet: onlyChanges && !line.review },
         focusable: false,
         selectable: false,
         // Under every box: a line never crosses a box's text. Open frames have no fill.
         zIndex: 0,
-        ariaLabel: t.edgeLabel(
-          names.get(line.source) ?? line.source,
-          names.get(line.target) ?? line.target,
-          line.edges,
-          line.approximate,
-        ),
+        ariaLabel: [
+          t.edgeLabel(
+            names.get(line.source) ?? line.source,
+            names.get(line.target) ?? line.target,
+            line.edges,
+            line.approximate,
+          ),
+          ...(line.review?.added ? [`${t.review.addedLong}.`] : []),
+          ...(line.review?.cycle ? [`${t.review.cycleLong}.`] : []),
+        ].join(" "),
       }) satisfies LineEdge,
   );
 }
@@ -187,7 +214,14 @@ function Canvas({
   commandsRef,
   pins = NO_PINS,
   onPins,
+  onMarkReviewed,
+  density = "comfortable",
+  onlyChanges: filter = false,
+  onToggleChanges,
 }: MapViewProps) {
+  // Before the first review there is nothing to highlight: the map shows as it is (Q27).
+  const onlyChanges = filter && view.review.since !== null;
+  const [reviewDetails, setReviewDetails] = useState(false);
   const t = messages[locale];
   const content = useMemo(() => mapContent(view, openRoles, { focus }), [view, openRoles, focus]);
   const [placed, setPlaced] = useState<{ content: MapContent; layout: Layout } | undefined>();
@@ -205,24 +239,32 @@ function Canvas({
   const [selected, setSelected] = useState<ReadonlySet<string>>(NONE);
   /** What React Flow measured of each box: it moves only boxes it has measured. */
   const [measured, setMeasured] = useState<ReadonlyMap<string, { width?: number; height?: number }>>(UNMEASURED);
+  /** The density of the layout on screen: another one starts afresh, every size changed. */
+  const laidDensity = useRef(density);
   useEffect(() => {
     let current = true;
     // From the layout on screen: what did not change stays where it was (PLAN.md 4.8).
     // « Back to the roles » starts afresh: kept places would leave the gaps of the open frames.
-    const previous = afresh.current ? undefined : shown.current;
+    const previous = afresh.current || laidDensity.current !== density ? undefined : shown.current;
     afresh.current = false;
-    void layout(content, previous && { content: previous.content, placed: previous.layout }, pins).then((result) => {
-      if (!current) return;
-      shown.current = { content, layout: result };
-      setPlaced(shown.current);
-      // What was being dragged is now where the layout put it.
-      setMoving(NOWHERE);
-    });
+    laidDensity.current = density;
+    void layout(content, previous && { content: previous.content, placed: previous.layout }, pins, density).then(
+      (result) => {
+        if (!current) return;
+        shown.current = { content, layout: result };
+        setPlaced(shown.current);
+        // What was being dragged is now where the layout put it.
+        setMoving(NOWHERE);
+      },
+    );
     return () => {
       current = false;
     };
-  }, [content, pins]);
-  const laidOut = useMemo(() => (placed ? flowNodes(placed.content, placed.layout, locale) : []), [placed, locale]);
+  }, [content, pins, density]);
+  const laidOut = useMemo(
+    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density) : []),
+    [placed, locale, onlyChanges, density],
+  );
   const nodes = useMemo(
     () =>
       laidOut.map((node) => {
@@ -262,7 +304,10 @@ function Canvas({
     () => (shownId ? placed?.content.items.find((item) => item.id === shownId) : undefined),
     [placed, shownId],
   );
-  const allEdges = useMemo(() => (placed ? flowEdges(placed.content, locale) : []), [placed, locale]);
+  const allEdges = useMemo(
+    () => (placed ? flowEdges(placed.content, locale, onlyChanges) : []),
+    [placed, locale, onlyChanges],
+  );
   const edges = useMemo(() => withActive(allEdges, shownItem), [allEdges, shownItem]);
   const fitted = useRef(false);
   const closeAll = () => {
@@ -273,13 +318,28 @@ function Canvas({
   };
   /** What a click or Enter just opened: the next layout brings it into view. */
   const reveal = useRef<string | undefined>(undefined);
+  /**
+   * Room for the panels over the map, so that fitting the view puts no box under them: the
+   * toolbar and the legend above, the summary of the review below (review n° 1 of Phase 5, m6).
+   */
+  const fitPadding = () => {
+    const height = (selector: string) => root.current?.querySelector(selector)?.getBoundingClientRect().height ?? 0;
+    const gap = 16;
+    return {
+      top: `${Math.max(height(".tim-toolbar"), height(".tim-legend")) + gap}px`,
+      // Above React Flow's attribution; the review's banner is above the map, not on it.
+      bottom: `${3 * gap}px`,
+      left: `${gap}px`,
+      right: `${gap}px`,
+    } as const;
+  };
   useEffect(() => {
     if (!placed) return;
     onLaidOut?.();
     // The first layout fits the window; later ones keep the view where the person left it.
     if (!fitted.current) {
       fitted.current = true;
-      void flow.fitView({ padding: 0.1, duration: 0 });
+      void flow.fitView({ padding: fitPadding(), duration: 0 });
     } else if (reveal.current && placed.layout.has(reveal.current)) {
       // What was asked for, in view; never closer than its real size.
       void flow.fitView({ nodes: [{ id: reveal.current }], padding: 0.2, duration: 0, maxZoom: 1 });
@@ -333,7 +393,7 @@ function Canvas({
   const run = (command: MapCommand) => {
     switch (command.name) {
       case "fitView":
-        void flow.fitView({ padding: 0.1, duration: 0 });
+        void flow.fitView({ padding: fitPadding(), duration: 0 });
         return;
       case "zoomIn":
         void flow.zoomIn({ duration: 0 });
@@ -355,6 +415,12 @@ function Canvas({
         return;
       case "resetLayout":
         resetLayout();
+        return;
+      case "toggleChanges":
+        if (view.review.since) onToggleChanges?.();
+        return;
+      case "toggleReviewDetails":
+        setReviewDetails(!reviewDetails);
         return;
     }
   };
@@ -460,92 +526,105 @@ function Canvas({
       onKeyDown={onKeyDown}
       onFocus={onFocus}
     >
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        nodesDraggable={Boolean(onPins)}
-        // A click that moves a little stays a click; a box follows from 4 px on.
-        nodeDragThreshold={4}
-        nodeClickDistance={4}
-        onNodesChange={onNodesChange}
-        onNodeDragStop={(_, __, dragged) =>
-          pinAt(dragged.map((node) => ({ id: node.id, x: node.position.x, y: node.position.y })))
-        }
-        nodesConnectable={false}
-        edgesFocusable={false}
-        elementsSelectable
-        minZoom={0.1}
-        maxZoom={2}
-        zoomOnDoubleClick={false}
-        // Edges stay under every box, those inside an open box too: a line never crosses a name.
-        zIndexMode="manual"
-        onMove={(_, viewport) => setFar(viewport.zoom < FAR_ZOOM)}
-        onNodeClick={(_, node) => activate(node.id)}
-        onNodeDoubleClick={(_, node) => openCode(node.id)}
-        onNodeMouseEnter={(_, node) => setShownId(node.id)}
+      {/* What the screen answers first: what changed since the review, in a banner above the
+          map (five-second test n° 1, PLAN.md 5.3; ADR 0024). */}
+      <ReviewSummaryPanel
+        summary={view.review}
+        locale={locale}
+        onMarkReviewed={onMarkReviewed}
+        onlyChanges={onlyChanges}
+        onToggleChanges={onToggleChanges}
+        detailsOpen={reviewDetails}
+        onToggleDetails={() => setReviewDetails(!reviewDetails)}
+      />
+      <div className="tim-map__flow">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesDraggable={Boolean(onPins)}
+          // A click that moves a little stays a click; a box follows from 4 px on.
+          nodeDragThreshold={4}
+          nodeClickDistance={4}
+          onNodesChange={onNodesChange}
+          onNodeDragStop={(_, __, dragged) =>
+            pinAt(dragged.map((node) => ({ id: node.id, x: node.position.x, y: node.position.y })))
+          }
+          nodesConnectable={false}
+          edgesFocusable={false}
+          elementsSelectable
+          minZoom={0.1}
+          maxZoom={2}
+          zoomOnDoubleClick={false}
+          // Edges stay under every box, those inside an open box too: a line never crosses a name.
+          zIndexMode="manual"
+          onMove={(_, viewport) => setFar(viewport.zoom < FAR_ZOOM)}
+          onNodeClick={(_, node) => activate(node.id)}
+          onNodeDoubleClick={(_, node) => openCode(node.id)}
+          onNodeMouseEnter={(_, node) => setShownId(node.id)}
 
-        ariaLabelConfig={{
-          // Each node's name says what Enter does with it; this, what every node shares.
-          "node.a11yDescription.default": t.nodeHint,
-          "node.a11yDescription.keyboardDisabled": t.nodeHint,
-        }}
-      >
-        {/* The board: faint lines; the finer ones go when zoomed out, where they would blur. */}
-        {!far && <Background id="minor" variant={BackgroundVariant.Lines} gap={16} color="var(--tim-grid-minor)" />}
-        <Background id="major" variant={BackgroundVariant.Lines} gap={128} color="var(--tim-grid-major)" />
-        <Panel position="top-left">
-          <Toolbar
-            label={t.mapTools}
-            items={[
-              { id: "fit", label: t.fitView, onSelect: () => run({ name: "fitView" }) },
-              { id: "zoom-in", label: t.zoomIn, onSelect: () => run({ name: "zoomIn" }) },
-              { id: "zoom-out", label: t.zoomOut, onSelect: () => run({ name: "zoomOut" }) },
-              { id: "close", label: t.closeAll, onSelect: closeAll },
-              { id: "reset", label: t.resetLayout, onSelect: resetLayout },
-            ]}
-          />
-        </Panel>
-        <Panel position="top-right">
-          <EdgeLegend locale={locale} />
-        </Panel>
-        {described && (
-          <Panel position="bottom-left">
-            <aside className="tim-map-details" aria-label={described.name}>
-              <div className="tim-map-details__name">{described.name}</div>
-              {described.lines.map((line) => (
-                <div key={line} className="tim-map-details__line">
-                  {line}
-                </div>
-              ))}
-              {code && (
-                <button type="button" className="tim-button tim-map-details__code" onClick={() => openCode(shownId)}>
-                  {t.goToCode}
-                </button>
-              )}
-              {onPins && (
-                // Moving a box with a pointer, without dragging it (WCAG 2.5.7).
-                <div className="tim-map-details__move" role="group" aria-label={t.moveGroup}>
-                  {MOVES.map((direction) => (
-                    <button
-                      key={direction}
-                      type="button"
-                      className="tim-button tim-map-details__step"
-                      aria-label={t.moveTo[direction]}
-                      title={t.moveTo[direction]}
-                      data-contrast="icon"
-                      onClick={() => moveBy(shownId, direction)}
-                    >
-                      <ArrowIcon direction={direction} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </aside>
+          ariaLabelConfig={{
+            // Each node's name says what Enter does with it; this, what every node shares.
+            "node.a11yDescription.default": t.nodeHint,
+            "node.a11yDescription.keyboardDisabled": t.nodeHint,
+          }}
+        >
+          {/* The board: faint lines; the finer ones go when zoomed out, where they would blur. */}
+          {!far && <Background id="minor" variant={BackgroundVariant.Lines} gap={16} color="var(--tim-grid-minor)" />}
+          <Background id="major" variant={BackgroundVariant.Lines} gap={128} color="var(--tim-grid-major)" />
+          <Panel position="top-left">
+            <Toolbar
+              label={t.mapTools}
+              items={[
+                { id: "fit", label: t.fitView, onSelect: () => run({ name: "fitView" }) },
+                { id: "zoom-in", label: t.zoomIn, onSelect: () => run({ name: "zoomIn" }) },
+                { id: "zoom-out", label: t.zoomOut, onSelect: () => run({ name: "zoomOut" }) },
+                { id: "close", label: t.closeAll, onSelect: closeAll },
+                { id: "reset", label: t.resetLayout, onSelect: resetLayout },
+              ]}
+            />
           </Panel>
-        )}
-      </ReactFlow>
+          <Panel position="top-right">
+            <EdgeLegend locale={locale} changes={view.review.since !== null} />
+          </Panel>
+          {described && (
+            <Panel position="bottom-left">
+              <aside className="tim-map-details" aria-label={described.name}>
+                <div className="tim-map-details__name">{described.name}</div>
+                {described.lines.map((line) => (
+                  <div key={line} className="tim-map-details__line">
+                    {line}
+                  </div>
+                ))}
+                {code && (
+                  <button type="button" className="tim-button tim-map-details__code" onClick={() => openCode(shownId)}>
+                    {t.goToCode}
+                  </button>
+                )}
+                {onPins && (
+                  // Moving a box with a pointer, without dragging it (WCAG 2.5.7).
+                  <div className="tim-map-details__move" role="group" aria-label={t.moveGroup}>
+                    {MOVES.map((direction) => (
+                      <button
+                        key={direction}
+                        type="button"
+                        className="tim-button tim-map-details__step"
+                        aria-label={t.moveTo[direction]}
+                        title={t.moveTo[direction]}
+                        data-contrast="icon"
+                        onClick={() => moveBy(shownId, direction)}
+                      >
+                        <ArrowIcon direction={direction} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </aside>
+            </Panel>
+          )}
+        </ReactFlow>
+      </div>
     </section>
   );
 }

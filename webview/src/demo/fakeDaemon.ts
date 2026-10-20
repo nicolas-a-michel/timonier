@@ -3,7 +3,7 @@
  * real repository taken with every package and component open (test/views, written by the
  * `view_snapshot` example), as the daemon would for the boxes expanded.
  */
-import type { ViewEdge, ViewNode, ViewSnapshot } from "../protocol";
+import { NO_REVIEW, type ViewEdge, type ViewNode, type ViewSnapshot } from "../protocol";
 
 export interface Fixture {
   snapshot: ViewSnapshot;
@@ -37,6 +37,10 @@ export function viewOf(open: ViewSnapshot, expanded: readonly string[], revision
       known.weight += edge.weight;
       known.edges += edge.edges;
       known.approximateOnly &&= edge.approximateOnly;
+      // New when all it stands for is; in a cycle when one of them is (ADR 0024).
+      const added = (known.review?.added ?? false) && (edge.review?.added ?? false);
+      const cycle = (known.review?.cycle ?? false) || (edge.review?.cycle ?? false);
+      known.review = added || cycle ? { added, cycle } : null;
     } else {
       merged.set(key, { ...edge, src, dst });
     }
@@ -46,5 +50,6 @@ export function viewOf(open: ViewSnapshot, expanded: readonly string[], revision
     revision,
     nodes: open.nodes.filter((node) => shown.has(node.id)),
     edges: [...merged.values()],
+    review: open.review ?? NO_REVIEW,
   };
 }

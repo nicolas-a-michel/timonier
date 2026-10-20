@@ -13,13 +13,15 @@ use std::thread::JoinHandle;
 use std::time::Instant;
 
 use serde_json::Value;
-use timonier_core::protocol::{ViewSpec, errors, methods};
+use timonier_core::protocol::{ReviewMark, ReviewSummary, ViewSpec, errors, methods};
+use timonier_core::review::{self, ReviewDiff};
 use timonier_core::rpc::{ErrorObject, Id, Message};
+use timonier_core::{ContentHash, SnapshotKind};
 use timonier_store::{Reader, Store};
 use tokio::sync::Notify;
 use tokio::sync::mpsc::{self, error::TrySendError};
 
-use crate::view::{Graph, ViewState};
+use crate::view::{self, Graph, Review, ViewState};
 
 /// Frames waiting to be written to one client.
 pub(crate) type Outbox = mpsc::Sender<Vec<u8>>;
@@ -75,11 +77,37 @@ struct Subscription {
     lost: bool,
 }
 
+/// The snapshot of the last review, frozen: read once per review (ADR 0024).
+struct Reviewed {
+    mark: ReviewMark,
+    graph: Graph,
+    /// The content hash of each file when it was marked.
+    contents: HashMap<String, ContentHash>,
+}
+
+/// The head as last read, and its review diff, for every view.
+struct Head {
+    graph: Graph,
+    review: Option<(ReviewDiff, ReviewSummary)>,
+}
+
+impl Head {
+    fn review<'a>(&'a self, reviewed: Option<&'a Reviewed>) -> Option<Review<'a>> {
+        let ((diff, summary), reviewed) = (self.review.as_ref()?, reviewed?);
+        Some(Review {
+            reviewed: &reviewed.graph,
+            diff,
+            summary,
+        })
+    }
+}
+
 struct Subscriptions {
     store: Store,
     reader: Option<Reader>,
     /// The head as last read; `None` when it changed since, or nobody looks.
-    graph: Option<Graph>,
+    head: Option<Head>,
+    reviewed: Option<Reviewed>,
     clients: HashMap<u64, Client>,
     subscriptions: BTreeMap<u64, Subscription>,
     next: u64,
@@ -98,7 +126,8 @@ pub(crate) fn spawn(
             let mut subscriptions = Subscriptions {
                 store,
                 reader: None,
-                graph: None,
+                head: None,
+                reviewed: None,
                 clients: HashMap::new(),
                 subscriptions: BTreeMap::new(),
                 next: 1,
@@ -109,7 +138,7 @@ pub(crate) fn spawn(
                 }
                 subscriptions.handle(command);
                 if changed.swap(false, Ordering::SeqCst) {
-                    subscriptions.graph = None;
+                    subscriptions.head = None;
                     subscriptions.refresh();
                 }
             }
@@ -140,8 +169,15 @@ impl Subscriptions {
                 id,
                 spec,
             } => {
-                let state = match self.graph() {
-                    Ok(graph) => ViewState::compute(graph, &spec),
+                let state = match self.read_head() {
+                    Ok(()) => {
+                        let head = self.head.as_ref().expect("read just above");
+                        ViewState::compute(
+                            &head.graph,
+                            &spec,
+                            head.review(self.reviewed.as_ref()).as_ref(),
+                        )
+                    }
                     Err(error) => {
                         tracing::warn!(%error, "cannot read the graph");
                         let error = ErrorObject::new(errors::INTERNAL, error.to_string());
@@ -208,22 +244,56 @@ impl Subscriptions {
         }
     }
 
-    /// The head, read again if it changed.
-    fn graph(&mut self) -> crate::Result<&Graph> {
-        if self.graph.is_none() {
-            let start = Instant::now();
-            let reader = match &mut self.reader {
-                Some(reader) => reader,
-                None => self.reader.insert(self.store.reader()?),
-            };
-            let graph = Graph::load(reader)?;
-            tracing::debug!(
-                elapsed_ms = start.elapsed().as_secs_f64() * 1000.0,
-                "head read for the views"
-            );
-            self.graph = Some(graph);
+    /// The head, read again if it changed, with its review diff.
+    fn read_head(&mut self) -> crate::Result<()> {
+        if self.head.is_some() {
+            return Ok(());
         }
-        Ok(self.graph.as_ref().expect("read just above"))
+        let start = Instant::now();
+        let reader = match &mut self.reader {
+            Some(reader) => reader,
+            None => self.reader.insert(self.store.reader()?),
+        };
+        let cache = &mut self.reviewed;
+        // The head, the review and the contents as of one moment (review n° 1 of Phase 5, m11).
+        let (graph, review) = reader.consistent(|reader| -> crate::Result<_> {
+            let graph = view::load(reader)?;
+            let review = match reader.latest(SnapshotKind::ReviewMark)? {
+                // No diff before the first review (Q27).
+                None => {
+                    *cache = None;
+                    None
+                }
+                Some(mark) => {
+                    if cache.as_ref().map(|r| r.mark.seq) != Some(mark.seq) {
+                        *cache = Some(Reviewed {
+                            mark: ReviewMark::from(&mark),
+                            graph: Graph::new(
+                                reader.nodes_at(mark.seq)?,
+                                reader.edges_at(mark.seq)?,
+                            ),
+                            contents: reader.reviewed_contents(mark.seq)?,
+                        });
+                    }
+                    let reviewed = cache.as_ref().expect("read just above");
+                    let diff = review::compare(
+                        &reviewed.graph,
+                        &graph,
+                        &reviewed.contents,
+                        &reader.file_contents()?,
+                    );
+                    let summary = view::summary(reviewed.mark, &reviewed.graph, &graph, &diff);
+                    Some((diff, summary))
+                }
+            };
+            Ok((graph, review))
+        })?;
+        tracing::debug!(
+            elapsed_ms = start.elapsed().as_secs_f64() * 1000.0,
+            "head read for the views"
+        );
+        self.head = Some(Head { graph, review });
+        Ok(())
     }
 
     /// Every view again, and a delta to each one that changed.
@@ -232,14 +302,15 @@ impl Subscriptions {
             return;
         }
         let start = Instant::now();
-        if let Err(error) = self.graph() {
+        if let Err(error) = self.read_head() {
             tracing::warn!(%error, "cannot read the graph: the views wait for the next change");
             return;
         }
-        let graph = self.graph.as_ref().expect("read just above");
+        let head = self.head.as_ref().expect("read just above");
+        let review = head.review(self.reviewed.as_ref());
         let mut deltas = Vec::new();
         for (id, subscription) in &mut self.subscriptions {
-            let next = ViewState::compute(graph, &subscription.spec);
+            let next = ViewState::compute(&head.graph, &subscription.spec, review.as_ref());
             let delta = subscription.state.delta(&next, *id, subscription.revision);
             if delta.is_empty() {
                 continue;
@@ -331,7 +402,8 @@ impl Subscriptions {
         self.clients.remove(&connection);
         self.subscriptions.retain(|_, s| s.connection != connection);
         if self.subscriptions.is_empty() {
-            self.graph = None;
+            self.head = None;
+            self.reviewed = None;
         }
     }
 }

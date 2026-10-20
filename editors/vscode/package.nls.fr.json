@@ -7,6 +7,9 @@
   "command.showLog.title": "Afficher le journal",
   "capabilities.untrustedWorkspaces": "Timonier lance un programme sur le projet et indexe son code : il attend que le dossier soit approuvé.",
   "config.daemon.path": "Chemin du programme `timonier` qui fait tourner le démon du projet. Vide : `timonier` dans le `PATH`.",
+  "config.map.density": "Densité de la carte d'architecture : la taille de ses boîtes et l'espace entre elles.",
+  "config.map.density.comfortable": "De la place pour lire : des boîtes plus grandes, des écarts plus larges.",
+  "config.map.density.compact": "Plus à l'écran : des boîtes plus petites, des écarts plus serrés.",
   "command.map.fitView.title": "Ajuster la carte à la fenêtre",
   "command.map.zoomIn.title": "Zoom avant sur la carte",
   "command.map.zoomOut.title": "Zoom arrière sur la carte",
@@ -14,5 +17,8 @@
   "command.map.moveSelection.title": "Déplacer la sélection sur la carte…",
   "command.map.resetLayout.title": "Réinitialiser la disposition de la carte",
   "command.map.toggle.title": "Ouvrir ou fermer la sélection sur la carte",
-  "command.map.openCode.title": "Aller au code de la sélection sur la carte"
+  "command.map.openCode.title": "Aller au code de la sélection sur la carte",
+  "command.map.onlyChanges.title": "Mettre en avant les changements depuis la dernière revue sur la carte (activer ou désactiver)",
+  "command.map.reviewDetails.title": "Afficher ou masquer les détails du résumé de revue sur la carte",
+  "command.markReviewed.title": "Marquer comme revu"
 }

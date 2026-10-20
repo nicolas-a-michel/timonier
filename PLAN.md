@@ -236,6 +236,97 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q42 — Comment finir la Phase 5** (relecture n° 7) — ✅ répondu le 2026-10-19 : **clore si
+mineurs**. Après les corrections de la relecture n° 7, une relecture n° 8 ; si elle ne trouve
+plus que des cas limites de regroupement ou des mineurs, ils sont notés comme écarts, et la
+phase est close avec réserves une fois le test des cinq secondes passé, comme la Phase 4 (Q24).
+
+**Q41 — Deux choix de l'ADR 0024 sur les déplacements** (Phase 5, relecture n° 7, m-2) — ✅
+répondu le 2026-10-19 : **les garder**. Quand l'appelant et l'appelé bougent tous deux, chacun
+compte pour son propre déplacement ; un fichier rangé dans un dossier nouveau d'une autre crate
+emporte ses dépendances de crate. Les deux suivent Q36.
+
+**Q40 — Un fichier renommé dans son dossier** (Phase 5, relecture n° 7, I-1) — ✅ répondu le
+2026-10-19 : **pas un déplacement**. Un fichier resté dans son dossier ne bouge pas : s'il
+change de composant (son nouveau nom rejoint celui de la majorité de ses voisins, ADR 0016),
+c'est le fait du regroupement. Aucune dépendance ni aucun cycle ; le fichier et ses boîtes
+restent « Modifiés ».
+
+**Q39 — Un fichier regroupé au commit et modifié, qui appelle un autre fichier de la même
+boîte** (Phase 5, relecture n° 5, m-2) — ✅ répondu le 2026-10-19 : **le noter comme écart**.
+Le cas est rare (un regroupement au commit, et une modification qui change d'appelé à
+l'intérieur de la même boîte) ; le résumé peut alors lister une dépendance retirée et une
+ajoutée pour le même code. Pas de comparaison fichier par fichier de plus.
+
+**Q38 — Les boîtes « dont aucune n'est un regroupement » de Q36** (Phase 5, relecture n° 5,
+m-2) — ✅ répondu le 2026-10-19 : **les boîtes du fichier**. Un déplacement compte si ni la
+boîte que le fichier quitte, ni celle qu'il rejoint, n'est un regroupement. Un fichier déplacé
+de x vers un dossier nouveau w (un regroupement) ne fait donc ni « x → z retirée » ni
+« w → z ajoutée » ; le seul fichier de x déplacé dans y, x disparaissant, ne fait pas
+« y → z ajoutée ».
+
+**Q37 — La crate qui cède ou reçoit les fichiers d'une crate qui arrive ou part** (Phase 5,
+relecture n° 4, m-1) — ✅ répondu le 2026-10-19 : **oui, comme un déplacement**. Comme un
+fichier déplacé marque ses deux boîtes, les fichiers d'une crate qui arrive ou part marquent la
+boîte qu'ils quittent ou rejoignent : la crate racine, par exemple, est « Modifiée ».
+
+**Q36 — Ce qui explique une dépendance** (Phase 5, relecture n° 4, I-1 et I-2) — ✅ répondu le
+2026-10-19 : **comparer les arêtes**. Une dépendance n'est ajoutée ou retirée que si une arête
+qui la porte (appel, import, dépendance d'un manifeste) apparaît ou disparaît dans un fichier
+changé (Q28), ou si un fichier passe d'une boîte à une autre dont aucune n'est un regroupement.
+Un regroupement n'ajoute ni ne retire jamais de dépendance, même si un fichier a changé
+ailleurs. Les lignes « Nouveau » de la carte suivent la même règle. Précise Q28, lu jusque-là
+fichier par fichier.
+
+**Q35 — Une crate qui apparaît ou disparaît avec son manifeste** (Phase 5, relecture n° 3,
+I-b) — ✅ répondu le 2026-10-19 : **compter le manifeste**. Une crate n'est pas un
+regroupement automatique : elle vient de son manifeste, qui est du code. Elle est « Nouvelle »
+quand son manifeste arrive, « Supprimée » (dans le résumé, Q26) quand il part, sauf
+renommage. Les boîtes qui la contiennent sont modifiées, comme pour un fichier. Les composants
+gardent la règle de Q33 ; Q34 reste (une crate devenue externe est « Modifiée »).
+
+**Q34 — Une crate qui perd son manifeste** (Phase 5, relecture n° 2, m-4) — ✅ répondu le
+2026-10-18 : **« Modifiée »**. Un paquet qui perd tous ses fichiers ou en gagne (il passe
+d'interne à externe, ou l'inverse) prend le badge « Modifié » et entre dans le résumé. Une
+dépendance retirée est nommée comme à la revue.
+
+**Q33 — Une boîte qui apparaît ou disparaît sans que son code arrive ou parte** (Phase 5,
+relecture n° 2, I-1) — ✅ répondu le 2026-10-18 : **seulement si du code part ou arrive**. Un
+composant est toujours un regroupement automatique, refait au commit (ADR 0016). Une boîte
+n'est donc « Nouvelle » que si elle apporte un fichier nouveau, ou si elle n'en a aucun (un
+paquet externe). Elle n'est « Supprimée » que si un de ses fichiers a été supprimé, ou si elle
+n'en avait aucun. Sinon, elle est « Modifiée » si elle tient un fichier changé ou déplacé. Un
+dossier renommé avant le commit ne laisse donc aucune boîte supprimée. Limite acceptée : un
+dossier vidé dans un autre n'est pas listé comme supprimé.
+
+**Q32 — Densité réglable de la carte : quand** (Phase 5, relecture n° 1, I4) — ✅ répondu le
+2026-10-18 : **maintenant, en Phase 5**. Un réglage « confortable » ou « compacte » change la
+taille des boîtes et les espacements ; la mise en page suit.
+
+**Q31 — Le filtre des changements : estomper ou masquer** (Phase 5, relecture n° 1, m7) — ✅
+répondu le 2026-10-18 : **estomper**. Rien ne bouge, l'inchangé reste visible en fond ; le
+libellé devient « Mettre en avant les changements ».
+
+**Q30 — Composants qui apparaissent ou disparaissent par regroupement automatique** (Phase 5,
+relecture n° 1, B1) — ✅ répondu le 2026-10-18 : **les ignorer**. Comme pour Q28, le diff ne
+montre que ce qu'un changement de code explique : un composant qui ne fait que regrouper des
+fichiers inchangés n'a ni badge ni ligne dans le résumé.
+
+**Q29 — Critère de sortie de la Phase 5** — ✅ répondu le 2026-10-18 : **validé tel quel**.
+
+**Q28 — Dépendance changée par la seule vérification du serveur de langage** (Phase 5) — ✅
+répondu le 2026-10-18 : **l'ignorer**. Le diff de revue ne montre que ce qu'un changement de
+code explique : une dépendance ajoutée ou retirée compte si un des fichiers qui la portent a
+changé depuis la revue. La carte montre toujours le graphe le plus précis.
+
+**Q27 — Avant la première revue** (Phase 5) — ✅ répondu le 2026-10-18 : **pas de diff**. Tant
+que rien n'a été marqué comme revu, la carte se montre telle quelle, et un message invite à
+« Marquer comme revu » pour suivre les changements à partir de là.
+
+**Q26 — Où montrer ce qui a disparu depuis la dernière revue** (Phase 5) — ✅ répondu le
+2026-10-18 : **dans le résumé seul**. La carte ne montre que ce qui existe, avec ses badges ; les
+composants et dépendances supprimés sont listés dans le résumé du diff.
+
 **Q25 — Worktree en chemins relatifs : quand fixer le dossier courant du démon** (Phase 4,
 relectures n° 17 et 18, m17-1, m18-1) — ✅ répondu le 2026-10-18 : **plus tard**.
 - Dans un worktree créé en chemins relatifs (git 2.48 et plus), `.git/info/exclude` ne
@@ -1926,7 +2017,7 @@ Décisions :
 - Le snapshot d'un commit est faux quand un manifeste n'est modifié que dans l'arbre de travail,
   ou quand `src/lib.rs` n'existe que d'un côté (défaut de la tâche 3.7). Reporté en Phase 5 par
   ta réponse à Q23 (tâche 5.4) : la carte montre la tête, juste ; seul le diff de revue lira ces
-  snapshots.
+  snapshots. Corrigé en Phase 5 (ADR 0025).
 - Un fichier devenu illisible garde ce qui pointe vers lui jusqu'au changement suivant qui
   modifie l'index, jusqu'à `editor/saved`, ou jusqu'à ce qu'on rouvre le fichier gardé :
   redevenu lisible, il ne fait pas d'événement (ADR 0022).
@@ -1949,11 +2040,20 @@ Décisions :
 
 ## Phase 5 — Diff de revue
 
-Statut : en cours
+Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q42)
 
-- [ ] 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
+- [x] 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
   JSON-RPC) avec une confirmation discrète — critère : test d'intégration.
-- [ ] 5.2 Diff structurel depuis la dernière `review_mark` — critère : tests sur des paires de
+  - Méthode `review/mark` (protocole version 3), passée par le fil du pipeline entre deux
+    étapes ; une base en retard est rattrapée d'abord, et le disque relu (une sauvegarde faite
+    juste avant le clic est dans la revue) ; `daemon/status` donne la dernière revue. Le gel
+    garde l'empreinte de chaque fichier (migration 0005, ADR 0024).
+  - Commande « Timonier : Marquer comme revu », bouton dans le résumé de la carte ;
+    confirmation dans la barre d'état pendant 4 s.
+  - Tests : `a_client_marks_the_head_as_reviewed` (vrai démon),
+    `a_review_mark_catches_the_store_up_first`, `a_review_mark_keeps_the_content_of_each_file`,
+    et l'intégration « marks the head as reviewed, from the palette » dans un vrai VSCode.
+- [x] 5.2 Diff structurel depuis la dernière `review_mark` — critère : tests sur des paires de
   snapshots fixtures. Les arêtes pendantes, que les lectures brutes renvoient, sont filtrées
   (ADR 0009). Le diff montre :
   - composants ajoutés et supprimés ;
@@ -1962,21 +2062,331 @@ Statut : en cours
   - composants dont le fan-in ou le fan-out a bondi (seuil fixé par ADR) ;
   - un badge « modifié » pour un refactoring interne, où les déplacements comptent comme des
     modifications.
-- [ ] 5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre
+  - `timonier_core::review` (pur) et `timonier_core::graph`, partagé avec les vues. Règles et
+    seuil dans l'ADR 0024 : boîtes = composants et paquets ; dépendances entre boîtes sœurs ;
+    Q28 (une dépendance ne compte que si un fichier qui la porte a changé) ; Q30 (un
+    regroupement de fichiers inchangés n'est rien) ; fichiers déplacés et boîtes renommées
+    retrouvés sous leur nouvel identifiant ; bond = au moins +3 et +50 %.
+  - 47 tests sur des paires de snapshots fixtures (`review.rs`). Mutations : 14 au premier
+    passage, puis 8 sur les renommages et Q30, puis 12 sur Q33, Q34 et les symboles déplacés
+    (relecture n° 2 ; une équivalente retirée du code), puis 16 sur Q35, les boîtes regroupées,
+    les cycles et les bonds (relecture n° 3), puis 21 sur la comparaison des arêtes, Q37 et les
+    paquets (relecture n° 4 ; dont 10 reprises des passages d'avant sur le code réécrit), puis
+    18 sur Q37 et Q38, les dépendances qui suivent une crate et les cycles (relecture n° 5),
+    puis 11 sur le placement des arêtes aux deux bouts (relecture n° 6 ; et les jeux d'avant
+    qui s'appliquent encore, relancés), puis 3 sur Q40 et les deux survivantes de la
+    relecture n° 7, puis 3 sur les trous de tests de la relecture n° 8. Relancées toutes
+    ensemble sur le code final (2026-10-19) : 62 tuées, aucune survivante ; 39 autres visaient
+    du code réécrit depuis. Trois mutations du premier passage sont équivalentes (relecture
+    n° 1) : regrouper les cycles par le seul parent de la source, retirer le test
+    d'appartenance au graphe des cycles, compter une arête dont un bout contient l'autre. Le fil des vues garde la revue en mémoire et
+    calcule le diff à chaque lecture de la tête ; les vues portent les marques et le résumé
+    (protocole version 3). Test de bout en bout sur un vrai démon :
+    `a_view_shows_what_changed_since_the_review` (une dépendance entre deux crates et un
+    module ajoutés après la revue).
+  - Coût, mesuré le 2026-10-19 après la relecture n° 6 (`view_bench`, build release ; d'une
+    passe à l'autre, les chiffres varient d'un tiers). Deux cas extrêmes : la tête comparée à
+    elle-même, tous fichiers changés ; puis une revue où chaque composant et chaque fichier a
+    un autre identifiant (tout renommé). Les espaces de travail synthétiques sont générés par
+    le bench lui-même (`synthetic:CxDxF` : C crates de D dossiers de F fichiers, appels dans
+    chaque crate et vers la précédente, `examples/support/synthetic.rs`) :
+    - Timonier (3 694 nœuds) : 2,9 à 3,4 ms tous fichiers changés, 7,7 à 8,8 ms tout
+      renommé ; vue entièrement ouverte avec le diff en 2,6 à 3,3 ms ;
+    - `synthetic:50x8x5` (2 450 fichiers, 6 958 nœuds) : 14 à 15 ms et 25 à 28 ms (84,4 ms
+      avec l'appariement quadratique d'avant la relecture n° 2) ; vue entièrement ouverte en
+      8 à 10 ms au lieu de 3,4 ms ;
+    - `synthetic:125x8x5` (6 125 fichiers, 17 390 nœuds, environ 1 140 boîtes) : 38 à 50 ms et
+      78 à 122 ms ; vue entièrement ouverte en 30 à 44 ms au lieu de 11 à 14 ms ;
+    - graphe de la revue gardé en mémoire, mesuré dans un processus neuf lancé par le bench
+      (croissance de la mémoire résidente pendant le chargement, transitoire compris : au
+      plus) : 6,3 Mio pour Timonier, 7,6 Mio pour 6 958 nœuds, 18,7 Mio pour 17 390. L'écart
+      mesuré avant dans le même processus (1,6 à 2 Mio) ne valait rien : la mémoire libérée
+      par les chargements d'avant était réutilisée (relecture n° 6, m-3).
+    - Les chiffres d'avant, sur un dépôt synthétique de 12 407 nœuds dont le générateur n'a pas
+      été gardé (19,3 ms pour le diff, 4,4 Mio), sont remplacés par ceux-ci (relecture n° 4,
+      m-2).
+- [x] 5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre
   « seulement les changements », résumé — critère : checklist d'accessibilité ; test des
   cinq secondes.
-- [ ] 5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la
+  - Fait :
+    - un badge par boîte, dans sa barre de titre : « Nouveau », « Modifié », « Cycle »,
+      « Fan-in 4 → 7 », chacun avec sa forme, au ton d'attention ;
+    - un rôle fermé dit « N modifiés » et marque chacun de ses membres changés ;
+    - une ligne nouvelle ou dans un cycle ajouté prend la couleur d'attention et une marque
+      écrite à mi-chemin (pas d'épaisseur : elle est pour le trafic) ;
+    - le résumé, en bandeau au-dessus de la carte, donne la revue de départ, les comptes, les listes à la
+      demande (suppressions comprises, Q26 ; chaque boîte nommée avec celle qui la contient), et
+      les boutons « Mettre en avant les changements » et « Marquer comme revu » ; avant la
+      première revue, il dit quoi faire (Q27) ;
+    - le filtre estompe ce qui n'a pas changé, sans rien déplacer (Q31) ; il est gardé avec
+      l'état de la page, et sans effet avant la première revue ;
+    - commandes de palette pour le filtre et pour les détails du résumé ;
+    - la vue s'ajuste autour des panneaux ; sur une carte étroite (600 px), la légende ne garde
+      que son titre et le résumé replié ses comptes ;
+    - densité réglable (Q32, [ADR 0026](docs/adr/0026-densite-de-la-carte.md)) : réglage
+      `timonier.map.density`, confortable ou compacte.
+  - Checklist d'accessibilité (`webview/test/a11y/review.a11y.ts`, 14 tests) :
+    - [x] contraste AA dans les six thèmes capturés : texte à 4,5:1, formes des badges et
+      lignes à 3:1 ; filtre actif, le texte et les lignes qui restent en avant aussi (les lignes
+      estompées reculent, et ne sont plus mesurées) ; carte compacte comprise
+      (`density.a11y.ts`, 7 tests) ;
+    - [x] chaque action au clavier et en commande (« Marquer comme revu », filtre, détails) ;
+    - [x] focus visible, liste du résumé atteignable au clavier (axe l'a relevé, corrigé) ;
+    - [x] jamais la couleur seule : une forme et un mot par changement, une coche sur le filtre
+      actif ;
+    - [x] noms accessibles : boîtes, rôles et lignes disent ce qui a changé ;
+    - [x] aucune animation ajoutée.
+  - Reste : le test des cinq secondes avec toi. Protocole :
+    - écran : la page de démonstration `?map=timonier&review=1`, en français, thème Dark 2026,
+      à l'ouverture (rôles fermés), en capture d'écran ; ses données de revue sont faites à la
+      main (dont une crate supprimée, `timonier-legacy`, qui n'existe pas) ;
+    - cinq secondes, puis deux questions : « que montre cet écran ? », « que ferais-tu
+      ensuite ? » ;
+    - réussi si la réponse dit que l'écran montre ce qui a changé depuis la dernière revue, et
+      que l'action suivante est de regarder ce qui a changé (une boîte marquée, les détails du
+      résumé) ou de marquer comme revu.
+  - Test des cinq secondes n° 1 (2026-10-20, toi, capture `?map=timonier&review=1`, Dark 2026,
+    français) : **échoué**. Réponse : « on voit l'architecture du logiciel, et on peut
+    visiblement éditer ou ajouter des choses ». L'architecture est vue, mais pas « ce qui a
+    changé depuis la revue ». Les marques sont lues comme des actions : le crayon de
+    « Modifié » se lit « éditer », le plus de « Nouveau » se lit « ajouter ». Le résumé, en
+    bas à droite, n'est pas vu. Correction à faire, puis un nouveau test avec quelqu'un qui
+    n'a pas vu l'écran.
+  - Corrigé (2026-10-20, avec ton accord) :
+    - « Modifié » est un point plein, « Nouveau » une étoile pleine : plus de crayon ni de
+      « + » ; un rôle fermé dit « 2 modifiés » au lieu d'un chiffre seul (d'abord « 2 à
+      revoir », remplacé à ta demande) ;
+    - le résumé est un bandeau en haut, au-dessus de la carte, sur toute sa largeur : « Depuis
+      votre revue du … : » suivi des comptes ; les actions à droite, plus grandes, « Marquer
+      comme revu » en bouton principal (couleurs des boutons principaux de VSCode) ;
+    - la légende explique les marques (« Changements depuis la revue ») dès qu'il y a une
+      revue ;
+    - les cartes de rôle s'élargissent (300 px, 268 px en compact) pour garder leur nom
+      entier à côté de « N modifiés » ;
+    - tests : `review.a11y.ts` (le bandeau au-dessus de la carte, la légende, « modifié ») ;
+      61 tests d'accessibilité passent dans les six thèmes ;
+    - nouvelle capture : `/mnt/travail/timonier-revue-phase5.png` (hors du dépôt).
+  - Validé par toi le 2026-10-20 sur la capture corrigée (« c'est mieux comme ça ») : le test
+    des cinq secondes n° 2, avec quelqu'un qui n'a pas vu l'écran, n'a pas été fait. À refaire
+    à la première occasion ; noté en réserve.
+- [x] 5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la
   présence de `src/lib.rs` — critère : tests d'un manifeste modifié sans commit (crate
   renommée, dépendance ajoutée) et d'un `src/lib.rs` présent d'un seul côté, dont le snapshot
   décrit le commit.
-- [ ] 5.5 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - [ADR 0025](docs/adr/0025-paquets-du-commit.md) : les paquets du commit, découverts sur une
+    superposition de ses manifestes et de ses bibliothèques ; tous les fichiers replacés le
+    temps du gel, leur vérification LSP retirée puis rendue.
+  - Tests, chacun comparant le snapshot à une indexation neuve d'un clone du commit, et la tête
+    à une indexation neuve de l'arbre de travail : crate renommée, dépendance ajoutée,
+    `src/lib.rs` supprimé puis créé d'un seul côté, crate ajoutée et paquet supprimé depuis le
+    commit ; et `a_commit_with_other_packages_keeps_the_verification` (la vérification revient
+    entière, rien n'est redemandé). 7 mutations tuées, une équivalente retirée du code.
+  - Après la relecture n° 1 : `a_commit_with_other_packages_gives_the_components_back` (les
+    fichiers retrouvent leurs composants sous le paquet de l'arbre de travail) et
+    `a_commit_snapshot_ignores_a_hidden_manifest`. Coût mesuré le 2026-10-19 (`commit_bench`,
+    build release, `synthetic:50x8x5`, 2 450 fichiers) : 697 ms pour un commit sous d'autres
+    paquets, contre 216 ms aux mêmes paquets (ADR 0025).
+  - Après la relecture n° 2 : `a_commit_snapshot_ignores_a_manifest_the_walk_skips` (un
+    manifeste suivi dans un dossier ignoré ne fait pas d'autres paquets : la vérification LSP
+    du commit reste).
+- [x] 5.5 Relecture par `phase-reviewer` — critère : verdict « prête ». Atteint avec réserves
+  (Q42) : la relecture n° 8 ne trouve ni bloquant ni important, et conclut « prête avec
+  réserves » une fois le test des cinq secondes passé ; ses mineurs sont corrigés ou notés en
+  écarts.
+  - Relecture n° 1 (2026-10-18) : « pas prête », 1 bloquant, 4 importants, 12 mineurs. Tes
+    réponses : Q30 (regroupements ignorés), Q31 (le filtre estompe), Q32 (densité maintenant).
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - B1 : un composant né d'un regroupement de fichiers inchangés n'est plus « Nouveau »
+      (Q30) ; test `a_regrouping_of_unchanged_files_is_no_change` ;
+    - I1 : un dossier renommé est « modifié », avec ses liens (fichiers déplacés retrouvés par
+      leur contenu, boîtes par la majorité de leurs fichiers) ; un paquet renommé aussi ; tests
+      `a_folder_renamed_is_modified_with_its_links`, `a_package_renamed_is_modified_and_keeps_its_dependencies` ;
+    - I2 : le filtre est sans effet avant la première revue ; test Playwright ;
+    - I3 : les marques de cycle et les listes du résumé sont tenues côté démon ; test
+      `a_view_shows_the_cycles_the_jumps_and_what_went` ;
+    - I4 : densité réglable faite (Q32) ;
+    - m1 : tests du bond d'une boîte nouvelle, d'un paquet externe, d'une boîte nouvelle qui
+      en absorbe une disparue ; les mutations restantes sont équivalentes (listées en 5.2) ;
+    - m2 : composants rendus au retour d'un commit sous d'autres paquets, manifeste caché ;
+    - m3, m4, m5 : ADR 0024, 0025 et PLAN.md alignés sur le code ;
+    - m6 : panneaux à 600 px ; test Playwright ;
+    - m7 : libellé « Mettre en avant les changements » (Q31) ;
+    - m8 : boîtes du résumé nommées avec celle qui les contient ;
+    - m9 : commande de palette pour les détails du résumé ;
+    - m10 : la revue relit le disque ; test `a_review_mark_takes_what_the_disk_holds` ;
+    - m11 : la tête, la revue et les empreintes lues dans une même transaction ; test
+      `reads_in_one_transaction_see_one_state` ;
+    - m12 : mémoire mesurée (mesure refaite après la relecture n° 6, dans un processus neuf :
+      au plus 7,6 Mio pour une revue de 6 958 nœuds, 5.2).
+  - Relecture n° 2 (2026-10-19) : « pas prête », sans bloquant ; 1 important, 8 mineurs. Le
+    critère de sortie (Q29) vérifié par le relecteur sur une copie de Timonier. Tes réponses :
+    Q33 et Q34.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 : un dossier renommé avant le commit laissait une boîte « supprimée ». Q33 : une
+      boîte n'est nouvelle que si elle apporte un fichier nouveau (ou n'en a aucun), supprimée
+      que si un de ses fichiers l'est (ou si elle n'en avait aucun) ; sinon modifiée si elle
+      tient un fichier changé ou déplacé. Tests
+      `a_folder_renamed_before_the_commit_leaves_no_box_gone`,
+      `a_new_box_of_moved_files_is_modified_not_new` ;
+    - m-1 : les symboles d'un fichier déplacé le suivent ; ouvert jusqu'à eux, ses liens ne
+      sont plus « nouveaux ». Tests `the_symbols_of_a_moved_file_keep_their_links`,
+      `two_symbols_of_one_name_are_told_apart_by_their_place` ;
+    - m-2 : appariement des renommages linéaire en fichiers, mesuré (5.2) ; ADR 0024 corrigée ;
+      test `a_box_is_renamed_only_into_one_of_its_kind` ;
+    - m-3 : un gel `review_mark` en échec rafraîchit les vues ;
+    - m-4 (Q34) : une crate qui perd son manifeste est modifiée, et la dépendance retirée nommée
+      comme à la revue. Tests `a_crate_that_loses_its_manifest_is_modified`,
+      `a_crate_without_its_manifest_is_modified_and_named_as_it_was` ;
+    - m-5 : les deux README (libellé de Q31, Q33, réglage de densité) ;
+    - m-6 : messages de la carte dans un module pur (`mapHost.ts`, 5 tests : densité à
+      l'ouverture et au changement de réglage, bouton « Marquer comme revu ») ; densité de la
+      page partagée avec la démo (`density.ts`). Trouvé en l'écrivant : la webview acceptait
+      une densité inconnue ; elle la refuse ;
+    - m-7 : les manifestes du commit filtrés comme le parcours les lit (ADR 0025) ; test
+      `a_commit_snapshot_ignores_a_manifest_the_walk_skips` ;
+    - m-8 : skill graph-model complété.
+  - Relecture n° 3 (2026-10-19) : « pas prête », sans bloquant ; 2 importants, 3 mineurs.
+    Critère de sortie revérifié sur un vrai démon ; un dossier renommé avant puis après le
+    commit, aussi. Ta réponse : Q35.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-a : un dossier renommé avant le commit laissait ses dépendances « retirées ». Une boîte
+      qu'un regroupement seul a faite ou défaite (`ReviewDiff::regrouped`) emporte ses
+      dépendances : pour elles, un déplacement n'explique rien, une modification si (Q33). Les
+      lignes de la carte suivent la même règle ; les cycles sont cherchés dans les boîtes de la
+      tête et comptent quand une dépendance ajoutée les ferme ; les bonds ne comptent que ce
+      qu'un changement explique. Tests
+      `a_folder_renamed_before_the_commit_keeps_its_dependencies`,
+      `a_regrouped_box_keeps_what_its_edits_bring`,
+      `a_cycle_through_a_regrouped_box_counts_when_an_edit_closes_it`,
+      `a_regrouping_makes_no_jump`, et `a_new_box_of_moved_files_is_modified_not_new` complété ;
+    - I-b (Q35) : une crate vient et part avec son manifeste, « Nouvelle » ou « Supprimée » ;
+      test `a_crate_comes_and_goes_with_its_manifest` ;
+    - m-a : un paquet nouveau, supprimé ou changé par son manifeste compte pour les boîtes qui
+      le contiennent ; test `a_crate_changed_by_its_manifest_marks_the_boxes_above` ;
+    - m-b : le générateur est dans `view_bench` (`synthetic:CxDxF`), chiffres refaits (5.2) ;
+    - m-c : écart du fichier déplacé et modifié précisé.
+  - Relecture n° 4 (2026-10-19) : « pas prête », sans bloquant ; 2 importants, 2 mineurs.
+    Critère de sortie revérifié sur un vrai démon. Tes réponses : Q36 et Q37.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 et I-2 (Q36) : les arêtes elles-mêmes sont comparées, sous les identifiants de la
+      tête. Une dépendance, ou une ligne de la carte, ne change qu'avec une arête apparue ou
+      disparue dans un fichier modifié (un déplacement n'en est pas un), ou une arête présente
+      des deux côtés qui suit un fichier déplacé, ou un paquet changé par son manifeste, entre
+      deux boîtes qui ne sont pas des regroupements. Les bonds partent des dépendances de la
+      revue, avec celles ajoutées et sans celles retirées. Tests :
+      `a_folder_renamed_before_the_commit_keeps_its_dependencies` et
+      `a_regrouped_box_keeps_what_its_edits_bring` complétés (un commentaire ailleurs),
+      `a_cycle_through_a_regrouped_box_counts_when_an_edit_closes_it` complété,
+      `a_regrouping_of_packages_brings_no_dependency`,
+      `a_file_moved_between_two_boxes_moves_its_dependencies` (et l'arête du serveur seul
+      sur le fichier déplacé), le cycle qu'une arête du serveur seul fermerait
+      (`a_cycle_that_grows_is_added_and_one_the_server_alone_closed_is_not`) ;
+    - m-1 (Q37) : les fichiers d'une crate qui arrive ou part marquent la boîte qu'ils
+      quittent ou rejoignent ; test `the_crate_that_gives_or_takes_the_files_is_modified` ;
+    - m-2 : `commit_bench` (nouvel exemple) et `view_bench synthetic:` refont tous les
+      chiffres synthétiques ; le générateur est partagé (`examples/support/synthetic.rs`).
+    - Trouvé par les mutations : une arête que le serveur seul trouve dans un fichier déplacé
+      comptait comme apportée par le déplacement ; corrigé et testé.
+  - Relecture n° 5 (2026-10-19) : « pas prête », sans bloquant ; 1 important, 3 mineurs. Les
+    corrections de la relecture n° 4 tiennent, revérifiées sur un vrai démon ; critère de
+    sortie aussi. Tes réponses : Q38 et Q39.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 : les dépendances d'une crate dont le manifeste part ou revient suivent ses fichiers
+      dans la crate racine (Q36, Q37). Ses symboles, renommés avec la crate, sont retrouvés par
+      leur place (fichier inchangé) ; un bout qui change de boîte est jugé aux deux bouts.
+      Test `the_dependencies_follow_the_files_into_the_root_crate`, et une dépendance portée
+      par le seul manifeste dans `a_crate_changed_by_its_manifest_marks_the_boxes_above` ;
+    - m-1 : les trois mutations survivantes sont tuées ; test
+      `a_cycle_counts_what_the_code_took_and_not_what_the_server_took` ;
+    - m-2 (Q38) : un déplacement compte si ni la boîte que le fichier quitte, ni celle qu'il
+      rejoint, n'est un regroupement ; test
+      `a_move_into_or_out_of_a_regrouping_brings_no_dependency`. Le cas limite de Q39 est
+      noté comme écart ;
+    - m-3 : libellés des chiffres corrigés (environ 1 140 boîtes) ; ce qui change de boîte est
+      rassemblé une fois par diff (la vue entièrement ouverte avait ralenti).
+  - Relecture n° 6 (2026-10-19) : « pas prête », sans bloquant ; 1 important, 4 mineurs. Les
+    corrections de la relecture n° 5 tiennent (vrai démon) ; critère de sortie revérifié.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 : dans un espace de plus de 12 crates, renommer une crate, ce qui refait le
+      regroupement, faisait lister de fausses dépendances et une ligne « nouvelle » en haut de
+      la carte. Un paquet seulement renommé reste la même boîte, ni lui ni ses fichiers ne
+      bougent ; et chaque arête gardée est placée aux deux bouts : un bout ne compte que s'il
+      a lui-même changé de boîte au niveau de la dépendance, entre deux boîtes qui ne sont pas
+      des regroupements, et pas au-dessus de son paquet resté le même (là, seul le regroupement
+      du paquet l'a déplacé). Tests `a_crate_renamed_while_the_packages_regroup_changes_no_dependency`,
+      `a_file_renamed_in_its_folder_moves_no_dependency`,
+      `a_folder_moved_to_another_crate_takes_its_dependencies` (trouvé en refondant : un
+      dossier déplacé d'une crate à l'autre ne portait plus ses dépendances avec une
+      comparaison de la seule boîte la plus proche), `a_move_inside_a_crate_that_regroups_stays_inside`,
+      `a_file_clustered_elsewhere_does_not_move` ;
+    - m-1 : une dépendance portée par des appels entre symboles seuls suit le fichier
+      déplacé ; testée dans `a_file_moved_between_two_boxes_moves_its_dependencies` ;
+    - m-2 : code redondant retiré (les fichiers des paquets n'ont qu'un identifiant) ;
+    - m-3 : mémoire mesurée dans un processus neuf (5.2), au plus 7,6 Mio pour 6 958 nœuds ;
+    - m-4 : quand les deux bouts bougent, chacun compte pour son propre déplacement (Q38
+      appliquée à chaque bout) ; écrit dans l'ADR 0024 et testé.
+  - Relecture n° 7 (2026-10-19) : « pas prête », sans bloquant ; 1 important, 2 mineurs. Les
+    corrections de la relecture n° 6 tiennent (vrai démon, dont la crate renommée dans un
+    espace de 20 crates) ; critère de sortie revérifié. Tes réponses : Q40, Q41, Q42.
+  - Corrigés, chacun avec un test qui échoue sans la correction :
+    - I-1 (Q40) : un fichier renommé dans un dossier découpé en composants rejoignait le
+      composant de ses voisins, ce qui comptait comme un déplacement (fausses dépendances, faux
+      cycle, jusqu'au commit). Un fichier resté dans son dossier ne bouge plus. Test
+      `a_file_renamed_in_its_flat_folder_does_not_move` ;
+    - m-1 : les deux mutations survivantes sont tuées ; tests
+      `a_move_inside_a_renamed_crate_that_regroups_stays_inside`,
+      `a_line_follows_the_called_file` ;
+    - m-2 (Q41) : les deux choix de l'ADR 0024 gardés, la phrase sur le dossier nouveau
+      précisée (elle ne vaut qu'à l'intérieur d'une crate).
+  - Relecture n° 8 (2026-10-19) : ni bloquant ni important ; 4 mineurs. Les corrections de la
+    relecture n° 7 tiennent (vrai démon) ; critère de sortie revérifié. Verdict : « prête avec
+    réserves » une fois le test des cinq secondes passé (Q42).
+  - Mineurs :
+    - m-1, corrigé : une crate qui perd son manifeste, avec un fichier renommé dans son
+      dossier, ne portait plus sa dépendance dans la crate racine ; test dans
+      `the_dependencies_follow_the_files_into_the_root_crate` ;
+    - m-2, noté en écart : un fichier renommé et modifié dans un dossier découpé en
+      composants (ADR 0024, Écarts ci-dessous) ;
+    - m-3, corrigé : deux trous de tests ouverts par Q40 comblés
+      (`a_move_that_keeps_its_component_brings_no_dependency`, et l'arête du serveur seul
+      dans `a_file_renamed_in_its_flat_folder_does_not_move`) ; mutations relancées toutes
+      ensemble, compte de 5.2 corrigé ;
+    - m-4, corrigé : retour à la ligne du skill graph-model.
+  - Réserves (Q42) : les écarts ci-dessous.
 
-Critère de sortie (proposé, à valider) : après « marquer comme revu », on ajoute à Timonier
-une dépendance entre deux crates et un module ; la carte montre exactement ces changements, et
-un cycle introduit dans une fixture est signalé.
+Critère de sortie (validé le 2026-10-18, Q29) : après « marquer comme revu », on ajoute à
+Timonier une dépendance entre deux crates et un module ; la carte montre exactement ces
+changements, et un cycle introduit dans une fixture est signalé.
 
-Décisions : —
-Écarts : —
+Décisions :
+- [ADR 0024](docs/adr/0024-diff-de-revue.md) (« Accepté ») : diff de revue, gel par le fil du
+  pipeline, empreintes gardées à la revue, dépendances entre boîtes sœurs, seuil des bonds,
+  protocole version 3.
+- [ADR 0025](docs/adr/0025-paquets-du-commit.md) (« Accepté ») : snapshot de commit avec les
+  paquets du commit (Q23) ; complète les ADR 0015 et 0022.
+- [ADR 0026](docs/adr/0026-densite-de-la-carte.md) (« Accepté ») : densité de la carte (Q32).
+Écarts :
+- Un fichier à la fois déplacé et modifié n'est pas retrouvé : il est « supprimé » à un chemin
+  et « nouveau » à l'autre (ADR 0024, alternatives écartées). Après le commit, sa boîte suit
+  la majorité de ses fichiers. Avant, un dossier renommé dont un fichier a aussi été modifié
+  laisse sa boîte « supprimée » (un de ses fichiers est parti, Q33), et ce fichier est
+  « nouveau ». Renommé et modifié dans un dossier découpé en composants, il rejoint le
+  composant de ses voisins : jusqu'au commit, le résumé peut lister des dépendances et un
+  cycle entre composants de ce dossier (relecture n° 8, m-2).
+- Un dossier vidé dans un autre n'est pas listé comme supprimé, ni ses dépendances comme
+  retirées (Q33, Q36).
+- Un cycle qu'un regroupement seul a fait n'est pas signalé ; un cycle qu'une dépendance
+  ajoutée ferme l'est, au niveau que la carte montre, même entre composants regroupés au même
+  commit.
+- Un fichier regroupé au commit et modifié, qui appelle un autre fichier de la même boîte, fait
+  lister une dépendance retirée et une ajoutée pour un code qui dépend toujours de cette boîte
+  (Q39).
+- Les listes du résumé sont du texte : un clic n'y mène pas encore à la boîte sur la carte.
+- Q28 n'est testé qu'avec des fixtures et sur un vrai démon sans serveur de langage : pas de
+  bout en bout avec rust-analyzer.
+- La densité réglable, reportée de la Phase 4, est faite dans cette phase (Q32).
+- Le gel `review_mark` relit le disque (66 ms pour 10 000 fichiers, mesuré à la relecture
+  n° 15 de la Phase 4) : le clic attend ce temps.
 
 ## Phase 6 — MCP, initialisation et suivi
 
@@ -2405,3 +2815,32 @@ capture des thèmes.
   - 320 tests Rust, 148 tests unitaires Node, 19 tests d'intégration et 40 tests
     d'accessibilité verts ;
   - Phase 5 commencée.
+- 2026-10-18 — Phase 5 : « Marquer comme revu », diff de revue sur la carte (badges, résumé,
+  filtre), snapshots de commit avec les paquets du commit (Q23). Tes réponses : Q26 à Q29.
+  Relecture n° 1 « pas prête » (1 bloquant, 4 importants, 12 mineurs) ; tes réponses Q30 à Q32 ;
+  tout est corrigé, densité réglable comprise. Le test des cinq secondes attend ta réponse.
+- 2026-10-19 — Phase 5, relecture n° 2 « pas prête » (1 important, 8 mineurs) ; tes réponses
+  Q33 (une boîte n'est nouvelle ou supprimée que si du code arrive ou part) et Q34 (une crate
+  sans manifeste est modifiée) ; tout est corrigé.
+- 2026-10-19 — Phase 5, relecture n° 3 « pas prête » (2 importants, 3 mineurs) ; ta réponse
+  Q35 (une crate vient et part avec son manifeste) ; tout est corrigé.
+- 2026-10-19 — Phase 5, relecture n° 4 « pas prête » (2 importants, 2 mineurs) ; tes réponses
+  Q36 (comparer les arêtes) et Q37 (la crate qui cède ou reçoit les fichiers est modifiée) ;
+  tout est corrigé.
+- 2026-10-19 — Phase 5, relecture n° 5 « pas prête » (1 important, 3 mineurs) ; tes réponses
+  Q38 (les boîtes que le fichier quitte et rejoint) et Q39 (cas limite noté comme écart) ;
+  tout est corrigé.
+- 2026-10-19 — Phase 5, relecture n° 6 « pas prête » (1 important, 4 mineurs) : une crate
+  renommée dans un grand espace de travail faisait lister de fausses dépendances ; corrigé,
+  avec les mineurs.
+- 2026-10-19 — Phase 5, relecture n° 7 « pas prête » (1 important, 2 mineurs) ; tes réponses
+  Q40 (un fichier renommé dans son dossier ne bouge pas), Q41 (les deux choix de l'ADR 0024
+  gardés) et Q42 (clore avec réserves si la relecture n° 8 ne trouve plus que des mineurs) ;
+  tout est corrigé.
+- 2026-10-19 — Phase 5, relecture n° 8 : ni bloquant ni important, 4 mineurs (3 corrigés, 1
+  noté en écart). « Prête avec réserves » une fois le test des cinq secondes passé (Q42) ;
+  5.5 cochée. Reste 5.3 : ton test des cinq secondes.
+- 2026-10-20 — Test des cinq secondes n° 1 échoué (marques lues comme des actions, résumé pas
+  vu) ; corrigé : marques pleines, « 2 modifiés », bandeau en haut, bouton principal, légende
+  des marques. Phase 5 validée par toi (« commit et push et passe à la suite ») : ADR 0024 à
+  0026 acceptées ; 5.5 close avec réserves (Q42) ; Phase 6 commencée.

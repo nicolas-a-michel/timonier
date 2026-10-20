@@ -119,6 +119,9 @@ export class ViewRelay implements vscode.Disposable {
           this.log.warn(`cannot keep the layout: ${String(error)}`),
         );
         return;
+      case "markReviewed":
+        // The panel runs the command (ADR 0024).
+        return;
       case "rendered":
         // Only what the page shows of the current subscription: a page that is going away, or a
         // subscription just replaced, says nothing about the map. A daemon numbers its

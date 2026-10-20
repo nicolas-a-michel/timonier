@@ -24,12 +24,22 @@ vivante, tableau blanc d'intention, performances mesurées pendant les tests, pl
   - la disposition est calculée, mais chaque boîte se déplace à la main, à la souris ou avec
     Alt et une flèche ; « Réinitialiser la disposition » revient aux positions calculées ;
   - « Aller au code » (Maj+Entrée, double-clic) ouvre le fichier à côté de la carte ;
+  - « Marquer comme revu » fige la carte telle que vous l'avez revue. Ensuite, chaque boîte
+    nouvelle ou modifiée depuis le dit en toutes lettres, comme chaque lien nouveau et chaque
+    boîte d'un cycle ajouté, ou dont le fan-in ou le fan-out a bondi. Un résumé compte et liste
+    les changements, suppressions comprises ; « Mettre en avant les changements » estompe le
+    reste. Seuls les changements du code comptent : ni ce que la seule vérification d'un
+    serveur de langage fait apparaître, ni les fichiers que Timonier regroupe autrement. Une
+    boîte n'est nouvelle ou supprimée que si du code arrive ou part avec elle, une crate avec
+    son manifeste ; un dossier ou une crate renommés sont modifiés ;
   - tout se fait au clavier, et chaque action a sa commande dans la palette.
 - Elle suit le thème de VSCode, clair, sombre ou à contraste élevé, en anglais ou en français.
 
-## Réglage
+## Réglages
 
-`timonier.daemon.path` : le chemin du programme `timonier`. Vide, celui du `PATH`.
+- `timonier.daemon.path` : le chemin du programme `timonier`. Vide, celui du `PATH`.
+- `timonier.map.density` : la densité de la carte, `comfortable` (confortable, par défaut) ou
+  `compact` (boîtes plus petites, espacements resserrés).
 
 Code source et feuille de route : <https://github.com/nicolas-a-michel/timonier>.
 Licence : MIT.

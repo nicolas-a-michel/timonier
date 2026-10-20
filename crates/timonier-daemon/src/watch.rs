@@ -18,6 +18,7 @@ use std::time::Duration;
 use notify_debouncer_full::notify::event::{AccessKind, AccessMode, ModifyKind};
 use notify_debouncer_full::notify::{EventKind, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, new_debouncer};
+use timonier_core::Snapshot;
 use timonier_index::lsp::{LanguageServer, Priority};
 
 use crate::indexing::{Consolidated, Pipeline, Refinement, Report};
@@ -40,6 +41,8 @@ pub enum Event {
     /// A change in the git directory was consolidated: a new commit got its snapshot, or the
     /// head changed on the way (ADR 0015). An error may come after the head changed.
     Committed(Result<Consolidated>),
+    /// The head was marked as reviewed: the review diff starts again from it (ADR 0024).
+    Reviewed(Result<Snapshot>),
 }
 
 impl Event {
@@ -56,6 +59,9 @@ impl Event {
             }
             // The head may have changed before the failure (review n° 16, m16-5).
             Event::Committed(Err(_)) => true,
+            // The diff the views show starts from the new review (ADR 0024); and the head may
+            // have changed before a failure, the disk read again (review n° 2 of Phase 5, m-3).
+            Event::Reviewed(_) => true,
             _ => false,
         }
     }
@@ -67,6 +73,22 @@ enum Command {
     /// The server may have become ready, or its client's documents saved: what was held waits
     /// again, and the queue is looked at again (ADR 0022).
     Nudge,
+    /// Mark the head as reviewed, between two steps of the pipeline: never in the middle of a
+    /// commit snapshot (ADR 0024). The answer goes back on the channel.
+    Review(SyncSender<std::result::Result<Snapshot, String>>),
+}
+
+/// A review mark the pipeline thread was asked for.
+pub struct PendingReview(mpsc::Receiver<std::result::Result<Snapshot, String>>);
+
+impl PendingReview {
+    /// The review mark, once frozen.
+    pub fn wait(self) -> Result<Snapshot> {
+        self.0
+            .recv()
+            .map_err(|_| Error::Stopped)?
+            .map_err(Error::Review)
+    }
 }
 
 /// A running watch. Dropping it stops the watcher and the pipeline thread.
@@ -263,6 +285,21 @@ impl Watch {
                             waiting.fetch_sub(1, Ordering::SeqCst);
                             pipeline.release_held();
                         }
+                        Some(Command::Review(answer)) => {
+                            waiting.fetch_sub(1, Ordering::SeqCst);
+                            let reviewed = pipeline.mark_reviewed();
+                            match &reviewed {
+                                Ok(snapshot) => {
+                                    tracing::info!(seq = snapshot.seq, "marked as reviewed");
+                                }
+                                Err(error) => tracing::warn!(%error, "review mark failed"),
+                            }
+                            let _ = answer.send(match &reviewed {
+                                Ok(snapshot) => Ok(snapshot.clone()),
+                                Err(error) => Err(error.to_string()),
+                            });
+                            on_event(Event::Reviewed(reviewed));
+                        }
                         None => {
                             let Some(server) = server.as_deref_mut() else {
                                 continue;
@@ -318,6 +355,18 @@ impl Watch {
             self.pending.fetch_add(1, Ordering::SeqCst);
             let _ = commands.send(Command::Nudge);
         }
+    }
+
+    /// Asks the pipeline thread to mark the head as reviewed, once the step in progress is
+    /// done (ADR 0024). Wait for it with [`PendingReview::wait`], without holding the watch.
+    pub fn mark_reviewed(&self) -> Result<PendingReview> {
+        let commands = self.commands.as_ref().ok_or(Error::Stopped)?;
+        let (answer, answered) = mpsc::sync_channel(1);
+        self.pending.fetch_add(1, Ordering::SeqCst);
+        commands
+            .send(Command::Review(answer))
+            .map_err(|_| Error::Stopped)?;
+        Ok(PendingReview(answered))
     }
 
     /// Files waiting for LSP refinement (ADR 0014).
@@ -493,7 +542,7 @@ mod tests {
 
     /// Review n° 16, m16-5, and n° 17, m17-5: a consolidation tells the views when it froze a
     /// snapshot, when the head changed on the way without one, and when it failed; an indexing
-    /// tells them when it failed too.
+    /// and a review mark tell them when they failed too.
     #[test]
     fn a_consolidation_tells_the_views_what_changed_the_head() {
         assert!(Event::Indexed(Err(Error::Poisoned)).changes_graph());
@@ -516,5 +565,7 @@ mod tests {
             head: ApplyStats::default(),
         }));
         assert!(Event::Committed(Err(Error::Poisoned)).changes_graph());
+        // Review n° 2 of Phase 5, m-3: a review mark that failed may have read the disk first.
+        assert!(Event::Reviewed(Err(Error::Poisoned)).changes_graph());
     }
 }

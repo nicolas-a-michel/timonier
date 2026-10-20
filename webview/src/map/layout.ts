@@ -17,16 +17,59 @@
  */
 import ELK, { type ElkExtendedEdge, type ElkNode } from "elkjs/lib/elk.bundled.js";
 
-import type { Pin } from "../protocol";
+import type { Density, Pin } from "../protocol";
 import type { MapContent, MapItem } from "./mapModel";
 
-/** Sizes of what is not a container, in pixels: the CSS of the map gives them the same. */
-export const BOX = { width: 208, height: 88 };
-export const ROLE = { width: 240, header: 56, line: 20, lines: 5 };
-/** Room inside a container for its header. */
-export const CONTAINER_HEADER = 44;
-/** Where the pins are, from the top: level with the title bar (the CSS gives these heights). */
-export const PIN_Y = { box: 16, role: CONTAINER_HEADER / 2, frame: CONTAINER_HEADER / 2 };
+/**
+ * The map's measures in pixels, for each density (Q32): the CSS of the map gives the same
+ * (tokens `--tim-map-*`).
+ */
+export interface Metrics {
+  /** What is not a container. */
+  box: { width: number; height: number };
+  role: { width: number; header: number; line: number; lines: number };
+  /** Room inside a container for its header, and around what it holds. */
+  containerHeader: number;
+  containerPadding: number;
+  /** Where the pins are, from the top: level with the title bar. */
+  pinY: { box: number; role: number; frame: number };
+  /** The gap between two boxes of a column; the layers are farther apart. */
+  nodeGap: number;
+  layerGap: number;
+}
+
+export const METRICS: Record<Density, Metrics> = {
+  comfortable: {
+    box: { width: 208, height: 88 },
+    role: { width: 300, header: 56, line: 20, lines: 5 },
+    containerHeader: 44,
+    containerPadding: 12,
+    pinY: { box: 16, role: 22, frame: 22 },
+    nodeGap: 24,
+    layerGap: 64,
+  },
+  compact: {
+    box: { width: 184, height: 80 },
+    role: { width: 268, header: 44, line: 18, lines: 5 },
+    containerHeader: 36,
+    containerPadding: 8,
+    pinY: { box: 14, role: 18, frame: 18 },
+    nodeGap: 16,
+    layerGap: 48,
+  },
+};
+
+/** The comfortable measures, the default ones. */
+export const BOX = METRICS.comfortable.box;
+export const ROLE = METRICS.comfortable.role;
+export const CONTAINER_HEADER = METRICS.comfortable.containerHeader;
+export const PIN_Y = METRICS.comfortable.pinY;
+
+/**
+ * The measures of the layout under way, set by each call of `layout`: a layout runs at one
+ * density, and one started before a change of density is discarded by the map.
+ */
+let m: Metrics = METRICS.comfortable;
 
 export interface Placed {
   x: number;
@@ -49,22 +92,17 @@ export const ROOT = "@root";
 /** Boxes moved by hand (ADR 0021, « Boîtes déplacées »): where each stays, in its container. */
 export type Pins = Readonly<Record<string, Pin>>;
 
-/** The gap between two boxes of a column; the layers are farther apart. */
-const NODE_GAP = 24;
-const LAYER_GAP = 64;
+function options() {
+  return {
+    "elk.algorithm": "layered",
+    "elk.direction": "RIGHT",
+    "elk.spacing.nodeNode": String(m.nodeGap),
+    "elk.layered.spacing.nodeNodeBetweenLayers": String(m.layerGap),
+    "elk.spacing.edgeNode": "16",
+  };
+}
 
-const OPTIONS = {
-  "elk.algorithm": "layered",
-  "elk.direction": "RIGHT",
-  "elk.spacing.nodeNode": String(NODE_GAP),
-  "elk.layered.spacing.nodeNodeBetweenLayers": String(LAYER_GAP),
-  "elk.spacing.edgeNode": "16",
-};
-
-const PADDING = {
-  root: { top: 16, left: 16, bottom: 16, right: 16 },
-  container: { top: CONTAINER_HEADER, left: 12, bottom: 12, right: 12 },
-};
+const ROOT_PADDING = { top: 16, left: 16, bottom: 16, right: 16 };
 
 function elkPadding(p: { top: number; left: number; bottom: number; right: number }): string {
   return `[top=${p.top},left=${p.left},bottom=${p.bottom},right=${p.right}]`;
@@ -81,9 +119,10 @@ const INTERACTIVE = {
 };
 
 /** The height of a closed role group: its members, five at most, and a « more » line. */
-export function roleHeight(members: number): number {
-  const lines = Math.min(members, ROLE.lines) + (members > ROLE.lines ? 1 : 0);
-  return ROLE.header + lines * ROLE.line + 12;
+export function roleHeight(members: number, metrics: Metrics = m): number {
+  const { role } = metrics;
+  const lines = Math.min(members, role.lines) + (members > role.lines ? 1 : 0);
+  return role.header + lines * role.line + metrics.containerPadding;
 }
 
 function parentOf(item: MapItem): string {
@@ -93,8 +132,8 @@ function parentOf(item: MapItem): string {
 /** What is not a container, at its fixed size. */
 function leafSize(item: MapItem): { width: number; height: number } {
   return item.kind === "role" && !item.open
-    ? { width: ROLE.width, height: roleHeight(item.members.length) }
-    : { width: BOX.width, height: BOX.height };
+    ? { width: m.role.width, height: roleHeight(item.members.length) }
+    : { width: m.box.width, height: m.box.height };
 }
 
 /** The containers, their children, and the edges between children of each. */
@@ -160,7 +199,7 @@ async function elkContainer(
   const graph: ElkNode = {
     id: container,
     layoutOptions: {
-      ...OPTIONS,
+      ...options(),
       ...(hints ? INTERACTIVE : {}),
       "elk.padding": elkPadding(paddingOf(container)),
     },
@@ -176,7 +215,9 @@ async function elkContainer(
 }
 
 function paddingOf(container: string) {
-  return container === ROOT ? PADDING.root : PADDING.container;
+  if (container === ROOT) return ROOT_PADDING;
+  const around = m.containerPadding;
+  return { top: m.containerHeader, left: around, bottom: around, right: around };
 }
 
 /**
@@ -245,7 +286,7 @@ interface Rect {
 
 /** Whether two boxes come closer than half the gap of a column: an overlap to undo. */
 function overlap(a: Rect, b: Rect): boolean {
-  const margin = NODE_GAP / 2;
+  const margin = m.nodeGap / 2;
   return (
     a.x < b.x + b.width + margin &&
     b.x < a.x + a.width + margin &&
@@ -305,18 +346,18 @@ function placeNewcomers(
     if (!column) {
       // A new column, right of the last one.
       const last = columns.at(-1) ?? [];
-      const right = last.reduce((r, rect) => Math.max(r, rect.x + rect.width), padding.left - LAYER_GAP);
+      const right = last.reduce((r, rect) => Math.max(r, rect.x + rect.width), padding.left - m.layerGap);
       column = [];
       columns.push(column);
-      const rect = { ...newcomer, x: right + LAYER_GAP, y: padding.top };
+      const rect = { ...newcomer, x: right + m.layerGap, y: padding.top };
       column.push(rect);
       rects.push(rect);
       columnOf.set(rect.id, columns.length - 1);
       continue;
     }
     const x = Math.min(...column.map((rect) => rect.x));
-    const lowest = column.reduce((low, rect) => Math.max(low, rect.y + rect.height), padding.top - NODE_GAP);
-    const rect = { ...newcomer, x, y: lowest + NODE_GAP };
+    const lowest = column.reduce((low, rect) => Math.max(low, rect.y + rect.height), padding.top - m.nodeGap);
+    const rect = { ...newcomer, x, y: lowest + m.nodeGap };
     column.push(rect);
     rects.push(rect);
     columnOf.set(rect.id, index);
@@ -334,7 +375,7 @@ function sweep(rects: Rect[], fixed: ReadonlySet<string> = new Set()): void {
     for (let moves = 0; moves <= settled.length; moves++) {
       const blocking = settled.find((other) => overlap(rect, other));
       if (!blocking) break;
-      rect.y = blocking.y + blocking.height + NODE_GAP;
+      rect.y = blocking.y + blocking.height + m.nodeGap;
     }
     settled.push(rect);
   }
@@ -361,7 +402,7 @@ async function incremental(content: MapContent, previous: Laid, pins: Pins): Pro
       return extent(rects, paddingOf(container));
     }
     const padding = paddingOf(container);
-    const sizeOf = (id: string, item?: MapItem) => sizes.get(id) ?? (item ? leafSize(item) : BOX);
+    const sizeOf = (id: string, item?: MapItem) => sizes.get(id) ?? (item ? leafSize(item) : m.box);
     const kept: Rect[] = known.map((item) => {
       const at = previous.placed.get(item.id) ?? { x: padding.left, y: padding.top, ...leafSize(item) };
       return { id: item.id, x: at.x, y: at.y, width: at.width, height: at.height };
@@ -405,6 +446,12 @@ async function incremental(content: MapContent, previous: Laid, pins: Pins): Pro
  * settled layout; or, with `previous`, the incremental one that keeps what did not change. The
  * boxes moved by hand stay where `pins` says.
  */
-export async function layout(content: MapContent, previous?: Laid, pins: Pins = {}): Promise<Layout> {
+export async function layout(
+  content: MapContent,
+  previous?: Laid,
+  pins: Pins = {},
+  density: Density = "comfortable",
+): Promise<Layout> {
+  m = METRICS[density];
   return previous ? incremental(content, previous, pins) : fresh(content, pins);
 }

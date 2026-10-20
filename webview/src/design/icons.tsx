@@ -127,6 +127,47 @@ export function ToneIcon({ tone }: { tone: Tone }) {
   }
 }
 
+/** What changed since the last review (ADR 0024). */
+export type ChangeKind = "added" | "modified" | "cycle" | "fanIn" | "fanOut";
+
+/**
+ * A shape per change: a star, a dot, a loop, an arrow coming in, an arrow going out. Filled
+ * marks for « new » and « modified », that no one takes for a button (« + » read « add », a pen
+ * « edit »: five-second test n° 1, PLAN.md 5.3).
+ */
+const CHANGE_SHAPES: Record<ChangeKind, ReactNode> = {
+  added: <path d="M8 2l1.8 3.9 4.2.5-3.1 2.9.8 4.2L8 11.4l-3.7 2.1.8-4.2L2 6.4l4.2-.5z" fill="currentColor" />,
+  modified: <circle cx="8" cy="8" r="3.5" fill="currentColor" />,
+  cycle: (
+    <>
+      <path d="M12.5 6.5A5 5 0 0 0 4 5" />
+      <path d="M3.5 9.5A5 5 0 0 0 12 11" />
+      <path d="M4 2.5V5h2.5M12 13.5V11H9.5" />
+    </>
+  ),
+  fanIn: (
+    <>
+      <path d="M2 8h7M6.5 5L9 8l-2.5 3" />
+      <path d="M12.5 3v10" />
+    </>
+  ),
+  fanOut: (
+    <>
+      <path d="M3.5 3v10" />
+      <path d="M7 8h7M11.5 5L14 8l-2.5 3" />
+    </>
+  ),
+};
+
+export function ChangeIcon({ kind }: { kind: ChangeKind }) {
+  return <Icon className="tim-icon--change">{CHANGE_SHAPES[kind]}</Icon>;
+}
+
+/** A tick: a toggle that is on. */
+export function CheckIcon() {
+  return <Icon>{<path d="M3.5 8.5l3 3 6-7" />}</Icon>;
+}
+
 /** An arrow, for the buttons that move a box (ADR 0021): their name says the direction. */
 const ARROWS: Record<"left" | "right" | "up" | "down", ReactNode> = {
   left: <path d="M13 8H3M7 4L3 8l4 4" />,

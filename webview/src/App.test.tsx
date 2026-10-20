@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { App } from "./App";
 import { resolveLocale } from "./i18n";
-import { isHostMessage, PROTOCOL_VERSION, readyMessage, subscribeTo, type ViewNode } from "./protocol";
+import { isHostMessage, NO_REVIEW, PROTOCOL_VERSION, readyMessage, subscribeTo, type ViewNode } from "./protocol";
 import { initialModel, type ViewModel } from "./viewModel";
 
 function withDaemon(state: ViewModel["daemon"]["state"], detail: string | null = null): ViewModel {
@@ -27,9 +27,13 @@ function withBoxes(count: number): ViewModel {
       children: 0,
       file: null,
       span: null,
+      review: null,
     });
   }
-  return { ...withDaemon("connected"), view: { subscription: 1, revision: 0, nodes, edges: new Map() } };
+  return {
+    ...withDaemon("connected"),
+    view: { subscription: 1, revision: 0, nodes, edges: new Map(), review: NO_REVIEW },
+  };
 }
 
 describe("teaching states", () => {

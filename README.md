@@ -50,7 +50,8 @@ is not supported yet.
   external libraries. External dependencies are grouped by use.
 - **History**: the graph lives in SQLite with a snapshot per commit and a working-tree head. A
   diff between two snapshots is a query, and it detects moved symbols instead of reporting
-  « deleted, then added ».
+  « deleted, then added ». A commit's snapshot describes the committed tree, its packages
+  included, even when the working tree differs.
 
 ### Daemon and CLI
 
@@ -80,6 +81,16 @@ is not supported yet.
   - beyond 500 boxes or 600 edges, the deeper levels are folded, so that large maps stay fluid.
     A synthetic map of 6,000 nodes pans at 60 frames per second in headless Chromium;
   - **Go to the code** (Shift+Enter, double click) opens the file beside the map, at the symbol;
+  - **review diff**: « Mark as reviewed » freezes the map as you reviewed it. From then on, each
+    box new or modified since says so in words, as does each new link and each box in a new
+    cycle or whose fan-in or fan-out jumped. A summary counts the changes and lists them,
+    removed boxes and dependencies included. « Highlight the changes » dims the rest. Only code
+    changes count: a link that only a language server's check made appear or disappear, or
+    files that Timonier merely regrouped into other components, do not. A box is new or removed
+    only when code comes or goes with it, a crate with its manifest; a renamed folder or crate
+    is modified;
+  - **density**: the `timonier.map.density` setting makes the map comfortable (the default) or
+    compact, with smaller boxes and tighter gaps;
   - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
     command for each action.
 - Follows the IDE theme, light, dark and high contrast. WCAG AA contrast is checked automatically
@@ -89,8 +100,6 @@ is not supported yet.
 
 From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
 
-- **Review diff** (phase 5): what changed between two snapshots, on the map; « mark as
-  reviewed ».
 - **MCP tools for agents** (phase 6): the agent reads the graph and writes sessions, plan, todo
   and journal; `timonier init` and `timonier doctor` configure a project and its agent.
 - **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be

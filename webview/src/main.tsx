@@ -2,13 +2,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
+import { applyDensity } from "./density";
 import { connectHost } from "./host";
 import { resolveLocale } from "./i18n";
 import type { Pins } from "./map/layout";
 import type { Toggle } from "./map/mapModel";
 import type { MapCommands } from "./map/MapView";
-import { isHostMessage, readyMessage, subscribeTo } from "./protocol";
-import { applyToggle, closeAll, parseUi, type Applied, type UiState } from "./uiState";
+import { isHostMessage, readyMessage, subscribeTo, type Density } from "./protocol";
+import { applyToggle, closeAll, parseUi, toggleChanges, type Applied, type UiState } from "./uiState";
 import { initialModel, reduce, type ViewModel } from "./viewModel";
 import "./tokens.css";
 import "./design/design.css";
@@ -49,6 +50,8 @@ function apply({ ui: next, subscribe }: Applied) {
 const onDisplayed = (paths: string[]) => host?.postMessage({ type: "displayed", paths });
 // The boxes moved by hand: the host keeps them, and gives them back to each new page.
 let pins: Pins = {};
+// How dense the map is, from the host's settings (Q32).
+let density: Density = "comfortable";
 const onPins = (next: Pins) => {
   pins = next;
   host?.postMessage({ type: "pins", pins: { ...next } });
@@ -68,6 +71,9 @@ function render() {
         onDisplayed={onDisplayed}
         pins={pins}
         onPins={onPins}
+        density={density}
+        onMarkReviewed={() => host?.postMessage({ type: "markReviewed" })}
+        onToggleChanges={() => apply(toggleChanges(ui))}
         commandsRef={mapCommands}
         onReady={announceReady}
       />
@@ -79,6 +85,11 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
   if (!isHostMessage(event.data)) return;
   if (event.data.type === "pins") {
     pins = event.data.pins;
+    render();
+    return;
+  }
+  if (event.data.type === "density") {
+    density = applyDensity(event.data.density);
     render();
     return;
   }

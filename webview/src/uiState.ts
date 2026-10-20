@@ -10,6 +10,8 @@ export interface UiState {
   expanded: string[];
   /** A folded box whose contents come first when the map is over its budget (PLAN.md 4.10). */
   focus?: string;
+  /** What did not change since the last review is quieter (ADR 0024). */
+  onlyChanges?: boolean;
 }
 
 export const initialUi: UiState = { openRoles: [], expanded: [] };
@@ -21,11 +23,17 @@ function strings(value: unknown): string[] | undefined {
 /** What `getState` gave back, if it is a state of this version. */
 export function parseUi(saved: unknown): UiState {
   if (typeof saved !== "object" || saved === null) return initialUi;
-  const { openRoles, expanded, focus } = saved as { openRoles?: unknown; expanded?: unknown; focus?: unknown };
+  const { openRoles, expanded, focus, onlyChanges } = saved as {
+    openRoles?: unknown;
+    expanded?: unknown;
+    focus?: unknown;
+    onlyChanges?: unknown;
+  };
   return {
     openRoles: strings(openRoles) ?? [],
     expanded: strings(expanded) ?? [],
     ...(typeof focus === "string" ? { focus } : {}),
+    ...(onlyChanges === true ? { onlyChanges } : {}),
   };
 }
 
@@ -47,7 +55,16 @@ export function applyToggle(ui: UiState, toggle: Toggle, view: ViewData | undefi
   return { ui: { ...ui, expanded }, subscribe: expanded };
 }
 
-/** Back to the opening of the map. */
+/** Back to the opening of the map; the filter stays as it was. */
 export function closeAll(ui: UiState): Applied {
-  return { ui: initialUi, subscribe: ui.expanded.length > 0 ? [] : undefined };
+  return {
+    ui: { ...initialUi, ...(ui.onlyChanges ? { onlyChanges: true } : {}) },
+    subscribe: ui.expanded.length > 0 ? [] : undefined,
+  };
+}
+
+/** The filter « only the changes », on or off (ADR 0024). */
+export function toggleChanges(ui: UiState): Applied {
+  const { onlyChanges, ...rest } = ui;
+  return { ui: onlyChanges ? rest : { ...rest, onlyChanges: true } };
 }

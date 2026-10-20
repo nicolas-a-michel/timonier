@@ -2,12 +2,14 @@
  * The design system's demonstration page (ADR 0020), in development only: `npm run dev -w webview`,
  * then /demo.html. `?theme=<name>` applies the variables VSCode gives a webview in that theme
  * (test/themes, captured by editors/vscode/scripts/capture-themes.mjs); `?locale=fr`, French;
- * `?map=timonier`, the map of a real repository (test/views).
+ * `?map=timonier`, the map of a real repository (test/views); `&review=1`, with a review diff
+ * (ADR 0024); `&density=compact`, the compact map (Q32).
  * The contrast tests (`npm run test:a11y`) read this page in every theme.
  */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { applyDensity } from "../density";
 import { resolveLocale } from "../i18n";
 import type { ViewSnapshot } from "../protocol";
 import { Demo } from "./Demo";
@@ -49,6 +51,8 @@ const container = document.getElementById("root");
 if (!container) throw new Error("demo: the #root element is missing.");
 
 const map = params.get("map");
+/** `?density=compact`: the compact map (Q32), applied as the host's message is. */
+const density = applyDensity(params.get("density") === "compact" ? "compact" : "comfortable");
 /** `?map=synthetic&size=20x12x12&open=all`: a synthetic repository, everything open. */
 const size = (params.get("size") ?? "20x12x12").split("x").map(Number);
 const openAll = params.get("open") === "all";
@@ -62,7 +66,15 @@ void applyTheme(theme).then(async (names) => {
         ? views[`../../test/views/${map}/open.json`]
         : undefined;
   const content = view ? (
-    <MapDemo locale={locale} open={(await view()).snapshot} openAll={openAll} onRendered={ready} />
+    <MapDemo
+      locale={locale}
+      open={(await view()).snapshot}
+      openAll={openAll}
+      review={params.get("review") === "1"}
+      only={params.get("only") === "1"}
+      density={density}
+      onRendered={ready}
+    />
   ) : (
     <Demo locale={locale} theme={theme} themes={names} onRendered={ready} />
   );

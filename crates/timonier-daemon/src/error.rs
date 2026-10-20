@@ -38,6 +38,12 @@ pub enum Error {
     #[error("a daemon task failed: {0}")]
     Join(String),
 
+    #[error("the pipeline has stopped")]
+    Stopped,
+
+    #[error("the review mark failed: {0}")]
+    Review(String),
+
     #[error("the cached extraction of `{path}` cannot be encoded: {source}")]
     Cache {
         path: String,

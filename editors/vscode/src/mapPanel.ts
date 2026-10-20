@@ -3,12 +3,17 @@ import { readFileSync } from "node:fs";
 import * as vscode from "vscode";
 
 import { webviewEntry, type WebviewEntry } from "./viteManifest";
-import { isWebviewMessage } from "./messages";
+import { densityOf, onPageMessage, onSettingsChange, type MapHostActions } from "./mapHost";
 import { ViewRelay, type DaemonSource, type PinStore, type Rendered } from "./viewRelay";
-import type { MapCommand, Span } from "./protocol/generated";
+import type { Density, MapCommand, Span } from "./protocol/generated";
 import { createNonce, renderWebviewHtml } from "./webviewHtml";
 
 export const MAP_VIEW_TYPE = "timonier.map";
+
+/** The density the settings give the map (Q32): comfortable unless set to compact. */
+export function mapDensity(): Density {
+  return densityOf(vscode.workspace.getConfiguration("timonier").get<string>("map.density"));
+}
 
 /** The architecture map panel: one per window, revealed when it is already open. */
 export class MapPanel {
@@ -81,11 +86,14 @@ export class MapPanel {
     this.relay = new ViewRelay(daemon, (message) => webview.postMessage(message), log, openCode, pins);
     let announceReady: () => void = () => undefined;
     this.ready = new Promise((resolve) => (announceReady = resolve));
-    const messages = webview.onDidReceiveMessage((message: unknown) => {
-      if (!isWebviewMessage(message)) return;
-      if (message.type === "ready") announceReady();
-      void this.relay.receive(message);
-    });
+    const actions: MapHostActions = {
+      post: (message) => webview.postMessage(message),
+      density: mapDensity,
+      ready: () => announceReady(),
+      markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
+      relay: (message) => this.relay.receive(message),
+    };
+    const messages = webview.onDidReceiveMessage((message: unknown) => onPageMessage(message, actions));
     const asUri = (file: string) => webview.asWebviewUri(vscode.Uri.joinPath(webviewRoot, file)).toString();
     webview.html = renderWebviewHtml({
       cspSource: webview.cspSource,
@@ -99,7 +107,11 @@ export class MapPanel {
     const visibility = panel.onDidChangeViewState(({ webviewPanel }) => {
       if (!webviewPanel.visible) this.relay.unloaded();
     });
+    const settings = vscode.workspace.onDidChangeConfiguration((event) =>
+      onSettingsChange((section) => event.affectsConfiguration(section), actions),
+    );
     panel.onDidDispose(() => {
+      settings.dispose();
       visibility.dispose();
       messages.dispose();
       void this.relay.dispose();

@@ -30,7 +30,7 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`); `cli` has `timonier daemon start|stop|status|run`; `otlp` and `mcp` are skeletons | in progress |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4; in-memory graph and review diff since Phase 5) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`, `examples/commit_bench.rs`; `examples/support/synthetic.rs` writes the benches' synthetic workspaces); `cli` has `timonier daemon start|stop|status|run`; `otlp` and `mcp` are skeletons | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
@@ -71,7 +71,8 @@ cargo run --release -p timonier-store --example bench [packages] [files] [symbol
 cargo run --release -p timonier-daemon --example lsp_cost [repository]   # questions refinement asks the language servers (ADR 0022)
 npm run bench:map -w webview       # map frames per second on synthetic repositories (PLAN.md 4.10)
 cargo run --release -p timonier-store --example debt_bench   # cost of a refinement debt write (ADR 0022)
-cargo run --release -p timonier-daemon --example view_bench [repository] [saves]   # RUST_LOG=timonier_daemon=debug for logs
+cargo run --release -p timonier-daemon --example view_bench [repository|synthetic:CxDxF] [saves]   # RUST_LOG=timonier_daemon=debug for logs
+cargo run --release -p timonier-daemon --example commit_bench [CxDxF] [runs]   # commit snapshot, same or other packages (ADR 0025)
 
 # Protocol types → TypeScript (a test fails when webview/src/protocol/generated.ts is stale)
 TIMONIER_UPDATE_TS=1 cargo test -p timonier-core

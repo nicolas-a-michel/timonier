@@ -110,6 +110,21 @@
         "command": "timonier.map.openCode",
         "title": "%command.map.openCode.title%",
         "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.onlyChanges",
+        "title": "%command.map.onlyChanges.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.reviewDetails",
+        "title": "%command.map.reviewDetails.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.markReviewed",
+        "title": "%command.markReviewed.title%",
+        "category": "Timonier"
       }
     ],
     "menus": {
@@ -129,6 +144,19 @@
           "default": "",
           "markdownDescription": "%config.daemon.path%",
           "scope": "machine"
+        },
+        "timonier.map.density": {
+          "type": "string",
+          "enum": [
+            "comfortable",
+            "compact"
+          ],
+          "enumDescriptions": [
+            "%config.map.density.comfortable%",
+            "%config.map.density.compact%"
+          ],
+          "default": "comfortable",
+          "description": "%config.map.density%"
         }
       }
     }

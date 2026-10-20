@@ -4,7 +4,9 @@
 //! `cargo run --release -p timonier-daemon --example view_bench [repository] [saves]`
 //!
 //! The repository (the current directory by default) is copied to a temporary directory, so
-//! that its files are never touched, and a real daemon serves the copy. Then:
+//! that its files are never touched, and a real daemon serves the copy. `synthetic:CxDxF`
+//! instead writes there a Cargo workspace of C crates, each of D module folders of F files,
+//! with calls inside each crate and to the crate before (PLAN.md 5.2). Then:
 //! - the head read and the views computed directly, as the views thread does on each change;
 //! - `view/subscribe` from a client, for the top of the map and with every package and
 //!   component open, which shows every file;
@@ -14,14 +16,23 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use std::collections::HashMap;
+
 use serde_json::Value;
-use timonier_core::NodeKind;
 use timonier_core::protocol::{
-    StatusResult, SubscribeParams, ViewDelta, ViewSnapshot, ViewSpec, methods,
+    ReviewMark, StatusResult, SubscribeParams, ViewDelta, ViewSnapshot, ViewSpec, methods,
 };
-use timonier_daemon::view::{Graph, ViewState};
+use timonier_core::review::{self, ReviewDiff};
+use timonier_core::{ContentHash, Edge, Node, NodeId, NodeKind};
+use timonier_daemon::view::{self, Graph, Review, ViewState};
 use timonier_daemon::{Client, Daemon, Options};
 use timonier_store::Store;
+
+#[path = "support/synthetic.rs"]
+mod synthetic;
+
+/// Set for the child that measures the memory of a review graph: the database to read.
+const MEMORY_CHILD: &str = "VIEW_BENCH_MEMORY_OF";
 
 fn main() {
     // `RUST_LOG=timonier_daemon=debug` shows what the daemon does.
@@ -29,12 +40,26 @@ fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .init();
+    // A child of this bench, for the memory a review graph takes (see below).
+    if let Some(database) = std::env::var_os(MEMORY_CHILD) {
+        let store = Store::open(PathBuf::from(database)).expect("store");
+        let mut reader = store.reader().expect("reader");
+        reader.head().expect("head");
+        let before = resident_kib();
+        let graph = view::load(&mut reader).expect("load");
+        let after = resident_kib();
+        println!("{} {}", after.saturating_sub(before), graph.nodes().count());
+        return;
+    }
     let mut args = std::env::args().skip(1);
     let source = PathBuf::from(args.next().unwrap_or_else(|| ".".into()));
     let saves: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(30);
     let copy = tempfile::tempdir().expect("temp dir");
     let runtime = tempfile::tempdir().expect("temp dir");
-    let copied = copy_repository(&source, copy.path());
+    let copied = match source.to_str().and_then(|s| s.strip_prefix("synthetic:")) {
+        Some(size) => synthetic::write(size, copy.path()),
+        None => copy_repository(&source, copy.path()),
+    };
     println!("repository: {} ({copied} files copied)", source.display());
 
     let mut options = Options::new(copy.path());
@@ -69,7 +94,7 @@ fn main() {
     let mut graph = Graph::default();
     for _ in 0..10 {
         let start = Instant::now();
-        graph = Graph::load(&mut reader).expect("load");
+        graph = view::load(&mut reader).expect("load");
         loads.push(start.elapsed());
     }
     let head = reader.head().expect("head").seq;
@@ -95,7 +120,7 @@ fn main() {
         let mut state = ViewState::default();
         for _ in 0..10 {
             let start = Instant::now();
-            state = ViewState::compute(&graph, spec);
+            state = ViewState::compute(&graph, spec, None);
             computes.push(start.elapsed());
         }
         let snapshot = state.snapshot(0, 0);
@@ -105,6 +130,118 @@ fn main() {
             snapshot.nodes.len(),
             snapshot.edges.len(),
             bytes / 1024,
+            ms(percentile(&mut computes, 50))
+        );
+    }
+
+    // The review diff (ADR 0024), as the views thread adds it on each change: the content hashes
+    // read, the diff, and each view with it. The head against itself with every file changed:
+    // the dearest case for the files.
+    let mut reads = Vec::new();
+    let mut contents = HashMap::new();
+    for _ in 0..10 {
+        let start = Instant::now();
+        contents = reader.file_contents().expect("contents");
+        reads.push(start.elapsed());
+    }
+    // The memory a review costs: a second graph, the snapshot of the review, kept by the views
+    // thread. Measured in a fresh process, which reuses no memory this one freed: the growth of
+    // its resident memory over the load, the load's transient memory included, so at most.
+    // Linux only (`VmRSS`); 0 elsewhere.
+    let child = std::process::Command::new(std::env::current_exe().expect("this bench"))
+        .env(MEMORY_CHILD, &paths.database)
+        .output()
+        .expect("a child bench");
+    let measured = String::from_utf8_lossy(&child.stdout);
+    let mut measured = measured.split_whitespace();
+    println!(
+        "review graph in memory: at most {} KiB ({} nodes; a fresh process, the load included)",
+        measured.next().unwrap_or("?"),
+        measured.next().unwrap_or("?")
+    );
+    let changed: HashMap<String, ContentHash> = contents
+        .keys()
+        .map(|key| (key.clone(), ContentHash::from_bytes([0; 32])))
+        .collect();
+    let mut compares = Vec::new();
+    let mut diff = ReviewDiff::default();
+    for _ in 0..10 {
+        let start = Instant::now();
+        diff = review::compare(&graph, &graph, &contents, &changed);
+        compares.push(start.elapsed());
+    }
+    let mark = ReviewMark {
+        seq: 0,
+        timestamp_ms: 0,
+    };
+    let summary = view::summary(mark, &graph, &graph, &diff);
+    println!(
+        "review diff, every file changed: contents read in p50 {}; {} boxes and files changed, \
+         computed in p50 {}",
+        ms(percentile(&mut reads, 50)),
+        diff.changes.len(),
+        ms(percentile(&mut compares, 50))
+    );
+    // Every component and file renamed since the review (review n° 2 of Phase 5, m-2): the
+    // dearest case for the pairing of the renames.
+    let was = |id: &NodeId| -> NodeId {
+        let renamed = match id.as_str().split_once(':') {
+            Some(("component", key)) => format!("component:was/{key}"),
+            Some(("file", path)) => format!("file:was/{path}"),
+            _ => return id.clone(),
+        };
+        NodeId::parse(&renamed).expect("a valid id")
+    };
+    let moved = Graph::new(
+        graph
+            .nodes()
+            .map(|node| Node {
+                id: was(&node.id),
+                parent: node.parent.as_ref().map(was),
+                ..node.clone()
+            })
+            .collect(),
+        graph
+            .edges()
+            .iter()
+            .map(|edge| Edge {
+                src: was(&edge.src),
+                dst: was(&edge.dst),
+                ..edge.clone()
+            })
+            .collect(),
+    );
+    let moved_contents: HashMap<String, ContentHash> = contents
+        .iter()
+        .map(|(key, hash)| (key.replacen("file:", "file:was/", 1), *hash))
+        .collect();
+    let mut compares = Vec::new();
+    let mut renames = 0;
+    for _ in 0..10 {
+        let start = Instant::now();
+        let diff = review::compare(&moved, &graph, &moved_contents, &contents);
+        compares.push(start.elapsed());
+        renames = diff.renamed.len();
+    }
+    println!(
+        "review diff, every component and file renamed: {renames} renames found, computed in p50 {}",
+        ms(percentile(&mut compares, 50))
+    );
+    drop(moved);
+    let with = Review {
+        reviewed: &graph,
+        diff: &diff,
+        summary: &summary,
+    };
+    for (name, spec) in [("top", &top), ("every package and component open", &open)] {
+        let mut computes = Vec::new();
+        for _ in 0..10 {
+            let start = Instant::now();
+            ViewState::compute(&graph, spec, Some(&with));
+            computes.push(start.elapsed());
+        }
+        println!(
+            "view {name} with the review diff: computed in p50 {}",
             ms(percentile(&mut computes, 50))
         );
     }
@@ -183,7 +320,19 @@ fn pick_file(root: &Path) -> String {
             return candidate.to_owned();
         }
     }
-    panic!("no Rust file to edit in {}", root.display());
+    // A workspace of crates: the library of the first one.
+    let mut crates: Vec<String> = std::fs::read_dir(root.join("crates"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| format!("crates/{}/src/lib.rs", entry.file_name().to_string_lossy()))
+        .filter(|candidate| root.join(candidate).is_file())
+        .collect();
+    crates.sort();
+    crates
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| panic!("no Rust file to edit in {}", root.display()))
 }
 
 fn percentile(values: &mut [Duration], p: usize) -> Duration {
@@ -214,4 +363,17 @@ fn copy_repository(from: &Path, to: &Path) -> usize {
         copied += 1;
     }
     copied
+}
+
+/// The resident memory of the process, in KiB: `VmRSS` of `/proc/self/status`.
+fn resident_kib() -> u64 {
+    std::fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|status| {
+            status
+                .lines()
+                .find_map(|line| line.strip_prefix("VmRSS:"))
+                .and_then(|rest| rest.trim().trim_end_matches("kB").trim().parse().ok())
+        })
+        .unwrap_or(0)
 }

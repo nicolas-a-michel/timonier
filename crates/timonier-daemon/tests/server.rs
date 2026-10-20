@@ -8,8 +8,9 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use timonier_core::NodeId;
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, PROTOCOL_VERSION, StatusResult,
-    SubscribeParams, SubscriptionParams, ViewDelta, ViewSnapshot, ViewSpec, errors, methods,
+    FilesParams, InitializeParams, InitializeResult, PROTOCOL_VERSION, ReviewChange, ReviewMark,
+    ReviewSummary, StatusResult, SubscribeParams, SubscriptionParams, ViewDelta, ViewSnapshot,
+    ViewSpec, errors, methods,
 };
 use timonier_core::rpc::{Id, Message};
 use timonier_daemon::view::ViewState;
@@ -328,6 +329,145 @@ fn a_client_initializes_then_reads_the_status() {
     );
     assert!(!daemon.paths.socket.exists());
     assert!(!Lock::is_held(&daemon.paths).unwrap());
+}
+
+/// Applies deltas until `done` holds, within 20 s.
+fn follow_until(client: &mut Client, mirror: &mut Mirror, done: impl Fn(&ViewState) -> bool) {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !done(&mirror.state) {
+        let left = deadline.saturating_duration_since(Instant::now());
+        let delta = next_delta(client, mirror.subscription, left)
+            .unwrap_or_else(|| panic!("not reached: {:?}", mirror.state.review()));
+        if mirror.receive(&delta) == Received::Gap {
+            mirror.resync(client);
+        }
+    }
+}
+
+/// PLAN.md 5.2, ADR 0024, on a real daemon: nothing before the first review (Q27); after it, a
+/// dependency between two crates and a module show in the view's review diff, and the summary.
+#[test]
+fn a_view_shows_what_changed_since_the_review() {
+    let repo = tempfile::tempdir().unwrap();
+    let root = repo.path();
+    write(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"a\", \"b\"]\n",
+    );
+    write(root, "a/Cargo.toml", "[package]\nname = \"a\"\n");
+    write(root, "a/src/lib.rs", "pub fn f() {}\n");
+    write(root, "b/Cargo.toml", "[package]\nname = \"b\"\n");
+    write(root, "b/src/lib.rs", "pub fn g() {}\n");
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test").unwrap();
+    indexed(&mut client, 2);
+    let snapshot = subscribe(&mut client, &[]);
+    assert_eq!(snapshot.review.since, None, "no review yet");
+    assert!(snapshot.nodes.iter().all(|n| n.review.is_none()));
+    let mut mirror = Mirror::new(&snapshot);
+
+    let mark: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked");
+    follow_until(&mut client, &mut mirror, |state| {
+        state.review().since == Some(mark)
+    });
+    assert_eq!(
+        mirror.state.review(),
+        &ReviewSummary {
+            since: Some(mark),
+            ..ReviewSummary::default()
+        },
+        "nothing changed since"
+    );
+
+    // a now depends on b, and has a new module.
+    write(
+        root,
+        "a/Cargo.toml",
+        "[package]\nname = \"a\"\n\n[dependencies]\nb = { path = \"../b\" }\n",
+    );
+    write(root, "a/src/extra.rs", "pub fn e() {\n    b::g();\n}\n");
+    write(root, "a/src/lib.rs", "pub mod extra;\npub fn f() {}\n");
+    follow_until(&mut client, &mut mirror, |state| {
+        let review = state.review();
+        !review.dependencies_added.is_empty() && !review.modified.is_empty()
+    });
+    let review = mirror.state.review();
+    let dependencies: Vec<(&str, &str)> = review
+        .dependencies_added
+        .iter()
+        .map(|d| (d.src.id.as_str(), d.dst.id.as_str()))
+        .collect();
+    assert_eq!(dependencies, [("pkg:cargo/a", "pkg:cargo/b")]);
+    let modified: Vec<&str> = review.modified.iter().map(|b| b.id.as_str()).collect();
+    assert_eq!(modified, ["pkg:cargo/a"]);
+    assert!(
+        review.added.is_empty() && review.removed.is_empty(),
+        "{review:?}"
+    );
+    let a = mirror
+        .state
+        .nodes()
+        .find(|n| n.id.as_str() == "pkg:cargo/a")
+        .expect("a on the map");
+    assert_eq!(
+        a.review.and_then(|r| r.change),
+        Some(ReviewChange::Modified)
+    );
+    let edge = mirror
+        .state
+        .edges()
+        .find(|e| e.src.as_str() == "pkg:cargo/a" && e.dst.as_str() == "pkg:cargo/b")
+        .expect("a → b on the map");
+    assert!(edge.review.is_some_and(|r| r.added));
+    // The new module, inside a.
+    let open = fresh(&mut client, &["pkg:cargo/a"]);
+    let extra = open
+        .nodes()
+        .find(|n| n.id.as_str() == "file:a/src/extra.rs")
+        .expect("the new file");
+    assert_eq!(
+        extra.review.and_then(|r| r.change),
+        Some(ReviewChange::Added)
+    );
+    // Marked again: the diff starts from there.
+    let again: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked again");
+    follow_until(&mut client, &mut mirror, |state| {
+        state.review().since == Some(again)
+    });
+    assert!(mirror.state.review().dependencies_added.is_empty());
+    assert!(mirror.state.nodes().all(|n| n.review.is_none()));
+}
+
+/// ADR 0024: `review/mark` freezes the head as reviewed, and the status names the last review.
+#[test]
+fn a_client_marks_the_head_as_reviewed() {
+    let repo = project();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(repo.path(), runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test").unwrap();
+    indexed(&mut client, 2);
+    let before = status(&mut client);
+    assert_eq!(before.last_review, None, "no review yet");
+    let mark: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked");
+    assert_eq!(mark.seq, before.head, "the head is what is reviewed");
+    assert!(mark.timestamp_ms > 0);
+    let after = status(&mut client);
+    assert_eq!(after.last_review, Some(mark));
+    assert_eq!(after.head, mark.seq + 1, "a new head opens");
+    let again: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked again");
+    assert_eq!(status(&mut client).last_review, Some(again));
 }
 
 #[test]
