@@ -21,7 +21,8 @@ crew, here the agents, move the ship.
 ## Status
 
 **Early development, not released.** The MVP is planned in nine phases ([PLAN.md](PLAN.md)):
-phases 0 to 3 are done, phase 4 (daemon, extension and map) is nearly done. Nothing is
+phases 0 to 5 are done (up to the review diff on the map); phase 6 (MCP tools, `timonier init`,
+plan and todo) has started. Nothing is
 published on crates.io, npm or the VSCode Marketplace yet. It runs on Linux and macOS; Windows
 is not supported yet.
 
@@ -81,14 +82,17 @@ is not supported yet.
   - beyond 500 boxes or 600 edges, the deeper levels are folded, so that large maps stay fluid.
     A synthetic map of 6,000 nodes pans at 60 frames per second in headless Chromium;
   - **Go to the code** (Shift+Enter, double click) opens the file beside the map, at the symbol;
-  - **review diff**: « Mark as reviewed » freezes the map as you reviewed it. From then on, each
-    box new or modified since says so in words, as does each new link and each box in a new
-    cycle or whose fan-in or fan-out jumped. A summary counts the changes and lists them,
-    removed boxes and dependencies included. « Highlight the changes » dims the rest. Only code
-    changes count: a link that only a language server's check made appear or disappear, or
-    files that Timonier merely regrouped into other components, do not. A box is new or removed
-    only when code comes or goes with it, a crate with its manifest; a renamed folder or crate
-    is modified;
+  - **review diff**: « Mark as reviewed » freezes the map as you reviewed it. From then on, a
+    banner above the map says what changed since: new, modified and removed boxes, dependencies
+    added and removed, cycles added, fan-in or fan-out jumps; « Details » lists them. On the
+    map, a new box has a star and the word « New », a modified one a dot and « Modified », a
+    closed role says « 2 modified »; new links and links in a new cycle are marked, and the
+    legend explains the marks. « Highlight the changes » dims the rest. Only code changes
+    count: the edges themselves are compared, so a link that only a language server's check
+    made appear or disappear, or files that Timonier merely regrouped into other components,
+    do not. A box is new or removed only when code comes or goes with it, a crate with its
+    manifest; a moved file, a renamed folder or crate is modified, and its dependencies follow
+    it;
   - **density**: the `timonier.map.density` setting makes the map comfortable (the default) or
     compact, with smaller boxes and tighter gaps;
   - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
@@ -100,8 +104,10 @@ is not supported yet.
 
 From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
 
-- **MCP tools for agents** (phase 6): the agent reads the graph and writes sessions, plan, todo
-  and journal; `timonier init` and `timonier doctor` configure a project and its agent.
+- **MCP tools for agents** (phase 6, in progress): the agent reads the graph and writes
+  sessions, plan, todo and journal through validated operations; panels show the plan, the
+  live todo and the sessions; `timonier init` and `timonier doctor` configure a project and its
+  agent.
 - **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be
   typed as constraints, compared to the real architecture.
 - **Performance** (phase 8): `timonier test` wraps the test runner, collects OpenTelemetry traces

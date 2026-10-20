@@ -114,16 +114,16 @@ par tâche en Phase 9 ; le calque par composant reste en v2.
 - Critère : « un projet réel piloté de bout en bout sans lire le code ligne à ligne ».
 - À trancher : lequel ?
 
-**Q10 — Outils MCP de lecture du suivi** (Phase 6)
-- La liste de la spec n'a aucun outil pour relire le plan ou la todo (`get_plan`,
-  `get_todo`), alors que l'agent doit les lire sans ouvrir les fichiers à la main.
-- Recommandation : les ajouter. La spec dit que les noms sont provisoires.
+**Q10 — Outils MCP de lecture du suivi** (Phase 6) — ✅ répondu le 2026-10-20 : **les
+ajouter**. `get_plan`, `get_todo` et `get_session`, en lecture seule, avec le même en-tête de
+boîte aux lettres que les autres outils.
 
-**Q11 — `PLAN.md` et `.timonier/plan.json`** (Phase 6)
-- À partir de la Phase 6, le plan est tenu via MCP.
-- Options : migrer ce plan dans `plan.json` et générer `PLAN.md`, ou garder `PLAN.md` comme
-  feuille de route humaine et `plan.json` pour les tâches.
-- À trancher au début de la Phase 6.
+**Q11 — `PLAN.md` et `.timonier/plan.json`** (Phase 6) — ✅ répondu le 2026-10-20 :
+**les tâches dans `plan.json`**. Jalons et tâches (phases 6 à 9, et les phases faites comme
+jalons terminés) passent dans `plan.json`, seule source, tenue par les outils MCP et montrée
+dans le panneau. `PLAN.md` garde ce qui est pour toi : questions, hypothèses, décisions,
+mesures, journal des relectures. Le hook de début de session lira `plan.json` (à la bascule,
+6.13).
 
 **Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication) — ⏸
 reportée le 2026-10-16 (« la Q12 attendra »). `nicolas-a-michel` reste provisoire.
@@ -2390,9 +2390,9 @@ Décisions :
 
 ## Phase 6 — MCP, initialisation et suivi
 
-Statut : à faire
+Statut : en cours (commencée le 2026-10-20)
 
-Prérequis : Q10 et Q11.
+Prérequis : Q10 et Q11, répondues le 2026-10-20.
 
 - [ ] 6.1 ADR — critère : ADR acceptées. Sujets :
   - SDK MCP (rmcp 3.5) et transport stdio ;

@@ -25,10 +25,11 @@ vivante, tableau blanc d'intention, performances mesurées pendant les tests, pl
     Alt et une flèche ; « Réinitialiser la disposition » revient aux positions calculées ;
   - « Aller au code » (Maj+Entrée, double-clic) ouvre le fichier à côté de la carte ;
   - « Marquer comme revu » fige la carte telle que vous l'avez revue. Ensuite, chaque boîte
-    nouvelle ou modifiée depuis le dit en toutes lettres, comme chaque lien nouveau et chaque
-    boîte d'un cycle ajouté, ou dont le fan-in ou le fan-out a bondi. Un résumé compte et liste
-    les changements, suppressions comprises ; « Mettre en avant les changements » estompe le
-    reste. Seuls les changements du code comptent : ni ce que la seule vérification d'un
+    nouvelle ou modifiée depuis le dit en toutes lettres (une étoile et « Nouveau », un point
+    et « Modifié » ; un rôle fermé dit « 2 modifiés »), comme chaque lien nouveau et chaque
+    boîte d'un cycle ajouté, ou dont le fan-in ou le fan-out a bondi ; la légende explique ces
+    marques. Un bandeau au-dessus de la carte compte les changements depuis la revue et les
+    liste, suppressions comprises ; « Mettre en avant les changements » estompe le reste. Seuls les changements du code comptent : ni ce que la seule vérification d'un
     serveur de langage fait apparaître, ni les fichiers que Timonier regroupe autrement. Une
     boîte n'est nouvelle ou supprimée que si du code arrive ou part avec elle, une crate avec
     son manifeste ; un dossier ou une crate renommés sont modifiés ;
