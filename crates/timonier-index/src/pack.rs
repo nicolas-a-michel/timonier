@@ -48,13 +48,57 @@ pub struct Manifest {
     pub roles: Vec<RoleRule>,
     #[serde(default)]
     pub lsp: LspRules,
-    /// Reserved for later phases (ADR 0012): read, not interpreted.
+    /// How the tests of this language run and write JUnit XML (ADR 0034).
     #[serde(default)]
-    pub tests: Option<toml::Table>,
+    pub tests: TestRules,
+    /// Reserved for later phases (ADR 0012): read, not interpreted.
     #[serde(default)]
     pub instrumentation: Option<toml::Table>,
     #[serde(default)]
     pub security: Option<toml::Table>,
+}
+
+/// The test runners of a language, tried in order: the first that fits is the project's
+/// (ADR 0034).
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TestRules {
+    #[serde(default)]
+    pub runners: Vec<RunnerRule>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunnerRule {
+    pub name: String,
+    /// A word the manifest's `test` script holds (`vitest`); without it, the runner always fits.
+    #[serde(default)]
+    pub uses: Option<String>,
+    /// How to run the tests so that they write JUnit XML.
+    #[serde(default)]
+    pub command: Option<String>,
+    /// Where the JUnit XML lands, relative to the root.
+    #[serde(default)]
+    pub junit: Option<String>,
+    /// A block `init` writes between markers into a file of the project.
+    #[serde(default)]
+    pub config: Option<ConfigBlock>,
+    /// A program the runner needs on the `PATH`.
+    #[serde(default)]
+    pub program: Option<String>,
+    /// What to do by hand: when `program` is missing, or what `init` does not do.
+    #[serde(default)]
+    pub note: Option<String>,
+    /// What is good to know, with nothing to do: `doctor` says it without failing.
+    #[serde(default)]
+    pub info: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigBlock {
+    pub file: String,
+    pub text: String,
 }
 
 /// What refinement needs to know of the language (ADR 0022).
@@ -214,6 +258,9 @@ pub struct Pack {
     pub manifest: Manifest,
     pub language: Language,
     pub(crate) grammars: Vec<Grammar>,
+    /// `conventions/<name>.md`, by name: copied into `.timonier/conventions/<language>/` by
+    /// `timonier init` (ADR 0034).
+    pub conventions: BTreeMap<String, String>,
 }
 
 impl Pack {
@@ -279,7 +326,11 @@ impl Pack {
                 .map(String::from),
             )
             .collect();
-        if let Some(stray) = files.keys().find(|file| !known.contains(file)) {
+        let convention = |file: &str| file.starts_with("conventions/") && file.ends_with(".md");
+        if let Some(stray) = files
+            .keys()
+            .find(|file| !known.contains(file) && !convention(file))
+        {
             return Err(pack_error(format!("unexpected file `{stray}`")));
         }
         let mut grammars = Vec::new();
@@ -333,10 +384,18 @@ impl Pack {
                 roles,
             });
         }
+        let conventions = files
+            .iter()
+            .filter_map(|(file, text)| {
+                let name = file.strip_prefix("conventions/")?;
+                Some((name.to_owned(), text.clone()))
+            })
+            .collect();
         Ok(Self {
             manifest,
             language,
             grammars,
+            conventions,
         })
     }
 }
@@ -523,7 +582,8 @@ const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
             "pack.toml",
             "definitions.scm",
             "references.scm",
-            "roles.scm"
+            "roles.scm",
+            "conventions/instrumentation.md"
         ]
     ),
     pack_files!(
@@ -533,7 +593,8 @@ const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
             "definitions.scm",
             "references.scm",
             "references.tsx.scm",
-            "roles.scm"
+            "roles.scm",
+            "conventions/instrumentation.md"
         ]
     ),
 ];
@@ -626,6 +687,36 @@ mod tests {
             .iter()
             .map(|(f, t)| ((*f).to_owned(), (*t).to_owned()))
             .collect()
+    }
+
+    /// ADR 0034: each pack says how its tests run and write JUnit XML, and brings its
+    /// conventions.
+    #[test]
+    fn builtin_packs_describe_their_runners_and_conventions() {
+        let packs = Packs::builtin().unwrap();
+        let pack = |name: &str| packs.iter().find(|p| p.language.as_str() == name).unwrap();
+        let rust = &pack("rust").manifest.tests.runners;
+        assert_eq!(rust.len(), 1);
+        assert_eq!(rust[0].name, "cargo-nextest");
+        assert!(rust[0].uses.is_none(), "always the Rust runner");
+        let config = rust[0].config.as_ref().unwrap();
+        assert_eq!(config.file, ".config/nextest.toml");
+        assert!(config.text.contains("[profile.timonier.junit]"));
+        let typescript: Vec<&str> = pack("typescript")
+            .manifest
+            .tests
+            .runners
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect();
+        assert_eq!(
+            typescript,
+            ["npm workspaces", "vitest", "node:test", "jest"]
+        );
+        for name in ["rust", "typescript"] {
+            let conventions = &pack(name).conventions;
+            assert!(conventions["instrumentation.md"].contains("code.function.name"));
+        }
     }
 
     #[test]

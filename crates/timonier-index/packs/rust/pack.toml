@@ -96,3 +96,19 @@ outside = [
   "AsMut", "Borrow", "Deref", "DerefMut", "Drop", "Fn", "FnMut", "FnOnce", "ToString", "ToOwned",
   "Future", "Pin", "Formatter",
 ]
+
+# How the tests run and write JUnit XML (ADR 0034). `cargo test` has no stable JUnit output:
+# cargo-nextest writes it through a profile of .config/nextest.toml (nexte.st/book/junit).
+[[tests.runners]]
+name = "cargo-nextest"
+command = "cargo nextest run --profile timonier"
+junit = "target/nextest/timonier/junit.xml"
+program = "cargo-nextest"
+note = "Timonier reads the tests' JUnit XML through cargo-nextest: install it (`cargo install cargo-nextest --locked`)."
+
+[tests.runners.config]
+file = ".config/nextest.toml"
+text = """
+# The tests' JUnit XML, for `timonier test` (timonier init).
+[profile.timonier.junit]
+path = "junit.xml\""""

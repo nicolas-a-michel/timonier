@@ -1,6 +1,6 @@
 # 0028 — En-tête de boîte aux lettres
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Collaboration entre modèles » (en-tête de boîte aux lettres) ; H10 ;

@@ -66,6 +66,14 @@
             "statusMessage": "Timonier: end-of-turn checks (cargo check, typecheck, PLAN.md)"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timonier hook stop --agent claude"
+          }
+        ]
       }
     ]
   }

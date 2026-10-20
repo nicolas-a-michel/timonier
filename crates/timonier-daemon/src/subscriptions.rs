@@ -646,6 +646,7 @@ impl Subscriptions {
         }
         let since = view.review.since.map(|mark| mark.timestamp_ms);
         view.sessions_since_review = bridge::sessions_since(&total, since);
+        view.configured = self.root.join(".timonier").join("init.json").is_file();
         view
     }
 

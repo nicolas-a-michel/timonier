@@ -22,6 +22,10 @@ pub use error::{Error, Result};
 pub use indexing::{Consolidated, Consolidation, Pipeline, Refinement, Report};
 pub use runtime::{Lock, Paths};
 pub use server::{Daemon, Options};
+/// The language packs, for the CLI's `init` (ADR 0034): the CLI depends on the daemon, not on
+/// the indexer (ADR 0003).
+pub use timonier_index::pack::{ConfigBlock, RunnerRule};
+pub use timonier_index::{Pack, Packs};
 pub use watch::{Event, PendingReview, Watch};
 
 #[cfg(test)]

@@ -1,0 +1,2457 @@
+{
+  "version": 1,
+  "boxes": [
+    {
+      "id": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kind": "component",
+      "name": "node",
+      "role": "data_model",
+      "parent": "pkg:cargo/timonier-core"
+    },
+    {
+      "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kind": "component",
+      "name": "review",
+      "role": "data_model",
+      "parent": "pkg:cargo/timonier-core"
+    },
+    {
+      "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kind": "component",
+      "name": "tracking",
+      "role": "data_model",
+      "parent": "pkg:cargo/timonier-core"
+    },
+    {
+      "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kind": "component",
+      "name": "subscriptions",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kind": "component",
+      "name": "error",
+      "role": "entry_point",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kind": "component",
+      "name": "indexing",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "kind": "component",
+      "name": "components",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-index"
+    },
+    {
+      "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kind": "component",
+      "name": "pack",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-index"
+    },
+    {
+      "id": "component:cluster/editors/vscode/src/code.ts",
+      "kind": "component",
+      "name": "lspRelay",
+      "role": "interface",
+      "parent": "pkg:npm/timonier"
+    },
+    {
+      "id": "component:cluster/editors/vscode/src/daemon.ts",
+      "kind": "component",
+      "name": "generated",
+      "role": "interface",
+      "parent": "pkg:npm/timonier"
+    },
+    {
+      "id": "component:cluster/editors/vscode/src/extension.ts",
+      "kind": "component",
+      "name": "mapPanel",
+      "role": "interface",
+      "parent": "pkg:npm/timonier"
+    },
+    {
+      "id": "component:cluster/webview/src/App.test.tsx",
+      "kind": "component",
+      "name": "App",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:cluster/webview/src/density.test.ts",
+      "kind": "component",
+      "name": "protocol",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:cluster/webview/src/host.ts",
+      "kind": "component",
+      "name": "uiState",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:cluster/webview/src/map/MapView.test.ts",
+      "kind": "component",
+      "name": "MapView",
+      "role": "utility",
+      "parent": "component:dir/webview/src/map"
+    },
+    {
+      "id": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kind": "component",
+      "name": "layout",
+      "role": "utility",
+      "parent": "component:dir/webview/src/map"
+    },
+    {
+      "id": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kind": "component",
+      "name": "mapModel",
+      "role": "utility",
+      "parent": "component:dir/webview/src/map"
+    },
+    {
+      "id": "component:cluster/webview/src/map/stability.test.ts",
+      "kind": "component",
+      "name": "stability",
+      "role": "utility",
+      "parent": "component:dir/webview/src/map"
+    },
+    {
+      "id": "component:dir/crates/timonier-cli/src/init",
+      "kind": "component",
+      "name": "init",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-cli"
+    },
+    {
+      "id": "component:dir/crates/timonier-cli/tests",
+      "kind": "component",
+      "name": "tests",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-cli"
+    },
+    {
+      "id": "component:dir/crates/timonier-daemon/examples",
+      "kind": "component",
+      "name": "examples",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:dir/crates/timonier-daemon/tests",
+      "kind": "component",
+      "name": "tests",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:dir/crates/timonier-index/tests",
+      "kind": "component",
+      "name": "tests",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-index"
+    },
+    {
+      "id": "component:dir/editors/vscode/src/test",
+      "kind": "component",
+      "name": "test",
+      "role": "utility",
+      "parent": "pkg:npm/timonier"
+    },
+    {
+      "id": "component:dir/editors/vscode/src/test/integration",
+      "kind": "component",
+      "name": "integration",
+      "role": "utility",
+      "parent": "component:dir/editors/vscode/src/test"
+    },
+    {
+      "id": "component:dir/editors/vscode/src/test/unit",
+      "kind": "component",
+      "name": "unit",
+      "role": "utility",
+      "parent": "component:dir/editors/vscode/src/test"
+    },
+    {
+      "id": "component:dir/webview/src/demo",
+      "kind": "component",
+      "name": "demo",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:dir/webview/src/design",
+      "kind": "component",
+      "name": "design",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:dir/webview/src/map",
+      "kind": "component",
+      "name": "map",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:dir/webview/src/tracking",
+      "kind": "component",
+      "name": "tracking",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:dir/webview/test",
+      "kind": "component",
+      "name": "test",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:external",
+      "kind": "component",
+      "name": "external",
+      "role": "external_libraries",
+      "parent": null
+    },
+    {
+      "id": "component:external/async",
+      "kind": "component",
+      "name": "async",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/cli",
+      "kind": "component",
+      "name": "cli",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/database",
+      "kind": "component",
+      "name": "database",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/network",
+      "kind": "component",
+      "name": "network",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/observability",
+      "kind": "component",
+      "name": "observability",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/other",
+      "kind": "component",
+      "name": "other",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/parsing",
+      "kind": "component",
+      "name": "parsing",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/serialization",
+      "kind": "component",
+      "name": "serialization",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "component:external/ui",
+      "kind": "component",
+      "name": "ui",
+      "role": "external_libraries",
+      "parent": "component:external"
+    },
+    {
+      "id": "pkg:cargo/anyhow",
+      "kind": "package",
+      "name": "anyhow",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/blake3",
+      "kind": "package",
+      "name": "blake3",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/clap",
+      "kind": "package",
+      "name": "clap",
+      "role": "external_libraries",
+      "parent": "component:external/cli"
+    },
+    {
+      "id": "pkg:cargo/globset",
+      "kind": "package",
+      "name": "globset",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/ignore",
+      "kind": "package",
+      "name": "ignore",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/notify-debouncer-full",
+      "kind": "package",
+      "name": "notify-debouncer-full",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/rayon",
+      "kind": "package",
+      "name": "rayon",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/rmcp",
+      "kind": "package",
+      "name": "rmcp",
+      "role": "external_libraries",
+      "parent": "component:external/network"
+    },
+    {
+      "id": "pkg:cargo/rusqlite",
+      "kind": "package",
+      "name": "rusqlite",
+      "role": "external_libraries",
+      "parent": "component:external/database"
+    },
+    {
+      "id": "pkg:cargo/rusqlite_migration",
+      "kind": "package",
+      "name": "rusqlite_migration",
+      "role": "external_libraries",
+      "parent": "component:external/database"
+    },
+    {
+      "id": "pkg:cargo/schemars",
+      "kind": "package",
+      "name": "schemars",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
+    },
+    {
+      "id": "pkg:cargo/serde",
+      "kind": "package",
+      "name": "serde",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
+    },
+    {
+      "id": "pkg:cargo/serde_json",
+      "kind": "package",
+      "name": "serde_json",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
+    },
+    {
+      "id": "pkg:cargo/similar",
+      "kind": "package",
+      "name": "similar",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/thiserror",
+      "kind": "package",
+      "name": "thiserror",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/timonier-cli",
+      "kind": "package",
+      "name": "timonier-cli",
+      "role": "entry_point",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-core",
+      "kind": "package",
+      "name": "timonier-core",
+      "role": "data_model",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-daemon",
+      "kind": "package",
+      "name": "timonier-daemon",
+      "role": "entry_point",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-index",
+      "kind": "package",
+      "name": "timonier-index",
+      "role": "utility",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-mcp",
+      "kind": "package",
+      "name": "timonier-mcp",
+      "role": "background_task",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-otlp",
+      "kind": "package",
+      "name": "timonier-otlp",
+      "role": "utility",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/timonier-store",
+      "kind": "package",
+      "name": "timonier-store",
+      "role": "persistence",
+      "parent": null
+    },
+    {
+      "id": "pkg:cargo/tokio",
+      "kind": "package",
+      "name": "tokio",
+      "role": "external_libraries",
+      "parent": "component:external/async"
+    },
+    {
+      "id": "pkg:cargo/toml",
+      "kind": "package",
+      "name": "toml",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
+    },
+    {
+      "id": "pkg:cargo/tracing",
+      "kind": "package",
+      "name": "tracing",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/tracing-subscriber",
+      "kind": "package",
+      "name": "tracing-subscriber",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter",
+      "kind": "package",
+      "name": "tree-sitter",
+      "role": "external_libraries",
+      "parent": "component:external/parsing"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-rust",
+      "kind": "package",
+      "name": "tree-sitter-rust",
+      "role": "external_libraries",
+      "parent": "component:external/parsing"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-typescript",
+      "kind": "package",
+      "name": "tree-sitter-typescript",
+      "role": "external_libraries",
+      "parent": "component:external/parsing"
+    },
+    {
+      "id": "pkg:cargo/ts-rs",
+      "kind": "package",
+      "name": "ts-rs",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:npm/@timonier/webview",
+      "kind": "package",
+      "name": "@timonier/webview",
+      "role": "interface",
+      "parent": null
+    },
+    {
+      "id": "pkg:npm/@xyflow/react",
+      "kind": "package",
+      "name": "@xyflow/react",
+      "role": "external_libraries",
+      "parent": "component:external/ui"
+    },
+    {
+      "id": "pkg:npm/elkjs",
+      "kind": "package",
+      "name": "elkjs",
+      "role": "external_libraries",
+      "parent": "component:external/ui"
+    },
+    {
+      "id": "pkg:npm/react",
+      "kind": "package",
+      "name": "react",
+      "role": "external_libraries",
+      "parent": "component:external/ui"
+    },
+    {
+      "id": "pkg:npm/react-dom",
+      "kind": "package",
+      "name": "react-dom",
+      "role": "external_libraries",
+      "parent": "component:external/ui"
+    },
+    {
+      "id": "pkg:npm/timonier",
+      "kind": "package",
+      "name": "timonier",
+      "role": "interface",
+      "parent": null
+    },
+    {
+      "id": "pkg:npm/vscode-jsonrpc",
+      "kind": "package",
+      "name": "vscode-jsonrpc",
+      "role": "external_libraries",
+      "parent": "component:external/network"
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "component:cluster/crates/timonier-core/src/actual.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 150
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/actual.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/actual.rs",
+      "to": "pkg:cargo/schemars",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/actual.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 10
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/actual.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 232
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 21
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 27
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "pkg:cargo/schemars",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "to": "pkg:cargo/ts-rs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 132
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 126
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 207
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 27
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 11
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "implements",
+        "imports",
+        "references"
+      ],
+      "weight": 33
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 12
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 94
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 214
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 23
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 22
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 10
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 34
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 33
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 60
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 76
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/notify-debouncer-full",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 10
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 31
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 42
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 39
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 19
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 115
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 129
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "pkg:cargo/globset",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "pkg:cargo/ignore",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "pkg:cargo/rayon",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "pkg:cargo/tree-sitter",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 12
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/code.ts",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/code.ts",
+      "to": "pkg:npm/vscode-jsonrpc",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/daemon.ts",
+      "to": "component:cluster/editors/vscode/src/code.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/daemon.ts",
+      "to": "component:cluster/editors/vscode/src/extension.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/daemon.ts",
+      "to": "pkg:npm/vscode-jsonrpc",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/extension.ts",
+      "to": "component:cluster/editors/vscode/src/code.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/extension.ts",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 41
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 13
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:cluster/webview/src/map/MapView.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/App.test.tsx",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 20
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "component:cluster/webview/src/map/MapView.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 11
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/host.ts",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 21
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 39
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 10
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 23
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:cluster/webview/src/map/stability.test.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 26
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "pkg:npm/@xyflow/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 32
+    },
+    {
+      "from": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "to": "component:dir/webview/src/demo",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "to": "component:dir/webview/test",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "to": "pkg:npm/elkjs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 46
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "component:cluster/webview/src/map/MapView.test.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/webview/src/map/stability.test.ts",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 11
+    },
+    {
+      "from": "component:cluster/webview/src/map/stability.test.ts",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/webview/src/map/stability.test.ts",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/webview/src/map/stability.test.ts",
+      "to": "component:dir/webview/test",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "pkg:cargo/anyhow",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "pkg:cargo/clap",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "pkg:cargo/timonier-cli",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 17
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/tests",
+      "to": "pkg:cargo/rmcp",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 10
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/tests",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 13
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 23
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 14
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 13
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "references"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 15
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 75
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 48
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 134
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 36
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 155
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "implements",
+        "imports",
+        "references"
+      ],
+      "weight": 103
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/tests",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 101
+    },
+    {
+      "from": "component:dir/crates/timonier-index/tests",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/crates/timonier-index/tests",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/crates/timonier-index/tests",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 19
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/integration",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 41
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/integration",
+      "to": "component:cluster/editors/vscode/src/extension.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "component:cluster/editors/vscode/src/code.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 51
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 43
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "component:cluster/editors/vscode/src/extension.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 39
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "pkg:npm/vscode-jsonrpc",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 43
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 12
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:cluster/webview/src/map/layout.perf.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:cluster/webview/src/map/mapModel.test.ts",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 17
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:dir/webview/src/tracking",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/webview/src/design",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/webview/src/design",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:dir/webview/src/design",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/design",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 12
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 51
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 15
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/tracking",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/test",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/webview/test",
+      "to": "component:cluster/webview/src/map/MapView.test.ts",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/test",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 15
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 22
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "component:dir/crates/timonier-cli/src/init",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/anyhow",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/clap",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/similar",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/timonier-daemon",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/timonier-mcp",
+      "kinds": [
+        "calls",
+        "depends_on"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/tracing-subscriber",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-core",
+      "to": "pkg:cargo/schemars",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-core",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-core",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-core",
+      "to": "pkg:cargo/thiserror",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-core",
+      "to": "pkg:cargo/ts-rs",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/blake3",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/notify-debouncer-full",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/thiserror",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/timonier-index",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/timonier-otlp",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/tracing",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/blake3",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/globset",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/ignore",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/rayon",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/thiserror",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/toml",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-rust",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-typescript",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 14
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "references"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/rmcp",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 15
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/thiserror",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "pkg:cargo/timonier-mcp",
+      "to": "pkg:cargo/tracing",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 317
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 235
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/rusqlite",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 18
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/rusqlite_migration",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/thiserror",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "pkg:npm/@xyflow/react",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "pkg:npm/elkjs",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/timonier",
+      "to": "pkg:npm/vscode-jsonrpc",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    }
+  ]
+}

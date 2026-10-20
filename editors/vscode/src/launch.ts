@@ -35,3 +35,8 @@ export function parseAnnounce(line: string): Announce | undefined {
     return undefined;
   }
 }
+
+/** The command line that runs `timonier init` in a shell (Q53): the program quoted for POSIX shells. */
+export function initCommand(program: string): string {
+  return `'${program.replace(/'/g, "'\\''")}' init`;
+}

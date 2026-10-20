@@ -12,9 +12,9 @@ use crate::{Error, Result};
 /// Overrides the runtime directory: tests, or a session without `$XDG_RUNTIME_DIR`.
 pub const RUNTIME_DIR_VAR: &str = "TIMONIER_RUNTIME_DIR";
 
-/// What `.timonier/.gitignore` holds when the daemon writes it: the database and its WAL files.
-const GITIGNORE: &str =
-    "# Written by the Timonier daemon: the graph is rebuilt from the repository.\ngraph.sqlite*\n";
+/// What `.timonier/.gitignore` keeps out of git: the database and its WAL files, a rebuildable
+/// cache, and the reports of the test runs (ADR 0034).
+pub const GITIGNORE: &str = "# Written by Timonier: the graph is rebuilt from the repository, and test reports are\n# not versioned.\ngraph.sqlite*\nruns/\n";
 
 /// The files of one project's daemon.
 #[derive(Clone, Debug, PartialEq, Eq)]

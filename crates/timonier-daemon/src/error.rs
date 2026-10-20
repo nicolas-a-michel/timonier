@@ -47,6 +47,9 @@ pub enum Error {
     #[error("the snapshot of the session failed: {0}")]
     Freeze(String),
 
+    #[error("cannot write in .timonier/: {0}")]
+    Tracking(String),
+
     #[error("the cached extraction of `{path}` cannot be encoded: {source}")]
     Cache {
         path: String,

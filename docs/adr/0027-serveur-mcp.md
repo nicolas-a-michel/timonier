@@ -1,6 +1,6 @@
 # 0027 — Serveur MCP : rmcp sur stdio, mince proxy vers le démon
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Architecture technique », « Interface MCP », « Pilotage » ; Q10 ; H10 ;
@@ -34,7 +34,10 @@ SDK, ni le transport, ni la façon dont le proxy connaît la liste des outils.
   ADR 0019) ; s'il n'y en a pas, il le lance comme `timonier daemon start`, sans rien écrire sur
   la sortie standard, qui porte MCP. Il passe ensuite le socket au proxy. Le proxy s'annonce au
   démon avec le nom du client MCP (`clientInfo`), que le démon attribue aux sessions ouvertes
-  par cette connexion.
+  par cette connexion. Le nom vient de la poignée de main `initialize`, ou des métadonnées de
+  chaque requête dans le cycle de vie MCP 2026-07-28 (SEP-2575), qui permet de la sauter :
+  `RequestContext::client_info()` de rmcp lit les deux (relecture n° 1 de la Phase 6, B1). Sans
+  nom (il y est facultatif), l'agent est `mcp-client`.
 - **Graphe des crates** : `timonier-mcp` dépend de `timonier-core` seul (ADR 0003). Il parle
   JSON-RPC avec le cadrage de `timonier-core` sur une `UnixStream` de tokio ; plusieurs
   requêtes partagent la connexion, chaque réponse va à la sienne.

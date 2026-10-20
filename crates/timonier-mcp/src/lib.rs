@@ -69,6 +69,9 @@ pub async fn serve(socket: &Path) -> Result<(), Error> {
     Ok(())
 }
 
+/// The agent of a client that gives no name (`clientInfo` is optional in MCP 2026-07-28).
+const UNNAMED: &str = "mcp-client";
+
 /// The proxy: MCP on one side, the daemon on the other.
 #[derive(Clone)]
 pub struct Proxy {
@@ -92,10 +95,11 @@ impl Proxy {
         method: &str,
         params: Value,
     ) -> Result<Value, ErrorData> {
-        let agent = context.peer.peer_info().map_or_else(
-            || "mcp-client".to_owned(),
-            |info| info.client_info.name.clone(),
-        );
+        // From the handshake, or from each request's metadata (MCP 2026-07-28, SEP-2575, where a
+        // client may skip `initialize`): rmcp's `client_info` reads both.
+        let agent = context
+            .client_info()
+            .map_or_else(|| UNNAMED.to_owned(), |info| info.name);
         self.initialized
             .get_or_try_init(|| async {
                 self.link

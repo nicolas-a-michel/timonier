@@ -28,6 +28,7 @@ const actions = {
   onReveal: (target: string, path: string[]) => host?.postMessage({ type: "reveal", target, path }),
   onOpenMap: () => host?.postMessage({ type: "openMap" }),
   onMarkReviewed: () => host?.postMessage({ type: "markReviewed" }),
+  onConfigure: () => host?.postMessage({ type: "configure" }),
 };
 
 /** Rendered: the first time, the page is ready; then the revision it shows. */

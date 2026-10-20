@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "gaps": [
+    {
+      "from": 0,
+      "to": 2,
+      "until": {
+        "at": "2026-10-20T09:46:18Z",
+        "session": "S-2026-10-20-1"
+      },
+      "files": [
+        "crates/timonier-cli/src/daemon.rs",
+        "crates/timonier-cli/src/hook.rs",
+        "crates/timonier-cli/src/init/detect.rs",
+        "crates/timonier-cli/src/init/doctor.rs",
+        "crates/timonier-cli/src/init/edits.rs",
+        "crates/timonier-cli/src/init/mod.rs",
+        "crates/timonier-cli/src/init/ordered.rs",
+        "crates/timonier-cli/src/init/plan.rs",
+        "crates/timonier-cli/src/init/uninit.rs",
+        "crates/timonier-cli/src/lib.rs",
+        "crates/timonier-cli/tests/binaries.rs",
+        "crates/timonier-cli/tests/daemon.rs",
+        "crates/timonier-cli/tests/init.rs",
+        "crates/timonier-cli/tests/mcp.rs",
+        "crates/timonier-core/src/actual.rs",
+        "crates/timonier-core/src/protocol.rs",
+        "crates/timonier-core/src/tracking.rs",
+        "crates/timonier-daemon/src/error.rs",
+        "crates/timonier-daemon/src/lib.rs",
+        "crates/timonier-daemon/src/runtime.rs",
+        "crates/timonier-daemon/src/server.rs",
+        "crates/timonier-daemon/src/subscriptions.rs",
+        "crates/timonier-daemon/src/tracking.rs",
+        "crates/timonier-daemon/tests/server.rs",
+        "crates/timonier-index/src/pack.rs",
+        "editors/vscode/src/extension.ts",
+        "editors/vscode/src/launch.ts",
+        "editors/vscode/src/messages.ts",
+        "editors/vscode/src/protocol/generated.ts",
+        "editors/vscode/src/test/unit/launch.test.ts",
+        "editors/vscode/src/test/unit/trackingRelay.test.ts",
+        "editors/vscode/src/trackingRelay.ts",
+        "editors/vscode/src/trackingViews.ts",
+        "webview/src/protocol/generated.ts",
+        "webview/src/tracking/Bridge.tsx",
+        "webview/src/tracking/TrackingPanel.test.tsx",
+        "webview/src/tracking/main.tsx",
+        "webview/src/tracking/messages.ts",
+        "webview/src/tracking/sample.ts",
+        "webview/test/a11y/tracking.a11y.ts"
+      ]
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "until": {
+        "at": "2026-10-20T09:57:22Z",
+        "session": "S-2026-10-20-2"
+      },
+      "files": [
+        "crates/timonier-cli/src/init/doctor.rs",
+        "crates/timonier-cli/src/init/edits.rs",
+        "crates/timonier-cli/src/init/mod.rs",
+        "crates/timonier-cli/src/init/plan.rs",
+        "crates/timonier-cli/src/init/uninit.rs",
+        "crates/timonier-index/src/pack.rs"
+      ]
+    }
+  ]
+}

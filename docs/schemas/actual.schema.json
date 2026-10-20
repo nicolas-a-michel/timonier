@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Actual",
+  "type": "object",
+  "properties": {
+    "boxes": {
+      "description": "By id.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ActualBox"
+      }
+    },
+    "dependencies": {
+      "description": "By the box they leave, then the one they reach.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ActualDependency"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "boxes",
+    "dependencies"
+  ],
+  "$defs": {
+    "ActualBox": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Its id in the graph (`pkg:cargo/demo`, `component:dir/src`).",
+          "type": "string"
+        },
+        "kind": {
+          "description": "`package` or `component`.",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "description": "The box that holds it; `null` at the top.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "Its architectural role (`entry_point`, `utility`…), when it has one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "name"
+      ]
+    },
+    "ActualDependency": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "kinds": {
+          "description": "The kinds of the edges it stands for (`calls`, `imports`, `depends_on`…), sorted.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "to": {
+          "type": "string"
+        },
+        "weight": {
+          "description": "The sum of their weights.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "kinds",
+        "weight"
+      ]
+    }
+  }
+}

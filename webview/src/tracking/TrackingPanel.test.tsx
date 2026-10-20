@@ -5,8 +5,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { NO_REVIEW, type TrackingView } from "../protocol";
+import { NO_REVIEW, type TaskView, type TrackingView } from "../protocol";
 import { SAMPLE_TRACKING } from "./sample";
+import { currentMilestone } from "./Bridge";
 import { TrackingPanel, when, type PanelKind } from "./TrackingPanel";
 
 const EMPTY: TrackingView = {
@@ -20,6 +21,7 @@ const EMPTY: TrackingView = {
   debt: null,
   sessionsSinceReview: 0,
   look: [],
+  configured: false,
 };
 
 function render(panel: PanelKind, tracking: TrackingView | undefined = SAMPLE_TRACKING, locale: "en" | "fr" = "en") {
@@ -158,7 +160,12 @@ describe("the bridge (ADR 0032)", () => {
     expect(html).toMatch(/Since your review of [^<]*2026/);
     expect(html).toContain("1 new box · 3 modified · 1 dependency added");
     expect(html).toContain("2 agent sessions · 14 files to read again, 2 untracked");
-    const actions = { onReveal: () => undefined, onOpenMap: () => undefined, onMarkReviewed: () => undefined };
+    const actions = {
+      onReveal: () => undefined,
+      onOpenMap: () => undefined,
+      onMarkReviewed: () => undefined,
+      onConfigure: () => undefined,
+    };
     const withActions = renderToStaticMarkup(
       <TrackingPanel locale="en" panel="bridge" tracking={SAMPLE_TRACKING} daemon={undefined} actions={actions} />,
     );
@@ -174,6 +181,27 @@ describe("the bridge (ADR 0032)", () => {
     expect(look).toContain("webview › map");
   });
 
+  it("offers to set the project up while it is not (Q52), and says nothing of it after", () => {
+    expect(html).not.toContain("not set up for your agents");
+    const fresh = renderToStaticMarkup(
+      <TrackingPanel
+        locale="en"
+        panel="bridge"
+        tracking={EMPTY}
+        daemon={undefined}
+        actions={{
+          onReveal: () => undefined,
+          onOpenMap: () => undefined,
+          onMarkReviewed: () => undefined,
+          onConfigure: () => undefined,
+        }}
+      />,
+    );
+    expect(fresh).toContain("This project is not set up for your agents");
+    expect(fresh).toContain(">Set up</button>");
+    expect(fresh.indexOf("not set up")).toBeLessThan(fresh.indexOf("No review yet"));
+  });
+
   it("teaches what comes before the first review, and when nothing is to read", () => {
     const empty = render("bridge", EMPTY);
     expect(empty).toContain("No review yet");
@@ -185,6 +213,36 @@ describe("the bridge (ADR 0032)", () => {
     const fr = render("bridge", SAMPLE_TRACKING, "fr");
     expect(fr).toContain("Où regarder");
     expect(fr).toContain("14 fichiers à relire, dont 2 non suivis");
+  });
+});
+
+describe("the milestone where the work is (review n° 2 of Phase 6)", () => {
+  const milestone = (id: string, statuses: TaskView["status"][]) => ({
+    id,
+    title: id,
+    done: statuses.filter((s) => s === "done").length,
+    of: statuses.filter((s) => s !== "dropped").length,
+    tasks: statuses.map((status, i) => ({
+      id: `${id}-${i}`,
+      title: "t",
+      criterion: null,
+      status,
+      sessions: [],
+      notes: [],
+    })),
+  });
+
+  it("is the one with a task in progress", () => {
+    expect(currentMilestone([milestone("M-1", ["todo"]), milestone("M-2", ["done", "inProgress"])])?.id).toBe("M-2");
+  });
+
+  it("is not an old one where a task was left to do", () => {
+    const old = milestone("M-1", ["done", "todo"]);
+    expect(currentMilestone([old, milestone("M-2", ["done", "todo"])])?.id).toBe("M-2");
+    // The last one reached is finished: the next one.
+    expect(currentMilestone([old, milestone("M-2", ["done"]), milestone("M-3", ["todo"])])?.id).toBe("M-3");
+    // Nothing done yet: the first not finished.
+    expect(currentMilestone([milestone("M-1", ["todo"]), milestone("M-2", ["todo"])])?.id).toBe("M-1");
   });
 });
 

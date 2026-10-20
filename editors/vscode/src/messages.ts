@@ -50,6 +50,7 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
     case "reveal":
       return typeof message.target === "string" && isStrings(message.path);
     case "openMap":
+    case "configure":
       return true;
     case "trackingShown":
       return PANELS.includes(message.panel as string) && isCount(message.revision);

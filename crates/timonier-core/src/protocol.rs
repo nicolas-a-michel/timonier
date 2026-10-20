@@ -20,7 +20,7 @@ use crate::{
 };
 
 /// Bumped when a change breaks clients; a client with another version is refused.
-pub const PROTOCOL_VERSION: u32 = 6;
+pub const PROTOCOL_VERSION: u32 = 8;
 
 /// Method names (ADR 0019).
 pub mod methods {
@@ -50,6 +50,10 @@ pub mod methods {
     /// The plan, the todo and the journal, whole, then again at each change (ADR 0031).
     pub const TRACKING_SUBSCRIBE: &str = "tracking/subscribe";
     pub const TRACKING_UPDATE: &str = "tracking/update";
+    /// Whether an agent that wants to stop should be held once, and why (ADR 0033, Q49).
+    pub const AGENT_STOP: &str = "agent/stop";
+    /// Writes `.timonier/actual.json` from the head (ADR 0033, Q50).
+    pub const ACTUAL_WRITE: &str = "actual/write";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -110,6 +114,8 @@ pub struct StatusResult {
     pub daemon_version: String,
     /// Files of the repository in the graph.
     pub files: u32,
+    /// The first indexing is done: the graph holds the whole repository (ADR 0033).
+    pub indexed: bool,
     /// The open snapshot every change goes to (ADR 0010).
     #[ts(type = "number")]
     pub head: u64,
@@ -461,6 +467,24 @@ pub struct TrackingView {
     pub sessions_since_review: u32,
     /// What to look at first (Q45), at most [`LOOK_LIMIT`].
     pub look: Vec<LookItem>,
+    /// `timonier init` set the project up (`.timonier/init.json`); else the bridge offers it
+    /// (Q52).
+    pub configured: bool,
+}
+
+/// `agent/stop`: a reason to hold the agent once, or none (ADR 0033, Q49).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStop {
+    pub reason: Option<String>,
+}
+
+/// `actual/write`: where the file is, and whether it changed.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ActualWritten {
+    pub path: String,
+    pub changed: bool,
 }
 
 /// How many things the bridge proposes to look at (Q45).
@@ -676,6 +700,7 @@ impl TrackingView {
             debt: None,
             sessions_since_review: 0,
             look: Vec::new(),
+            configured: false,
         }
     }
 }
@@ -927,6 +952,8 @@ pub enum WebviewMessage {
     Reveal { target: String, path: Vec<String> },
     /// The bridge's « Open Map » button.
     OpenMap,
+    /// The bridge's « Set up » button: `timonier init` in a terminal (Q52, Q53).
+    Configure,
     /// A panel of the tracking shows this revision now (ADR 0031).
     TrackingShown {
         panel: String,

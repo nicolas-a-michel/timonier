@@ -1,6 +1,6 @@
 # 0031 — Vue du suivi : plan, todo et journal dans l'IDE
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Pilotage », « Expérience et design » ; ADR 0019 (protocole du démon), 0024

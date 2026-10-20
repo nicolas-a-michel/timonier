@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "runners": [
+    {
+      "language": "rust",
+      "runner": "cargo-nextest",
+      "command": "cargo nextest run --profile timonier",
+      "junit": "target/nextest/timonier/junit.xml"
+    },
+    {
+      "language": "typescript",
+      "runner": "npm workspaces",
+      "command": null,
+      "junit": null
+    }
+  ]
+}

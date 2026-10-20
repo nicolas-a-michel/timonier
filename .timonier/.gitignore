@@ -1,0 +1,4 @@
+# Written by Timonier: the graph is rebuilt from the repository, and test reports are
+# not versioned.
+graph.sqlite*
+runs/

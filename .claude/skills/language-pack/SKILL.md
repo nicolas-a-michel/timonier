@@ -87,13 +87,17 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
      never holds an LLM API key.
 6. **External dependency grouping** by usage: network, serialisation, database, async. This is
    a mapping from package names to categories, kept in the pack.
-7. **Instrumentation conventions**, copied into `.timonier/conventions/<lang>/` by
-   `timonier init`. They cover:
+7. **Instrumentation conventions**, the pack's `conventions/*.md` (embedded in `pack.rs`'s
+   `BUILTIN` list), copied as they are into `.timonier/conventions/<lang>/` by
+   `timonier init` (ADR 0034). They cover:
    - which OpenTelemetry SDK packages to add;
    - the initialisation module, behind a feature or a configuration switch;
    - how the rules of the `otel-instrumentation` skill translate to this language.
 8. **Test runner**: how to detect it, how to make it produce JUnit XML, and how each test
-   becomes a root span.
+   becomes a root span. Format fixed by ADR 0034: `[[tests.runners]]` in `pack.toml`, tried in
+   order (`name`, `uses` = a word of the `test` script, `command`, `junit`, `config` = a block
+   `init` writes into a project file, `program`, `note`). `timonier init` writes the chosen one
+   to `.timonier/tests.json`; Rust uses cargo-nextest (`cargo test` has no stable JUnit).
 9. **LSP**: which server the pack relies on and which capabilities (definition, references,
    call hierarchy).
    - `[lsp] outside` (ADR 0022): names no repository defines (the standard library, the

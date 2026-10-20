@@ -8,9 +8,10 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use timonier_core::NodeId;
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, LookItem, PROTOCOL_VERSION, ReviewChange,
-    ReviewMark, ReviewSummary, StatusResult, SubscribeParams, SubscriptionParams, TrackingSnapshot,
-    TrackingView, ViewDelta, ViewSnapshot, ViewSpec, errors, methods,
+    ActualWritten, AgentStop, FilesParams, InitializeParams, InitializeResult, LookItem,
+    PROTOCOL_VERSION, ReviewChange, ReviewMark, ReviewSummary, StatusResult, SubscribeParams,
+    SubscriptionParams, TrackingSnapshot, TrackingView, ViewDelta, ViewSnapshot, ViewSpec, errors,
+    methods,
 };
 use timonier_core::rpc::{Id, Message};
 use timonier_daemon::view::ViewState;
@@ -541,6 +542,89 @@ fn the_tracking_follows_the_agent_live() {
     tracking_until(&mut panel, subscription, |t| {
         t.problems.is_empty() && t.milestones.first().is_some_and(|m| m.title == "Renamed")
     });
+    // Q52: set up once `timonier init` left its record.
+    assert!(!seen.tracking.configured);
+    std::fs::write(root.join(".timonier/init.json"), "{}\n").unwrap();
+    tracking_until(&mut panel, subscription, |t| t.configured);
+}
+
+/// PLAN.md 6.8, ADR 0033 (Q49, Q50), on a real daemon: when to hold an agent that stops, and
+/// `actual.json` written from the head, the same until the graph changes.
+#[test]
+fn the_daemon_says_when_to_hold_an_agent_and_writes_the_actual_architecture() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test-agent").unwrap();
+    indexed(&mut client, 2);
+    let reason = |client: &mut Client| -> Option<String> {
+        let stop: AgentStop = client
+            .request(methods::AGENT_STOP, &Value::Null)
+            .expect("answered");
+        stop.reason
+    };
+    assert_eq!(reason(&mut client), None, "nothing changed yet");
+    // As after `timonier init`: a first session, ended. What changes next is measured from it.
+    tool(
+        &mut client,
+        "session_start",
+        json!({"objective": "Initialise"}),
+    );
+    tool(&mut client, "todo_add", json!({"text": "Initialise"}));
+    tool(&mut client, "todo_complete", json!({"item_id": "D-1"}));
+    tool(
+        &mut client,
+        "session_end",
+        json!({"summary": "Initialised."}),
+    );
+    assert_eq!(reason(&mut client), None);
+    std::fs::write(root.join("src/extra.rs"), "pub fn extra() {}\n").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let held = loop {
+        if let Some(held) = reason(&mut client) {
+            break held;
+        }
+        assert!(Instant::now() < deadline, "the change is never seen");
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    assert!(
+        held.contains("no Timonier session open (src/extra.rs)"),
+        "{held}"
+    );
+    tool(&mut client, "session_start", json!({"objective": "Extra"}));
+    assert!(reason(&mut client).is_some_and(|r| r.contains("todo is empty")));
+    tool(&mut client, "todo_add", json!({"text": "Write extra"}));
+    assert!(reason(&mut client).is_some_and(|r| r.contains("1 todo item(s) not done")));
+    tool(&mut client, "todo_complete", json!({"item_id": "D-1"}));
+    assert_eq!(reason(&mut client), None);
+    tool(
+        &mut client,
+        "session_end",
+        json!({"summary": "Extra written."}),
+    );
+    assert_eq!(reason(&mut client), None, "all in a session");
+
+    let first: ActualWritten = client
+        .request(methods::ACTUAL_WRITE, &Value::Null)
+        .expect("written");
+    assert!(first.changed);
+    let actual: Value =
+        serde_json::from_str(&std::fs::read_to_string(&first.path).unwrap()).unwrap();
+    assert_eq!(actual["version"], 1);
+    assert!(
+        actual["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|b| b["kind"] == "package"),
+        "{actual}"
+    );
+    let again: ActualWritten = client
+        .request(methods::ACTUAL_WRITE, &Value::Null)
+        .expect("written");
+    assert!(!again.changed, "the same graph, the same file");
 }
 
 /// PLAN.md 6.5, ADR 0030, on a real daemon: what a session writes is debt until a review; what

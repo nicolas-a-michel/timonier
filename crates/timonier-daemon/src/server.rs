@@ -161,10 +161,12 @@ impl Daemon {
         )
         .map_err(Error::Thread)?;
         let files = Arc::new(AtomicUsize::new(0));
+        let indexed = Arc::new(AtomicBool::new(false));
         let lookups: Arc<[AtomicU32; 2]> = Arc::new([AtomicU32::new(0), AtomicU32::new(0)]);
         let on_event = {
             let views = views.clone();
             let files = Arc::clone(&files);
+            let indexed = Arc::clone(&indexed);
             let lookups = Arc::clone(&lookups);
             move |event: Event| {
                 if let Event::Refined(Ok(Refinement::LookedUp { by_name, .. })) = &event {
@@ -172,6 +174,7 @@ impl Daemon {
                 }
                 if let Event::Indexed(Ok(report)) = &event {
                     files.store(report.index.files, Ordering::SeqCst);
+                    indexed.store(true, Ordering::SeqCst);
                 }
                 if event.changes_graph() {
                     changed.store(true, Ordering::SeqCst);
@@ -199,6 +202,7 @@ impl Daemon {
             views,
             watch: Mutex::new(Some(watch)),
             files,
+            indexed,
             clients: AtomicUsize::new(0),
             idle_since: Mutex::new(Some(Instant::now())),
             shutdown,
@@ -266,6 +270,8 @@ struct Shared {
     views: mpsc::Sender<Command>,
     watch: Mutex<Option<Watch>>,
     files: Arc<AtomicUsize>,
+    /// The first indexing is done.
+    indexed: Arc<AtomicBool>,
     clients: AtomicUsize,
     /// Since when no client is connected.
     idle_since: Mutex<Option<Instant>>,
@@ -351,6 +357,17 @@ async fn watch_tracking(shared: Arc<Shared>, watching: Arc<AtomicBool>) {
     }
 }
 
+/// A tool that could not run because the daemon failed: an `internal` error, with the header.
+fn infrastructure_failure(error: &dyn std::fmt::Display) -> Value {
+    timonier_core::tools::failure(
+        timonier_core::tools::Mailbox::default(),
+        &timonier_core::tracking::Refusal::new(
+            "internal",
+            format!("the daemon failed ({error}): try again, or run `timonier doctor`"),
+        ),
+    )
+}
+
 /// How often `.timonier/` is looked at while a tracking view is open.
 const TRACKING_POLL: Duration = Duration::from_secs(1);
 
@@ -361,7 +378,8 @@ fn tracking_files(dir: &std::path::Path) -> Vec<(std::path::PathBuf, u64, Option
         let (len, modified) = meta.map_or((0, None), |m| (m.len(), m.modified().ok()));
         (path, len, modified)
     };
-    let mut files: Vec<_> = ["plan.json", "todo.json"]
+    // `init.json`: the bridge offers `timonier init` until it is there (Q52).
+    let mut files: Vec<_> = ["plan.json", "todo.json", "init.json"]
         .iter()
         .map(|name| stat(dir.join(name)))
         .collect();
@@ -537,6 +555,8 @@ impl Session {
             methods::TOOLS_LIST => {
                 Ok(serde_json::json!({ "tools": timonier_core::tools::catalogue() }))
             }
+            methods::AGENT_STOP => self.agent_stop().await,
+            methods::ACTUAL_WRITE => self.write_actual().await,
             methods::TOOLS_CALL => match parse::<ToolCallParams>(params) {
                 Ok(params) => self.call_tool(params).await,
                 Err(error) => Err(error),
@@ -660,6 +680,7 @@ impl Session {
                 root: shared.root.clone(),
                 daemon_version: timonier_core::VERSION.to_owned(),
                 files: count(shared.files.load(Ordering::SeqCst)),
+                indexed: shared.indexed.load(Ordering::SeqCst),
                 head,
                 refinements_waiting: count(refinements),
                 refinements_held: count(held),
@@ -702,6 +723,60 @@ impl Session {
 
     /// A tool of the tracking (ADR 0027, 0029), run off the runtime: it reads and writes
     /// `.timonier/`, and a session's start or end waits for a snapshot.
+    /// Why the agent that wants to stop should be held once, if it should (ADR 0033, Q49). A
+    /// tracking file that does not read holds nobody: the tools say what is wrong.
+    async fn agent_stop(&self) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let answered = tokio::task::spawn_blocking(move || {
+            let tracker = crate::tracking::Tracker::new(&shared.root_path);
+            let changed = |from: Option<u64>| -> Result<Vec<String>> {
+                let mut reader = shared.store.reader()?;
+                let head = reader.head()?.seq;
+                crate::tracking::changed_files(&mut reader, from, head)
+            };
+            let reason = tracker.stop_reason(&changed).unwrap_or_else(|refusal| {
+                tracing::warn!(message = %refusal.message, "cannot tell whether to hold the agent");
+                None
+            });
+            timonier_core::protocol::AgentStop { reason }
+        })
+        .await;
+        match answered {
+            Ok(stop) => Ok(serde_json::to_value(stop).unwrap_or(Value::Null)),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
+    /// Writes `.timonier/actual.json` from the head, when it changed (ADR 0033).
+    async fn write_actual(&self) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let written = tokio::task::spawn_blocking(move || -> Result<_> {
+            let mut reader = shared.store.reader()?;
+            let graph = crate::view::load(&mut reader)?;
+            let actual = timonier_core::actual::actual(&graph);
+            let path = shared.root_path.join(".timonier").join("actual.json");
+            let mut text = serde_json::to_string_pretty(&actual).unwrap_or_default();
+            text.push('\n');
+            let changed = std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str());
+            if changed {
+                let _writing = shared.tracking.lock().map_err(|_| Error::Poisoned)?;
+                crate::tracking::Tracker::new(&shared.root_path)
+                    .write("actual.json", &actual)
+                    .map_err(|refusal| Error::Tracking(refusal.message))?;
+            }
+            Ok(timonier_core::protocol::ActualWritten {
+                path: path.display().to_string(),
+                changed,
+            })
+        })
+        .await;
+        match written {
+            Ok(Ok(written)) => Ok(serde_json::to_value(written).unwrap_or(Value::Null)),
+            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
     async fn call_tool(&self, params: ToolCallParams) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
         let agent = self.client.clone();
@@ -744,11 +819,13 @@ impl Session {
         // The panels show what the tool did (ADR 0031); full, the views thread is busy and
         // the watch of `.timonier/` catches up within a second.
         let _ = self.shared.views.try_send(Command::Tracked);
-        match called {
-            Ok(Ok(result)) => Ok(result),
-            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
-            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
-        }
+        // A failure of the daemon itself is a tool error too, with the mailbox header (ADR 0028):
+        // the agent reads the same shape whatever went wrong.
+        Ok(match called {
+            Ok(Ok(result)) => result,
+            Ok(Err(error)) => infrastructure_failure(&error),
+            Err(error) => infrastructure_failure(&error),
+        })
     }
 
     async fn notification(&self, method: &str, params: Value) {
@@ -829,4 +906,20 @@ fn shutting_down() -> ErrorObject {
 /// Whether a daemon answers on the project's socket.
 pub fn is_serving(paths: &Paths) -> bool {
     std::os::unix::net::UnixStream::connect(&paths.socket).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Review n° 1 of Phase 6, m2: the daemon's own failure keeps the mailbox header.
+    #[test]
+    fn a_failure_of_the_daemon_is_a_tool_error_with_the_header() {
+        let result = infrastructure_failure(&Error::Poisoned);
+        assert_eq!(result["isError"], true);
+        assert_eq!(result["structuredContent"]["mailbox"]["unread"], 0);
+        assert_eq!(result["structuredContent"]["error"]["code"], "internal");
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.starts_with("Mailbox: 0 unread.\n"), "{text}");
+    }
 }

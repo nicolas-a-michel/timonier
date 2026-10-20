@@ -87,6 +87,10 @@ export interface TrackingMessages {
   untracked: string;
   /** What a click on a box does. */
   revealHint: string;
+  /** The project is not set up for the agents (Q52). */
+  notConfiguredTitle: string;
+  notConfiguredText: string;
+  configure: string;
 }
 
 export const trackingMessages: Record<Locale, TrackingMessages> = {
@@ -177,6 +181,10 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     lookDebt: (files) => (files === 1 ? "1 file to read again" : `${files} files to read again`),
     untracked: "untracked",
     revealHint: "Shows it on the map",
+    notConfiguredTitle: "This project is not set up for your agents",
+    notConfiguredText:
+      "Timonier writes their instructions, declares its MCP server and their hooks, and opens the plan. A terminal shows each step, and asks what it cannot find out.",
+    configure: "Set up",
   },
   fr: {
     startingTitle: "Démarrage de Timonier",
@@ -265,5 +273,9 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     lookDebt: (files) => (files === 1 ? "1 fichier à relire" : `${files} fichiers à relire`),
     untracked: "non suivi",
     revealHint: "La montre sur la carte",
+    notConfiguredTitle: "Ce projet n'est pas configuré pour vos agents",
+    notConfiguredText:
+      "Timonier écrit leurs instructions, déclare son serveur MCP et leurs hooks, et ouvre le plan. Un terminal montre chaque étape, et demande ce qu'il ne peut pas trouver seul.",
+    configure: "Configurer",
   },
 };

@@ -16,6 +16,7 @@ export const EMPTY_TRACKING: TrackingView = {
   debt: null,
   sessionsSinceReview: 0,
   look: [],
+  configured: false,
 };
 
 function task(id: string, title: string, status: TaskView["status"], extra: Partial<TaskView> = {}): TaskView {
@@ -149,6 +150,7 @@ export const SAMPLE_TRACKING: TrackingView = {
     cycles: [],
     fans: [],
   },
+  configured: true,
   debt: { files: 14, of: 220, untracked: 2 },
   sessionsSinceReview: 2,
   look: [

@@ -6,7 +6,7 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | N°   | Titre                                                                  | Statut  | Phase |
 | ---- | ---------------------------------------------------------------------- | ------- | ----- |
 | 0001 | [Hooks Claude Code écrits en Node.js, sans dépendance](0001-hooks-claude-code-en-node.md) | Accepté | 0 |
-| 0002 | [Format de PLAN.md, lisible par l'humain et par les hooks](0002-format-de-plan-md.md)       | Accepté | 0 |
+| 0002 | [Format de PLAN.md, lisible par l'humain et par les hooks](0002-format-de-plan-md.md)       | Accepté ; remplacé pour les tâches par 0035 | 0 |
 | 0003 | [Découpage des crates, sens des dépendances et alias `tim`](0003-decoupage-des-crates.md) | Accepté | 1 |
 | 0004 | [Toolchain Rust : canal stable, MSRV = plus ancienne version testée](0004-toolchain-rust.md) | Accepté | 1 |
 | 0005 | [Monorepo Node, build de l'extension et chargement de la webview](0005-monorepo-node-et-build-de-l-extension.md) | Accepté | 1 |
@@ -31,9 +31,12 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0024 | [Diff de revue](0024-diff-de-revue.md) | Accepté | 5 |
 | 0025 | [Snapshot de commit : les paquets du commit](0025-paquets-du-commit.md) | Accepté | 5 |
 | 0026 | [Densité de la carte](0026-densite-de-la-carte.md) | Accepté | 5 |
-| 0027 | [Serveur MCP : rmcp sur stdio, mince proxy vers le démon](0027-serveur-mcp.md) | Proposé | 6 |
-| 0028 | [En-tête de boîte aux lettres](0028-en-tete-boite-aux-lettres.md) | Proposé | 6 |
-| 0029 | [Formats du suivi : plan, todo et sessions](0029-formats-du-suivi.md) | Proposé | 6 |
-| 0030 | [Dette de revue](0030-dette-de-revue.md) | Proposé | 6 |
-| 0031 | [Vue du suivi : plan, todo et journal dans l'IDE](0031-vue-du-suivi.md) | Proposé | 6 |
-| 0032 | [Le pont : la vue d'accueil](0032-le-pont.md) | Proposé | 6 |
+| 0027 | [Serveur MCP : rmcp sur stdio, mince proxy vers le démon](0027-serveur-mcp.md) | Accepté | 6 |
+| 0028 | [En-tête de boîte aux lettres](0028-en-tete-boite-aux-lettres.md) | Accepté | 6 |
+| 0029 | [Formats du suivi : plan, todo et sessions](0029-formats-du-suivi.md) | Accepté | 6 |
+| 0030 | [Dette de revue](0030-dette-de-revue.md) | Accepté | 6 |
+| 0031 | [Vue du suivi : plan, todo et journal dans l'IDE](0031-vue-du-suivi.md) | Accepté | 6 |
+| 0032 | [Le pont : la vue d'accueil](0032-le-pont.md) | Accepté | 6 |
+| 0033 | [`timonier init` : détection, blocs délimités, hooks et `actual.json`](0033-timonier-init.md) | Accepté | 6 |
+| 0034 | [Packs de langage, volet init : runners de tests, JUnit XML et conventions](0034-packs-volet-init.md) | Accepté | 6 |
+| 0035 | [Les tâches dans `plan.json` : la bascule](0035-taches-dans-plan-json.md) | Accepté | 6 |

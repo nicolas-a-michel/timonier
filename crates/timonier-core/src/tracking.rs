@@ -959,6 +959,10 @@ mod tests {
             ("todo.schema.json", schemars::schema_for!(Todo)),
             ("session.schema.json", schemars::schema_for!(Session)),
             ("untracked.schema.json", schemars::schema_for!(Untracked)),
+            (
+                "actual.schema.json",
+                schemars::schema_for!(crate::actual::Actual),
+            ),
         ];
         let update = std::env::var_os("TIMONIER_UPDATE_TOOLS").is_some();
         for (name, schema) in schemas {

@@ -82,3 +82,69 @@ fn from_summary(files: u32, summary: ReviewSummary) -> SessionChanges {
         unlinked: links(summary.dependencies_removed),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use timonier_core::{Node, NodeId, NodeKind, SnapshotKind};
+
+    fn id(s: &str) -> NodeId {
+        NodeId::parse(s).unwrap()
+    }
+
+    fn node(i: &str, kind: NodeKind, parent: Option<&str>) -> Node {
+        let mut node = Node::new(id(i), kind, i.rsplit(['/', ':']).next().unwrap());
+        if let Some(parent) = parent {
+            node = node.with_parent(id(parent));
+        }
+        node
+    }
+
+    fn hash(byte: u8) -> ContentHash {
+        ContentHash::from_bytes([byte; 32])
+    }
+
+    /// Review n° 2 of Phase 6: the journal's changes are the review diff between the session's
+    /// start and now, the boxes named as the summary names them.
+    #[test]
+    fn a_session_s_changes_name_the_boxes_it_touched() {
+        let before = vec![
+            node("repo:r", NodeKind::Repo, None),
+            node("pkg:cargo/a", NodeKind::Package, Some("repo:r")),
+            node("file:a/x.rs", NodeKind::File, Some("pkg:cargo/a")),
+            node("pkg:cargo/b", NodeKind::Package, Some("repo:r")),
+            node("file:b/y.rs", NodeKind::File, Some("pkg:cargo/b")),
+        ];
+        let started = Started {
+            snapshot: Snapshot {
+                seq: 3,
+                commit_sha: None,
+                timestamp_ms: 0,
+                kind: SnapshotKind::WorkingTree,
+                frozen: true,
+            },
+            graph: Graph::new(before.clone(), Vec::new()),
+            contents: [("file:a/x.rs", hash(1)), ("file:b/y.rs", hash(2))]
+                .map(|(k, v)| (k.to_owned(), v))
+                .into(),
+        };
+        // a/x.rs changed; b untouched.
+        let now = Graph::new(before, Vec::new());
+        let contents: HashMap<String, ContentHash> =
+            [("file:a/x.rs", hash(9)), ("file:b/y.rs", hash(2))]
+                .map(|(k, v)| (k.to_owned(), v))
+                .into();
+        let changes = changes(&started, &now, &contents);
+        assert_eq!(changes.files, 1);
+        let modified: Vec<&str> = changes.modified.iter().map(|b| b.id.as_str()).collect();
+        assert_eq!(modified, ["pkg:cargo/a"]);
+        assert!(changes.added.is_empty() && changes.removed.is_empty());
+        // Nothing changed: nothing to say.
+        let same = changes_of(&started);
+        assert!(same.is_empty(), "{same:?}");
+    }
+
+    fn changes_of(started: &Started) -> SessionChanges {
+        changes(started, &started.graph, &started.contents)
+    }
+}

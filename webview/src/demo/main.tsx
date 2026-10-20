@@ -66,7 +66,8 @@ void applyTheme(theme).then(async (names) => {
         ? views[`../../test/views/${map}/open.json`]
         : undefined;
   // `?tracking=plan|todo|sessions`: a panel of the tracking, in the side bar (ADR 0031);
-  // `&empty=1`, before anything is tracked; `&problem=1`, with a file that does not read.
+  // `&empty=1`, before anything is tracked; `&problem=1`, with a file that does not read;
+  // `&unset=1`, a project not set up yet (Q52).
   const panel = params.get("tracking");
   if (panel) {
     await import("../tracking/tracking.css");
@@ -84,9 +85,14 @@ void applyTheme(theme).then(async (names) => {
           <TrackingPanel
             locale={locale}
             panel={panelOf(panel)}
-            tracking={{ ...tracking, problems }}
+            tracking={{ ...tracking, problems, ...(params.get("unset") === "1" ? { configured: false } : {}) }}
             daemon={{ state: "connected", detail: null }}
-            actions={{ onReveal: () => undefined, onOpenMap: () => undefined, onMarkReviewed: () => undefined }}
+            actions={{
+              onReveal: () => undefined,
+              onOpenMap: () => undefined,
+              onMarkReviewed: () => undefined,
+              onConfigure: () => undefined,
+            }}
           />
         </div>
       </StrictMode>,

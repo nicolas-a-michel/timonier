@@ -23,5 +23,6 @@
   "command.markReviewed.title": "Marquer comme revu",
   "container.journal.title": "Timonier",
   "view.tracking.name": "Plan, todo et sessions",
-  "command.whereToLook.title": "Où regarder : montrer sur la carte une boîte à relire"
+  "command.whereToLook.title": "Où regarder : montrer sur la carte une boîte à relire",
+  "command.configure.title": "Configurer le projet pour vos agents"
 }

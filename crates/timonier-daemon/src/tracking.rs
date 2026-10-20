@@ -259,6 +259,55 @@ impl Tracker {
         Ok((session, stamp))
     }
 
+    /// Why an agent that wants to stop should be held once (ADR 0033, Q49): an open session whose
+    /// todo is empty or not done, or code changed since the last session with none open.
+    /// `changed` gives the files changed since a snapshot (the first when `None`) to the head.
+    pub fn stop_reason(
+        &self,
+        changed: &dyn Fn(Option<u64>) -> crate::Result<Vec<String>>,
+    ) -> Outcome<Option<String>> {
+        if let Some(session) = self.open_session()? {
+            let todo = self.todo()?;
+            let open = todo
+                .items
+                .iter()
+                .filter(|i| i.status == timonier_core::tracking::TodoStatus::Open)
+                .count();
+            return Ok(if todo.items.is_empty() {
+                Some(format!(
+                    "Timonier session {} is open and its todo is empty: split the work with \
+                     todo_add and complete it with todo_complete, or call session_end with a \
+                     summary if the work is done.",
+                    session.id
+                ))
+            } else if open > 0 {
+                Some(format!(
+                    "Timonier session {} has {open} todo item(s) not done: complete them with \
+                     todo_complete, or call session_end with a summary that says what is left.",
+                    session.id
+                ))
+            } else {
+                None
+            });
+        }
+        let files = changed(self.last_end()?).map_err(internal)?;
+        if files.is_empty() {
+            return Ok(None);
+        }
+        let shown: Vec<&str> = files.iter().take(5).map(String::as_str).collect();
+        let more = files.len().saturating_sub(shown.len());
+        Ok(Some(format!(
+            "Code changed with no Timonier session open ({}{}): call session_start with the \
+             objective of this work, then session_end with a summary.",
+            shown.join(", "),
+            if more > 0 {
+                format!(" and {more} more")
+            } else {
+                String::new()
+            }
+        )))
+    }
+
     /// The open session: the one the todo belongs to, if its file says it is open.
     pub fn open_session(&self) -> Outcome<Option<Session>> {
         let Some(id) = self.todo()?.session else {
@@ -390,7 +439,7 @@ impl Tracker {
     }
 
     /// A whole file at once: a temporary file beside it, then a rename.
-    fn write<T: Serialize>(&self, name: &str, value: &T) -> Outcome<()> {
+    pub(crate) fn write<T: Serialize>(&self, name: &str, value: &T) -> Outcome<()> {
         let path = self.dir.join(name);
         let folder = path.parent().unwrap_or(&self.dir);
         std::fs::create_dir_all(folder).map_err(|e| io_refusal(&path, &e))?;

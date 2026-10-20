@@ -15,7 +15,9 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 - **The human's answers recorded in `PLAN.md`** (« Questions ouvertes », marked ✅) override the spec on the points
   they cover. Example: Q3 rules out tldraw, although the spec names it. Do not edit `docs/spec.md`: it is the human's
   document.
-- **[PLAN.md](PLAN.md)**: phases, tasks with acceptance criteria, progress, open questions (Q…), working
+- **`.timonier/plan.json`**: since the switch (ADR 0035, Q11), the milestones (one per phase) and the tasks with
+  their state, kept only through Timonier's MCP tools and shown in the IDE. Never edit it by hand.
+- **[PLAN.md](PLAN.md)**: phases, each task's acceptance criterion and detail (no state), open questions (Q…), working
   assumptions (H…), verified dependency versions. The SessionStart hook shows the current phase.
 - **[docs/adr/](docs/adr/README.md)**: every technical decision not covered by the spec.
 
@@ -25,12 +27,13 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | ---------------------------- | ---------------------------------------------------------------- | -------- |
 | `docs/spec.md`               | Product specification (French)                                   | exists   |
 | `docs/adr/`                  | Architecture decision records (French), index in `README.md`     | exists   |
-| `PLAN.md`                    | Plan and progress (French)                                       | exists   |
+| `PLAN.md`                    | Plan and progress (French); task states are in `.timonier/plan.json` | exists   |
+| `AGENTS.md`, `.mcp.json`, `.timonier/` | Timonier's own setup by `timonier init` (ADR 0033): the agents' managed block, the MCP server, the tracking (plan, todo, sessions), conventions | exists |
 | `.claude/settings.json`      | Project hooks and permission rules (shared)                      | exists   |
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4; in-memory graph and review diff since Phase 5; tracking formats and the MCP tool catalogue since Phase 6, snapshot in `tests/tools.json`) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`, `examples/commit_bench.rs`; `examples/support/synthetic.rs` writes the benches' synthetic workspaces); the daemon also runs the MCP tools and writes `.timonier/` (`tracking.rs`, ADR 0027 to 0029); `mcp` is the stdio proxy (rmcp); `cli` has `timonier daemon start|stop|status|run` and `timonier mcp`; `otlp` is a skeleton | in progress |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4; in-memory graph and review diff since Phase 5; tracking formats and the MCP tool catalogue since Phase 6, snapshot in `tests/tools.json`) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`, `examples/commit_bench.rs`; `examples/support/synthetic.rs` writes the benches' synthetic workspaces); the daemon also runs the MCP tools and writes `.timonier/` (`tracking.rs`, ADR 0027 to 0029); `mcp` is the stdio proxy (rmcp); `cli` has `timonier daemon start|stop|status|run`, `timonier mcp`, `timonier init|uninit|doctor` and `timonier hook stop|pre-commit` (`src/init/`, ADR 0033, 0034; the packs' `[[tests.runners]]` and `conventions/*.md`); `otlp` is a skeleton | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
@@ -82,6 +85,11 @@ TIMONIER_UPDATE_TOOLS=1 cargo test -p timonier-core
 # MCP server for an agent, in a project (starts the daemon if needed)
 cargo run --bin tim -- mcp [--root DIR]
 
+# Set a project up for its agents (ADR 0033), and take it back; never on a real home in tests
+cargo run --bin tim -- init [--dry-run] [--yes] [--agents claude,copilot,cursor,codex] [--root DIR]
+cargo run --bin tim -- uninit [--dry-run] [--purge [--yes]] [--root DIR]   # keeps the tracking unless --purge (Q54)
+cargo run --bin tim -- doctor [--fix | --check] [--root DIR]
+
 # Indexing timings on a repository (default: this one, copied to a temp dir), and its graph
 cargo run --release -p timonier-daemon --example index_bench [repository] [saves]
 cargo run --release -p timonier-daemon --example index_dump [repository]
@@ -90,10 +98,14 @@ cargo test --release -p timonier-daemon --test compaction -- --ignored   # load 
 
 ## Working rules
 
-1. **Plan first.** Work follows `PLAN.md`. A task is done when its acceptance criterion is verified.
+1. **Plan first.** Work follows the plan: `.timonier/plan.json` for the tasks and their state, `PLAN.md` for their
+   criteria and detail. A task is done when its acceptance criterion is verified. Work through Timonier's MCP tools
+   (the managed block of `AGENTS.md`): one session per task (`session_start` … `session_end`), its todo, and
+   `plan_update_task` when a task changes state.
 2. **One phase at a time.** At the end of a phase:
    - tests are green;
-   - `PLAN.md` is updated (tasks ticked, `Écarts :` and `Décisions :` filled);
+   - the tasks are `done` in `plan.json` (`plan_update_task`), and `PLAN.md` is updated (`Écarts :` and
+     `Décisions :` filled, each task's detail);
    - the `phase-reviewer` subagent has reviewed the phase;
    - you have written a short summary: done, decided, remaining.
 
@@ -142,7 +154,7 @@ Configured in `.claude/settings.json`. Scripts are in `.claude/hooks/`, document
 
 | Event              | Script                | Behaviour                                                                                         |
 | ------------------ | --------------------- | ------------------------------------------------------------------------------------------------- |
-| `SessionStart`     | `session-start.mjs`   | One line for the human (current phase, tasks done/remaining); the remaining tasks for Claude.     |
+| `SessionStart`     | `session-start.mjs`   | One line for the human (current milestone of `.timonier/plan.json`, tasks done/remaining; `PLAN.md`'s phase without it); the remaining tasks for Claude. |
 | `UserPromptSubmit` | `turn-start.mjs`      | Records when the turn started. Prompts injected mid-turn do not move it.                          |
 | `PreToolUse`       | `protect-intent.mjs`  | Denies `Edit`/`Write`/`NotebookEdit` on `.timonier/intent.json`, and Bash commands that would write it (best effort). Fails closed. |
 | `PostToolUse`      | `format-file.mjs`     | Formats the touched file: `rustfmt` for `.rs`; `prettier` from `node_modules` for every type the CI checks (TS/JS, JSON, CSS, HTML, YAML; Markdown is in `.prettierignore`). Skipped if `npm ci` has not run. |
@@ -183,6 +195,11 @@ shows hook input and output.
 
 ## Resuming work
 
-1. Read the SessionStart line, then the current phase section of `PLAN.md`, its open questions and its assumptions.
+1. Read the SessionStart line, then the current phase section of `PLAN.md`, its open questions and its assumptions;
+   `get_plan` gives the tasks' state.
 2. Read the ADRs that the phase references, and the skills for the area you are about to touch.
 3. If the phase is finished but not validated, do not start the next one: summarise and wait for the human.
+
+<!-- timonier:begin -->
+@AGENTS.md
+<!-- timonier:end -->

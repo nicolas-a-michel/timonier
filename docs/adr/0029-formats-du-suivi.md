@@ -1,6 +1,6 @@
 # 0029 — Formats du suivi : plan, todo et sessions
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Pilotage », « Stockage » (`.timonier/`) ; Q10, Q11 ; H7 ; ADR 0010 (snapshots),

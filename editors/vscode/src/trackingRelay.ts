@@ -20,6 +20,7 @@ type Post = (message: HostMessage) => Thenable<boolean>;
 export class TrackingRelay {
   private readonly disposables: { dispose(): unknown }[] = [];
   private readonly pages = new Set<Post>();
+  private readonly watchers = new Set<(tracking: TrackingSnapshot) => void>();
   private readonly shownBy = new Map<string, number>();
   private latest: TrackingSnapshot | undefined;
   private connection: MessageConnection | undefined;
@@ -50,6 +51,18 @@ export class TrackingRelay {
     return this.shownBy.get(panel);
   }
 
+  /** `listener` gets the tracking now, if known, then at each change; the subscription is made
+   * if it was not. For what shows outside the pages (the badge of the bridge). */
+  watch(listener: (tracking: TrackingSnapshot) => void): { dispose(): void } {
+    this.watchers.add(listener);
+    if (this.latest) listener(this.latest);
+    if (!this.wanted) {
+      this.wanted = true;
+      void this.serial(() => this.subscribe(this.daemon.client));
+    }
+    return { dispose: () => this.watchers.delete(listener) };
+  }
+
   /** A page that said `ready`: it gets the daemon's state and the tracking, then each change. */
   attach(post: Post): { dispose(): void } {
     this.pages.add(post);
@@ -72,6 +85,7 @@ export class TrackingRelay {
   dispose(): Promise<void> {
     for (const disposable of this.disposables) disposable.dispose();
     this.pages.clear();
+    this.watchers.clear();
     return this.serial(async () => {
       const { connection, latest } = this;
       this.wanted = false;
@@ -99,6 +113,7 @@ export class TrackingRelay {
     this.connection = connection;
     this.latest = snapshot;
     this.broadcast(trackingMessage(snapshot));
+    for (const watcher of this.watchers) watcher(snapshot);
   }
 
   private receiveUpdate(update: TrackingSnapshot): void {
@@ -108,6 +123,7 @@ export class TrackingRelay {
     if (update.subscription !== latest.subscription || update.revision <= latest.revision) return;
     this.latest = update;
     this.broadcast(trackingMessage(update));
+    for (const watcher of this.watchers) watcher(update);
   }
 
   private broadcast(message: HostMessage): void {

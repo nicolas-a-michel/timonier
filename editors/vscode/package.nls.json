@@ -23,5 +23,6 @@
   "command.markReviewed.title": "Mark as Reviewed",
   "container.journal.title": "Timonier",
   "view.tracking.name": "Plan, todo and sessions",
-  "command.whereToLook.title": "Where to look: show a box to read again on the map"
+  "command.whereToLook.title": "Where to look: show a box to read again on the map",
+  "command.configure.title": "Set the project up for your agents"
 }

@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { backoff, DAEMON_PATH_VARIABLE, daemonProgram, parseAnnounce } from "../../launch";
+import { backoff, DAEMON_PATH_VARIABLE, daemonProgram, initCommand, parseAnnounce } from "../../launch";
 import { isWebviewMessage } from "../../messages";
 
 describe("daemon launch", () => {
@@ -46,6 +46,7 @@ describe("webview messages", () => {
       { type: "trackingShown", panel: "bridge", revision: 0 },
       { type: "reveal", target: "pkg:cargo/a", path: [] },
       { type: "openMap" },
+      { type: "configure" },
     ];
     for (const message of valid) assert.equal(isWebviewMessage(message), true, JSON.stringify(message));
     const invalid: unknown[] = [
@@ -73,5 +74,12 @@ describe("webview messages", () => {
       },
     ];
     for (const message of invalid) assert.equal(isWebviewMessage(message), false, JSON.stringify(message));
+  });
+});
+
+describe("the setup terminal (Q53)", () => {
+  it("runs init with the program quoted for the shell", () => {
+    assert.equal(initCommand("timonier"), "'timonier' init");
+    assert.equal(initCommand("/opt/my tools/it's/timonier"), "'/opt/my tools/it'\\''s/timonier' init");
   });
 });

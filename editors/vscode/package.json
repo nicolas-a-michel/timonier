@@ -3,7 +3,7 @@
   "displayName": "Timonier",
   "description": "%extension.description%",
   "version": "0.1.0",
-  "publisher": "nicolas-a-michel",
+  "publisher": "NicolasMichel",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -145,6 +145,11 @@
       {
         "command": "timonier.whereToLook",
         "title": "%command.whereToLook.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.configure",
+        "title": "%command.configure.title%",
         "category": "Timonier"
       }
     ],

@@ -96,6 +96,8 @@ const PHASE_RE = /^##\s+Phase\s+(\d+)\s*[—–-]\s*(.+?)\s*$/;
 const STATUS_RE = /^Statut\s*:\s*(.+?)\s*$/i;
 // Only top-level checkboxes are tasks; indented lines are details.
 const TASK_RE = /^-\s+\[([ xX])\]\s+(.+?)\s*$/;
+// After the switch (ADR 0035): a task without its box, `- N.k Title`; its state is in plan.json.
+const PLAIN_TASK_RE = /^-\s+(\d+\.\d+\s.+?)\s*$/;
 const DONE_STATUS_RE = /termin|valid/i;
 const ACTIVE_STATUS_RE = /en cours/i;
 
@@ -135,6 +137,12 @@ export function parsePlan(markdown) {
     const task = TASK_RE.exec(line);
     if (task) {
       lastTask = { done: task[1] !== " ", text: task[2] };
+      current.tasks.push(lastTask);
+      continue;
+    }
+    const plain = PLAIN_TASK_RE.exec(line);
+    if (plain) {
+      lastTask = { done: false, text: plain[1] };
       current.tasks.push(lastTask);
     }
   }

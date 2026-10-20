@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 
 import type { TimonierApi } from "../../extension";
 
-const EXTENSION_ID = "nicolas-a-michel.timonier";
+const EXTENSION_ID = "NicolasMichel.timonier";
 
 async function api(): Promise<TimonierApi> {
   const extension = vscode.extensions.getExtension<TimonierApi>(EXTENSION_ID);

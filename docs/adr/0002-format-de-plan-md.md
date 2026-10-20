@@ -1,6 +1,6 @@
 # 0002 — Format de PLAN.md, lisible par l'humain et par les hooks
 
-- Statut : Accepté (2026-10-14, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-14, validation de la phase par l'humain) ; remplacé pour les tâches par 0035
 - Date : 2026-10-14
 - Phase : 0
 - Liens : ADR 0001 ; règles de travail 1 et 2 du prompt de démarrage

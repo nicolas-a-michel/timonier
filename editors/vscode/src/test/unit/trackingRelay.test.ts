@@ -27,6 +27,7 @@ const EMPTY: TrackingView = {
   debt: null,
   sessionsSinceReview: 0,
   look: [],
+  configured: false,
 };
 
 function update(subscription: number, revision: number, open: string | null = null): TrackingSnapshot {
@@ -154,6 +155,20 @@ describe("the tracking relay", () => {
     await settle();
     await relay.dispose();
     assert.deepEqual(daemon.fake.requests.at(-1), { method: METHODS.UNSUBSCRIBE, params: { subscription: 5 } });
+  });
+
+  it("tells its watchers each state, subscribing for them too", async () => {
+    const daemon = new FakeDaemon(new FakeConnection(1));
+    const relay = new TrackingRelay(daemon, quiet);
+    const seen: number[] = [];
+    relay.watch((snapshot) => seen.push(snapshot.revision));
+    await settle();
+    assert.deepEqual(seen, [0], "subscribed without any page");
+    daemon.updates.fire(update(1, 1));
+    assert.deepEqual(seen, [0, 1]);
+    const late: number[] = [];
+    relay.watch((snapshot) => late.push(snapshot.revision));
+    assert.deepEqual(late, [1], "what came last, at once");
   });
 
   it("waits without a daemon: the pages hear why", () => {

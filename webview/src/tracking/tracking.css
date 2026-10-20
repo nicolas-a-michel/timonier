@@ -492,3 +492,21 @@ details[open] > summary > .tim-chevron {
   color: var(--tim-color-muted);
   font-size: var(--tim-font-size-small);
 }
+
+/* The offer to set the project up (Q52): framed, calm; the button says what to do. */
+.tim-bridge__setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius-large);
+}
+
+.tim-bridge__setup p {
+  margin: 0;
+}
+
+.tim-bridge__setup-title {
+  font-weight: var(--tim-font-weight-strong);
+}

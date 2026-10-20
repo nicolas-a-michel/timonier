@@ -1,6 +1,6 @@
 # 0032 — Le pont : la vue d'accueil
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Expérience et design » (le pont) ; H5 ; Q45, Q46, Q47 ; ADR 0024 (diff de
@@ -36,6 +36,10 @@ Chaque boîte porte son chemin depuis le haut de la carte (ses ancêtres, sans l
 groupe de rôle du haut du chemin, déplie les boîtes du chemin (un abonnement de plus au démon),
 puis, une fois la mise en page faite, centre la boîte et la sélectionne. La page du pont envoie
 `reveal` à l'extension, qui ouvre ou montre la carte et lui passe la commande.
+
+**« Plan »** : le jalon où est le travail, selon la règle de l'ADR 0035 (celui d'une tâche en
+cours, sinon le dernier atteint s'il n'est pas fini, sinon le suivant), son avancement, ses
+tâches en cours et bloquées, et la session ouverte.
 
 **Interface** (Q47) : la vue d'ensemble (`timonier.home`) devient une vue webview, servie par la
 page du suivi (`tracking.html`, partie `bridge`) et le même relais. Elle garde le bouton

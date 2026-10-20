@@ -58,6 +58,13 @@ pub fn run(action: Action) -> ExitCode {
     }
 }
 
+impl Target {
+    /// The project at `root`, or found from the current directory.
+    pub fn new(root: Option<PathBuf>) -> Self {
+        Self { root }
+    }
+}
+
 pub fn resolve(target: &Target) -> Result<Paths> {
     let root = match &target.root {
         Some(root) => root.clone(),
@@ -79,9 +86,15 @@ fn project_root(here: &Path) -> PathBuf {
 
 /// A client of the daemon, if one answers.
 fn connect(paths: &Paths) -> Option<Client> {
+    connect_as(paths, CLIENT)
+}
+
+/// A client of the daemon that names itself `name` (the agent of the sessions it opens), if
+/// one answers.
+pub fn connect_as(paths: &Paths, name: &str) -> Option<Client> {
     let mut client = Client::connect(&paths.socket).ok()?;
-    client.set_timeout(Duration::from_secs(5));
-    client.initialize(CLIENT).ok()?;
+    client.set_timeout(Duration::from_secs(30));
+    client.initialize(name).ok()?;
     Some(client)
 }
 
@@ -158,7 +171,7 @@ pub fn launch(paths: &Paths) -> Result<Launched> {
     )
 }
 
-fn stop(paths: &Paths) -> Result<ExitCode> {
+pub fn stop(paths: &Paths) -> Result<ExitCode> {
     let Some(mut client) = connect(paths) else {
         println!("No Timonier daemon runs for {}.", paths.root.display());
         return Ok(ExitCode::SUCCESS);

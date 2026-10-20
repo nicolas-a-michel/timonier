@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-4",
+  "agent": "mcp-client",
+  "objective": "Accepter les ADR 0027 à 0035 (6.1), noter les réponses sur la publication, commiter et pousser la Phase 6",
+  "tasks": [
+    "T-71",
+    "T-109"
+  ],
+  "status": "open",
+  "started_at": "2026-10-20T13:11:37Z",
+  "snapshots": {
+    "start": 8
+  }
+}

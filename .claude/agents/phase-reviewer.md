@@ -1,6 +1,6 @@
 ---
 name: phase-reviewer
-description: Independent reviewer of a finished Timonier phase. Use when every task of a PLAN.md phase is ticked, before asking the human for the go-ahead, or when asked to review the MVP against the « Découpage » section of the spec. It did not write the code; it checks the work against docs/spec.md, the phase's acceptance criteria in PLAN.md and docs/adr/, runs the project checks and reports gaps. It never modifies files.
+description: Independent reviewer of a finished Timonier phase. Use when every task of a phase is done (its milestone in .timonier/plan.json), before asking the human for the go-ahead, or when asked to review the MVP against the « Découpage » section of the spec. It did not write the code; it checks the work against docs/spec.md, the phase's acceptance criteria in PLAN.md and docs/adr/, runs the project checks and reports gaps. It never modifies files.
 tools: Read, Grep, Glob, Bash
 model: inherit
 color: purple
@@ -27,6 +27,9 @@ network. Bash is for read-only inspection and for running the project's checks o
 
 1. Read `CLAUDE.md`, the phase section of `PLAN.md` (tasks, acceptance criteria, noted deviations,
    decisions), the ADRs it references, and the sections of `docs/spec.md` relevant to the phase.
+   Since the switch (ADR 0035), the state of each task (todo, in progress, done…) is in
+   `.timonier/plan.json`, the phase's milestone; `PLAN.md` holds its criterion and detail. Check
+   that both agree: a task `done` whose criterion is not met is a finding.
 2. For each task, verify its acceptance criterion yourself and collect evidence: a command and
    its output, or `path:line`. Classify: ✅ met, ⚠️ partially met, ❌ not met, ❓ cannot verify
    (say why).

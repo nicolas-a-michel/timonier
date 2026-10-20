@@ -14,6 +14,8 @@ export interface BridgeActions {
   onReveal: (target: string, path: string[]) => void;
   onOpenMap: () => void;
   onMarkReviewed: () => void;
+  /** `timonier init`, in a terminal (Q52, Q53). */
+  onConfigure: () => void;
 }
 
 interface BridgeProps {
@@ -26,6 +28,19 @@ interface BridgeProps {
 export function Bridge({ t, locale, tracking, actions }: BridgeProps) {
   return (
     <section aria-label={t.bridgeLabel} className="tim-bridge">
+      {!tracking.configured && (
+        <div className="tim-bridge__setup" role="note">
+          <p className="tim-bridge__setup-title">{t.notConfiguredTitle}</p>
+          <p className="tim-tracking__quiet">{t.notConfiguredText}</p>
+          {actions && (
+            <div className="tim-bridge__actions">
+              <button type="button" className="tim-button tim-button--primary" onClick={actions.onConfigure}>
+                {t.configure}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <PlanStatus t={t} tracking={tracking} />
       <SinceReview t={t} locale={locale} tracking={tracking} actions={actions} />
       <WhereToLook t={t} items={tracking.look} actions={actions} />
@@ -33,9 +48,25 @@ export function Bridge({ t, locale, tracking, actions }: BridgeProps) {
   );
 }
 
-/** The milestone under way: the first not done, else the last. */
+/**
+ * The milestone where the work is (review n° 2 of Phase 6): the one with a task in progress;
+ * else the last one with a task done, unless it is finished, then the next one not finished; else
+ * the first not finished. A task left over in an old milestone does not bring it back.
+ */
 export function currentMilestone(milestones: MilestoneView[]): MilestoneView | undefined {
-  return milestones.find((m) => m.of === 0 || m.done < m.of) ?? milestones.at(-1);
+  // As the hook counts (.claude/hooks/session-start.mjs): a milestone whose tasks are all done or
+  // dropped is finished.
+  const unfinished = (m: MilestoneView) => m.done < m.of;
+  const underway = milestones.find((m) => m.tasks.some((t) => t.status === "inProgress"));
+  if (underway) return underway;
+  const last = milestones.findLastIndex((m) => m.done > 0);
+  if (last >= 0) {
+    const reached = milestones[last];
+    if (reached && unfinished(reached)) return reached;
+    const next = milestones.slice(last + 1).find(unfinished);
+    if (next) return next;
+  }
+  return milestones.find(unfinished) ?? milestones.at(-1);
 }
 
 function PlanStatus({ t, tracking }: { t: TrackingMessages; tracking: TrackingView }) {

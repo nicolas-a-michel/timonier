@@ -4,13 +4,18 @@ Plan de réalisation du MVP défini dans [docs/spec.md](docs/spec.md) (section �
 selon les phases du prompt de démarrage. La spec fait autorité. Les décisions techniques non
 couvertes par la spec sont dans [docs/adr/](docs/adr/README.md).
 
-Format (voir [ADR 0002](docs/adr/0002-format-de-plan-md.md)) :
+Format (voir [ADR 0002](docs/adr/0002-format-de-plan-md.md) et
+[ADR 0035](docs/adr/0035-taches-dans-plan-json.md)) :
 
 - une section `## Phase N — Titre` par phase, avec une ligne `Statut : à faire | en cours | terminée` ;
-- une case de premier niveau par tâche, avec son critère d'acceptation ;
+- une puce par tâche, `N.k Titre — critère : …`, et son détail en dessous ;
 - en fin de phase, une ligne `Décisions :` et une ligne `Écarts :`.
 
-Le hook de démarrage de session lit ce format.
+**Depuis la bascule (2026-10-20, 6.13, Q11), l'état des tâches n'est plus ici** : chaque phase
+est un jalon de `.timonier/plan.json`, chaque tâche une tâche, tenues par les outils MCP de
+Timonier et montrées dans la vue « Plan, todo et sessions ». Ce fichier garde leur critère et
+leur détail, les questions, les hypothèses, les décisions, les mesures et les relectures. Le
+hook de démarrage de session lit `plan.json`.
 
 ---
 
@@ -125,12 +130,11 @@ dans le panneau. `PLAN.md` garde ce qui est pour toi : questions, hypothèses, d
 mesures, journal des relectures. Le hook de début de session lira `plan.json` (à la bascule,
 6.13).
 
-**Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication) — ⏸
-reportée le 2026-10-16 (« la Q12 attendra »). `nicolas-a-michel` reste provisoire.
-- Le paquet utilise `publisher: nicolas-a-michel`, qui n'existe pas encore sur la
-  Marketplace. Cet identifiant doit être créé par toi sur marketplace.visualstudio.com.
-- Il ne bloque que la publication, pas le développement.
-- À trancher : garder `nicolas-a-michel`, ou en choisir un autre (par exemple `timonier`).
+**Q12 — Identifiant d'éditeur sur la Marketplace VSCode** (avant toute publication) — ✅
+répondu le 2026-10-20 : **`NicolasMichel`**, créé par toi sur la Marketplace. Le paquet porte
+`publisher: NicolasMichel`, et l'identifiant de l'extension devient `NicolasMichel.timonier`
+(tests d'intégration compris). Reporté jusque-là (2026-10-16), avec `nicolas-a-michel`
+provisoire.
 
 **Q13 — Langue de l'interface** — ✅ répondu le 2026-10-16 : **bilingue** (anglais de base,
 traduction française) pour l'instant ; d'autres langues seront ajoutées plus tard. ADR 0006
@@ -235,6 +239,59 @@ l'as laissée quand le code change.
 - Autre option pour le premier point : un fichier `.timonier/layout.json` dans le dépôt,
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
+
+**Q59 — Quand publier l'extension** (2026-10-20) — ✅ répondu le 2026-10-20 : **à la fin du
+MVP (Phase 9)**. Jusque-là, F5 et le `.vsix` local ; une tâche de la Phase 9 la porte.
+
+**Q58 — Comment l'utilisateur obtient `timonier`** (2026-10-20) — ✅ répondu le 2026-10-20 :
+**un `.vsix` par plateforme**. Chaque paquet (linux-x64, linux-arm64, darwin-x64, darwin-arm64)
+embarque le binaire construit par la CI ; rien à installer à part. Les agents et les hooks le
+trouvent par un chemin que l'extension expose, ou par une commande qui l'installe dans le
+`PATH` (à fixer par ADR en Phase 9).
+
+**Q57 — Le tableau blanc vide à l'initialisation** (relecture n° 2 de la Phase 6) — ✅ répondu
+le 2026-10-20 : **rien avant la Phase 7**. `timonier init` ne crée pas `intent.json` tant que son
+format n'existe pas (7.0) ; la Phase 7 ajoutera la création du tableau vide à `init`.
+
+**Q56 — Un commentaire seul** (relecture n° 1 de la Phase 6, m1) — ✅ répondu le 2026-10-20 :
+**la structure seule**. Seul ce qui change le graphe (un nœud, une arête) compte comme non suivi
+et en dette de revue ; un commentaire ou une mise en forme, non (ADR 0029, 0030).
+
+**Q55 — « Configuré »** (relecture n° 1 de la Phase 6, M3) — ✅ répondu le 2026-10-20 :
+**`init.json`**. Un projet est configuré quand `timonier init` est passé (`.timonier/init.json`) ;
+un `plan.json` écrit par un agent sans `init` ne suffit pas, il manquerait le bloc géré et les
+hooks. Précise Q18.
+
+**Q54 — Ce que `uninit` fait du suivi** (relecture n° 1 de la Phase 6, M2) — ✅ répondu le
+2026-10-20 : **le garder, et le dire**. `uninit` retire la configuration (blocs, serveur MCP,
+hooks, conventions, `init.json`…) mais garde `plan.json`, `todo.json`, `sessions/` et
+`intent.json`, qui appartiennent au projet ; `--purge` les efface aussi, après confirmation au
+terminal. L'arbre identique reste vrai quand rien n'a été suivi après `init`.
+
+**Q53 — Comment VSCode lance `init`** (Phase 6, 6.12) — ✅ répondu le 2026-10-20 : **dans un
+terminal VSCode**. Le bouton « Configurer » ouvre un terminal intégré qui lance
+`timonier init` : la détection, les questions (Q51) et ce qui est fait sont visibles.
+
+**Q52 — Proposer de configurer un dépôt** (Phase 6, 6.12) — ✅ répondu le 2026-10-20 : **dans le
+pont, avec un badge**. Pas de pop-up : le pont dit en haut « Ce projet n'est pas configuré pour
+vos agents » avec un bouton « Configurer », l'icône Timonier porte un badge tant que ce n'est pas
+fait, et une commande de palette « Timonier : Configurer le projet ».
+
+**Q51 — Les questions de `timonier init`** (Phase 6, 6.8) — ✅ répondu le 2026-10-20 : **au
+terminal, avec des options**. Ce que la détection ne tranche pas est demandé au terminal ; chaque
+réponse a son option (`--agents`, `--yes`…) pour les scripts et l'extension VSCode (6.12).
+
+**Q50 — Quand écrire `actual.json`** (Phase 6, 6.8) — ✅ répondu le 2026-10-20 : **un hook
+pre-commit**. Avant le commit, les boîtes et dépendances de la tête sont écrites et ajoutées au
+commit. Limite admise : il reflète l'arbre de travail, pas exactement l'index.
+
+**Q49 — Le hook d'arrêt de l'agent** (Phase 6, 6.8) — ✅ répondu le 2026-10-20 : **bloquer une
+fois, avec la raison**. Session ouverte dont la todo est vide ou a des éléments non cochés :
+« mets la todo à jour ou appelle session_end ». Du code changé sans session : « ouvre une
+session ». Une seule fois par arrêt : l'agent n'est jamais coincé.
+
+**Q48 — Les agents que configure `timonier init`** (Phase 6, 6.8) — ✅ répondu le 2026-10-20 :
+**Claude Code, Copilot, Cursor et Codex**, quand ils sont détectés. Gemini CLI plus tard.
 
 **Q47 — Où vit le pont** (Phase 6, 6.7) — ✅ répondu le 2026-10-20 : **la vue d'ensemble, à
 gauche**. Le pont remplace la vue d'ensemble de la barre latérale principale ; plan, todo et
@@ -474,35 +531,35 @@ Ce sont mes interprétations. Elles valent tant que tu ne les corriges pas.
 
 Statut : terminée (0.11 reste à confirmer par toi dans une nouvelle session)
 
-- [x] 0.1 Lire `docs/spec.md` en entier — critère : contradictions et manques relevés dans
+- 0.1 Lire `docs/spec.md` en entier — critère : contradictions et manques relevés dans
   « Questions ouvertes ».
-- [x] 0.2 Vérifier dans la documentation officielle le format actuel des skills, hooks,
+- 0.2 Vérifier dans la documentation officielle le format actuel des skills, hooks,
   subagents et `settings.json` — critère : sources et date citées dans l'ADR 0001.
-- [x] 0.3 Vérifier existence, version et licence des paquets nommés par la spec — critère :
+- 0.3 Vérifier existence, version et licence des paquets nommés par la spec — critère :
   tableau « Dépendances vérifiées » plus bas.
-- [x] 0.4 Initialiser le dépôt git (branche `main`) et écrire `.gitignore` — critère :
+- 0.4 Initialiser le dépôt git (branche `main`) et écrire `.gitignore` — critère :
   `.claude/state/` et `.claude/settings.local.json` sont ignorés.
-- [x] 0.5 Écrire `CLAUDE.md` — critère : vision, carte du dépôt, commandes, règles, pointeurs,
+- 0.5 Écrire `CLAUDE.md` — critère : vision, carte du dépôt, commandes, règles, pointeurs,
   hooks documentés avec leur test manuel.
-- [x] 0.6 Écrire les sept skills (`rust-daemon`, `graph-model`, `language-pack`,
+- 0.6 Écrire les sept skills (`rust-daemon`, `graph-model`, `language-pack`,
   `vscode-webview-ui`, `mcp-tools`, `otel-instrumentation`, `adr`) — critère : frontmatter
   conforme à la doc, avec une description qui dit quand les utiliser.
-- [x] 0.7 Écrire les hooks (`.claude/settings.json`, `.claude/hooks/`) — critère :
+- 0.7 Écrire les hooks (`.claude/settings.json`, `.claude/hooks/`) — critère :
   `node --test .claude/hooks/hooks.test.mjs` vert, et chaque script exécuté à la main avec
   une entrée réelle.
-- [x] 0.8 Écrire le subagent `phase-reviewer` — critère : outils en lecture seule (`Read`,
+- 0.8 Écrire le subagent `phase-reviewer` — critère : outils en lecture seule (`Read`,
   `Grep`, `Glob`, `Bash`), rapport en français.
-- [x] 0.9 Écrire les ADR 0001 et 0002, l'index `docs/adr/README.md` et le modèle d'ADR —
+- 0.9 Écrire les ADR 0001 et 0002, l'index `docs/adr/README.md` et le modèle d'ADR —
   critère : fichiers présents, index à jour.
-- [x] 0.10 Rédiger et soumettre `PLAN.md` — critère : chaque tâche a un critère vérifiable.
-- [ ] 0.11 Vérification par l'humain dans une nouvelle session (hooks, skills, subagent,
+- 0.10 Rédiger et soumettre `PLAN.md` — critère : chaque tâche a un critère vérifiable.
+- 0.11 Vérification par l'humain dans une nouvelle session (hooks, skills, subagent,
   CLAUDE.md) — critère de sortie du prompt :
   - le message de démarrage « Timonier · Phase … » s'affiche ;
   - `/hooks` liste SessionStart, UserPromptSubmit, PreToolUse, PostToolUse et Stop ;
   - `/skills` liste les sept skills ;
   - `/agents` liste `phase-reviewer` ;
   - `CLAUDE.md` suffit à reprendre le travail.
-- [x] 0.12 Validation de ce plan et réponses à Q1–Q7 — critère : réponses consignées ici. Feu
+- 0.12 Validation de ce plan et réponses à Q1–Q7 — critère : réponses consignées ici. Feu
   vert donné le 2026-10-14.
 
 Décisions : [ADR 0001](docs/adr/0001-hooks-claude-code-en-node.md),
@@ -529,42 +586,42 @@ Statut : terminée (validée par toi le 2026-10-14)
 Prérequis levés : licence MIT (Q1) ; dépôt public
 <https://github.com/nicolas-a-michel/timonier> (Q2).
 
-- [x] 1.1 Ajouter la licence MIT (« Copyright (c) 2026 Nicolas Michel ») — critère : fichier
+- 1.1 Ajouter la licence MIT (« Copyright (c) 2026 Nicolas Michel ») — critère : fichier
   `LICENSE` présent ; `license = "MIT"` dans `Cargo.toml` et `package.json` ; `cargo metadata`
   et `npm pkg get license` renvoient `MIT`.
-- [x] 1.2 Fixer la toolchain : `rust-toolchain.toml` (stable, rustfmt, clippy), édition 2024 et
+- 1.2 Fixer la toolchain : `rust-toolchain.toml` (stable, rustfmt, clippy), édition 2024 et
   `rust-version` dans `[workspace.package]`, `rustfmt.toml` — critère : `cargo fmt --all
   --check` vert ; ADR toolchain et MSRV (stable actuelle 1.99, 1.96 installée en local).
-- [x] 1.3 Créer le workspace Cargo avec les sept crates (`timonier-core`, `-store`, `-index`,
+- 1.3 Créer le workspace Cargo avec les sept crates (`timonier-core`, `-store`, `-index`,
   `-daemon`, `-otlp`, `-mcp`, `-cli`) — critère : `cargo build --workspace` vert ; ADR sur
   le découpage, le sens des dépendances et le crate qui porte les types du protocole.
-- [x] 1.4 Binaire `timonier` et alias `tim` (clap 4.6), avec `--version` et `--help` — critère :
+- 1.4 Binaire `timonier` et alias `tim` (clap 4.6), avec `--version` et `--help` — critère :
   `timonier --version` et `tim --version` impriment la même chaîne (test assert_cmd) ; ADR
   sur le mécanisme d'alias.
-- [x] 1.5 Lints du workspace (`[workspace.lints]`) — critère : `cargo clippy --workspace
+- 1.5 Lints du workspace (`[workspace.lints]`) — critère : `cargo clippy --workspace
   --all-targets -- -D warnings` vert.
-- [x] 1.6 Un test de fumée par crate — critère : `cargo test --workspace` vert.
-- [x] 1.7 Monorepo Node — critère : `npm ci && npm run lint && npm run typecheck && npm test`
+- 1.6 Un test de fumée par crate — critère : `cargo test --workspace` vert.
+- 1.7 Monorepo Node — critère : `npm ci && npm run lint && npm run typecheck && npm test`
   verts ; ADR gestionnaire de paquets et bundler de l'extension (H12). Contenu :
   - `package.json` racine, workspaces `editors/vscode` et `webview` ;
   - scripts `build`, `test`, `lint`, `typecheck`, `format` ;
   - TypeScript 6.0.x strict (H11), ESLint en configuration plate avec typescript-eslint,
     prettier.
-- [x] 1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*`
+- 1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*`
   minimaux sur les variables VSCode) — critère : `npm run build -w webview` produit le
   bundle ; test vitest vert.
-- [x] 1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui
+- 1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui
   ouvre un panneau webview chargeant le bundle de `webview/` sous une CSP stricte (nonce,
   `localResourceRoots`) — critère : F5 (« Run Extension ») ouvre le panneau vide en thème
   clair et sombre ; un test d'intégration `@vscode/test-cli` exécute la commande et vérifie
   la création du panneau.
-- [x] 1.10 Packaging — critère : `npx @vscode/vsce package` produit un `.vsix` que
+- 1.10 Packaging — critère : `npx @vscode/vsce package` produit un `.vsix` que
   `code --install-extension` installe.
-- [x] 1.11 Activer les hooks sur le squelette — critère : test manuel documenté dans
+- 1.11 Activer les hooks sur le squelette — critère : test manuel documenté dans
   `CLAUDE.md` (une erreur de type introduite bloque la fin de tour une fois). Changements :
   - le hook Stop appelle le script `typecheck` racine ;
   - le hook de formatage trouve prettier local.
-- [x] 1.12 CI GitHub Actions sur ubuntu-latest et macos-latest — critère : chaque étape du
+- 1.12 CI GitHub Actions sur ubuntu-latest et macos-latest — critère : chaque étape du
   workflow passe en local sous Linux. Le vert sur les deux OS sera constaté au premier push
   sur le dépôt public créé par toi (Q2). Étapes :
   - Rust : vérification du format, clippy `-D warnings`, `cargo test` ;
@@ -572,16 +629,16 @@ Prérequis levés : licence MIT (Q1) ; dépôt public
   - tests de l'extension sous xvfb (Linux) ;
   - tests des hooks ;
   - caches cargo et npm.
-- [x] 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
+- 1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et
   commandes de `CLAUDE.md` à jour — critère : relu.
-- [x] 1.15 Icône Timonier dans la barre d'activité, ajoutée à ta demande du 2026-10-14 —
+- 1.15 Icône Timonier dans la barre d'activité, ajoutée à ta demande du 2026-10-14 —
   critère : un conteneur Timonier avec une icône 24×24 d'une seule couleur, une vue « Vue
   d'ensemble » dont l'accueil propose « Ouvrir la carte », et un bouton de carte dans sa barre
   de titre ; tests unitaires du manifeste et test d'intégration verts ; ADR 0007.
   - Constat : 19 tests unitaires et 5 tests d'intégration verts.
   - L'icône a été rendue pixel par pixel à 24 px, et la version à 6 rayons retenue.
   - Le rendu réel est à regarder avec F5, en même temps que 1.9.
-- [x] 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
+- 1.14 Relecture par `phase-reviewer` — critère : verdict « prête », ou réserves traitées.
   Réserves traitées (voir plus bas) ; il n'y a pas eu de seconde relecture.
 
 Critère de sortie : `cargo test` et le build de l'extension passent en CI (constaté au
@@ -651,7 +708,8 @@ Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est tra
   Le contraste réel dépend du thème : il sera mesuré par axe-core en Phase 4.
 - `npm audit` signale 4 vulnérabilités, toutes dans mocha (via `@vscode/test-cli`) : 1 haute
   (serialize-javascript), 1 modérée, 2 basses. C'est un outil de test, absent du `.vsix`.
-- L'éditeur de la Marketplace (`publisher`) est provisoire : `nicolas-a-michel` (Q12).
+- L'éditeur de la Marketplace (`publisher`) était provisoire : `nicolas-a-michel` ; c'est
+  `NicolasMichel` depuis le 2026-10-20 (Q12).
 - Les tests de fumée des crates sans code (store, index, otlp, daemon, mcp) ne prouvent que la
   compilation et le lien avec core. Ils seront remplacés par de vrais tests dans les phases
   suivantes.
@@ -660,45 +718,45 @@ Relecture `phase-reviewer` (verdict initial : « pas prête ») — tout est tra
 
 Statut : terminée (validée le 2026-10-16)
 
-- [x] 2.1 Écrire les ADR — critère : ADR écrites (statut « Proposé ») avant le code qui en
+- 2.1 Écrire les ADR — critère : ADR écrites (statut « Proposé ») avant le code qui en
   dépend, puis acceptées quand tu valides la phase (procédure du skill `adr`). Sujets :
   - place des composants : consigne la réponse à Q4, option (a) ;
   - classement de fiabilité des sources pour la fusion ;
   - sémantique des snapshots `working_tree` ;
   - outil de migration (`rusqlite_migration` 2.6 ou `refinery` 0.10) ;
   - pragmas SQLite.
-- [x] 2.2 `timonier-core` : les types `Node`, `NodeKind`, `SymbolKind`, `Edge`, `EdgeKind`,
+- 2.2 `timonier-core` : les types `Node`, `NodeKind`, `SymbolKind`, `Edge`, `EdgeKind`,
   `Provenance`, la confiance, le poids et le span, sérialisables (serde) — critère :
   round-trip JSON testé pour chaque type.
-- [x] 2.3 Identité stable : symbole SCIP ou `lang:qualified_name` — critère : tests unitaires
+- 2.3 Identité stable : symbole SCIP ou `lang:qualified_name` — critère : tests unitaires
   et proptest (`parse(format(id)) == id`).
-- [x] 2.4 Invariant d'arbre strict : un seul parent, pas de cycle — critère : un proptest
+- 2.4 Invariant d'arbre strict : un seul parent, pas de cycle — critère : un proptest
   génère arbres et reparentages, et toute violation est refusée par une erreur typée.
-- [x] 2.5 Règles de fusion multi-sources — critère : tests en table :
+- 2.5 Règles de fusion multi-sources — critère : tests en table :
   - une arête vue par TreeSitter et Lsp garde la provenance Lsp ;
   - une arête TreeSitter contredite par le Lsp est supprimée ;
   - `Intended` n'est jamais fusionnée.
-- [x] 2.6 Détection des déplacements par signature et hash du corps normalisé, avec un seuil
+- 2.6 Détection des déplacements par signature et hash du corps normalisé, avec un seuil
   fixé par ADR — critère : un fichier renommé, une fonction déplacée entre deux fichiers et
   une fonction renommée à corps égal donnent « déplacé », jamais « supprimé + ajouté ».
-- [x] 2.7 `timonier-store` — critère : migrations testées sur base vide ; test de lectures
+- 2.7 `timonier-store` — critère : migrations testées sur base vide ; test de lectures
   concurrentes pendant les écritures. Contenu :
   - schéma SQLite : nœuds, arêtes avec `valid_from` / `valid_to`, `snapshot(seq, commit_sha,
     timestamp, kind)`, état par fichier (hash, « vérifié par LSP au hash X ») ;
   - migrations ;
   - WAL, écrivain unique sur un thread dédié, lecteurs en lecture seule.
-- [x] 2.8 Mise à jour par différence d'un fichier — critère : réappliquer un fichier identique
+- 2.8 Mise à jour par différence d'un fichier — critère : réappliquer un fichier identique
   modifie 0 ligne ; modifier un symbole ferme un intervalle et en ouvre un.
-- [x] 2.9 Snapshots `commit`, `review_mark` et `working_tree` — critère : création, liste et
+- 2.9 Snapshots `commit`, `review_mark` et `working_tree` — critère : création, liste et
   cohérence des intervalles testées.
-- [x] 2.10 Requête de diff entre deux snapshots : ajouts, suppressions, modifications,
+- 2.10 Requête de diff entre deux snapshots : ajouts, suppressions, modifications,
   déplacements — critère : tests sur fixtures ; un déplacement de fichier est rapporté comme
   déplacement.
-- [x] 2.11 Arêtes entre composants agrégées par requête depuis les arêtes de symboles, jamais
+- 2.11 Arêtes entre composants agrégées par requête depuis les arêtes de symboles, jamais
   stockées à la main — critère : test du poids agrégé attendu.
-- [x] 2.12 Mesure de référence : insertion et diff sur un graphe synthétique — critère :
+- 2.12 Mesure de référence : insertion et diff sur un graphe synthétique — critère :
   chiffres consignés dans ce plan.
-- [x] 2.13 Relecture par `phase-reviewer` — critère : verdict « prête ». Obtenu à la troisième
+- 2.13 Relecture par `phase-reviewer` — critère : verdict « prête ». Obtenu à la troisième
   relecture ; ses mineurs ont ensuite été corrigés.
 
 Critère de sortie : tests couvrant l'insertion, la mise à jour par différence, le diff de
@@ -842,7 +900,7 @@ Statut : terminée (validée par toi le 2026-10-16, sans verdict « prête » : 
 Réponses appliquées : Q5 (interface LSP commune, relais de l'IDE d'abord) et Q6 (heuristiques,
 enrichies par l'agent via MCP).
 
-- [x] 3.1 ADR sur le format des packs de langage : manifeste versionné, requêtes `.scm`,
+- 3.1 ADR sur le format des packs de langage : manifeste versionné, requêtes `.scm`,
   heuristiques, emplacement — critère : ADR écrite (« Proposé »), acceptée quand tu valides la
   phase (Q15) ; skill `language-pack` mis à jour.
   - [ADR 0012](docs/adr/0012-format-des-packs-de-langage.md) : packs dans
@@ -850,7 +908,7 @@ enrichies par l'agent via MCP).
     vérifié au chargement.
   - Restent du code : la table des grammaires (une ligne par grammaire) et les écosystèmes
     `cargo` et `npm`.
-- [x] 3.2 Packs Rust et TypeScript : grammaires (tree-sitter 0.27.1, tree-sitter-rust 0.24.2,
+- 3.2 Packs Rust et TypeScript : grammaires (tree-sitter 0.27.1, tree-sitter-rust 0.24.2,
   tree-sitter-typescript 0.23.2), requêtes de définitions, d'imports et
   d'appels/références — critère : snapshots insta des nœuds et arêtes extraits de fixtures
   Rust et TS.
@@ -858,19 +916,19 @@ enrichies par l'agent via MCP).
     `crates/timonier-index/tests/snapshots/`.
   - La résolution des chemins en arêtes est testée à part
     (`crates/timonier-index/src/project.rs`), dont les réexportations Rust et TS.
-- [x] 3.3 Noms qualifiés stables et hash de corps normalisé, par langage — critère : reformater
+- 3.3 Noms qualifiés stables et hash de corps normalisé, par langage — critère : reformater
   un fichier ne change aucune identité (test).
   - Testé en Rust et en TypeScript : un fichier reformaté garde chaque nom qualifié, chaque
     signature et chaque hash de corps.
   - Réordonner les définitions ne change aucune identité (test).
   - Un déplacement de fonction entre fichiers et un renommage de fichier donnent « déplacé »
     dans le diff (test de bout en bout, `crates/timonier-daemon/tests/indexing.rs`).
-- [x] 3.4 Indexation initiale parallélisée, avec un cache persistant (hash par fichier) —
+- 3.4 Indexation initiale parallélisée, avec un cache persistant (hash par fichier) —
   critère : une deuxième indexation sans changement ne reparse aucun fichier (compteur).
   - Cache dans SQLite (migration 0002, [ADR 0013](docs/adr/0013-extraction-resolution-et-cache.md)).
   - Seconde indexation : 0 fichier reparsé ; au redémarrage sur la même base, 0 ligne écrite
     (tests).
-- [x] 3.5 Vitesse 1, à la sauvegarde — critère : latence mesurée selon H2. Contenu :
+- 3.5 Vitesse 1, à la sauvegarde — critère : latence mesurée selon H2. Contenu :
   - watcher (notify 8.2 + notify-debouncer-full 0.7), anti-rebond ~300 ms ;
   - respect de `.gitignore` (crate `ignore`) ;
   - hash du fichier, reparse tree-sitter incrémental, mise à jour par différence.
@@ -881,7 +939,7 @@ enrichies par l'agent via MCP).
   - outil : `cargo run --release -p timonier-daemon --example index_bench`.
 
   Le watcher réel est testé de bout en bout : sauvegarde, anti-rebond, graphe mis à jour.
-- [x] 3.6 Vitesse 2, en arrière-plan, selon Q5 — critère : test avec un serveur LSP réel ou un
+- 3.6 Vitesse 2, en arrière-plan, selon Q5 — critère : test avec un serveur LSP réel ou un
   double conforme. Contenu :
   - les fichiers dépendants sont marqués quand une signature publique change ;
   - file LSP basse priorité, en commençant par ce qui est affiché ;
@@ -902,7 +960,7 @@ enrichies par l'agent via MCP).
   - affinage par le watcher quand il est libre.
 
   Le relais des serveurs de l'IDE est branché en Phase 4, avec le lien démon ↔ extension.
-- [x] 3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la
+- 3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la
   partition précédente, snapshot `commit` figé, sans SCIP (H4) — critère : test d'intégration
   sur un dépôt git temporaire.
   - Le snapshot doit décrire l'arbre commité, pas l'arbre de travail indexé avec ses
@@ -920,7 +978,7 @@ enrichies par l'agent via MCP).
   - le watcher voit un vrai `git commit`.
 
   Le re-clustering à ce moment est fait avec 3.8.
-- [x] 3.8 Composants — critère : stabilité mesurée (une petite modification change moins de
+- 3.8 Composants — critère : stabilité mesurée (une petite modification change moins de
   X % des affectations, seuil fixé par ADR). Contenu :
   - agrégation par structure (membres du workspace Cargo, workspaces npm, dossiers) ;
   - clustering Louvain/Leiden stable. ADR : `graphrs` 0.12 (MIT) est le seul crate vérifié
@@ -942,7 +1000,7 @@ enrichies par l'agent via MCP).
     résolution.
   - Un redémarrage reprend les composants de la tête, sans clustering, et n'écrit rien
     (test). Un fichier laissé seul par Leiden le reste (test).
-- [x] 3.9 Rôles architecturaux et dépendances externes — critère : sur Timonier, les rôles
+- 3.9 Rôles architecturaux et dépendances externes — critère : sur Timonier, les rôles
   attendus sont vérifiés par un test (par exemple `timonier-daemon` = serveur,
   `timonier-store` = persistance). Contenu :
   - rôles par heuristiques des packs (TcpListener, routeur HTTP, ORM, types sérialisés…) ;
@@ -972,7 +1030,7 @@ enrichies par l'agent via MCP).
     le test est à jour.
   - Le nommage et la confirmation par l'agent (Q6) arrivent avec les outils MCP de la
     Phase 6.
-- [x] 3.10 Compaction au-delà d'environ 50 000 arêtes de symboles — critère : test de charge
+- 3.10 Compaction au-delà d'environ 50 000 arêtes de symboles — critère : test de charge
   synthétique.
 
   [ADR 0018](docs/adr/0018-compaction-des-aretes-de-symboles.md) : budget de 50 000 appels
@@ -987,7 +1045,7 @@ enrichies par l'agent via MCP).
     en 0,83 s. Il reste 46 800 appels de symbole à symbole dans la tête, et 26 fichiers sont
     compactés.
   - Commande : `cargo test --release -p timonier-daemon --test compaction -- --ignored`.
-- [x] 3.11 Mesures sur le dépôt Timonier — critère : indexation à froid ≤ 3 s (H3) et mise à
+- 3.11 Mesures sur le dépôt Timonier — critère : indexation à froid ≤ 3 s (H3) et mise à
   jour p95 < 100 ms (H2), chiffres et machine consignés.
 
   Constats (2026-10-16, après les corrections de la relecture n° 1 ; build release, Ryzen 9
@@ -1006,7 +1064,7 @@ enrichies par l'agent via MCP).
   - Les arêtes passent de 690 à 666 : les appels de méthode sur un receveur inconnu ne sont
     plus résolus par leur seul nom (relecture n° 1, I6).
   - Outil : `cargo run --release -p timonier-daemon --example index_bench`.
-- [ ] 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Non atteint.**
+- 3.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Non atteint.**
   - Les trois relectures concluent « pas prête » ; tous leurs constats sont corrigés
     (ci-dessous).
   - Tu as validé la phase le 2026-10-16 pendant la relecture n° 3. La case restait cochée à
@@ -1158,13 +1216,13 @@ Décisions :
 
 Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, Q24)
 
-- [x] 4.1 ADR sur le protocole — critère : ADR écrite (« Proposé »), acceptée à la validation
+- 4.1 ADR sur le protocole — critère : ADR écrite (« Proposé »), acceptée à la validation
   de la phase (Q15). [ADR 0019](docs/adr/0019-protocole-demon-extension.md). Sujets :
   - socket local, un démon par projet avec verrou, découverte ;
   - méthodes et versionnement ;
   - génération des types partagés Rust → TypeScript ;
   - jsonrpsee 0.26 ou implémentation dédiée.
-- [x] 4.2 Serveur JSON-RPC 2.0 sur socket Unix : `initialize`, abonnement et désabonnement par
+- 4.2 Serveur JSON-RPC 2.0 sur socket Unix : `initialize`, abonnement et désabonnement par
   vue, deltas versionnés, snapshot complet en cas de désynchronisation, arrêt — critère :
   tests d'intégration client Rust ↔ démon, dont une désynchronisation simulée qui renvoie un
   snapshot complet.
@@ -1191,7 +1249,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
 
     Outil : `cargo run --release -p timonier-daemon --example view_bench`. Après l'anti-rebond
     (300 à 375 ms selon son pas), l'indexation prend environ 2 ms et les vues environ 5 ms.
-- [x] 4.3 CLI `timonier daemon start|stop|status` — critère : tests assert_cmd.
+- 4.3 CLI `timonier daemon start|stop|status` — critère : tests assert_cmd.
   - Plus `run`, le démon au premier plan, que `start` et l'extension lancent.
   - Comportement (projet trouvé en remontant, journal, codes de sortie) : ADR 0019, « CLI ».
   - Tests (`crates/timonier-cli/tests/daemon.rs`) :
@@ -1199,7 +1257,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
     - `start`, un second `start`, `status`, le journal, `stop`, puis plus de socket ;
     - le projet est trouvé depuis un sous-dossier ;
     - `run` au premier plan : un second `run` le voit, et SIGTERM l'arrête proprement.
-- [x] 4.4 Extension : lancement et supervision du démon (redémarrage avec backoff, canal de
+- 4.4 Extension : lancement et supervision du démon (redémarrage avec backoff, canal de
   sortie « Timonier »), client JSON-RPC (vscode-jsonrpc 9.0), relais postMessage typé —
   critère : test d'intégration extension ↔ démon réel ; un démon tué est relancé et la vue
   se resynchronise.
@@ -1224,7 +1282,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
     paquet un point d'entrée, puisqu'un client les importe aussi. Les signaux sont dans le code
     (`createServer`, `listen`). L'extension, cliente du socket, reste « interface ». Test :
     `a_typescript_server_is_seen_in_the_code`.
-- [x] 4.5 Relais du LSP de l'IDE vers le démon, si Q5 le retient — critère : définitions et
+- 4.5 Relais du LSP de l'IDE vers le démon, si Q5 le retient — critère : définitions et
   références obtenues via l'API VSCode et reçues par le démon (test).
   - Le critère d'origine reste (Q19, réponse b, 2026-10-17) : la tâche, rouverte, est refaite
     avec l'ADR 0022, qui complète l'ADR 0014.
@@ -1311,7 +1369,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
       symbole), les questions en parallèle, les colonnes, les chemins, la comparaison d'un
       document au disque, les fichiers source, et la règle du relais (refus d'emblée, après un
       changement en cours de question, ou pour un document lu qui n'est pas le disque).
-- [x] 4.6 Système de design minimal, avant la première vue — critère : contraste AA vérifié
+- 4.6 Système de design minimal, avant la première vue — critère : contraste AA vérifié
   automatiquement (axe-core) en clair, sombre et contraste élevé ; ADR sur le système de
   design. [ADR 0020](docs/adr/0020-systeme-de-design.md). Contenu :
   - tokens : couleurs sémantiques sur les variables VSCode, typographie, espacements, rayons,
@@ -1346,7 +1404,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
     commentaire, et un quadrillage discret sert de fond (ADR 0021, « Rendu »).
   - Le test d'accessibilité mesure aussi les broches, les icônes de rôle et le survol de chaque
     élément : 36 tests verts, sur les thèmes recapturés dans VSCode 1.142.0.
-- [x] 4.7 Carte (React Flow 12.12 + elkjs 0.12) — critère : sur Timonier, la vue d'ouverture
+- 4.7 Carte (React Flow 12.12 + elkjs 0.12) — critère : sur Timonier, la vue d'ouverture
   tient en quelques boîtes nommées par rôle. Contenu :
   - vue haut niveau par rôles ;
   - zoom sémantique récursif : rôles → composants → sous-composants → fichiers → symboles ;
@@ -1363,7 +1421,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
     et WCAG AA avec le 3:1 des lignes dans les six thèmes ;
   - tests unitaires du modèle de la carte et de la mise en page ; l'intégration VSCode passe
     avec la carte sous la CSP stricte.
-- [x] 4.8 Mise en page stable, avec les positions précédentes comme contraintes d'elkjs —
+- 4.8 Mise en page stable, avec les positions précédentes comme contraintes d'elkjs —
   critère : après la modification d'un fichier, le déplacement moyen des nœuds inchangés
   reste sous un seuil mesuré et consigné.
   - Méthode (ADR 0021, « Stabilité ») : une mise en page incrémentale, conteneur par conteneur.
@@ -1410,7 +1468,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
       d'un autre conteneur est ignorée), Playwright (glisser, Alt et flèche, boutons du panneau,
       corps d'un cadre qui fait défiler, réinitialiser), le relais (les épingles rendues à la
       page, gardées), la validation du message.
-- [x] 4.9 Navigation — critère : test d'intégration de l'ouverture du code ; checklist
+- 4.9 Navigation — critère : test d'intégration de l'ouverture du code ; checklist
   d'accessibilité du skill. Contenu :
   - clic vers le code, ouvert au bon span ;
   - navigation au clavier ;
@@ -1449,7 +1507,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
       rôles et les badges ;
     - [x] réduction des mouvements : transitions à 0 s, cadrage sans animation ;
     - [x] axe-core dans les tests (`npm run test:a11y`).
-- [x] 4.10 Rendu par niveau de détail, avec agrégation au-delà d'un seuil de nœuds — critère :
+- 4.10 Rendu par niveau de détail, avec agrégation au-delà d'un seuil de nœuds — critère :
   images par seconde mesurées et consignées sur un graphe synthétique de plusieurs milliers
   de nœuds.
   - **Agrégation au-delà de 500 éléments** : la carte dessine des niveaux entiers, du haut vers
@@ -1495,7 +1553,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
   - Test Playwright : une grande carte replie ses fichiers ; Entrée sur un composant replié
     montre ses 12 fichiers, et les autres restent repliés. Tests unitaires des budgets d'éléments
     et d'arêtes.
-- [x] 4.11 Test des cinq secondes avec toi — critère : réussi et consigné.
+- 4.11 Test des cinq secondes avec toi — critère : réussi et consigné.
   - Écran : la carte d'ouverture de Timonier, dans VSCode 1.142, en français, thème Dark 2026 :
     six boîtes nommées par rôle et leurs arêtes.
   - Date : 2026-10-16. Testeur : toi.
@@ -1523,7 +1581,7 @@ Statut : terminée (validée par toi le 2026-10-18 ; 4.12 close avec réserves, 
   - Résultat : **réussi**. Les liens sont lus comme des dépendances, ce qu'ils sont, et
     l'action suivante est celle que l'écran propose. Le souhait de déplacer les boîtes devient
     la réponse (b) à Q20.
-- [x] 4.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Atteint avec
+- 4.12 Relecture par `phase-reviewer` — critère : verdict « prête ». **Atteint avec
   réserves** : la relecture n° 18 rend « prête avec réserves », sans rien qui bloque ; tu as
   décidé de clore ainsi le 2026-10-18 (Q24).
   - Relecture n° 1 (2026-10-16) : « pas prête », aucun bloquant, 5 importants, 21 mineurs.
@@ -2065,7 +2123,7 @@ Décisions :
 
 Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q42)
 
-- [x] 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
+- 5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode
   JSON-RPC) avec une confirmation discrète — critère : test d'intégration.
   - Méthode `review/mark` (protocole version 3), passée par le fil du pipeline entre deux
     étapes ; une base en retard est rattrapée d'abord, et le disque relu (une sauvegarde faite
@@ -2076,7 +2134,7 @@ Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q
   - Tests : `a_client_marks_the_head_as_reviewed` (vrai démon),
     `a_review_mark_catches_the_store_up_first`, `a_review_mark_keeps_the_content_of_each_file`,
     et l'intégration « marks the head as reviewed, from the palette » dans un vrai VSCode.
-- [x] 5.2 Diff structurel depuis la dernière `review_mark` — critère : tests sur des paires de
+- 5.2 Diff structurel depuis la dernière `review_mark` — critère : tests sur des paires de
   snapshots fixtures. Les arêtes pendantes, que les lectures brutes renvoient, sont filtrées
   (ADR 0009). Le diff montre :
   - composants ajoutés et supprimés ;
@@ -2128,7 +2186,7 @@ Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q
     - Les chiffres d'avant, sur un dépôt synthétique de 12 407 nœuds dont le générateur n'a pas
       été gardé (19,3 ms pour le diff, 4,4 Mio), sont remplacés par ceux-ci (relecture n° 4,
       m-2).
-- [x] 5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre
+- 5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre
   « seulement les changements », résumé — critère : checklist d'accessibilité ; test des
   cinq secondes.
   - Fait :
@@ -2192,7 +2250,7 @@ Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q
   - Validé par toi le 2026-10-20 sur la capture corrigée (« c'est mieux comme ça ») : le test
     des cinq secondes n° 2, avec quelqu'un qui n'a pas vu l'écran, n'a pas été fait. À refaire
     à la première occasion ; noté en réserve.
-- [x] 5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la
+- 5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la
   présence de `src/lib.rs` — critère : tests d'un manifeste modifié sans commit (crate
   renommée, dépendance ajoutée) et d'un `src/lib.rs` présent d'un seul côté, dont le snapshot
   décrit le commit.
@@ -2212,7 +2270,7 @@ Statut : terminée (validée par toi le 2026-10-20 ; 5.5 close avec réserves, Q
   - Après la relecture n° 2 : `a_commit_snapshot_ignores_a_manifest_the_walk_skips` (un
     manifeste suivi dans un dossier ignoré ne fait pas d'autres paquets : la vérification LSP
     du commit reste).
-- [x] 5.5 Relecture par `phase-reviewer` — critère : verdict « prête ». Atteint avec réserves
+- 5.5 Relecture par `phase-reviewer` — critère : verdict « prête ». Atteint avec réserves
   (Q42) : la relecture n° 8 ne trouve ni bloquant ni important, et conclut « prête avec
   réserves » une fois le test des cinq secondes passé ; ses mineurs sont corrigés ou notés en
   écarts.
@@ -2417,7 +2475,7 @@ Statut : en cours (commencée le 2026-10-20)
 
 Prérequis : Q10 et Q11, répondues le 2026-10-20.
 
-- [ ] 6.1 ADR — critère : ADR acceptées. Sujets :
+- 6.1 ADR — critère : ADR acceptées. Sujets :
   - SDK MCP (rmcp 3.5) et transport stdio ;
   - forme de l'en-tête de boîte aux lettres ;
   - formats versionnés (schémas JSON) de `.timonier/plan.json`, `todo.json` et
@@ -2428,7 +2486,9 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     [ADR 0029](docs/adr/0029-formats-du-suivi.md) (formats versionnés, états d'une tâche,
     sessions figées en snapshots, une session ouverte à la fois). Acceptées à ta validation de
     la phase.
-- [x] 6.2 `timonier-mcp` : serveur MCP, mince proxy vers le démon (qu'il démarre au besoin),
+  - Acceptées (2026-10-20) : les ADR 0027 à 0035 de la phase, toutes, à ta validation ; l'ADR
+    0002 est remplacée pour les tâches par la 0035.
+- 6.2 `timonier-mcp` : serveur MCP, mince proxy vers le démon (qu'il démarre au besoin),
   avec l'en-tête de boîte aux lettres dans chaque réponse (H10) — critère : test d'intégration
   client MCP → proxy → démon ; snapshot de la liste des outils.
   - `timonier mcp` (CLI) trouve ou démarre le démon sans rien écrire sur stdout, puis
@@ -2440,7 +2500,7 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     (`crates/timonier-core/tests/tools.json`, test `the_catalogue_is_the_contract`), l'en-tête
     dans la structure et en tête du texte de chaque résultat, erreurs comprises, une session
     complète écrite dans `.timonier/`. Le nom du client MCP devient l'agent de la session.
-- [x] 6.3 Outils de suivi `session_start`, `session_end`, `plan_add_task`, `plan_update_task`,
+- 6.3 Outils de suivi `session_start`, `session_end`, `plan_add_task`, `plan_update_task`,
   `todo_add`, `todo_complete`, plus les outils de lecture selon Q10. Écritures structurées et
   validées, le démon est le seul écrivain — critère : les entrées invalides et les transitions
   d'état interdites sont refusées (tests).
@@ -2451,11 +2511,11 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     figés en snapshots `working_tree` par le fil du pipeline.
   - Lecture (Q10) : `get_plan` (avec l'avancement calculé de chaque jalon), `get_todo`,
     `get_session`.
-  - Tests : `tracking.rs` du cœur (9 : identifiants, transitions toutes listées, bornes,
+  - Tests : `tracking.rs` du cœur (10 : identifiants, transitions toutes listées, bornes,
     réouverture avec une note, fichiers invalides, champs inconnus refusés, schémas stricts),
     `tools.rs` (4), `tracking.rs` du démon (4 : une session entière, refus avec ce qu'il faut
     faire, fichier cassé puis réparé à la main, identifiants de session).
-- [x] 6.4 Les changements faits hors session sont marqués « non suivis » — critère : une
+- 6.4 Les changements faits hors session sont marqués « non suivis » — critère : une
   modification sans session ouverte est marquée (test).
   - À chaque `session_start`, les fichiers que le diff des snapshots touche depuis la fin de la
     session précédente (ou le premier snapshot) vont dans `sessions/untracked.json`, avec les
@@ -2463,7 +2523,7 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
   - Tests : dans le démon, les écarts de deux sessions de suite ; de bout en bout
     (`crates/timonier-cli/tests/mcp.rs`), une modification faite hors session est marquée, une
     faite pendant une session ne l'est pas.
-- [x] 6.5 Dette de revue : chaleur par composant (code écrit en session et non couvert par une
+- 6.5 Dette de revue : chaleur par composant (code écrit en session et non couvert par une
   `review_mark` ultérieure ; changements hors session = non suivis), en calque sur la carte —
   critère : test sur fixtures ; checklist d'accessibilité.
   - Tes réponses : Q43 (les fichiers changés) et Q44 (un calque à activer). Règles et paliers
@@ -2495,7 +2555,7 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     - [x] aucune animation.
   - Trouvé en route : la mesure du texte des tests d'accessibilité comptait les spans sans
     texte (icônes, nuancier) ; elle les laisse aux marques (`measure.ts`).
-- [x] 6.6 Panneaux — critère : les panneaux se mettent à jour en direct quand l'agent appelle
+- 6.6 Panneaux — critère : les panneaux se mettent à jour en direct quand l'agent appelle
   les outils (test d'intégration) ; test des cinq secondes. Contenu :
   - plan : jalons → tâches, avancement calculé, panneau latéral permanent ;
   - todo en direct ;
@@ -2568,12 +2628,18 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     vue d'ensemble reste à gauche. Tests : `TrackingPanel.test.tsx` (18), `tracking.a11y.ts`
     (27, dont les colonnes collées à 700 px et empilées à 300 px), intégration (la vue suit
     l'agent). Capture : `/mnt/travail/timonier-panneaux-phase6-4.png`.
+  - Test des cinq secondes n° 3 (2026-10-20, toi, sur la vue livrée : une vue, deux colonnes
+    collées, `/mnt/travail/timonier-vue-suivi.png`, Dark Modern, français) : **réussi**.
+    Réponse : « je vois l'avancement des phases du plan, ce qui est fait dans la todo et ce qui
+    est encore en attente, les composants touchés par les modifs en cours de la session ; je
+    regarderais sûrement la fenêtre de chat de Claude ou l'architecture ». Les trois parties
+    sont lues ; la suite naturelle est l'agent ou la carte. 6.6 refermée (relecture n° 3, M1).
   - Écarts : les tests du journal attendent `timonier test` (Phase 8) : le journal le dit ;
     une session finie avant ce changement n'a pas de `changes` (« Non enregistré »).
-- [ ] 6.7 Le pont (H5) : où en est le plan, ce qui s'est passé depuis la dernière revue, où
+- 6.7 Le pont (H5) : où en est le plan, ce qui s'est passé depuis la dernière revue, où
   regarder — critère : test des cinq secondes.
 
-  Fait (2026-10-20), reste le test des cinq secondes :
+  Fait (2026-10-20) :
   - Tes réponses : Q45 (les alertes puis la dette), Q46 (un clic ouvre la carte sur la boîte),
     Q47 (la vue d'ensemble, à gauche). [ADR 0032](docs/adr/0032-le-pont.md), protocole version 6.
   - Démon (`timonier_daemon::bridge`) : l'état du suivi porte le résumé du diff de revue, la
@@ -2603,7 +2669,13 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
     - [x] jamais la couleur seule : triangle et mots pour les alertes, mot « non suivi » ;
     - [x] aucune animation de plus.
   - Capture : `/mnt/travail/timonier-pont.png`.
-- [ ] 6.8 `timonier init` — critère : tests sur des projets fixtures Rust et TS ; une deuxième
+  - Test des cinq secondes n° 1 (2026-10-20, toi, capture du pont, Dark Modern, français) :
+    **réussi en partie**. Réponse : « je vois ce que je dois relire depuis le dernier lot de
+    modifications et le bouton pour ouvrir la carte, avec un résumé des changements ». Deux
+    questions sur trois sont lues (depuis la revue, où regarder) ; l'état du plan, en haut,
+    n'est pas cité. Accepté tel quel par toi (2026-10-20) : le plan a son propre panneau, à
+    droite.
+- 6.8 `timonier init` — critère : tests sur des projets fixtures Rust et TS ; une deuxième
   exécution ne change rien ; `--dry-run` affiche le diff exact. Contenu :
   - détection : langages, gestionnaire de paquets, runner de tests, agents installés, état
     git ;
@@ -2615,25 +2687,228 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
   - hook git qui régénère `actual.json`, base SQLite ignorée par git ;
   - plan avec un jalon « Initialisation » et une première session ;
   - `--dry-run` et idempotence.
-- [ ] 6.9 `timonier uninit` — critère : init puis uninit rend un arbre identique à l'original
+
+  Fait (2026-10-20) :
+  - Tes réponses : Q48 (Claude Code, Copilot, Cursor, Codex), Q49 (bloquer une fois), Q50
+    (pre-commit), Q51 (au terminal, avec des options). [ADR 0033](docs/adr/0033-timonier-init.md),
+    protocole version 7 ; formats des agents lus dans leurs documentations officielles.
+  - `timonier-cli`, module `init` : détection (langages, gestionnaires, runners, git et
+    `core.hooksPath`, agents par le `PATH`, `~/`, les extensions VSCode et le projet), plan de
+    modifications pur, diff unifié (`similar` 2.7.0), écriture ; `.timonier/init.json` garde
+    ce qui a été créé et l'original de ce qui a été changé.
+  - Écrit : bloc géré dans `AGENTS.md` (et import `@AGENTS.md` dans un `CLAUDE.md` existant),
+    serveur MCP dans `.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`,
+    hook d'arrêt dans `.claude/settings.json`, `.github/hooks/timonier.json`,
+    `.codex/hooks.json` (`timonier hook stop`, démon : `agent/stop`), hook git `pre-commit`
+    (`timonier hook pre-commit` : `actual/write`, puis `git add`), `.timonier/.gitignore` ; le
+    plan « Initialisation » et une première session par les outils du démon, agent
+    `timonier-init`. Un JSON avec commentaires, un hook git qui n'est pas du shell ou un
+    gestionnaire de hooks sont laissés, et `init` dit quoi ajouter à la main.
+  - `actual.json` (`timonier_core::actual`, schéma `docs/schemas/actual.schema.json`) : boîtes
+    et dépendances agrégées comme sur la carte, triées, sans date.
+  - Démon : `daemon/status` dit quand la première indexation est finie (`indexed`) ; le hook
+    pre-commit l'attend (30 s au plus).
+  - Tests : `detect.rs` (2), `edits.rs` (5), `plan.rs` (3 : deuxième exécution vide, fichiers
+    illisibles laissés et dits, diff exact sans écriture), `init.rs` (réponse au terminal),
+    `the_daemon_says_when_to_hold_an_agent_and_writes_the_actual_architecture` sur un vrai
+    démon, et `crates/timonier-cli/tests/init.rs` sur des projets git temporaires Rust et
+    TypeScript : `--dry-run` montre le diff et n'écrit rien, une deuxième exécution ne change
+    rien, ce qui existait est gardé, `actual.json` entre dans le commit, le hook d'arrêt
+    bloque une fois dans le format de chaque agent.
+  - Écarts :
+    - `--dry-run` liste les appels au démon (la session, le plan) sans en montrer le diff :
+      leur contenu dépend de l'heure et des snapshots ;
+    - avant toute session, un changement ne se distingue pas de l'indexation initiale : le
+      hook d'arrêt ne tient compte du code changé qu'après une première session (celle
+      d'`init`) ;
+    - Cursor n'a pas de hook d'arrêt (il ne sait pas bloquer un arrêt) ; Gemini CLI attend
+      (Q48).
+- 6.9 `timonier uninit` — critère : init puis uninit rend un arbre identique à l'original
   (test).
-- [ ] 6.10 `timonier doctor` : vérifie et répare la configuration (MCP déclaré, bloc géré à
+  - Fait (2026-10-20) : `timonier uninit [--dry-run]` reprend `.timonier/init.json` : un
+    fichier créé par `init` part, sauf ce que le développeur y a ajouté depuis ; un fichier
+    changé perd la part de Timonier et revient exactement à son original quand rien d'autre
+    n'y a changé ; `.timonier/` part en entier si `init` l'a créé (le démon est arrêté
+    d'abord). Tests : `uninit_gives_the_original_tree_back` (Rust et TypeScript, octet pour
+    octet, le hook git compris) et `uninit_keeps_what_the_developer_added`.
+  - Corrigé après la relecture n° 1 (M2), ta réponse Q54 : le suivi du projet (`plan.json`,
+    `todo.json`, `sessions/`, `intent.json`) reste dès qu'il y a eu du travail après `init`,
+    avec `.timonier/.gitignore` ; il ne part que s'il ne tient que ce qu'`init` y a écrit (sa
+    session, son jalon : l'arbre identique tient), ou avec `--purge`, confirmé au terminal
+    (taper `purge`) ou par `--yes`. Tests : `uninit.rs` (2 : chaque fichier perd seulement sa
+    part ; le suivi part seulement quand `init` seul l'a écrit, ou purgé, le tableau blanc
+    compris) et `uninit_keeps_the_tracked_work_unless_purged` de bout en bout.
+- 6.10 `timonier doctor` : vérifie et répare la configuration (MCP déclaré, bloc géré à
   jour, conventions présentes). Le test de fumée tracé arrive en Phase 8 (H6) — critère :
   chaque diagnostic et chaque réparation sont testés.
-- [ ] 6.11 Packs Rust et TypeScript, volet init : détection du runner, configuration JUnit XML,
+  - Fait (2026-10-20) : `timonier doctor [--fix | --check]` refait le plan d'`init` avec les
+    agents de `.timonier/init.json` : chaque fichier qu'il changerait encore est un
+    diagnostic (bloc géré absent ou ancien, import de `CLAUDE.md`, serveur MCP non déclaré,
+    hook d'arrêt ou hook git absent, `.gitignore`, profil nextest, `tests.json`, conventions),
+    et l'appliquer en est la réparation ; s'y ajoutent `timonier` absent du `PATH`, un démon
+    qui ne démarre pas, un fichier de suivi illisible, et ce qu'`init` ne sait pas écrire
+    (JSON avec commentaires, gestionnaire de hooks, runner manquant), dits avec quoi faire.
+    Au terminal il demande avant de réparer (comme Q51) ; `--fix` répare sans demander ;
+    `--check` ne répare rien et dit par son code de sortie si tout est en ordre (CI).
+  - Tests : `doctor.rs` (5 : projet jamais initialisé, configuration en ordre, chaque
+    diagnostic puis sa réparation, runner et conventions, ce qui ne se répare pas) et
+    `doctor_finds_and_repairs_the_setup` de bout en bout (démon qui ne démarre pas,
+    `todo.json` cassé, `--check`, `--fix`).
+- 6.11 Packs Rust et TypeScript, volet init : détection du runner, configuration JUnit XML,
   conventions copiées dans `.timonier/conventions/` — critère : tests sur fixtures.
-- [ ] 6.12 Détection dans VSCode d'un dépôt non configuré, avec une proposition discrète de
+  - Fait (2026-10-20) : [ADR 0034](docs/adr/0034-packs-volet-init.md). La section `[tests]`
+    des packs, réservée (ADR 0012), devient une liste de runners essayés dans l'ordre. Rust :
+    cargo-nextest, profil `timonier` écrit entre marqueurs dans `.config/nextest.toml`
+    (`cargo test` n'a pas de JUnit stable). TypeScript : vitest
+    (`--reporter=junit --outputFile.junit=…`), `node --test` (`--test-reporter=junit`),
+    jest (une note : il lui faut `jest-junit`), essayés sur vitest 5.0.4 et Node 24.18.
+    `init` écrit `.timonier/tests.json` (lu par `timonier test` en Phase 8) et copie
+    `conventions/instrumentation.md` du pack dans `.timonier/conventions/<langage>/` ; le
+    bloc d'`AGENTS.md` y renvoie. `.timonier/.gitignore` garde `runs/` hors de git.
+  - Tests : `builtin_packs_describe_their_runners_and_conventions`, `detect.rs`, et sur les
+    fixtures Rust et TypeScript (`crates/timonier-cli/tests/init.rs`) : profil nextest,
+    `tests.json`, conventions, la note quand cargo-nextest manque.
+  - Écart : le SDK OpenTelemetry et le module d'initialisation arrivent en Phase 8 (H6) ; les
+    conventions nomment déjà leurs paquets (versions vérifiées le 2026-10-20).
+- 6.12 Détection dans VSCode d'un dépôt non configuré, avec une proposition discrète de
   lancer init — critère : test d'intégration.
-- [ ] 6.13 Bascule : `timonier init` sur le dépôt Timonier. Ensuite, une session Timonier par
+  - Fait (2026-10-20), tes réponses Q52 et Q53 : l'état du suivi dit si le projet est
+    configuré (`configured` : `.timonier/init.json` est là ; protocole version 8, le fichier
+    regardé avec les autres). Tant qu'il ne l'est pas, le pont dit en haut « Ce projet n'est
+    pas configuré pour vos agents » avec un bouton « Configurer », et sa vue porte un badge
+    (sur l'icône Timonier). « Configurer », comme la commande « Timonier : Configurer le
+    projet pour vos agents », ouvre le terminal « Timonier init » qui lance `timonier init`.
+    Le badge part dès que le projet est configuré.
+  - Tests : `TrackingPanel.test.tsx` (la proposition, puis plus rien), `trackingRelay.test.ts`
+    (les observateurs de l'état), `launch.test.ts` (la commande citée pour le shell),
+    `tracking.a11y.ts` (la proposition en AA dans les six thèmes, premier arrêt du clavier),
+    le démon (`configured` suit `init.json`), et l'intégration VSCode « offers to set the
+    project up, runs init in a terminal, and stops offering ».
+  - Écart : VSCode ne pose un badge que sur une vue déjà ouverte ; tant que la barre Timonier
+    n'a pas été ouverte dans la fenêtre, l'icône n'en porte pas.
+  - « Configuré » se juge d'après `init.json`, pas `plan.json` : ta réponse Q55 (relecture
+    n° 1, M3) précise Q18.
+- 6.13 Bascule : `timonier init` sur le dépôt Timonier. Ensuite, une session Timonier par
   tâche, et plan et todo tenus via MCP selon Q11 — critère : vérifiable dans le journal des
   sessions.
-- [ ] 6.14 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - Fait (2026-10-20), à ton accord :
+    - `timonier` réinstallé depuis le dépôt (`cargo install --path crates/timonier-cli`) :
+      celui du `PATH` datait du 14 et ne connaissait ni `mcp` ni `hook`.
+    - `timonier init --agents claude` (ton choix : Claude Code seul) après relecture du
+      `--dry-run` : bloc géré dans `AGENTS.md`, import dans `CLAUDE.md`, `.mcp.json`, hook
+      d'arrêt ajouté à `.claude/settings.json` (8 lignes, le reste intact), profil nextest,
+      conventions, `tests.json`, hook git `pre-commit`, et la session
+      `S-2026-10-20-1` (`timonier-init`). Une deuxième exécution ne change rien.
+    - En route, corrigé sur ce vrai dépôt : un JSON existant garde l'ordre de ses clés et sa
+      mise en page (`init/ordered.rs`, à la manière de Prettier) ; TypeScript détecté par
+      `tsconfig.base.json` ; le pack TypeScript reconnaît un script de test qui passe par les
+      workspaces (une information, pas une faute) ; `doctor` sépare ce qui est à faire de ce
+      qui est bon à savoir ; `.timonier/` est dans `.prettierignore` (fichiers écrits par
+      Timonier).
+    - [ADR 0035](docs/adr/0035-taches-dans-plan-json.md) : les phases et les tâches de ce plan
+      repris dans `.timonier/plan.json` par les outils MCP (session `S-2026-10-20-2`, agent
+      `timonier-migration`) : 11 jalons, 108 tâches dans leur état ; ici, les cases retirées,
+      le détail gardé (ta réponse) ; le hook de début de session lit `plan.json` ; le
+      relecteur lit l'état dans `plan.json`.
+  - Reste : la suite du développement en sessions Timonier, une par tâche, depuis une session
+    Claude Code qui a le serveur MCP `timonier` (à redémarrer et à approuver).
+  - À faire par toi, si tu veux le JUnit des tests Rust : `cargo install cargo-nextest --locked`
+    (`timonier doctor` le signale).
+- 6.14 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - Relecture n° 1 (2026-10-20) : « pas prête ». Tous les contrôles verts (Rust, Node, a11y
+    109, intégration 23). Constats :
+    - B1 : la session ouverte par Claude Code (`S-2026-10-20-3`) a pour agent `mcp-client` :
+      le proxy ne lisait le nom qu'à la poignée de main, et le cycle de vie MCP 2026-07-28 le
+      porte dans les métadonnées de chaque requête. Corrigé : `RequestContext::client_info()`
+      (rmcp) lit les deux ; test `a_client_named_in_its_requests_metadata_names_the_session`
+      (sans `initialize`, nom dans `_meta`) ; ADR 0027 précisée. `S-2026-10-20-3` garde son
+      agent : le journal ne se réécrit pas.
+    - M1 : `init` ne crée pas le tableau blanc vide de la spec : écart dit (ADR 0033, plus
+      bas).
+    - M2 : `uninit` effaçait tout `.timonier/`, plan migré compris, sans demander : ta
+      réponse Q54, corrigé (6.9).
+    - M3 : « configuré » d'après `init.json` et non `plan.json` (Q18) : ta réponse Q55.
+    - m1 : un commentaire seul n'est ni non suivi ni en dette : ta réponse Q56, gardé.
+    - m2 : une erreur du démon lui-même (verrou empoisonné, démon arrêté) rendait une erreur
+      JSON-RPC sans en-tête : le démon la rend maintenant en erreur d'outil `internal`, avec
+      l'en-tête (test `a_failure_of_the_daemon_is_a_tool_error_with_the_header`). Reste sans
+      en-tête une panne de la liaison au démon (le démon absent) : l'en-tête vient du démon,
+      il n'y en a pas de vrai à donner.
+    - m3 : onze critères tronqués sur « … : » complétés par « voir PLAN.md », par
+      `plan_update_task` ; les titres de plus de 200 caractères finissent par « … ».
+    - m4, m5, m6 : écarts dits plus bas. m7 : `similar` ajouté au tableau. m8 : tests
+      unitaires de `uninit.rs` et `hook.rs` (la décision du hook d'arrêt isolée et testée).
+      m9 : ADR 0033 alignée sur les textes écrits (« Initialise Timonier »).
+  - Relecture n° 2 (2026-10-20), contre-vérification : « pas prête ». Contrôles verts. Les
+    corrections de la n° 1 vérifiées, sauf :
+    - Bloquant : quand le démon (celui de VSCode) a créé `.timonier/` avant `init`, `uninit`
+      gardait le suivi écrit par `init` seul, ne rendait pas l'arbre d'origine, et disait le
+      suivi « là avant ». Corrigé : `init` note s'il y avait un suivi avant lui
+      (`tracked_before`, un plan ou une session), et `uninit` en juge, pas du dossier ; le
+      dossier ne part entier que s'il est d'`init`, sinon seuls `plan.json`, `todo.json`,
+      `sessions/` (et `intent.json` sous `--purge`) partent. Test
+      `uninit_takes_back_what_init_wrote_into_a_folder_the_daemon_made` (démon lancé avant
+      `init`, un commit par le hook).
+    - Majeur : depuis la bascule, le pont et le hook prenaient la Phase 0 pour le jalon en
+      cours (des tâches restées à faire dans des phases closes). Corrigé : le jalon d'une
+      tâche en cours, sinon le dernier qui a une tâche faite s'il n'est pas fini, sinon le
+      suivant, sinon le premier non fini ; même règle dans `Bridge.tsx` et le hook, testée des
+      deux côtés.
+    - Majeur : `uninit` laissait `.timonier/actual.json` : il part avec la configuration.
+    - Mineurs corrigés : messages de `--purge` justes ; `init` lit les identifiants que les
+      outils rendent ; `journal.rs` a son test unitaire ; l'ADR 0002 dit « remplacement
+      proposé » ; la liste du README ; les comptes de tests ; le tableau blanc vide : ta
+      réponse Q57.
+    - Mineurs restants, dits : le journal de `S-2026-10-20-3` liste les onze tâches dont j'ai
+      corrigé le critère (un `plan_update_task` rattache la session à sa tâche) ; le test des
+      cinq secondes de la vue finale (une vue, deux colonnes) reste à faire.
+  - Relecture n° 3 (2026-10-20), contre-vérification : « pas prête », aucun bloquant, contrôles
+    verts, les corrections de la n° 2 tiennent.
+    - Majeur : 6.6 était faite sans le test des cinq secondes de la vue livrée (une vue, deux
+      colonnes). T-76 rouverte (`plan_update_task`, avec une note) jusqu'à ce test.
+    - Mineurs corrigés : `init.json` d'un projet initialisé avant `tracked_before` ne change
+      plus à la deuxième exécution (le champ, faux, n'est pas écrit) ; `uninit` retire
+      `actual.json` sans condition, comme le dit l'ADR 0033 (test) ; le pont et le hook comptent
+      un jalon fini de la même façon (toutes ses tâches faites ou abandonnées) ; la règle du
+      jalon en cours est écrite dans les ADR 0032 et 0035 ; le hook ne plante plus sur un
+      `plan.json` lisible mais incomplet, il lit alors `PLAN.md` (test) ; Q57 à la ligne
+      « Décisions ».
+  - Relecture n° 4 (2026-10-20), contre-vérification : **« prête »**, aucun bloquant ni majeur,
+    contrôles verts, les corrections de la n° 3 tiennent ; l'écart m5 de la n° 1 vérifié sur
+    une copie de la base (aucun nœud ni arête au snapshot 6). Mineurs corrigés : le hook dit
+    quand `plan.json` ne se lit pas (l'état des tâches est inconnu, `PLAN.md` ne le tient plus,
+    test) ; un commentaire de code en anglais ; le cas « tous les jalons finis » écrit dans
+    l'ADR 0035 ; les décomptes du journal de `S-2026-10-20-3` ; les captures disparues dites ;
+    la première phrase du README au présent. Dit en écart : une session a servi deux tâches.
 
 Critère de sortie : Timonier pilote son propre développement.
 
 Décisions :
-- ADR 0027, 0028, 0029, 0030, 0031, 0032 (« Proposé »).
-Écarts : —
+- ADR 0027 à 0035 (« Proposé ») ; tes réponses Q43 à Q57.
+Écarts :
+- Le journal ne montre pas encore d'effet sur les tests ni sur les performances (Phase 8) ; le
+  SDK OpenTelemetry et le module d'initialisation non plus (6.11, H6).
+- `init --dry-run` liste les appels au démon (session, plan) sans leur diff (6.8).
+- Avant toute session, un changement de code ne se distingue pas de l'indexation initiale : le
+  hook d'arrêt n'en tient compte qu'après la première session, celle d'`init` (6.8).
+- Cursor n'a pas de hook d'arrêt, il ne sait pas bloquer un arrêt ; Gemini CLI attend (Q48).
+- `init` ne crée pas le tableau blanc vide avant la Phase 7 : ta réponse Q57.
+- Le badge du pont n'apparaît que sur une vue déjà ouverte dans la fenêtre (6.12).
+- Bascule (6.13) : les tâches reprises de `PLAN.md` ont pour session la reprise
+  (`S-2026-10-20-2`, sans travail propre), pas celles qui les ont faites (relecture n° 1, m4) ;
+  et du travail a eu lieu sans session entre la reprise et le redémarrage de Claude Code
+  (09:58 à 11:46, hooks, `init/`, `pack.rs`, `PLAN.md`, `CLAUDE.md`), sans écart non suivi
+  enregistré, ce qui laisse penser qu'il ne changeait pas la structure (m5).
+- `S-2026-10-20-3`, première session de Claude Code, a pour agent `mcp-client` (B1, corrigé
+  ensuite), et liste les onze tâches dont elle n'a corrigé que le critère (relecture n° 2) ; elle
+  a aussi servi le test des cinq secondes de 6.6 (T-76), rouverte pendant la relecture : une
+  session pour deux tâches (relecture n° 4).
+- Les captures des tests des cinq secondes n° 1 et 2 de 6.6 et de 6.7
+  (`/mnt/travail/timonier-panneaux-phase6-4.png`, `/mnt/travail/timonier-pont.png`) ont disparu
+  de `/mnt/travail/` (un redémarrage) ; les réponses restent consignées, et la capture du test
+  n° 3 (`/mnt/travail/timonier-vue-suivi.png`) existe.
+- Une panne de la liaison au démon remonte au client MCP sans en-tête de boîte aux lettres
+  (relecture n° 1, m2).
 
 ## Phase 7 — Tableau blanc et intention
 
@@ -2641,33 +2916,33 @@ Statut : à faire
 
 Réponses appliquées : Q3 (pas de tldraw) et Q6.
 
-- [ ] 7.0 ADR sur le remplaçant de tldraw (React Flow ou Excalidraw, voir Q3), soumise à ta
+- 7.0 ADR sur le remplaçant de tldraw (React Flow ou Excalidraw, voir Q3), soumise à ta
   validation car la spec en parlait explicitement — critère : ADR acceptée, licence vérifiée.
-- [ ] 7.1 Tableau blanc dans la webview, avec la bibliothèque retenue en 7.0 — critère : dessin
+- 7.1 Tableau blanc dans la webview, avec la bibliothèque retenue en 7.0 — critère : dessin
   libre, annulation et clavier fonctionnent dans le build de production du panneau, pas
   seulement en développement.
-- [ ] 7.2 Formes typées optionnelles — critère : sérialisation testée. Correspondances :
+- 7.2 Formes typées optionnelles — critère : sérialisation testée. Correspondances :
   - boîte → composant voulu (nom, rôle) ;
   - flèche → arête `allowed`, `forbidden` ou `required` ;
   - zone → couche ;
   - note → contrainte en texte rattachée à un élément ;
   - note budget (latence p50/p95, mémoire max, allocations, nombre d'appels).
-- [ ] 7.3 `.timonier/intent.json` version 1, conforme à la spec : sémantique séparée de la
+- 7.3 `.timonier/intent.json` version 1, conforme à la spec : sémantique séparée de la
   géométrie, IDs `C-` / `E-` / `L-` / `N-` stables, écrit seulement sur action de l'humain,
   ordre stable pour des diffs git lisibles, schéma JSON — critère : round-trip testé ; les
   IDs ne changent pas quand une forme est déplacée.
-- [ ] 7.4 Interprétation du dessin libre (texte et vision), selon Q6 — critère : défini avec la
+- 7.4 Interprétation du dessin libre (texte et vision), selon Q6 — critère : défini avec la
   réponse.
-- [ ] 7.5 Outils MCP `get_intended_architecture` et `get_drift` — critère : tests
+- 7.5 Outils MCP `get_intended_architecture` et `get_drift` — critère : tests
   d'intégration MCP.
-- [ ] 7.6 Option « comparer à l'intention » sur la carte — critère : des fixtures d'intention et
+- 7.6 Option « comparer à l'intention » sur la carte — critère : des fixtures d'intention et
   de graphe donnent la dérive attendue. Contenu :
   - ancrage boîte dessinée ↔ composant réel par nom et emplacement, calculé et jamais écrit ;
   - composants dessinés mis en évidence, composants manquants listés ;
   - arêtes interdites franchies signalées (une arête entre couches s'applique à tout leur
     contenu) ;
   - arêtes requises absentes signalées.
-- [ ] 7.7 Relecture par `phase-reviewer` — critère : verdict « prête ».
+- 7.7 Relecture par `phase-reviewer` — critère : verdict « prête ».
 
 Critère de sortie (proposé, à valider) : tu dessines trois boîtes et une flèche interdite pour
 Timonier ; la carte les met en évidence, liste les manquants et signale la violation ; l'agent
@@ -2680,45 +2955,45 @@ Décisions : —
 
 Statut : à faire
 
-- [ ] 8.1 ADR — critère : ADR acceptées. Sujets :
+- 8.1 ADR — critère : ADR acceptées. Sujets :
   - stockage des traces et des métriques ;
   - nom de la feature qui désactive l'instrumentation ;
   - niveau 1 sur macOS (H8) ;
   - compteurs matériels.
-- [ ] 8.2 `timonier test -- <commande>`, niveau 1 — critère : test d'intégration sur un projet
+- 8.2 `timonier test -- <commande>`, niveau 1 — critère : test d'intégration sur un projet
   fixture. Contenu :
   - durée, CPU, mémoire max et I/O via cgroups v2 / procfs sur Linux, avec un repli sur
     macOS ;
   - durée par test lue dans le JUnit XML (quick-junit 0.8).
-- [ ] 8.3 Injection de `OTEL_EXPORTER_OTLP_ENDPOINT` et `OTEL_RESOURCE_ATTRIBUTES`
+- 8.3 Injection de `OTEL_EXPORTER_OTLP_ENDPOINT` et `OTEL_RESOURCE_ATTRIBUTES`
   (`timonier.run_id`, `timonier.snapshot`) ; chaque test devient un span racine — critère :
   test.
-- [ ] 8.4 `timonier-otlp` : récepteur gRPC 4317 et HTTP 4318 (tonic 0.14, opentelemetry-proto
+- 8.4 `timonier-otlp` : récepteur gRPC 4317 et HTTP 4318 (tonic 0.14, opentelemetry-proto
   0.33), ports occupés gérés, rattachement au graphe par les attributs `code.*` — critère :
   test d'intégration avec un vrai exporteur OTLP.
-- [ ] 8.5 Vérification de l'instrumentation : fonctions publiques jamais vues, spans sans
+- 8.5 Vérification de l'instrumentation : fonctions publiques jamais vues, spans sans
   `code.*`, surcoût estimé contre le niveau 1 ; outils MCP `get_instrumentation_gaps` et
   `get_instrumentation_conventions(lang)` — critère : une fixture aux trous connus les fait
   tous remonter.
-- [ ] 8.6 Instrumentation — critère : `timonier doctor` produit une trace rattachée au graphe.
+- 8.6 Instrumentation — critère : `timonier doctor` produit une trace rattachée au graphe.
   Contenu :
   - Timonier s'instrumente lui-même, derrière la feature ;
   - volet instrumentation de `timonier init` pour Rust et TS (SDK OpenTelemetry, module
     d'initialisation) ;
   - test de fumée de `timonier doctor` (H6).
-- [ ] 8.7 Vues — critère : test des cinq secondes. Contenu :
+- 8.7 Vues — critère : test des cinq secondes. Contenu :
   - timeline par test (spans emboîtés, ressources du processus dessous, uPlot) ;
   - carte annotée (temps cumulé, nombre d'appels, arêtes épaissies selon le trafic) ;
   - évolution par commit ;
   - à ta demande (2026-10-18), s'inspirer des panneaux « Performances » des outils de
     développement de Chrome et de Firefox : un arbre des appels qu'on déplie, avec le temps
     passé en ms et les ressources utilisées à chaque niveau.
-- [ ] 8.8 Budgets — critère : un budget dépassé volontairement est visible sur la carte et
+- 8.8 Budgets — critère : un budget dépassé volontairement est visible sur la carte et
   lisible via MCP. Contenu :
   - chaque note budget de l'intention est comparée à la médiane de plusieurs runs ;
   - un dépassement apparaît en rouge, avec une icône, sur la carte et dans le journal ;
   - outils MCP `get_budgets`, `get_budget_violations` et `get_perf(component)`.
-- [ ] 8.9 Détection de régressions selon la méthode décidée dans la spec — critère : tests
+- 8.9 Détection de régressions selon la méthode décidée dans la spec — critère : tests
   statistiques sur des jeux de données connus ; une fonction ralentie exprès passe de
   « probable » à « confirmée ». Méthode :
   - instructions CPU par compteurs matériels quand c'est possible, temps réel affiché ;
@@ -2727,7 +3002,7 @@ Statut : à faire
   - régression signalée si Mann-Whitney p < 0,01 et écart ≥ max(5 %, 3 × MAD) ;
   - « probable », puis « confirmée » après un nouveau run ;
   - référence réinitialisée si l'empreinte de la machine change.
-- [ ] 8.10 Relecture par `phase-reviewer` — critère : verdict « prête ».
+- 8.10 Relecture par `phase-reviewer` — critère : verdict « prête ».
 
 Reporté de la Phase 4 (Écarts) : le coût de Timonier lui-même sur un grand dépôt, mesuré par
 les relectures n° 15 et 16 sur des dépôts synthétiques (build release, tmpfs) :
@@ -2750,7 +3025,7 @@ Décisions : —
 
 Statut : à faire
 
-- [ ] 9.1 Inventaire des technologies, exposé par l'outil MCP `get_tech_inventory` — critère :
+- 9.1 Inventaire des technologies, exposé par l'outil MCP `get_tech_inventory` — critère :
   sur Timonier, un SBOM valide ; les doublons d'une fixture sont détectés. Contenu :
   - lecture des manifestes (`Cargo.toml`, `package.json` ; `pyproject.toml` et `go.mod` si le
     temps le permet) ;
@@ -2758,7 +3033,7 @@ Statut : à faire
     licences ;
   - CVE connues (source fixée par ADR, accès réseau) ;
   - doublons fonctionnels, et dépendances ajoutées depuis la dernière revue.
-- [ ] 9.2 Processus de développement — critère : le scénario « Solo discipliné » fonctionne de
+- 9.2 Processus de développement — critère : le scénario « Solo discipliné » fonctionne de
   bout en bout sur un dépôt de test. Contenu :
   - préréglages Solo rapide, Solo discipliné et Équipe ; `.timonier/workflow.json` ;
     panneau de réglages ; bloc géré dérivé du processus ;
@@ -2767,15 +3042,19 @@ Statut : à faire
   - génération du workflow de CI ;
   - outils MCP `get_workflow`, `task_start`, `open_pull_request` et `link_ticket` ;
   - jetons dans le trousseau de l'IDE.
-- [ ] 9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est
+- 9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est
   pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche.
   Sans source, la valeur est « non mesuré », jamais une estimation inventée — critère : une
   session réelle donne des tokens attribués.
-- [ ] 9.4 Assistant « Nouveau projet piloté », selon Q8 — critère : défini avec la réponse.
-- [ ] 9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage » —
+- 9.4 Assistant « Nouveau projet piloté », selon Q8 — critère : défini avec la réponse.
+- 9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage » —
   critère : verdict « prête ».
-- [ ] 9.6 Critère de sortie du MVP selon la spec : un projet réel (Q9) piloté de bout en bout
+- 9.6 Critère de sortie du MVP selon la spec : un projet réel (Q9) piloté de bout en bout
   sans lire le code ligne à ligne — critère : constaté avec toi.
+- 9.7 Publication de l'extension, selon Q58 et Q59, avant la relecture 9.5 : un `.vsix` par
+  plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
+  le dépôt public (Q2) ; l'éditeur `NicolasMichel` (Q12) — critère : l'extension installée depuis
+  la Marketplace configure un projet et montre sa carte, sans rien installer à part.
 
 Décisions : —
 Écarts : —
@@ -2816,6 +3095,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | scip | 0.10.0 | Apache-2.0 | v2 ; dépend de rust-protobuf, pas de prost |
 | procfs / cgroups-rs | 0.18.0 / 0.5.1 | MIT OR Apache-2.0 | |
 | insta / proptest / tempfile / assert_cmd | 1.49.0 / 1.12.0 / 3.27.0 / 2.2.2 | Apache-2.0 / MIT OR Apache-2.0 | |
+| similar | 2.7.0 | Apache-2.0 | Vérifié le 2026-10-20 (la 3.2.0 existe) ; déjà dans le dépôt par insta, utilisé pour le diff de `timonier init --dry-run` (ADR 0033) |
 | @xyflow/react | 12.12.0 | MIT | Pas `reactflow` (figé). Revérifié et utilisé le 2026-10-16 (ADR 0021) ; zustand, classcat, @xyflow/system, use-sync-external-store en MIT |
 | d3-drag, -zoom, -selection, -transition, -interpolate, -color, -dispatch, -timer / d3-ease | 3.x | ISC / BSD-3-Clause | Vérifiés le 2026-10-16 ; tirés par @xyflow/system, empaquetés dans la webview avec leur notice |
 | scheduler | 0.28.0 | MIT | Vérifié le 2026-10-16 ; tiré par react-dom |

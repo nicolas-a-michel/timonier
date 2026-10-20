@@ -10,7 +10,9 @@ vivante, tableau blanc d'intention, performances mesurées pendant les tests, pl
 - L'extension lance le démon du projet (le programme `timonier`), et le relance s'il s'arrête.
   Son journal est dans le canal de sortie « Timonier ».
 - L'icône Timonier (une barre à roue) de la barre d'activité ouvre la vue d'ensemble, le
-  pont. Il répond en quelques secondes à trois questions :
+  pont. Dans un projet pas encore configuré pour vos agents, il le dit en haut, avec le bouton
+  « Configurer » qui lance `timonier init` dans un terminal (l'icône porte alors un badge). Il
+  répond en quelques secondes à trois questions :
   - où en est le plan : le jalon en cours, son avancement, la session d'agent ouverte ;
   - que s'est-il passé depuis votre dernière revue : boîtes nouvelles, modifiées, supprimées,
     dépendances, sessions d'agent et fichiers à relire ;

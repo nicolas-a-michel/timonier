@@ -1,0 +1,5 @@
+# >>> timonier >>>
+# The tests' JUnit XML, for `timonier test` (timonier init).
+[profile.timonier.junit]
+path = "junit.xml"
+# <<< timonier <<<

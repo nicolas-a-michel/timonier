@@ -104,3 +104,27 @@ outside = [
   "setInterval", "clearInterval", "requestAnimationFrame", "queueMicrotask", "fetch",
   "structuredClone", "NodeJS", "Buffer", "process", "require", "module", "Thenable",
 ]
+
+# How the tests run and write JUnit XML (ADR 0034): the first runner the `test` script of
+# package.json names. Checked with vitest 5.0.4 and Node 24.18.
+[[tests.runners]]
+name = "npm workspaces"
+uses = "--workspaces"
+info = "the tests run in several workspaces, each with its runner: `timonier test` (Phase 8) wraps each of them; for now no single command writes their JUnit XML."
+
+[[tests.runners]]
+name = "vitest"
+uses = "vitest"
+command = "npx vitest run --reporter=default --reporter=junit --outputFile.junit=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+
+[[tests.runners]]
+name = "node:test"
+uses = "node --test"
+command = "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+
+[[tests.runners]]
+name = "jest"
+uses = "jest"
+note = "jest writes JUnit XML through the jest-junit package: add it as a development dependency."

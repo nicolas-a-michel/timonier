@@ -1,6 +1,6 @@
 # 0030 — Dette de revue
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Pilotage » (dette de revue, non suivi) ; Q43, Q44 ; ADR 0010 (diff de

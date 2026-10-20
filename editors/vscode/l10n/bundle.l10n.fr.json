@@ -18,5 +18,6 @@
   "Which box to show on the map?": "Quelle boîte montrer sur la carte ?",
   "{0} files to read again": "{0} fichiers à relire",
   "untracked": "non suivi",
-  "cycle added": "cycle ajouté"
+  "cycle added": "cycle ajouté",
+  "This project is not set up for your agents": "Ce projet n'est pas configuré pour vos agents"
 }

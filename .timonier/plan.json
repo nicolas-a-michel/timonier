@@ -1,0 +1,1528 @@
+{
+  "version": 1,
+  "milestones": [
+    {
+      "id": "M-1",
+      "title": "Initialisation",
+      "tasks": [
+        {
+          "id": "T-1",
+          "title": "Configure Timonier",
+          "criterion": "timonier init has configured the agents, the MCP server and the hooks",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-1"
+          ],
+          "created": {
+            "at": "2026-10-20T09:46:19Z",
+            "session": "S-2026-10-20-1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-2",
+      "title": "Phase 0 — Équiper l'environnement Claude Code du projet",
+      "tasks": [
+        {
+          "id": "T-2",
+          "title": "0.1 Lire `docs/spec.md` en entier",
+          "criterion": "contradictions et manques relevés dans « Questions ouvertes »",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-3",
+          "title": "0.2 Vérifier dans la documentation officielle le format actuel des skills, hooks, subagents et `settings.json`",
+          "criterion": "sources et date citées dans l'ADR 0001",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-4",
+          "title": "0.3 Vérifier existence, version et licence des paquets nommés par la spec",
+          "criterion": "tableau « Dépendances vérifiées » plus bas",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-5",
+          "title": "0.4 Initialiser le dépôt git (branche `main`) et écrire `.gitignore`",
+          "criterion": "`.claude/state/` et `.claude/settings.local.json` sont ignorés",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-6",
+          "title": "0.5 Écrire `CLAUDE.md`",
+          "criterion": "vision, carte du dépôt, commandes, règles, pointeurs, hooks documentés avec leur test manuel",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-7",
+          "title": "0.6 Écrire les sept skills (`rust-daemon`, `graph-model`, `language-pack`, `vscode-webview-ui`, `mcp-tools`, `otel-instrumentation`, `adr`)",
+          "criterion": "frontmatter conforme à la doc, avec une description qui dit quand les utiliser",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-8",
+          "title": "0.7 Écrire les hooks (`.claude/settings.json`, `.claude/hooks/`)",
+          "criterion": "`node --test .claude/hooks/hooks.test.mjs` vert, et chaque script exécuté à la main avec une entrée réelle",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-9",
+          "title": "0.8 Écrire le subagent `phase-reviewer`",
+          "criterion": "outils en lecture seule (`Read`, `Grep`, `Glob`, `Bash`), rapport en français",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-10",
+          "title": "0.9 Écrire les ADR 0001 et 0002, l'index `docs/adr/README.md` et le modèle d'ADR",
+          "criterion": "fichiers présents, index à jour",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-11",
+          "title": "0.10 Rédiger et soumettre `PLAN.md`",
+          "criterion": "chaque tâche a un critère vérifiable",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-12",
+          "title": "0.11 Vérification par l'humain dans une nouvelle session (hooks, skills, subagent, CLAUDE.md)",
+          "criterion": "critère de sortie du prompt : voir PLAN.md",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-13",
+          "title": "0.12 Validation de ce plan et réponses à Q1–Q7",
+          "criterion": "réponses consignées ici. Feu vert donné le 2026-10-14",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-3",
+      "title": "Phase 1 — Squelette du dépôt",
+      "tasks": [
+        {
+          "id": "T-14",
+          "title": "1.1 Ajouter la licence MIT (« Copyright (c) 2026 Nicolas Michel »)",
+          "criterion": "fichier `LICENSE` présent ; `license = \"MIT\"` dans `Cargo.toml` et `package.json` ; `cargo metadata` et `npm pkg get license` renvoient `MIT`",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-15",
+          "title": "1.2 Fixer la toolchain : `rust-toolchain.toml` (stable, rustfmt, clippy), édition 2024 et `rust-version` dans `[workspace.package]`, `rustfmt.toml`",
+          "criterion": "`cargo fmt --all --check` vert ; ADR toolchain et MSRV (stable actuelle 1.99, 1.96 installée en local)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-16",
+          "title": "1.3 Créer le workspace Cargo avec les sept crates (`timonier-core`, `-store`, `-index`, `-daemon`, `-otlp`, `-mcp`, `-cli`)",
+          "criterion": "`cargo build --workspace` vert ; ADR sur le découpage, le sens des dépendances et le crate qui porte les types du protocole",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-17",
+          "title": "1.4 Binaire `timonier` et alias `tim` (clap 4.6), avec `--version` et `--help`",
+          "criterion": "`timonier --version` et `tim --version` impriment la même chaîne (test assert_cmd) ; ADR sur le mécanisme d'alias",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-18",
+          "title": "1.5 Lints du workspace (`[workspace.lints]`)",
+          "criterion": "`cargo clippy --workspace --all-targets -- -D warnings` vert",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-19",
+          "title": "1.6 Un test de fumée par crate",
+          "criterion": "`cargo test --workspace` vert",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-20",
+          "title": "1.7 Monorepo Node",
+          "criterion": "`npm ci && npm run lint && npm run typecheck && npm test` verts ; ADR gestionnaire de paquets et bundler de l'extension (H12)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-21",
+          "title": "1.8 `webview/` : application React 19 + Vite 8 qui affiche un état vide (tokens `--tim-*` minimaux sur les variables VSCode)",
+          "criterion": "`npm run build -w webview` produit le bundle ; test vitest vert",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-22",
+          "title": "1.9 `editors/vscode/` : extension avec la commande « Timonier : Ouvrir la carte », qui ouvre un panneau webview chargeant le bundle de `webview/` sous une CSP stricte (nonce, `localResourceRoots`)",
+          "criterion": "F5 (« Run Extension ») ouvre le panneau vide en thème clair et sombre ; un test d'intégration `@vscode/test-cli` exécute la commande et vérifie la création du panneau",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-23",
+          "title": "1.10 Packaging",
+          "criterion": "`npx @vscode/vsce package` produit un `.vsix` que `code --install-extension` installe",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-24",
+          "title": "1.11 Activer les hooks sur le squelette",
+          "criterion": "test manuel documenté dans `CLAUDE.md` (une erreur de type introduite bloque la fin de tour une fois). Changements : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-25",
+          "title": "1.12 CI GitHub Actions sur ubuntu-latest et macos-latest",
+          "criterion": "chaque étape du workflow passe en local sous Linux. Le vert sur les deux OS sera constaté au premier push sur le dépôt public créé par toi (Q2). Étapes : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-26",
+          "title": "1.13 `README.md` minimal en français (ce qu'est Timonier, état, comment construire) et commandes de `CLAUDE.md` à jour",
+          "criterion": "relu",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-27",
+          "title": "1.15 Icône Timonier dans la barre d'activité, ajoutée à ta demande du 2026-10-14",
+          "criterion": "un conteneur Timonier avec une icône 24×24 d'une seule couleur, une vue « Vue d'ensemble » dont l'accueil propose « Ouvrir la carte », et un bouton de carte dans sa barre de titre ; tests unitaires du manifeste et test d'intégration verts ; ADR 0007",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-28",
+          "title": "1.14 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête », ou réserves traitées. Réserves traitées (voir plus bas) ; il n'y a pas eu de seconde relecture",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-4",
+      "title": "Phase 2 — Modèle de graphe et stockage",
+      "tasks": [
+        {
+          "id": "T-29",
+          "title": "2.1 Écrire les ADR",
+          "criterion": "ADR écrites (statut « Proposé ») avant le code qui en dépend, puis acceptées quand tu valides la phase (procédure du skill `adr`). Sujets : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-30",
+          "title": "2.2 `timonier-core` : les types `Node`, `NodeKind`, `SymbolKind`, `Edge`, `EdgeKind`, `Provenance`, la confiance, le poids et le span, sérialisables (serde)",
+          "criterion": "round-trip JSON testé pour chaque type",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-31",
+          "title": "2.3 Identité stable : symbole SCIP ou `lang:qualified_name`",
+          "criterion": "tests unitaires et proptest (`parse(format(id)) == id`)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-32",
+          "title": "2.4 Invariant d'arbre strict : un seul parent, pas de cycle",
+          "criterion": "un proptest génère arbres et reparentages, et toute violation est refusée par une erreur typée",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-33",
+          "title": "2.5 Règles de fusion multi-sources",
+          "criterion": "tests en table : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-34",
+          "title": "2.6 Détection des déplacements par signature et hash du corps normalisé, avec un seuil fixé par ADR",
+          "criterion": "un fichier renommé, une fonction déplacée entre deux fichiers et une fonction renommée à corps égal donnent « déplacé », jamais « supprimé + ajouté »",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-35",
+          "title": "2.7 `timonier-store`",
+          "criterion": "migrations testées sur base vide ; test de lectures concurrentes pendant les écritures",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-36",
+          "title": "2.8 Mise à jour par différence d'un fichier",
+          "criterion": "réappliquer un fichier identique modifie 0 ligne ; modifier un symbole ferme un intervalle et en ouvre un",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-37",
+          "title": "2.9 Snapshots `commit`, `review_mark` et `working_tree`",
+          "criterion": "création, liste et cohérence des intervalles testées",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-38",
+          "title": "2.10 Requête de diff entre deux snapshots : ajouts, suppressions, modifications, déplacements",
+          "criterion": "tests sur fixtures ; un déplacement de fichier est rapporté comme déplacement",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-39",
+          "title": "2.11 Arêtes entre composants agrégées par requête depuis les arêtes de symboles, jamais stockées à la main",
+          "criterion": "test du poids agrégé attendu",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-40",
+          "title": "2.12 Mesure de référence : insertion et diff sur un graphe synthétique",
+          "criterion": "chiffres consignés dans ce plan",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-41",
+          "title": "2.13 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête ». Obtenu à la troisième relecture ; ses mineurs ont ensuite été corrigés",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-5",
+      "title": "Phase 3 — Indexation",
+      "tasks": [
+        {
+          "id": "T-42",
+          "title": "3.1 ADR sur le format des packs de langage : manifeste versionné, requêtes `.scm`, heuristiques, emplacement",
+          "criterion": "ADR écrite (« Proposé »), acceptée quand tu valides la phase (Q15) ; skill `language-pack` mis à jour",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-43",
+          "title": "3.2 Packs Rust et TypeScript : grammaires (tree-sitter 0.27.1, tree-sitter-rust 0.24.2, tree-sitter-typescript 0.23.2), requêtes de définitions, d'imports et d'appels/références",
+          "criterion": "snapshots insta des nœuds et arêtes extraits de fixtures Rust et TS",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-44",
+          "title": "3.3 Noms qualifiés stables et hash de corps normalisé, par langage",
+          "criterion": "reformater un fichier ne change aucune identité (test)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-45",
+          "title": "3.4 Indexation initiale parallélisée, avec un cache persistant (hash par fichier)",
+          "criterion": "une deuxième indexation sans changement ne reparse aucun fichier (compteur)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-46",
+          "title": "3.5 Vitesse 1, à la sauvegarde",
+          "criterion": "latence mesurée selon H2",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-47",
+          "title": "3.6 Vitesse 2, en arrière-plan, selon Q5",
+          "criterion": "test avec un serveur LSP réel ou un double conforme",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-48",
+          "title": "3.7 Vitesse 3, au commit : détection du commit, re-clustering complet initialisé par la partition précédente, snapshot `commit` figé, sans SCIP (H4)",
+          "criterion": "test d'intégration sur un dépôt git temporaire",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-49",
+          "title": "3.8 Composants",
+          "criterion": "stabilité mesurée (une petite modification change moins de X % des affectations, seuil fixé par ADR)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-50",
+          "title": "3.9 Rôles architecturaux et dépendances externes",
+          "criterion": "sur Timonier, les rôles attendus sont vérifiés par un test (par exemple `timonier-daemon` = serveur, `timonier-store` = persistance)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-51",
+          "title": "3.10 Compaction au-delà d'environ 50 000 arêtes de symboles",
+          "criterion": "test de charge synthétique",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-52",
+          "title": "3.11 Mesures sur le dépôt Timonier",
+          "criterion": "indexation à froid ≤ 3 s (H3) et mise à jour p95 < 100 ms (H2), chiffres et machine consignés",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-53",
+          "title": "3.12 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête ». **Non atteint.**",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-6",
+      "title": "Phase 4 — Démon, extension et carte",
+      "tasks": [
+        {
+          "id": "T-54",
+          "title": "4.1 ADR sur le protocole",
+          "criterion": "ADR écrite (« Proposé »), acceptée à la validation de la phase (Q15). [ADR 0019](docs/adr/0019-protocole-demon-extension.md). Sujets : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-55",
+          "title": "4.2 Serveur JSON-RPC 2.0 sur socket Unix : `initialize`, abonnement et désabonnement par vue, deltas versionnés, snapshot complet en cas de désynchronisation, arrêt",
+          "criterion": "tests d'intégration client Rust ↔ démon, dont une désynchronisation simulée qui renvoie un snapshot complet",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-56",
+          "title": "4.3 CLI `timonier daemon start|stop|status`",
+          "criterion": "tests assert_cmd",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-57",
+          "title": "4.4 Extension : lancement et supervision du démon (redémarrage avec backoff, canal de sortie « Timonier »), client JSON-RPC (vscode-jsonrpc 9.0), relais postMessage typé",
+          "criterion": "test d'intégration extension ↔ démon réel ; un démon tué est relancé et la vue se resynchronise",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-58",
+          "title": "4.5 Relais du LSP de l'IDE vers le démon, si Q5 le retient",
+          "criterion": "définitions et références obtenues via l'API VSCode et reçues par le démon (test)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-59",
+          "title": "4.6 Système de design minimal, avant la première vue",
+          "criterion": "contraste AA vérifié automatiquement (axe-core) en clair, sombre et contraste élevé ; ADR sur le système de design. [ADR 0020](docs/adr/0020-systeme-de-design.md)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-60",
+          "title": "4.7 Carte (React Flow 12.12 + elkjs 0.12)",
+          "criterion": "sur Timonier, la vue d'ouverture tient en quelques boîtes nommées par rôle",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-61",
+          "title": "4.8 Mise en page stable, avec les positions précédentes comme contraintes d'elkjs",
+          "criterion": "après la modification d'un fichier, le déplacement moyen des nœuds inchangés reste sous un seuil mesuré et consigné",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-62",
+          "title": "4.9 Navigation",
+          "criterion": "test d'intégration de l'ouverture du code ; checklist d'accessibilité du skill",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-63",
+          "title": "4.10 Rendu par niveau de détail, avec agrégation au-delà d'un seuil de nœuds",
+          "criterion": "images par seconde mesurées et consignées sur un graphe synthétique de plusieurs milliers de nœuds",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-64",
+          "title": "4.11 Test des cinq secondes avec toi",
+          "criterion": "réussi et consigné",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-65",
+          "title": "4.12 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête ». **Atteint avec réserves** : la relecture n° 18 rend « prête avec réserves », sans rien qui bloque ; tu as décidé de clore ainsi le 2026-10-18 (Q24)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-7",
+      "title": "Phase 5 — Diff de revue",
+      "tasks": [
+        {
+          "id": "T-66",
+          "title": "5.1 Commande et bouton « Marquer comme revu », qui crée un snapshot `review_mark` (méthode JSON-RPC) avec une confirmation discrète",
+          "criterion": "test d'intégration",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-67",
+          "title": "5.2 Diff structurel depuis la dernière `review_mark`",
+          "criterion": "tests sur des paires de snapshots fixtures. Les arêtes pendantes, que les lectures brutes renvoient, sont filtrées (ADR 0009). Le diff montre : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-68",
+          "title": "5.3 Rendu sur la carte : badges avec icône et texte (jamais la couleur seule), filtre « seulement les changements », résumé",
+          "criterion": "checklist d'accessibilité ; test des cinq secondes",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-69",
+          "title": "5.4 Snapshots de commit exacts (Q23) : le gel prend aussi les manifestes du commit et la présence de `src/lib.rs`",
+          "criterion": "tests d'un manifeste modifié sans commit (crate renommée, dépendance ajoutée) et d'un `src/lib.rs` présent d'un seul côté, dont le snapshot décrit le commit",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-70",
+          "title": "5.5 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête ». Atteint avec réserves (Q42) : la relecture n° 8 ne trouve ni bloquant ni important, et conclut « prête avec réserves » une fois le test des cinq secondes passé ; ses mineurs sont corrigés ou notés en écarts",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-8",
+      "title": "Phase 6 — MCP, initialisation et suivi",
+      "tasks": [
+        {
+          "id": "T-71",
+          "title": "6.1 ADR",
+          "criterion": "ADR acceptées. Sujets : voir PLAN.md",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3",
+            "S-2026-10-20-4"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T13:12:10Z",
+              "session": "S-2026-10-20-4",
+              "text": "ADR 0027 à 0035 acceptées par l'humain le 2026-10-20."
+            }
+          ]
+        },
+        {
+          "id": "T-72",
+          "title": "6.2 `timonier-mcp` : serveur MCP, mince proxy vers le démon (qu'il démarre au besoin), avec l'en-tête de boîte aux lettres dans chaque réponse (H10)",
+          "criterion": "test d'intégration client MCP → proxy → démon ; snapshot de la liste des outils",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-73",
+          "title": "6.3 Outils de suivi `session_start`, `session_end`, `plan_add_task`, `plan_update_task`, `todo_add`, `todo_complete`, plus les outils de lecture selon Q10. Écritures structurées et validées, le démon…",
+          "criterion": "les entrées invalides et les transitions d'état interdites sont refusées (tests)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-74",
+          "title": "6.4 Les changements faits hors session sont marqués « non suivis »",
+          "criterion": "une modification sans session ouverte est marquée (test)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-75",
+          "title": "6.5 Dette de revue : chaleur par composant (code écrit en session et non couvert par une `review_mark` ultérieure ; changements hors session = non suivis), en calque sur la carte",
+          "criterion": "test sur fixtures ; checklist d'accessibilité",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-76",
+          "title": "6.6 Panneaux",
+          "criterion": "les panneaux se mettent à jour en direct quand l'agent appelle les outils (test d'intégration) ; test des cinq secondes",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T12:47:38Z",
+              "session": "S-2026-10-20-3",
+              "text": "Rouverte (relecture n° 3 de la Phase 6, M1) : la vue livrée, une vue à deux colonnes collées dans la barre latérale secondaire, n'a pas encore son test des cinq secondes."
+            },
+            {
+              "at": "2026-10-20T12:56:47Z",
+              "session": "S-2026-10-20-3",
+              "text": "Test des cinq secondes n° 3 réussi sur la vue livrée (deux colonnes collées)."
+            }
+          ]
+        },
+        {
+          "id": "T-77",
+          "title": "6.7 Le pont (H5) : où en est le plan, ce qui s'est passé depuis la dernière revue, où regarder",
+          "criterion": "test des cinq secondes",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-78",
+          "title": "6.8 `timonier init`",
+          "criterion": "tests sur des projets fixtures Rust et TS ; une deuxième exécution ne change rien ; `--dry-run` affiche le diff exact",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-79",
+          "title": "6.9 `timonier uninit`",
+          "criterion": "init puis uninit rend un arbre identique à l'original (test)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-80",
+          "title": "6.10 `timonier doctor` : vérifie et répare la configuration (MCP déclaré, bloc géré à jour, conventions présentes). Le test de fumée tracé arrive en Phase 8 (H6)",
+          "criterion": "chaque diagnostic et chaque réparation sont testés",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-81",
+          "title": "6.11 Packs Rust et TypeScript, volet init : détection du runner, configuration JUnit XML, conventions copiées dans `.timonier/conventions/`",
+          "criterion": "tests sur fixtures",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-82",
+          "title": "6.12 Détection dans VSCode d'un dépôt non configuré, avec une proposition discrète de lancer init",
+          "criterion": "test d'intégration",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-83",
+          "title": "6.13 Bascule : `timonier init` sur le dépôt Timonier. Ensuite, une session Timonier par tâche, et plan et todo tenus via MCP selon Q11",
+          "criterion": "vérifiable dans le journal des sessions",
+          "status": "in_progress",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-84",
+          "title": "6.14 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête »",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T13:05:05Z",
+              "session": "S-2026-10-20-3",
+              "text": "Relecture n° 4 : « prête » ; ses mineurs corrigés."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M-9",
+      "title": "Phase 7 — Tableau blanc et intention",
+      "tasks": [
+        {
+          "id": "T-85",
+          "title": "7.0 ADR sur le remplaçant de tldraw (React Flow ou Excalidraw, voir Q3), soumise à ta validation car la spec en parlait explicitement",
+          "criterion": "ADR acceptée, licence vérifiée",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-86",
+          "title": "7.1 Tableau blanc dans la webview, avec la bibliothèque retenue en 7.0",
+          "criterion": "dessin libre, annulation et clavier fonctionnent dans le build de production du panneau, pas seulement en développement",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-87",
+          "title": "7.2 Formes typées optionnelles",
+          "criterion": "sérialisation testée. Correspondances : voir PLAN.md",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-88",
+          "title": "7.3 `.timonier/intent.json` version 1, conforme à la spec : sémantique séparée de la géométrie, IDs `C-` / `E-` / `L-` / `N-` stables, écrit seulement sur action de l'humain, ordre stable pour des di…",
+          "criterion": "round-trip testé ; les IDs ne changent pas quand une forme est déplacée",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-89",
+          "title": "7.4 Interprétation du dessin libre (texte et vision), selon Q6",
+          "criterion": "défini avec la réponse",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-90",
+          "title": "7.5 Outils MCP `get_intended_architecture` et `get_drift`",
+          "criterion": "tests d'intégration MCP",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-91",
+          "title": "7.6 Option « comparer à l'intention » sur la carte",
+          "criterion": "des fixtures d'intention et de graphe donnent la dérive attendue",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-92",
+          "title": "7.7 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête »",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-10",
+      "title": "Phase 8 — Performances",
+      "tasks": [
+        {
+          "id": "T-93",
+          "title": "8.1 ADR",
+          "criterion": "ADR acceptées. Sujets : voir PLAN.md",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-94",
+          "title": "8.2 `timonier test -- <commande>`, niveau 1",
+          "criterion": "test d'intégration sur un projet fixture",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-95",
+          "title": "8.3 Injection de `OTEL_EXPORTER_OTLP_ENDPOINT` et `OTEL_RESOURCE_ATTRIBUTES` (`timonier.run_id`, `timonier.snapshot`) ; chaque test devient un span racine",
+          "criterion": "test",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-96",
+          "title": "8.4 `timonier-otlp` : récepteur gRPC 4317 et HTTP 4318 (tonic 0.14, opentelemetry-proto 0.33), ports occupés gérés, rattachement au graphe par les attributs `code.*`",
+          "criterion": "test d'intégration avec un vrai exporteur OTLP",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-97",
+          "title": "8.5 Vérification de l'instrumentation : fonctions publiques jamais vues, spans sans `code.*`, surcoût estimé contre le niveau 1 ; outils MCP `get_instrumentation_gaps` et `get_instrumentation_convent…",
+          "criterion": "une fixture aux trous connus les fait tous remonter",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-98",
+          "title": "8.6 Instrumentation",
+          "criterion": "`timonier doctor` produit une trace rattachée au graphe",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-99",
+          "title": "8.7 Vues",
+          "criterion": "test des cinq secondes",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-100",
+          "title": "8.8 Budgets",
+          "criterion": "un budget dépassé volontairement est visible sur la carte et lisible via MCP",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-101",
+          "title": "8.9 Détection de régressions selon la méthode décidée dans la spec",
+          "criterion": "tests statistiques sur des jeux de données connus ; une fonction ralentie exprès passe de « probable » à « confirmée ». Méthode : voir PLAN.md",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2",
+            "S-2026-10-20-3"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-102",
+          "title": "8.10 Relecture par `phase-reviewer`",
+          "criterion": "verdict « prête »",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-11",
+      "title": "Phase 9 — Fin du MVP",
+      "tasks": [
+        {
+          "id": "T-103",
+          "title": "9.1 Inventaire des technologies, exposé par l'outil MCP `get_tech_inventory`",
+          "criterion": "sur Timonier, un SBOM valide ; les doublons d'une fixture sont détectés",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-104",
+          "title": "9.2 Processus de développement",
+          "criterion": "le scénario « Solo discipliné » fonctionne de bout en bout sur un dépôt de test",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-105",
+          "title": "9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche. Sans source, la valeur es…",
+          "criterion": "une session réelle donne des tokens attribués",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-106",
+          "title": "9.4 Assistant « Nouveau projet piloté », selon Q8",
+          "criterion": "défini avec la réponse",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-107",
+          "title": "9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage »",
+          "criterion": "verdict « prête »",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-108",
+          "title": "9.6 Critère de sortie du MVP selon la spec : un projet réel (Q9) piloté de bout en bout sans lire le code ligne à ligne",
+          "criterion": "constaté avec toi",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-2"
+          ],
+          "created": {
+            "at": "2026-10-20T09:57:22Z",
+            "session": "S-2026-10-20-2"
+          }
+        },
+        {
+          "id": "T-109",
+          "title": "9.7 Publication de l'extension (Q58, Q59), avant la relecture 9.5",
+          "criterion": "l'extension installée depuis la Marketplace configure un projet et montre sa carte, sans rien installer à part : un .vsix par plateforme qui embarque timonier, icône PNG, CHANGELOG, dépôt public (Q2), éditeur NicolasMichel (Q12)",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-20-4"
+          ],
+          "created": {
+            "at": "2026-10-20T13:12:10Z",
+            "session": "S-2026-10-20-4"
+          }
+        }
+      ]
+    }
+  ]
+}

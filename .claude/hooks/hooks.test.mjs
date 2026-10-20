@@ -78,6 +78,12 @@ describe("PLAN.md parsing", () => {
     assert.equal(currentPhase(parsePlan(plan)).number, 1);
   });
 
+  test("a task without its box is a task too (ADR 0035)", () => {
+    const plain = PLAN.replace("- [ ] 1.3 Extension vide", "- 1.3 Extension vide");
+    assert.equal(parsePlan(plain)[1].tasks.length, 3);
+    assert.equal(parsePlan(plain)[1].tasks[2].text, "1.3 Extension vide");
+  });
+
   test("summary lists only the remaining tasks of the current phase", () => {
     const { line, context } = summarisePlan(PLAN);
     assert.match(line, /Phase 1 — Squelette \(en cours\) · 1\/3 tâches faites, 2 restantes/);
@@ -298,6 +304,71 @@ describe("session start", () => {
     assert.match(out.json.systemMessage, /Phase 1 — Squelette/);
     assert.equal(out.json.hookSpecificOutput.hookEventName, "SessionStart");
     assert.match(out.json.hookSpecificOutput.additionalContext, /1\.3 Extension vide/);
+  });
+
+  test("reads plan.json once it is there (ADR 0035): the milestone under way and its tasks left", () => {
+    const root = tempProject();
+    writeFileSync(path.join(root, "PLAN.md"), PLAN);
+    mkdirSync(path.join(root, ".timonier"), { recursive: true });
+    const task = (id, title, status) => ({ id, title, status });
+    writeFileSync(
+      path.join(root, ".timonier", "plan.json"),
+      JSON.stringify({
+        version: 1,
+        milestones: [
+          { id: "M-1", title: "Phase 5 — Revue", tasks: [task("T-1", "5.1 Diff", "done")] },
+          {
+            id: "M-2",
+            title: "Phase 6 — Suivi",
+            tasks: [
+              task("T-2", "6.1 ADR", "todo"),
+              task("T-3", "6.2 Proxy", "done"),
+              task("T-4", "6.3 Bascule", "in_progress"),
+              task("T-5", "6.4 Zed", "dropped"),
+            ],
+          },
+          { id: "M-3", title: "Phase 7 — Tableau", tasks: [task("T-6", "7.1 Dessin", "todo")] },
+        ],
+      }),
+    );
+    const out = runScript("session-start.mjs", { session_id: "s5", source: "startup", cwd: root }, root);
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(out.json.systemMessage, /Phase 6 — Suivi · 1\/3 tâches faites, 2 restantes/);
+    const context = out.json.hookSpecificOutput.additionalContext;
+    assert.match(context, /- T-4 6\.3 Bascule \(en cours\)/);
+    assert.match(context, /- T-2 6\.1 ADR \(à faire\)/);
+    assert.doesNotMatch(context, /Zed|Dessin|5\.1/);
+    // A plan.json that reads but lacks a part (edited by hand): PLAN.md, no crash.
+    writeFileSync(path.join(root, ".timonier", "plan.json"), '{"milestones":[{"id":"M-1","title":"x"}]}');
+    const partial = runScript("session-start.mjs", { session_id: "s8", source: "startup", cwd: root }, root);
+    assert.equal(partial.status, 0, partial.stderr);
+    assert.match(partial.json.systemMessage, /Phase 1 — Squelette/);
+    // And it says the states are unknown (review n° 4 of Phase 6).
+    assert.match(partial.json.systemMessage, /plan\.json does not read: task states unknown/);
+    assert.match(partial.json.hookSpecificOutput.additionalContext, /PLAN\.md holds no task state/);
+    // A plan.json that does not read: PLAN.md as before.
+    writeFileSync(path.join(root, ".timonier", "plan.json"), "{ broken");
+    const fallback = runScript("session-start.mjs", { session_id: "s6", source: "startup", cwd: root }, root);
+    assert.match(fallback.json.systemMessage, /Phase 1 — Squelette/);
+  });
+
+  test("skips a closed milestone where a task was left to do (review n° 2 of Phase 6)", () => {
+    const root = tempProject();
+    mkdirSync(path.join(root, ".timonier"), { recursive: true });
+    const task = (id, status) => ({ id, title: id, status });
+    writeFileSync(
+      path.join(root, ".timonier", "plan.json"),
+      JSON.stringify({
+        version: 1,
+        milestones: [
+          { id: "M-1", title: "Phase 0", tasks: [task("T-1", "done"), task("T-2", "todo")] },
+          { id: "M-2", title: "Phase 6", tasks: [task("T-3", "done")] },
+          { id: "M-3", title: "Phase 7", tasks: [task("T-4", "todo")] },
+        ],
+      }),
+    );
+    const out = runScript("session-start.mjs", { session_id: "s7", source: "startup", cwd: root }, root);
+    assert.match(out.json.systemMessage, /Phase 7 · 0\/1 tâches faites/);
   });
 
   test("reports a missing PLAN.md", () => {

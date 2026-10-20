@@ -209,3 +209,49 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
     assert_eq!(gaps[0]["until"]["session"], second["result"]["id"]);
     agent.cancel().await.expect("the agent goes");
 }
+
+/// Review n° 1 of Phase 6, B1: a client of MCP 2026-07-28 may skip `initialize` and name itself
+/// in each request's metadata (SEP-2575); its sessions carry that name.
+#[test]
+fn a_client_named_in_its_requests_metadata_names_the_session() {
+    use std::io::{BufRead, BufReader, Write};
+    let project = Project::new();
+    #[allow(clippy::zombie_processes)] // killed, then waited for below
+    let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
+        .args(["mcp", "--root"])
+        .arg(project.repo.path())
+        .env("TIMONIER_RUNTIME_DIR", project.runtime.path().join("run"))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("tim mcp starts");
+    let meta = json!({
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": {"name": "claude-code", "version": "2.1"},
+        "io.modelcontextprotocol/clientCapabilities": {},
+    });
+    let request = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": "session_start",
+            "arguments": {"objective": "Named in the metadata"},
+            "_meta": meta,
+        },
+    });
+    let mut stdin = child.stdin.take().expect("stdin");
+    writeln!(stdin, "{request}").expect("sent");
+    let mut line = String::new();
+    BufReader::new(child.stdout.take().expect("stdout"))
+        .read_line(&mut line)
+        .expect("an answer");
+    drop(stdin);
+    let _ = child.kill();
+    let _ = child.wait();
+    let answer: Value = serde_json::from_str(&line).expect("JSON");
+    assert_eq!(
+        answer["result"]["structuredContent"]["result"]["agent"], "claude-code",
+        "{answer}"
+    );
+}

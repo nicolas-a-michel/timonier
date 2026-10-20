@@ -1,7 +1,7 @@
 // Generated from crates/timonier-core/src/protocol.rs by its test `typescript_is_up_to_date`.
 // Do not edit: change the Rust types, then run `TIMONIER_UPDATE_TS=1 cargo test -p timonier-core`.
 
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 8;
 
 export type NodeKind = "repo" | "component" | "package" | "file" | "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
 
@@ -41,6 +41,10 @@ export type StatusResult = { root: string, daemonVersion: string,
  * Files of the repository in the graph.
  */
 files: number, 
+/**
+ * The first indexing is done: the graph holds the whole repository (ADR 0033).
+ */
+indexed: boolean, 
 /**
  * The open snapshot every change goes to (ADR 0010).
  */
@@ -344,7 +348,12 @@ sessionsSinceReview: number,
 /**
  * What to look at first (Q45), at most [`LOOK_LIMIT`].
  */
-look: Array<LookItem>, };
+look: Array<LookItem>, 
+/**
+ * `timonier init` set the project up (`.timonier/init.json`); else the bridge offers it
+ * (Q52).
+ */
+configured: boolean, };
 
 export type TrackingSnapshot = { subscription: number, revision: number, tracking: TrackingView, };
 
@@ -368,7 +377,7 @@ export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "t
  */
 detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",

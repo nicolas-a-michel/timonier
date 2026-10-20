@@ -21,6 +21,8 @@ export interface BridgeHost {
   reveal(target: string, path: string[]): unknown;
   openMap(): unknown;
   markReviewed(): unknown;
+  /** `timonier init` in a terminal (Q52, Q53). */
+  configure(): unknown;
 }
 
 /** The tracking: a webview view of the secondary side bar, fed by the relay. */
@@ -32,6 +34,8 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
     private readonly relay: TrackingRelay,
     private readonly log: vscode.LogOutputChannel,
     private readonly host?: BridgeHost,
+    /** The badge as last set: for the tests. */
+    private readonly onBadge?: (value: number | undefined) => void,
   ) {}
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -68,6 +72,9 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
         case "markReviewed":
           this.host?.markReviewed();
           return;
+        case "configure":
+          this.host?.configure();
+          return;
         default:
           this.relay.receive(message);
       }
@@ -82,6 +89,16 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
       title: this.title,
       panel: this.panel,
     });
+    // The bridge's badge says the project is not set up yet (Q52): shown on the Timonier icon.
+    const badge =
+      this.panel === "bridge"
+        ? this.relay.watch(({ tracking }) => {
+            view.badge = tracking.configured
+              ? undefined
+              : { value: 1, tooltip: vscode.l10n.t("This project is not set up for your agents") };
+            this.onBadge?.(view.badge?.value);
+          })
+        : undefined;
     const visibility = view.onDidChangeVisibility(() => {
       if (!view.visible) {
         page?.dispose();
@@ -89,6 +106,7 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
       }
     });
     view.onDidDispose(() => {
+      badge?.dispose();
       page?.dispose();
       visibility.dispose();
       messages.dispose();
@@ -102,6 +120,7 @@ export function registerTrackingViews(
   relay: TrackingRelay,
   log: vscode.LogOutputChannel,
   host: BridgeHost,
+  onBadge?: (value: number | undefined) => void,
 ): vscode.Disposable[] {
   return [
     vscode.window.registerWebviewViewProvider(
@@ -110,7 +129,7 @@ export function registerTrackingViews(
     ),
     vscode.window.registerWebviewViewProvider(
       BRIDGE_VIEW,
-      new TrackingViewProvider(extensionUri, "bridge", vscode.l10n.t("Overview"), relay, log, host),
+      new TrackingViewProvider(extensionUri, "bridge", vscode.l10n.t("Overview"), relay, log, host, onBadge),
     ),
   ];
 }

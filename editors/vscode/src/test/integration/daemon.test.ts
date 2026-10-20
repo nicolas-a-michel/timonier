@@ -1,14 +1,15 @@
 import * as assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 import * as vscode from "vscode";
 
-import type { TimonierApi } from "../../extension";
+import { INIT_TERMINAL, type TimonierApi } from "../../extension";
 import { METHODS, type StatusResult, type ViewSnapshot } from "../../protocol/generated";
 import type { Rendered } from "../../viewRelay";
 
-const EXTENSION_ID = "nicolas-a-michel.timonier";
+const EXTENSION_ID = "NicolasMichel.timonier";
 
 async function api(): Promise<TimonierApi> {
   const extension = vscode.extensions.getExtension<TimonierApi>(EXTENSION_ID);
@@ -479,5 +480,23 @@ describe("Timonier daemon (ADR 0019)", () => {
       true,
     );
     await waitFor("the package opened on its files", () => (timonier.mapRendered()?.nodes ?? 0) > before);
+  });
+  it("offers to set the project up, runs init in a terminal, and stops offering (PLAN.md 6.12)", async function () {
+    this.timeout(60_000);
+    await waitFor("connected", () => timonier.daemonStatus().state === "connected");
+    await vscode.commands.executeCommand("timonier.home.focus");
+    // The fixture was never set up: the bridge's badge says it (Q52).
+    await waitFor("the badge", () => timonier.bridgeBadge() === 1);
+    assert.equal(timonier.tracking()?.tracking.configured, false);
+    // « Set up »: `timonier init` in a terminal, where it asks (Q53).
+    await vscode.commands.executeCommand("timonier.configure");
+    await waitFor("the terminal", () => vscode.window.terminals.some((t) => t.name === INIT_TERMINAL));
+    for (const terminal of vscode.window.terminals.filter((t) => t.name === INIT_TERMINAL)) terminal.dispose();
+    // Set up as the terminal would, without its questions.
+    const program = process.env.TIMONIER_DAEMON_PATH;
+    assert.ok(program, "TIMONIER_DAEMON_PATH is not set");
+    execFileSync(program, ["init", "--yes", "--agents", ""], { cwd: fixture(), stdio: "ignore" });
+    await waitFor("no badge", () => timonier.bridgeBadge() === undefined);
+    assert.equal(timonier.tracking()?.tracking.configured, true);
   });
 });

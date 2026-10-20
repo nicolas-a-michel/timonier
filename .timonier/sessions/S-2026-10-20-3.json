@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-3",
+  "agent": "mcp-client",
+  "objective": "Relire la Phase 6 avec phase-reviewer (6.14) et traiter ses réserves",
+  "tasks": [
+    "T-84",
+    "T-71",
+    "T-93",
+    "T-33",
+    "T-12",
+    "T-24",
+    "T-25",
+    "T-29",
+    "T-54",
+    "T-67",
+    "T-87",
+    "T-101",
+    "T-76"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-20T11:46:20Z",
+  "ended_at": "2026-10-20T13:05:05Z",
+  "snapshots": {
+    "start": 6,
+    "end": 7
+  },
+  "summary": "6.14 faite : quatre relectures de la Phase 6, la dernière « prête ». Corrigé en route : le nom de l'agent par requête (MCP 2026-07-28), l'en-tête sur les erreurs du démon, uninit selon Q54 (suivi gardé, --purge confirmé, dossier créé par le démon, actual.json), le jalon en cours dans le pont et le hook, des tests unitaires (uninit, hook, journal), les critères tronqués du plan, la documentation (ADR 0027, 0032, 0033, 0035, PLAN.md, README). 6.6 rouverte puis refermée après le test des cinq secondes n° 3. Reste : 6.1 (acceptation des ADR par l'humain) et 6.13 (preuve du nom d'agent après redémarrage de Claude Code).",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Lancer phase-reviewer sur la Phase 6 et lire son rapport",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Traiter ses réserves, puis relancer jusqu'au verdict « prête »",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Comprendre pourquoi la session de Claude Code est attribuée à « mcp-client »",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Proxy : nommer l'agent par RequestContext::client_info() (métadonnées par requête, MCP 2026-07-28), test compris",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "uninit (Q54) : garder le suivi quand il y a eu du travail après init ; --purge avec confirmation ; tests",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "En-tête de boîte aux lettres aussi sur les erreurs d'infrastructure des outils (m2)",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-7",
+      "text": "Tests unitaires de uninit.rs et hook.rs (m8)",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-8",
+      "text": "Critères tronqués dans plan.json (m3), ADR 0033 (m9), PLAN.md : écarts de fin de phase (M1, m4, m5, m6), similar au tableau (m7), Q55 (M3)",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-9",
+      "text": "uninit : juger d'après le suivi présent avant init (pas le dossier), retirer actual.json, messages justes sous --purge ; tests avec un démon lancé avant init",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-10",
+      "text": "Jalon en cours (pont et hook) : celui d'une tâche en cours, sinon le dernier qui a une tâche faite s'il n'est pas fini, sinon le suivant ; tests",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-11",
+      "text": "Mineurs : identifiants rendus par les outils dans init, tests unitaires de journal.rs, ADR 0002 (remplacement proposé), README, comptes de tests, Q57, écart du journal de S-3",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-12",
+      "text": "Relecture n° 3 : init.json inchangé pour un projet déjà initialisé (m1), actual.json retiré sans condition (m2), même règle de jalon pont/hook et décrite dans les ADR (m3, m4), hook robuste (m5), Q57 aux décisions (m6)",
+      "task": "T-84",
+      "status": "done"
+    },
+    {
+      "id": "D-13",
+      "text": "Test des cinq secondes de la vue « Plan, todo et sessions » livrée (deux colonnes collées), avec l'humain ; puis 6.6 faite",
+      "task": "T-76",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 13,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-mcp",
+        "name": "timonier-mcp",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

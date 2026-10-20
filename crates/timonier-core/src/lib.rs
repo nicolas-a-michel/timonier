@@ -4,6 +4,7 @@
 //! This crate is pure: no I/O and no async runtime. See the `graph-model` skill and
 //! ADR 0008 to 0010.
 
+pub mod actual;
 pub mod aggregate;
 pub mod diff;
 mod edge;

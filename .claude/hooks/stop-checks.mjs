@@ -139,7 +139,7 @@ export function decide(turn, { failures, planStale, changed }) {
           hookEventName: "Stop",
           additionalContext:
             `Code files changed during this turn (${changed.length}): ${listed}. PLAN.md was not modified during this turn. ` +
-            "Project rule: PLAN.md records progress (tick finished tasks, note deviations and decisions). " +
+            "Project rule: task states go through Timonier's plan_update_task (.timonier/plan.json, ADR 0035); PLAN.md records each task's detail, deviations and decisions. " +
             "If a task changed state, update PLAN.md now; if none did, no update is needed and a one-line note is enough.",
         },
       },

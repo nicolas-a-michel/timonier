@@ -82,6 +82,20 @@ test("the bridge's boxes and buttons are reached by keyboard, named, and say wha
   await expect(daemon).toHaveAttribute("title", "Shows it on the map");
 });
 
+for (const theme of themes) {
+  test(`${theme}: the offer to set the project up at WCAG AA, first under the keyboard`, async ({ page }) => {
+    await open(page, "bridge", { theme, extra: "&unset=1" });
+    await expect(page.getByRole("note")).toContainText("This project is not set up for your agents");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Set up" })).toBeFocused();
+    await settled(page);
+    expect((await axeFindings(page)).violations).toEqual([]);
+    const text = await textSamples(page, ".tim-bridge__setup :is(p, button)");
+    expect(weak(text, 4.5)).toEqual([]);
+    expect(weak(await samples(page))).toEqual([]);
+  });
+}
+
 test("each panel teaches what fills it, in French too", async ({ page }) => {
   await open(page, "todo", { locale: "fr", extra: "&empty=1" });
   await expect(page.locator(".tim-empty")).toContainText("Aucune session ouverte");

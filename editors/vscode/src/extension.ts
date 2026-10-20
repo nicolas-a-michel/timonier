@@ -2,7 +2,10 @@ import * as vscode from "vscode";
 
 import { revealCode } from "./code";
 import { DaemonSupervisor, type DaemonStatus } from "./daemon";
-import { daemonProgram } from "./launch";
+import { daemonProgram, initCommand } from "./launch";
+
+/** The terminal where `timonier init` runs (Q53). */
+export const INIT_TERMINAL = "Timonier init";
 import { MapPanel } from "./mapPanel";
 import {
   METHODS,
@@ -34,6 +37,8 @@ export interface TimonierApi {
   mapCommand(command: MapCommand): Thenable<boolean>;
   /** The tracking last received from the daemon (ADR 0031). */
   tracking(): TrackingSnapshot | undefined;
+  /** The badge of the bridge: 1 while the project is not set up (Q52). */
+  bridgeBadge(): number | undefined;
   /** The revision a panel of the tracking last said it shows; undefined before its page. */
   trackingShown(panel: string): number | undefined;
 }
@@ -67,19 +72,27 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     };
     tracked = daemon;
   }
+  let bridgeBadge: number | undefined;
   // The plan, the todo and the journal: one subscription for the three panels (ADR 0031).
   const tracking = new TrackingRelay(tracked, log);
   context.subscriptions.push({ dispose: () => void tracking.dispose() });
   context.subscriptions.push(
-    ...registerTrackingViews(context.extensionUri, tracking, log, {
-      // The map, opened or shown, then the box (Q46).
-      reveal: async (target, path) => {
-        await vscode.commands.executeCommand("timonier.openMap");
-        await MapPanel.command({ name: "reveal", target, path });
+    ...registerTrackingViews(
+      context.extensionUri,
+      tracking,
+      log,
+      {
+        // The map, opened or shown, then the box (Q46).
+        reveal: async (target, path) => {
+          await vscode.commands.executeCommand("timonier.openMap");
+          await MapPanel.command({ name: "reveal", target, path });
+        },
+        openMap: () => vscode.commands.executeCommand("timonier.openMap"),
+        markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
+        configure: () => vscode.commands.executeCommand("timonier.configure"),
       },
-      openMap: () => vscode.commands.executeCommand("timonier.openMap"),
-      markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
-    }),
+      (value) => (bridgeBadge = value),
+    ),
   );
 
   // The boxes moved by hand on the map: kept in this workspace, on this machine (H13).
@@ -107,6 +120,17 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       }
     }),
     vscode.commands.registerCommand("timonier.showLog", () => log.show()),
+    // `timonier init` in a terminal, where its questions and what it does show (Q53).
+    vscode.commands.registerCommand("timonier.configure", () => {
+      if (!root) {
+        void vscode.window.showInformationMessage(vscode.l10n.t("Open a folder: Timonier maps the project it holds."));
+        return;
+      }
+      const setting = vscode.workspace.getConfiguration("timonier").get<string>("daemon.path");
+      const terminal = vscode.window.createTerminal({ name: INIT_TERMINAL, cwd: root });
+      terminal.sendText(initCommand(daemonProgram(process.env, setting)));
+      terminal.show();
+    }),
     // The bridge's « Where to look », from the palette (ADR 0032): a box, then the map on it.
     vscode.commands.registerCommand("timonier.whereToLook", async () => {
       const items = (tracking.state?.tracking.look ?? []).flatMap((item) => {
@@ -213,6 +237,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     mapCommand: (command) => MapPanel.command(command),
     tracking: () => tracking.state,
     trackingShown: (panel) => tracking.shown(panel),
+    bridgeBadge: () => bridgeBadge,
     daemonRequest: async <T>(method: string, params: unknown) => {
       const client = daemon.client;
       if (!client) throw new Error("not connected to the daemon");

@@ -13,7 +13,7 @@ It aims to answer four questions at any time:
 - **What is happening**: the plan, the live todo, what the agent did and where to look.
 
 A local Rust daemon, one per project, keeps a unified graph of the code. The VSCode extension
-shows it as a living architecture map. Agents will read and write the same model through MCP.
+shows it as a living architecture map. Agents read and write the same model through MCP: their sessions, the plan and the todo.
 
 The name: the *timonier* is the helmsman, who holds the wheel and keeps the course while the
 crew, here the agents, move the ship.
@@ -22,9 +22,10 @@ crew, here the agents, move the ship.
 
 **Early development, not released.** The MVP is planned in nine phases ([PLAN.md](PLAN.md)):
 phases 0 to 5 are done (up to the review diff on the map). Phase 6 is under way: the MCP tools,
-the plan, todo and session journal, the review debt and the bridge work; `timonier init` and
-`timonier doctor` come next. Nothing is published on crates.io, npm or the VSCode Marketplace yet. It runs on Linux and macOS; Windows
-is not supported yet.
+the plan, todo and session journal, the review debt, the bridge, `timonier init`, `uninit`
+and `doctor` work, and VSCode offers `init` in a project not set up; Timonier steering its own
+development comes next. Nothing is published on crates.io, npm or the VSCode Marketplace
+yet. It runs on Linux and macOS; Windows is not supported yet.
 
 ## What works today
 
@@ -60,6 +61,29 @@ is not supported yet.
 - JSON-RPC 2.0 protocol: views subscribed to by clients, versioned deltas, a full snapshot when a
   client misses one. The daemon stops on its own after 15 minutes without clients.
 - `timonier daemon start | stop | status | run` (also installed as `tim`).
+- `timonier init` sets a project up for Timonier and its agents (Claude Code, GitHub Copilot in
+  VSCode, Cursor, Codex), the ones it finds on the machine or that `--agents` names:
+  - a managed block in `AGENTS.md`, which the four agents read, and an `@AGENTS.md` import in an
+    existing `CLAUDE.md`;
+  - the MCP server `timonier` in each agent's own file (`.mcp.json`, `.vscode/mcp.json`,
+    `.cursor/mcp.json`, `.codex/config.toml`);
+  - a stop hook (Claude Code, Copilot, Codex): an agent that wants to stop with its session out
+    of order (todo empty or not done, code changed with no session open) is held once, with the
+    reason;
+  - a git `pre-commit` hook that writes `.timonier/actual.json`, the boxes and dependencies of the
+    code, into each commit;
+  - a plan with an « Initialisation » milestone and a first session;
+  - the test runner, set to write JUnit XML (cargo-nextest for Rust; vitest, `node --test` or
+    jest for TypeScript), and the instrumentation conventions of each language in
+    `.timonier/conventions/`.
+
+  `--dry-run` shows the exact diff and changes nothing; a second run changes nothing.
+  `timonier uninit` takes the setup back: init then uninit gives the original tree. Once work
+  has been tracked, the plan, the todo and the journal stay (they are the project's);
+  `--purge` removes them too, once confirmed.
+- `timonier doctor` checks that setup (MCP server declared, managed block current, hooks and
+  conventions present, `timonier` on the PATH, the daemon, the tracking files) and repairs what
+  it can; `--check` only says it, by its exit status, for CI.
 
 ### MCP tools for agents
 
@@ -120,7 +144,9 @@ is not supported yet.
     compact, with smaller boxes and tighter gaps;
   - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
     command for each action.
-- **The bridge**, the home view on the left, answers three questions at a glance: where the plan
+- **The bridge**, the home view on the left, offers « Set up » (`timonier init` in a terminal)
+  in a project not set up for your agents, with a badge on the Timonier icon, and answers three
+  questions at a glance: where the plan
   stands (current milestone, open session), what happened since your last review (boxes,
   dependencies, agent sessions, files to read again), and where to look first: what needs a
   decision (a blocked task, an unreadable file, a cycle added), then the boxes to read again,
@@ -138,8 +164,8 @@ is not supported yet.
 
 From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
 
-- **Project setup** (phase 6, in progress): `timonier init` and `timonier doctor` configure a
-  project and its agent.
+- **Timonier steering itself** (phase 6, in progress): its own plan and sessions kept through
+  the MCP tools.
 - **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be
   typed as constraints, compared to the real architecture.
 - **Performance** (phase 8): `timonier test` wraps the test runner, collects OpenTelemetry traces
@@ -165,6 +191,15 @@ then **Open Map**. The command **Timonier: Open Map** in the palette does the sa
 
 Instead of installing the CLI, you can build it with `cargo build -p timonier-cli` and set
 `timonier.daemon.path` to `target/debug/timonier`.
+
+To set a project up for your agents, in the project:
+
+```sh
+tim init --dry-run   # what it would change
+tim init             # asks only what it cannot find out; --yes to ask nothing
+tim doctor           # checks the setup, and repairs it
+tim uninit           # takes the setup back (--purge: the tracking too)
+```
 
 The daemon writes its database to `.timonier/graph.sqlite` in the project, with a `.gitignore`
 that keeps it out of git. From a terminal:
@@ -195,6 +230,10 @@ npm run package            # editors/vscode/timonier.vsix
 
 The specification, the plan and the architecture decision records are in French:
 [docs/spec.md](docs/spec.md), [PLAN.md](PLAN.md), [docs/adr/](docs/adr/README.md).
+
+## Acknowledgements
+
+Thanks to Iban Guinebert and Michaël Roynard for the idea behind Timonier.
 
 ## License
 
