@@ -42,6 +42,10 @@ describe("webview messages", () => {
       { type: "markReviewed" },
       { type: "pins", pins: {} },
       { type: "pins", pins: { "@role/utility": { parent: "@root", x: -40, y: 128 } } },
+      { type: "trackingShown", panel: "todo", revision: 3 },
+      { type: "trackingShown", panel: "bridge", revision: 0 },
+      { type: "reveal", target: "pkg:cargo/a", path: [] },
+      { type: "openMap" },
     ];
     for (const message of valid) assert.equal(isWebviewMessage(message), true, JSON.stringify(message));
     const invalid: unknown[] = [
@@ -57,6 +61,10 @@ describe("webview messages", () => {
       { type: "openCode", file: "src/a.ts", span: { start: { line: -1, column: 0 }, end: { line: 0, column: 0 } } },
       { type: "rendered", subscription: 1, revision: 0.5, nodes: 6 },
       { type: "pins", pins: [] },
+      { type: "trackingShown", panel: "map", revision: 3 },
+      { type: "reveal", target: 1, path: [] },
+      { type: "reveal", target: "pkg:cargo/a", path: "pkg:cargo" },
+      { type: "trackingShown", panel: "plan", revision: -1 },
       { type: "pins", pins: { a: { parent: 1, x: 0, y: 0 } } },
       { type: "pins", pins: { a: { parent: "@root", x: 0.5, y: 0 } } },
       {

@@ -38,6 +38,7 @@ function node(
     file: kind === "file" ? name : null,
     span: null,
     review: null,
+    debt: null,
   };
 }
 

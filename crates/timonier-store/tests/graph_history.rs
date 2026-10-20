@@ -430,7 +430,7 @@ fn a_review_mark_keeps_the_content_of_each_file() {
     let (_dir, store) = open();
     demo(&store);
     let contents = || store.reader().unwrap().file_contents().unwrap();
-    let reviewed = |seq| store.reader().unwrap().reviewed_contents(seq).unwrap();
+    let reviewed = |seq| store.reader().unwrap().kept_contents(seq).unwrap();
     let first_contents = contents();
     assert_eq!(first_contents.len(), 2, "{first_contents:?}");
     let commit = store
@@ -450,6 +450,31 @@ fn a_review_mark_keeps_the_content_of_each_file() {
     let second = store.freeze(Freeze::ReviewMark).unwrap();
     assert!(reviewed(first.seq).is_empty(), "only the last review");
     assert_eq!(reviewed(second.seq), second_contents);
+}
+
+/// ADR 0031: a session's snapshots keep their contents through a review, until forgotten.
+#[test]
+fn a_session_keeps_the_contents_of_its_snapshots_until_forgotten() {
+    let (_dir, store) = open();
+    demo(&store);
+    let kept = |seq| store.reader().unwrap().kept_contents(seq).unwrap();
+    let contents = || store.reader().unwrap().file_contents().unwrap();
+    let before = contents();
+    let start = store.freeze_keeping_contents(Freeze::WorkingTree).unwrap();
+    assert_eq!(kept(start.seq), before);
+    store
+        .apply_all(vec![file_scope("src/b.rs", &[("h", 4)], &[])])
+        .unwrap();
+    let review = store.freeze(Freeze::ReviewMark).unwrap();
+    let after = contents();
+    let end = store.freeze_keeping_contents(Freeze::WorkingTree).unwrap();
+    let second = store.freeze(Freeze::ReviewMark).unwrap();
+    assert!(kept(review.seq).is_empty(), "only the last review");
+    assert_eq!(kept(start.seq), before, "a review leaves the session's");
+    assert_eq!(kept(end.seq), after);
+    store.forget_contents().unwrap();
+    assert!(kept(start.seq).is_empty() && kept(end.seq).is_empty());
+    assert_eq!(kept(second.seq), after, "the review keeps its own");
 }
 
 /// Review n° 1 of Phase 5, m11: reads in one transaction see one state, whatever the writer

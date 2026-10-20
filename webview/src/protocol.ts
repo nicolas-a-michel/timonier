@@ -36,3 +36,12 @@ export function isHostMessage(data: unknown): data is HostMessage {
   if (type === "density") return density === "comfortable" || density === "compact";
   return type === "snapshot" || type === "delta" || type === "daemon" || type === "command" || type === "pins";
 }
+
+/** The host's messages to a panel of the tracking (ADR 0031): the state, and the daemon's. */
+export type TrackingHostMessage = Extract<HostMessage, { type: "tracking" | "daemon" }>;
+
+export function isTrackingMessage(data: unknown): data is TrackingHostMessage {
+  if (typeof data !== "object" || data === null) return false;
+  const { type } = data as { type?: unknown };
+  return type === "tracking" || type === "daemon";
+}

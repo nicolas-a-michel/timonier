@@ -71,6 +71,15 @@ export interface ReviewMessages {
   legendTitle: string;
   legendCycle: string;
   legendJump: string;
+  /** The review debt (ADR 0030, Q44). */
+  debtLayer: string;
+  debtFiles: (count: number) => string;
+  /** The same, short, in a title. */
+  debtShort: (count: number) => string;
+  untracked: string;
+  debtLegendTitle: string;
+  debtLevels: [string, string, string];
+  untrackedLegend: string;
   /** On a line of the map. */
   linkAdded: string;
   linkCycle: string;
@@ -169,6 +178,13 @@ export const messages: Record<Locale, Messages> = {
       legendTitle: "Changes since the review",
       legendCycle: "In a cycle added",
       legendJump: "Fan-in or fan-out that jumped",
+      debtLayer: "Review debt",
+      debtFiles: (count) => (count === 1 ? "1 file to read again" : `${count} files to read again`),
+      debtShort: (count) => `${count} to read again`,
+      untracked: "untracked",
+      debtLegendTitle: "Review debt: files changed since the review",
+      debtLevels: ["Less than a third of its files", "Up to two thirds", "More than two thirds"],
+      untrackedLegend: "Changed with no session open",
       changedMembers: (names) => `Changed since the last review: ${names}.`,
       onlyChanges: "Highlight the changes",
       summaryLabel: "Since the last review",
@@ -263,6 +279,13 @@ export const messages: Record<Locale, Messages> = {
       legendTitle: "Changements depuis la revue",
       legendCycle: "Dans un cycle ajouté",
       legendJump: "Fan-in ou fan-out qui a bondi",
+      debtLayer: "Dette de revue",
+      debtFiles: (count) => (count === 1 ? "1 fichier à relire" : `${count} fichiers à relire`),
+      debtShort: (count) => `${count} à relire`,
+      untracked: "non suivi",
+      debtLegendTitle: "Dette de revue : fichiers changés depuis la revue",
+      debtLevels: ["Moins d'un tiers de ses fichiers", "Jusqu'aux deux tiers", "Plus des deux tiers"],
+      untrackedLegend: "Changé sans session ouverte",
       changedMembers: (names) => `Changé depuis la dernière revue : ${names}.`,
       onlyChanges: "Mettre en avant les changements",
       summaryLabel: "Depuis la dernière revue",

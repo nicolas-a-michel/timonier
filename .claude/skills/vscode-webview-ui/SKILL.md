@@ -67,6 +67,10 @@ until it does. Check again before upgrading.
   - CSP meta tag with `default-src 'none'` and `script-src 'nonce-…'` only (no origin, no
     `unsafe-inline`). An integration test proves the bundle runs under it: the webview posts
     `{ type: "ready" }` after its first render;
+  - so each page is **one** script: a chunk it imported would not carry the nonce. A new page
+    gets its own Vite build (`vite build --mode <page>`, its own `dist/<page>/` and manifest),
+    as the panels of the tracking do (`tracking.html`, ADR 0031), and its files are listed in
+    `editors/vscode/.vscodeignore`;
   - no remote resources;
   - `localResourceRoots` restricted to the extension's build output;
   - `enableScripts` only where needed.

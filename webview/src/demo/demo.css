@@ -89,3 +89,10 @@ body,
   position: fixed;
   inset: 0;
 }
+
+/* A panel of the tracking, as wide as a side bar (ADR 0031). */
+.demo-sidebar {
+  width: 300px;
+  min-height: 100vh;
+  background: var(--tim-color-sidebar);
+}

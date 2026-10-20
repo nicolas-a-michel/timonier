@@ -43,6 +43,11 @@ describe("webview html", () => {
     assert.match(html, /<link rel="stylesheet" href="https:\/\/res\/assets\/index\.css" \/>/);
   });
 
+  it("names the panel of the tracking on the root, and nothing for the map", () => {
+    assert.match(html, /<div id="root"><\/div>/);
+    assert.match(renderWebviewHtml({ ...options, panel: "todo" }), /<div id="root" data-panel="todo"><\/div>/);
+  });
+
   it("passes the IDE language through <html lang>", () => {
     assert.match(html, /<html lang="fr">/);
   });

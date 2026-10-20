@@ -22,6 +22,9 @@ export interface ComponentBoxProps {
   flag?: ReactNode;
   /** Takes the focus and carries its name. Off where a container does it (a map node). */
   focusable?: boolean;
+  /** Its review debt, in place of the count of items, and its level (ADR 0030). */
+  debt?: ReactNode;
+  debtLevel?: number;
 }
 
 /** A box of the map: a component, a package, a file. */
@@ -35,6 +38,8 @@ export function ComponentBox({
   badges,
   flag,
   focusable = true,
+  debt,
+  debtLevel,
 }: ComponentBoxProps) {
   const t = messages[locale];
   const roleLabel = role ? t.roles[role] : t.noRole;
@@ -48,6 +53,7 @@ export function ComponentBox({
       aria-current={selected ? "true" : undefined}
       data-contrast="outline"
       data-role={role ?? undefined}
+      data-debt={debtLevel || undefined}
     >
       <div className="tim-box__header" data-contrast="icon">
         <RoleIcon role={role} />
@@ -57,7 +63,7 @@ export function ComponentBox({
       <div className="tim-box__body">
         <span className="tim-box__role">{roleLabel}</span>
         <div className="tim-box__meta">
-          <span>{t.items(items)}</span>
+          {debt ?? <span>{t.items(items)}</span>}
           {badges}
         </div>
       </div>
@@ -86,7 +92,15 @@ export function EdgeLine({ d, approximate, label }: EdgeLineProps) {
 
 /** What the two kinds of edges mean. */
 /** The legend of the lines, and of the change marks once there is a review (ADR 0024). */
-export function EdgeLegend({ locale, changes = false }: { locale: Locale; changes?: boolean }) {
+export function EdgeLegend({
+  locale,
+  changes = false,
+  debt = false,
+}: {
+  locale: Locale;
+  changes?: boolean;
+  debt?: boolean;
+}) {
   const t = messages[locale];
   const sample = (approximate: boolean, label: string) => (
     <li className="tim-legend__item">
@@ -130,6 +144,23 @@ export function EdgeLegend({ locale, changes = false }: { locale: Locale; change
                 <span>{label}</span>
               </li>
             ))}
+          </ul>
+        </>
+      )}
+      {debt && (
+        <>
+          <p className="tim-legend__title tim-legend__subtitle">{t.review.debtLegendTitle}</p>
+          <ul className="tim-legend__list tim-legend__debt">
+            {t.review.debtLevels.map((label, index) => (
+              <li key={label} className="tim-legend__item">
+                <span className="tim-legend__swatch" data-debt={index + 1} aria-hidden="true" />
+                <span>{label}</span>
+              </li>
+            ))}
+            <li className="tim-legend__item">
+              <span className="tim-legend__swatch tim-debt__hatch" aria-hidden="true" />
+              <span>{`${t.review.untracked} : ${t.review.untrackedLegend}`}</span>
+            </li>
           </ul>
         </>
       )}

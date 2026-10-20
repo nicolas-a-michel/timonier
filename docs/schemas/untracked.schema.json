@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Untracked",
+  "description": "`.timonier/sessions/untracked.json`: what changed while no session was open (ADR 0029,\nPLAN.md 6.4), one gap per session that followed it.",
+  "type": "object",
+  "properties": {
+    "gaps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/UntrackedGap"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "gaps"
+  ],
+  "$defs": {
+    "Stamp": {
+      "description": "When, and in which session.",
+      "type": "object",
+      "properties": {
+        "at": {
+          "description": "UTC, RFC 3339 (`2026-10-20T08:15:00Z`).",
+          "type": "string"
+        },
+        "session": {
+          "description": "The session that wrote it.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "session"
+      ]
+    },
+    "UntrackedGap": {
+      "description": "The files changed between two snapshots with no session open: the end of a session (or the\nfirst snapshot) and the start of the next.",
+      "type": "object",
+      "properties": {
+        "files": {
+          "description": "Paths relative to the root, sorted.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "from": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "to": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "until": {
+          "description": "The session that came after: when it started, and its id.",
+          "$ref": "#/$defs/Stamp"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "until",
+        "files"
+      ]
+    }
+  }
+}

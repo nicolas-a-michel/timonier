@@ -1,0 +1,258 @@
+/**
+ * The bridge (spec « Expérience et design », ADR 0032): the home view. It answers three
+ * questions in a few seconds: where the plan stands, what happened since my last review, where
+ * I should look.
+ */
+import { ChangeIcon, ToneIcon } from "../design/icons";
+import type { Locale } from "../i18n";
+import type { LookItem, MilestoneView, ReviewBox, TrackingView } from "../protocol";
+import type { TrackingMessages } from "./messages";
+import { when } from "./TrackingPanel";
+
+export interface BridgeActions {
+  /** Show a box on the map (Q46): what leads to it, from the top. */
+  onReveal: (target: string, path: string[]) => void;
+  onOpenMap: () => void;
+  onMarkReviewed: () => void;
+}
+
+interface BridgeProps {
+  t: TrackingMessages;
+  locale: Locale;
+  tracking: TrackingView;
+  actions: BridgeActions | undefined;
+}
+
+export function Bridge({ t, locale, tracking, actions }: BridgeProps) {
+  return (
+    <section aria-label={t.bridgeLabel} className="tim-bridge">
+      <PlanStatus t={t} tracking={tracking} />
+      <SinceReview t={t} locale={locale} tracking={tracking} actions={actions} />
+      <WhereToLook t={t} items={tracking.look} actions={actions} />
+    </section>
+  );
+}
+
+/** The milestone under way: the first not done, else the last. */
+export function currentMilestone(milestones: MilestoneView[]): MilestoneView | undefined {
+  return milestones.find((m) => m.of === 0 || m.done < m.of) ?? milestones.at(-1);
+}
+
+function PlanStatus({ t, tracking }: { t: TrackingMessages; tracking: TrackingView }) {
+  const milestone = currentMilestone(tracking.milestones);
+  const session = tracking.sessions.find((s) => s.id === tracking.open);
+  const todoDone = tracking.todo.filter((item) => item.done).length;
+  return (
+    <div className="tim-bridge__part">
+      <h2 className="tim-tracking__heading">{t.planHeading}</h2>
+      {milestone ? (
+        <>
+          <p className="tim-bridge__line">
+            <span className="tim-milestone__title">{milestone.title}</span>
+            <span className="tim-milestone__count">{t.progress(milestone.done, milestone.of)}</span>
+          </p>
+          <span
+            className="tim-progress"
+            role="progressbar"
+            aria-label={t.progressLabel(milestone.title, milestone.done, milestone.of)}
+            aria-valuemin={0}
+            aria-valuemax={milestone.of}
+            aria-valuenow={milestone.done}
+          >
+            <span
+              className="tim-progress__fill"
+              style={{ width: `${milestone.of === 0 ? 0 : Math.round((milestone.done / milestone.of) * 100)}%` }}
+              data-contrast="fill"
+            />
+          </span>
+          <Underway t={t} milestone={milestone} />
+        </>
+      ) : (
+        <p className="tim-tracking__quiet">{t.noPlanTitle}</p>
+      )}
+      <p className="tim-tracking__quiet">
+        {session
+          ? `${t.currentSession(session.objective)} · ${t.todoProgress(todoDone, tracking.todo.length)}`
+          : t.noOpenSession}
+      </p>
+    </div>
+  );
+}
+
+function Underway({ t, milestone }: { t: TrackingMessages; milestone: MilestoneView }) {
+  const count = (state: string) => milestone.tasks.filter((task) => task.status === state).length;
+  const words = t.underway(count("inProgress"), count("blocked"));
+  return words ? <p className="tim-tracking__quiet">{words}</p> : null;
+}
+
+function SinceReview({
+  t,
+  locale,
+  tracking,
+  actions,
+}: {
+  t: TrackingMessages;
+  locale: Locale;
+  tracking: TrackingView;
+  actions: BridgeActions | undefined;
+}) {
+  const { review, debt } = tracking;
+  const since = review.since;
+  const counts = [
+    [review.added.length, t.newBoxes],
+    [review.modified.length, t.modifiedBoxes],
+    [review.removed.length, t.removedBoxes],
+    [review.dependenciesAdded.length, t.newDependencies],
+    [review.dependenciesRemoved.length, t.goneDependencies],
+  ] as const;
+  const changes = counts.filter(([count]) => count > 0).map(([count, words]) => words(count));
+  const work = [
+    tracking.sessionsSinceReview > 0 ? t.sessionsSince(tracking.sessionsSinceReview) : "",
+    debt ? t.toRead(debt.files, debt.untracked) : "",
+  ].filter(Boolean);
+  return (
+    <div className="tim-bridge__part">
+      <h2 className="tim-tracking__heading">
+        {since ? t.sinceReview(when(new Date(since.timestampMs).toISOString(), locale)) : t.noReviewHeading}
+      </h2>
+      {since ? (
+        <>
+          <p>{changes.length > 0 ? changes.join(" · ") : t.nothingChanged}</p>
+          {work.length > 0 && <p className="tim-tracking__quiet">{work.join(" · ")}</p>}
+        </>
+      ) : (
+        <>
+          <p className="tim-tracking__quiet">{t.noReviewText}</p>
+          {work.length > 0 && <p className="tim-tracking__quiet">{work.join(" · ")}</p>}
+        </>
+      )}
+      {actions && (
+        <div className="tim-bridge__actions">
+          <button type="button" className="tim-button tim-button--primary" onClick={actions.onOpenMap}>
+            {t.openMap}
+          </button>
+          <button type="button" className="tim-button" onClick={actions.onMarkReviewed}>
+            {t.markReviewed}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WhereToLook({
+  t,
+  items,
+  actions,
+}: {
+  t: TrackingMessages;
+  items: LookItem[];
+  actions: BridgeActions | undefined;
+}) {
+  return (
+    <div className="tim-bridge__part">
+      <h2 className="tim-tracking__heading">{t.lookHeading}</h2>
+      {items.length === 0 ? (
+        <p className="tim-tracking__quiet">{t.lookEmpty}</p>
+      ) : (
+        <ul className="tim-plain tim-look">
+          {items.map((item) => (
+            <li key={keyOf(item)}>
+              <Look t={t} item={item} actions={actions} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function keyOf(item: LookItem): string {
+  switch (item.kind) {
+    case "problem":
+      return `problem-${item.file}`;
+    case "blocked":
+      return `blocked-${item.task}`;
+    case "cycle":
+      return `cycle-${item.boxes.map((b) => b.id).join()}`;
+    case "debt":
+      return `debt-${item.item.id}`;
+  }
+}
+
+function named(item: ReviewBox): string {
+  return item.within ? `${item.within} › ${item.name}` : item.name;
+}
+
+/** One thing to look at: an alert in words, or a box that opens the map on itself. */
+function Look({ t, item, actions }: { t: TrackingMessages; item: LookItem; actions: BridgeActions | undefined }) {
+  switch (item.kind) {
+    case "problem":
+      return (
+        <p className="tim-look__item" data-contrast="icon">
+          <ToneIcon tone="attention" />
+          <span>{t.lookProblem(item.file)}</span>
+        </p>
+      );
+    case "blocked":
+      return (
+        <p className="tim-look__item" data-contrast="icon">
+          <ToneIcon tone="attention" />
+          <span>{t.lookBlocked(item.task, item.title)}</span>
+        </p>
+      );
+    case "cycle": {
+      const first = item.boxes[0];
+      return (
+        <BoxButton
+          label={t.lookCycle([...item.boxes.map(named), first ? named(first) : ""].join(" → "))}
+          detail={null}
+          hint={t.revealHint}
+          onSelect={first ? () => actions?.onReveal(first.id, item.path) : undefined}
+          icon={<ChangeIcon kind="cycle" />}
+        />
+      );
+    }
+    case "debt":
+      return (
+        <BoxButton
+          label={named(item.item)}
+          detail={`${t.lookDebt(item.debt.files)}${item.debt.untracked > 0 ? ` · ${t.untracked}` : ""}`}
+          hint={t.revealHint}
+          onSelect={() => actions?.onReveal(item.item.id, item.path)}
+          untracked={item.debt.untracked > 0}
+        />
+      );
+  }
+}
+
+function BoxButton({
+  label,
+  detail,
+  hint,
+  onSelect,
+  icon,
+  untracked = false,
+}: {
+  label: string;
+  detail: string | null;
+  hint: string;
+  onSelect: (() => void) | undefined;
+  icon?: React.ReactNode;
+  untracked?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="tim-look__box"
+      data-untracked={untracked}
+      onClick={onSelect}
+      title={hint}
+      data-contrast={icon ? "icon" : undefined}
+    >
+      {icon}
+      <span className="tim-look__name">{label}</span>
+      {detail && <span className="tim-look__detail">{detail}</span>}
+    </button>
+  );
+}

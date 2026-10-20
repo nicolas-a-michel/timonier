@@ -14,3 +14,7 @@ webview/src/protocol/generated.ts
 editors/vscode/src/protocol/generated.ts
 # Markdown is written by hand (PLAN.md is parsed by the hooks; docs/spec.md belongs to the human)
 *.md
+# The MCP tools' snapshot, written by `TIMONIER_UPDATE_TOOLS=1 cargo test -p timonier-core` (ADR 0027).
+crates/timonier-core/tests/tools.json
+# The schemas of the files of .timonier/, written by the same test (ADR 0029).
+docs/schemas/

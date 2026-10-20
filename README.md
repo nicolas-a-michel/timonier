@@ -21,9 +21,9 @@ crew, here the agents, move the ship.
 ## Status
 
 **Early development, not released.** The MVP is planned in nine phases ([PLAN.md](PLAN.md)):
-phases 0 to 5 are done (up to the review diff on the map); phase 6 (MCP tools, `timonier init`,
-plan and todo) has started. Nothing is
-published on crates.io, npm or the VSCode Marketplace yet. It runs on Linux and macOS; Windows
+phases 0 to 5 are done (up to the review diff on the map). Phase 6 is under way: the MCP tools,
+the plan, todo and session journal, the review debt and the bridge work; `timonier init` and
+`timonier doctor` come next. Nothing is published on crates.io, npm or the VSCode Marketplace yet. It runs on Linux and macOS; Windows
 is not supported yet.
 
 ## What works today
@@ -61,6 +61,25 @@ is not supported yet.
   client misses one. The daemon stops on its own after 15 minutes without clients.
 - `timonier daemon start | stop | status | run` (also installed as `tim`).
 
+### MCP tools for agents
+
+- `timonier mcp` (or `tim mcp`) is an MCP server on stdio for coding agents (Claude Code, Codex,
+  Cursor…). It starts the project's daemon if needed and relays its tools; the daemon validates
+  every call and is the only writer of `.timonier/`.
+- Tracking tools: `session_start`, `session_end`, `plan_add_task`, `plan_update_task`,
+  `todo_add`, `todo_complete`, and `get_plan`, `get_todo`, `get_session` to read them back.
+  Writes are structured operations, never whole files: a task follows its states (todo, in
+  progress, blocked, done, dropped) and a forbidden transition is refused with what to do
+  instead.
+- The plan, the todo and the session journal are versioned JSON files in `.timonier/`
+  (`plan.json`, `todo.json`, `sessions/`), their schemas in [docs/schemas](docs/schemas). Each
+  session freezes the code graph at its start and end.
+- Every result starts with a mailbox header (unread messages and their priority), empty until
+  multi-agent messaging arrives.
+- When a session ends, its journal keeps what it changed in the code: the components it touched
+  and the dependencies it added or removed, computed as the review diff between its two
+  snapshots.
+
 ### VSCode extension
 
 - Launches the project's daemon, and launches it again if it dies (backoff from 1 s to 30 s).
@@ -93,10 +112,25 @@ is not supported yet.
     do not. A box is new or removed only when code comes or goes with it, a crate with its
     manifest; a moved file, a renamed folder or crate is modified, and its dependencies follow
     it;
+  - **review debt**: a toolbar toggle shows, on each box, how many of its files changed since
+    your last review and are still to read again (« 9 files to read again »), in three levels of
+    the attention tone; files changed with no agent session open are hatched and marked
+    « untracked »;
   - **density**: the `timonier.map.density` setting makes the map comfortable (the default) or
     compact, with smaller boxes and tighter gaps;
   - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
     command for each action.
+- **The bridge**, the home view on the left, answers three questions at a glance: where the plan
+  stands (current milestone, open session), what happened since your last review (boxes,
+  dependencies, agent sessions, files to read again), and where to look first: what needs a
+  decision (a blocked task, an unreadable file, a cycle added), then the boxes to read again,
+  untracked ones first. A click opens the map on the box.
+- **Plan, todo and sessions** in one view of the secondary side bar, on the right (two glued
+  columns when it is wide enough), updated live as the agent calls
+  its tools: milestones with their computed progress and tasks by state; the open session's
+  todo; the journal of sessions with their objective, tasks, components touched (live while the
+  session is open), todo and summary. A file of `.timonier/` edited by hand shows too, and one
+  that no longer reads is named.
 - Follows the IDE theme, light, dark and high contrast. WCAG AA contrast is checked automatically
   with axe-core in six built-in VSCode themes. The interface is in English and French.
 
@@ -104,10 +138,8 @@ is not supported yet.
 
 From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
 
-- **MCP tools for agents** (phase 6, in progress): the agent reads the graph and writes
-  sessions, plan, todo and journal through validated operations; panels show the plan, the
-  live todo and the sessions; `timonier init` and `timonier doctor` configure a project and its
-  agent.
+- **Project setup** (phase 6, in progress): `timonier init` and `timonier doctor` configure a
+  project and its agent.
 - **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be
   typed as constraints, compared to the real architecture.
 - **Performance** (phase 8): `timonier test` wraps the test runner, collects OpenTelemetry traces

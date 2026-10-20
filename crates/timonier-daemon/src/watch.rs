@@ -43,6 +43,8 @@ pub enum Event {
     Committed(Result<Consolidated>),
     /// The head was marked as reviewed: the review diff starts again from it (ADR 0024).
     Reviewed(Result<Snapshot>),
+    /// The head was frozen for a session's start or end (ADR 0029).
+    Frozen(Result<Snapshot>),
 }
 
 impl Event {
@@ -62,6 +64,8 @@ impl Event {
             // The diff the views show starts from the new review (ADR 0024); and the head may
             // have changed before a failure, the disk read again (review n° 2 of Phase 5, m-3).
             Event::Reviewed(_) => true,
+            // A new head opened; a failure may come after the disk was read again.
+            Event::Frozen(_) => true,
             _ => false,
         }
     }
@@ -76,18 +80,23 @@ enum Command {
     /// Mark the head as reviewed, between two steps of the pipeline: never in the middle of a
     /// commit snapshot (ADR 0024). The answer goes back on the channel.
     Review(SyncSender<std::result::Result<Snapshot, String>>),
+    /// Freeze the head as a `working_tree` snapshot for a session, at the same place (ADR 0029).
+    Freeze(SyncSender<std::result::Result<Snapshot, String>>),
 }
 
-/// A review mark the pipeline thread was asked for.
-pub struct PendingReview(mpsc::Receiver<std::result::Result<Snapshot, String>>);
+/// A snapshot the pipeline thread was asked for: a review mark, or a session's.
+pub struct PendingReview {
+    answer: mpsc::Receiver<std::result::Result<Snapshot, String>>,
+    failed: fn(String) -> Error,
+}
 
 impl PendingReview {
-    /// The review mark, once frozen.
+    /// The snapshot, once frozen.
     pub fn wait(self) -> Result<Snapshot> {
-        self.0
+        self.answer
             .recv()
             .map_err(|_| Error::Stopped)?
-            .map_err(Error::Review)
+            .map_err(self.failed)
     }
 }
 
@@ -300,6 +309,21 @@ impl Watch {
                             });
                             on_event(Event::Reviewed(reviewed));
                         }
+                        Some(Command::Freeze(answer)) => {
+                            waiting.fetch_sub(1, Ordering::SeqCst);
+                            let frozen = pipeline.freeze_working_tree();
+                            match &frozen {
+                                Ok(snapshot) => {
+                                    tracing::info!(seq = snapshot.seq, "frozen for a session");
+                                }
+                                Err(error) => tracing::warn!(%error, "session snapshot failed"),
+                            }
+                            let _ = answer.send(match &frozen {
+                                Ok(snapshot) => Ok(snapshot.clone()),
+                                Err(error) => Err(error.to_string()),
+                            });
+                            on_event(Event::Frozen(frozen));
+                        }
                         None => {
                             let Some(server) = server.as_deref_mut() else {
                                 continue;
@@ -366,7 +390,25 @@ impl Watch {
         commands
             .send(Command::Review(answer))
             .map_err(|_| Error::Stopped)?;
-        Ok(PendingReview(answered))
+        Ok(PendingReview {
+            answer: answered,
+            failed: Error::Review,
+        })
+    }
+
+    /// Asks the pipeline thread to freeze the head for a session (ADR 0029), as
+    /// [`Watch::mark_reviewed`] does for a review.
+    pub fn freeze_working_tree(&self) -> Result<PendingReview> {
+        let commands = self.commands.as_ref().ok_or(Error::Stopped)?;
+        let (answer, answered) = mpsc::sync_channel(1);
+        self.pending.fetch_add(1, Ordering::SeqCst);
+        commands
+            .send(Command::Freeze(answer))
+            .map_err(|_| Error::Stopped)?;
+        Ok(PendingReview {
+            answer: answered,
+            failed: Error::Freeze,
+        })
     }
 
     /// Files waiting for LSP refinement (ADR 0014).

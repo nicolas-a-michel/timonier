@@ -17,9 +17,9 @@ import {
 import { Badge, ComponentBox } from "../design/components";
 import { ChangeIcon, RoleIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
-import type { Density, Role } from "../protocol";
+import type { Density, NodeDebt, Role } from "../protocol";
 import { METRICS } from "./layout";
-import type { MapBox, MapEdge, MapGroup } from "./mapModel";
+import { debtLevel, type MapBox, type MapEdge, type MapGroup } from "./mapModel";
 import { LinkBadge, primaryChange, ReviewBadge } from "./review";
 
 /** Which sides of an item edges leave from (right) or come into (left). */
@@ -58,8 +58,27 @@ function Ends({ y, sides }: { y: number; sides: Sides }) {
   );
 }
 
-/** Out of the filter « only the changes »: drawn, but quieter (ADR 0024). */
-export type Quiet = { quiet: boolean };
+/**
+ * Out of the filter « only the changes »: drawn, but quieter (ADR 0024). `debt`: the layer of
+ * the review debt is on (ADR 0030).
+ */
+export type Quiet = { quiet: boolean; debt?: boolean };
+
+/** The words of a review debt: how many files to read again, and whether some are untracked. */
+function DebtWords({ debt, locale, short }: { debt: NodeDebt; locale: Locale; short?: boolean }) {
+  const t = messages[locale].review;
+  return (
+    <span className="tim-debt">
+      <span className="tim-debt__files">{short ? t.debtShort(debt.files) : t.debtFiles(debt.files)}</span>
+      {debt.untracked > 0 && (
+        <span className="tim-debt__untracked">
+          <span className="tim-debt__hatch" aria-hidden="true" />
+          {t.untracked}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /**
  * How many members changed since the last review, in a title: the shape and the number, the
@@ -83,6 +102,7 @@ export type RoleNode = Node<{ group: MapGroup; locale: Locale; sides: Sides; den
 /** A role: closed, a card that lists its members; open, the frame around them. */
 export function RoleElement({ data }: NodeProps<RoleNode>) {
   const { group, locale, sides, quiet, density } = data;
+  const debt = data.debt && group.debt ? group.debt : null;
   const { pinY, role } = METRICS[density];
   const t = messages[locale];
   const label = group.role ? t.roles[group.role] : t.noRole;
@@ -98,7 +118,11 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
             <RoleIcon role={group.role} />
             <span className="tim-map-frame__title">{label}</span>
             <span className="tim-map-frame__meta">{t.members(group.members.length)}</span>
-            <Changes count={group.changes} locale={locale} />
+            {data.debt ? (
+              debt && <DebtWords debt={debt} locale={locale} short />
+            ) : (
+              <Changes count={group.changes} locale={locale} />
+            )}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -113,11 +137,16 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
         className={quiet ? "tim-map-role tim-map--quiet" : "tim-map-role"}
         data-contrast="outline"
         data-role={group.role ?? undefined}
+        data-debt={debtLevel(debt) || undefined}
       >
         <div className="tim-map-role__title" data-contrast="icon">
           <RoleIcon role={group.role} />
           <span className="tim-map-role__label">{label}</span>
-          <Changes count={group.changes} locale={locale} />
+          {data.debt ? (
+            debt && <DebtWords debt={debt} locale={locale} short />
+          ) : (
+            <Changes count={group.changes} locale={locale} />
+          )}
         </div>
         <ul className="tim-map-role__members">
           {shown.map((member) => {
@@ -151,6 +180,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
   const t = messages[locale];
   const { node } = box;
   const flag = node.review ? <ReviewBadge review={node.review} locale={locale} /> : undefined;
+  const debt = data.debt && node.debt ? node.debt : null;
   if (box.open) {
     return (
       <>
@@ -165,7 +195,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
             <span className="tim-map-frame__meta">
               {node.role ? t.roles[node.role] : t.noRole} · {t.items(node.children)}
             </span>
-            {flag}
+            {data.debt ? debt && <DebtWords debt={debt} locale={locale} short /> : flag}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -181,8 +211,10 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
         locale={locale}
         focusable={false}
         dimmed={quiet}
-        flag={flag}
+        flag={data.debt ? undefined : flag}
         badges={box.folded ? <Badge tone="neutral" label={t.folded(node.children)} /> : undefined}
+        debt={debt ? <DebtWords debt={debt} locale={locale} /> : undefined}
+        debtLevel={debtLevel(debt)}
       />
       <Ends y={pinY.box} sides={sides} />
     </>

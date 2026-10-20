@@ -62,6 +62,26 @@
   --tim-button-primary-hover: var(--vscode-button-hoverBackground, #0258a8);
   --tim-button-primary-border: var(--vscode-button-border, var(--tim-button-primary-bg));
 
+  /*
+   * The review debt (ADR 0030, Q44): three levels of the attention tone over the surface, and
+   * a hatching for what changed with no session open (a pattern, not a colour alone).
+   */
+  --tim-debt-1: color-mix(in srgb, var(--tim-color-attention) 8%, var(--tim-color-surface));
+  --tim-debt-2: color-mix(in srgb, var(--tim-color-attention) 15%, var(--tim-color-surface));
+  --tim-debt-3: color-mix(in srgb, var(--tim-color-attention) 24%, var(--tim-color-surface));
+  --tim-debt-hatch: repeating-linear-gradient(135deg, var(--tim-color-attention) 0 2px, transparent 2px 5px);
+
+  /*
+   * The side bar, where the panels of the tracking live (ADR 0031): its own background and text
+   * (sideBar.background → var(--vscode-sideBar-background)). A progress bar fills with the
+   * colour of links over a track of the text's colour, faint.
+   */
+  --tim-color-sidebar: var(--vscode-sideBar-background, var(--tim-color-bg));
+  --tim-color-sidebar-fg: var(--vscode-sideBar-foreground, var(--tim-color-fg));
+  --tim-progress-fill: var(--tim-color-info);
+  --tim-progress-track: color-mix(in srgb, var(--tim-color-sidebar-fg) 18%, var(--tim-color-sidebar));
+  --tim-progress-height: 4px;
+
   /* Meaning only (spec: red = violation, orange = attention, green = conformity), never alone */
   /* The list colours of VSCode, made for text and icons on lists, then their editor colours. */
   --tim-color-violation: var(--vscode-list-errorForeground, var(--vscode-editorError-foreground, #b01011));

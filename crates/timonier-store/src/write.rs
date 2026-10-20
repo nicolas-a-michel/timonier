@@ -1195,13 +1195,35 @@ fn check_tree(tx: &Transaction<'_>, checks: &PendingChecks) -> Result<()> {
 // ---------------------------------------------------------------------------------------------
 
 /// Freezes the head with the given kind, then opens a new head (ADR 0010).
+/// Forgets the contents kept for snapshots other than review marks: once a session ended, its
+/// diff is in its journal (ADR 0031).
+pub(crate) fn forget_contents(connection: &mut Connection) -> Result<()> {
+    connection.execute(
+        "DELETE FROM snapshot_content WHERE seq NOT IN \
+         (SELECT seq FROM snapshot WHERE kind = 'review_mark')",
+        [],
+    )?;
+    Ok(())
+}
+
+/// With `keep_contents`, the content of each file is kept for the snapshot: the review diff and
+/// a session's diff compare them (ADR 0024, 0031). A review mark always keeps them.
 pub(crate) fn freeze(
     connection: &mut Connection,
     freeze: &Freeze,
     timestamp_ms: i64,
+    keep_contents: bool,
 ) -> Result<Snapshot> {
     let tx = connection.transaction()?;
     let head = head_seq(&tx)?;
+    if matches!(freeze, Freeze::ReviewMark) {
+        // Only the last review keeps its contents; a session's stay until it ends (ADR 0031).
+        tx.execute(
+            "DELETE FROM snapshot_content WHERE seq IN \
+             (SELECT seq FROM snapshot WHERE kind = 'review_mark')",
+            [],
+        )?;
+    }
     let commit_sha = match freeze {
         Freeze::Commit { sha } => Some(sha.clone()),
         Freeze::ReviewMark | Freeze::WorkingTree => None,
@@ -1214,9 +1236,7 @@ pub(crate) fn freeze(
         "INSERT INTO snapshot (seq, kind, commit_sha, timestamp_ms, frozen) VALUES (?1, 'working_tree', NULL, ?2, 0)",
         params![seq_param(head + 1), timestamp_ms],
     )?;
-    if matches!(freeze, Freeze::ReviewMark) {
-        // The content of each file as reviewed, for the last review only (ADR 0024).
-        tx.execute("DELETE FROM snapshot_content", [])?;
+    if keep_contents || matches!(freeze, Freeze::ReviewMark) {
         tx.execute(
             "INSERT INTO snapshot_content (seq, scope, content_hash) \
              SELECT ?1, key, content_hash FROM scope \

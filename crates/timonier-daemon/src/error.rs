@@ -44,6 +44,9 @@ pub enum Error {
     #[error("the review mark failed: {0}")]
     Review(String),
 
+    #[error("the snapshot of the session failed: {0}")]
+    Freeze(String),
+
     #[error("the cached extraction of `{path}` cannot be encoded: {source}")]
     Cache {
         path: String,

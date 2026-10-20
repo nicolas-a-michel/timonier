@@ -9,6 +9,8 @@ export interface WebviewHtmlOptions {
   /** BCP 47 tag of the IDE's display language; the webview picks its language from it. */
   lang: string;
   title: string;
+  /** Which panel of the tracking the page shows (ADR 0031); none for the map. */
+  panel?: string;
 }
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -50,7 +52,9 @@ export function renderWebviewHtml(options: WebviewHtmlOptions): string {
     `    <title>${escapeHtml(options.title)}</title>`,
     "  </head>",
     "  <body>",
-    '    <div id="root"></div>',
+    options.panel === undefined
+      ? '    <div id="root"></div>'
+      : `    <div id="root" data-panel="${escapeHtml(options.panel)}"></div>`,
     `    <script type="module" nonce="${escapeHtml(options.nonce)}" src="${escapeHtml(options.scriptUri)}"></script>`,
     "  </body>",
     "</html>",

@@ -2,7 +2,6 @@
   "extension.description": "Pilotez des agents IA sans lire tout le code qu'ils produisent : architecture vivante, tableau blanc d'intention, performances mesurées, plan en direct.",
   "command.openMap.title": "Ouvrir la carte",
   "view.home.name": "Vue d'ensemble",
-  "view.home.welcome": "La carte montre l'architecture de ce projet, telle que le démon de Timonier la lit dans le code. Elle suit chaque changement.\n[Ouvrir la carte](command:timonier.openMap)\nLe plan, la todo et le journal des sessions apparaîtront ici dans les prochaines versions.",
   "command.restartDaemon.title": "Relancer le démon",
   "command.showLog.title": "Afficher le journal",
   "capabilities.untrustedWorkspaces": "Timonier lance un programme sur le projet et indexe son code : il attend que le dossier soit approuvé.",
@@ -20,5 +19,9 @@
   "command.map.openCode.title": "Aller au code de la sélection sur la carte",
   "command.map.onlyChanges.title": "Mettre en avant les changements depuis la dernière revue sur la carte (activer ou désactiver)",
   "command.map.reviewDetails.title": "Afficher ou masquer les détails du résumé de revue sur la carte",
-  "command.markReviewed.title": "Marquer comme revu"
+  "command.map.reviewDebt.title": "Afficher ou masquer la dette de revue sur la carte",
+  "command.markReviewed.title": "Marquer comme revu",
+  "container.journal.title": "Timonier",
+  "view.tracking.name": "Plan, todo et sessions",
+  "command.whereToLook.title": "Où regarder : montrer sur la carte une boîte à relire"
 }

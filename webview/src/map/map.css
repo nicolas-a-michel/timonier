@@ -456,3 +456,94 @@ body.vscode-high-contrast .tim-map-frame__header {
     display: none;
   }
 }
+
+/*
+ * The layer of the review debt (ADR 0030, Q44): the body of a box, or a role card, takes its
+ * level; the words say how many files, and « untracked » comes with a hatched mark.
+ */
+.tim-map .react-flow__node .tim-box[data-debt="1"] .tim-box__body,
+.tim-map-role[data-debt="1"] .tim-map-role__members,
+.tim-legend__swatch[data-debt="1"] {
+  background: var(--tim-debt-1);
+}
+
+.tim-map .react-flow__node .tim-box[data-debt="2"] .tim-box__body,
+.tim-map-role[data-debt="2"] .tim-map-role__members,
+.tim-legend__swatch[data-debt="2"] {
+  background: var(--tim-debt-2);
+}
+
+.tim-map .react-flow__node .tim-box[data-debt="3"] .tim-box__body,
+.tim-map-role[data-debt="3"] .tim-map-role__members,
+.tim-legend__swatch[data-debt="3"] {
+  background: var(--tim-debt-3);
+}
+
+.tim-map-role[data-debt] .tim-map-role__members {
+  flex: 1;
+}
+
+.tim-debt {
+  display: inline-flex;
+  color: var(--tim-color-fg);
+  flex: none;
+  align-items: center;
+  gap: var(--tim-space-2);
+  margin-left: auto;
+  font-size: var(--tim-font-size-small);
+  font-weight: var(--tim-font-weight-strong);
+  white-space: nowrap;
+}
+
+.tim-box__meta .tim-debt {
+  margin-left: 0;
+}
+
+.tim-debt__untracked {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  font-weight: normal;
+}
+
+.tim-debt__hatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--tim-color-attention);
+  border-radius: 2px;
+  background: var(--tim-debt-hatch);
+}
+
+.tim-legend__swatch {
+  display: inline-block;
+  flex: none;
+  width: 40px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--tim-color-attention);
+  border-radius: 2px;
+}
+
+/* The toolbar wraps before it runs under the legend, on the right (ADR 0030 added a tool). */
+.tim-map .react-flow__panel.top.left {
+  max-width: calc(100% - 25rem);
+}
+
+.tim-map .react-flow__panel.top.left .tim-toolbar {
+  flex-wrap: wrap;
+}
+
+.tim-map .react-flow__panel .tim-legend {
+  max-width: 22rem;
+}
+
+/* On a tinted body, the quieter words keep the text's own colour: they stay readable. */
+.tim-map .react-flow__node .tim-box[data-debt] .tim-box__body,
+.tim-map-role[data-debt] .tim-map-role__members {
+  color: var(--tim-color-fg);
+}
+
+.tim-map .react-flow__node .tim-box[data-debt] .tim-box__role {
+  color: var(--tim-color-fg);
+}

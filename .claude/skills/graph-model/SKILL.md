@@ -111,7 +111,9 @@ function, method, field, constant. Each node has a name, a language, a span and 
 - **Review diff** (ADR 0024, `timonier_core::review`): between the last `review_mark` and the
   head, at the level of boxes (components and packages), under the head's ids. The content
   hash of each file at the review is kept in `snapshot_content` (migration 0005), for the last
-  review only. `timonier_core::graph::Graph` is the in-memory snapshot both the views and the
+  review only, and for a session's snapshots until it ends (ADR 0031,
+  `Store::freeze_keeping_contents`, `forget_contents`, read by `Reader::kept_contents`): a
+  session's diff is the review diff between its two snapshots, written in its journal. `timonier_core::graph::Graph` is the in-memory snapshot both the views and the
   review diff read.
   - Renames: a file gone from one path and found at one other with the same content is moved,
     with its symbols (paired by their names from the file down and their span); so are the

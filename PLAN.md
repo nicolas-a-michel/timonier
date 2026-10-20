@@ -236,6 +236,29 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q47 — Où vit le pont** (Phase 6, 6.7) — ✅ répondu le 2026-10-20 : **la vue d'ensemble, à
+gauche**. Le pont remplace la vue d'ensemble de la barre latérale principale ; plan, todo et
+sessions restent à droite pour le détail.
+
+**Q46 — Un clic dans « Où regarder »** (Phase 6, 6.7) — ✅ répondu le 2026-10-20 : **ouvre la
+carte dessus**. La carte s'ouvre ou se montre, déplie ce qu'il faut pour atteindre la boîte,
+la centre et la sélectionne.
+
+**Q45 — Classer « Où regarder »** (Phase 6, 6.7) — ✅ répondu le 2026-10-20 : **les alertes
+puis la dette**. D'abord ce qui demande une décision (tâche bloquée, fichier de `.timonier/`
+illisible, cycle ajouté), puis les boîtes les plus en dette de revue, celles touchées hors
+session (non suivies) en tête ; cinq éléments au plus, le reste sur la carte.
+
+**Q44 — Montrer la dette de revue** (Phase 6, 6.5) — ✅ répondu le 2026-10-20 : **un calque
+à activer**. Un bouton « Dette de revue » dans la barre d'outils, et une commande. Activé,
+chaque boîte prend un fond plus ou moins soutenu, en trois paliers du ton d'attention, avec
+« 6 fichiers à relire » écrit dessus ; le non suivi a sa marque, des hachures et le mot
+« non suivi » ; la légende explique les paliers. Hors calque, rien ne change.
+
+**Q43 — Mesurer la dette de revue** (Phase 6, 6.5) — ✅ répondu le 2026-10-20 : **les fichiers
+changés**. Pour chaque boîte, les fichiers changés pendant les sessions depuis la dernière
+revue, rapportés à ses fichiers.
+
 **Q42 — Comment finir la Phase 5** (relecture n° 7) — ✅ répondu le 2026-10-19 : **clore si
 mineurs**. Après les corrections de la relecture n° 7, une relecture n° 8 ; si elle ne trouve
 plus que des cas limites de regroupement ou des mineurs, ils sont notés comme écarts, et la
@@ -2399,26 +2422,187 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
   - forme de l'en-tête de boîte aux lettres ;
   - formats versionnés (schémas JSON) de `.timonier/plan.json`, `todo.json` et
     `sessions/<id>.json`.
-- [ ] 6.2 `timonier-mcp` : serveur MCP, mince proxy vers le démon (qu'il démarre au besoin),
+  - Écrites (« Proposé ») : [ADR 0027](docs/adr/0027-serveur-mcp.md) (rmcp 3.5.1 sur stdio,
+    proxy à deux méthodes `tools/list` et `tools/call`, catalogue et validation dans le démon),
+    [ADR 0028](docs/adr/0028-en-tete-boite-aux-lettres.md) (en-tête structuré et texte),
+    [ADR 0029](docs/adr/0029-formats-du-suivi.md) (formats versionnés, états d'une tâche,
+    sessions figées en snapshots, une session ouverte à la fois). Acceptées à ta validation de
+    la phase.
+- [x] 6.2 `timonier-mcp` : serveur MCP, mince proxy vers le démon (qu'il démarre au besoin),
   avec l'en-tête de boîte aux lettres dans chaque réponse (H10) — critère : test d'intégration
   client MCP → proxy → démon ; snapshot de la liste des outils.
-- [ ] 6.3 Outils de suivi `session_start`, `session_end`, `plan_add_task`, `plan_update_task`,
+  - `timonier mcp` (CLI) trouve ou démarre le démon sans rien écrire sur stdout, puis
+    `timonier-mcp` relaie `tools/list` et `tools/call` vers les méthodes du même nom du démon
+    (protocole version 4) ; le catalogue, la validation, les écritures et l'en-tête sont dans le
+    démon (`timonier_core::tools`, ADR 0027, 0028).
+  - Tests : `crates/timonier-cli/tests/mcp.rs`, un vrai client MCP (`rmcp`) → `tim mcp` → un
+    vrai démon sur un projet temporaire : la liste des outils égale l'instantané
+    (`crates/timonier-core/tests/tools.json`, test `the_catalogue_is_the_contract`), l'en-tête
+    dans la structure et en tête du texte de chaque résultat, erreurs comprises, une session
+    complète écrite dans `.timonier/`. Le nom du client MCP devient l'agent de la session.
+- [x] 6.3 Outils de suivi `session_start`, `session_end`, `plan_add_task`, `plan_update_task`,
   `todo_add`, `todo_complete`, plus les outils de lecture selon Q10. Écritures structurées et
   validées, le démon est le seul écrivain — critère : les entrées invalides et les transitions
   d'état interdites sont refusées (tests).
-- [ ] 6.4 Les changements faits hors session sont marqués « non suivis » — critère : une
+  - Formats et règles de l'ADR 0029 dans `timonier_core::tracking` (types, transitions, bornes,
+    identifiants jamais réutilisés) ; le démon les applique (`timonier_daemon::tracking`) :
+    fichiers relus à chaque appel, écrits en entier par renommage, un fichier cassé hors du
+    démon refuse les écritures en le disant ; une session ouverte à la fois ; début et fin
+    figés en snapshots `working_tree` par le fil du pipeline.
+  - Lecture (Q10) : `get_plan` (avec l'avancement calculé de chaque jalon), `get_todo`,
+    `get_session`.
+  - Tests : `tracking.rs` du cœur (9 : identifiants, transitions toutes listées, bornes,
+    réouverture avec une note, fichiers invalides, champs inconnus refusés, schémas stricts),
+    `tools.rs` (4), `tracking.rs` du démon (4 : une session entière, refus avec ce qu'il faut
+    faire, fichier cassé puis réparé à la main, identifiants de session).
+- [x] 6.4 Les changements faits hors session sont marqués « non suivis » — critère : une
   modification sans session ouverte est marquée (test).
-- [ ] 6.5 Dette de revue : chaleur par composant (code écrit en session et non couvert par une
+  - À chaque `session_start`, les fichiers que le diff des snapshots touche depuis la fin de la
+    session précédente (ou le premier snapshot) vont dans `sessions/untracked.json`, avec les
+    deux snapshots et la session qui suit (ADR 0029, schéma `docs/schemas/untracked.schema.json`).
+  - Tests : dans le démon, les écarts de deux sessions de suite ; de bout en bout
+    (`crates/timonier-cli/tests/mcp.rs`), une modification faite hors session est marquée, une
+    faite pendant une session ne l'est pas.
+- [x] 6.5 Dette de revue : chaleur par composant (code écrit en session et non couvert par une
   `review_mark` ultérieure ; changements hors session = non suivis), en calque sur la carte —
   critère : test sur fixtures ; checklist d'accessibilité.
-- [ ] 6.6 Panneaux — critère : les panneaux se mettent à jour en direct quand l'agent appelle
+  - Tes réponses : Q43 (les fichiers changés) et Q44 (un calque à activer). Règles et paliers
+    dans l'[ADR 0030](docs/adr/0030-dette-de-revue.md) : depuis la dernière revue, les fichiers
+    que le diff des snapshots touche dans chaque session, et hors session (écarts de
+    `untracked.json`, et depuis la fin de la dernière session) ; par boîte, ses fichiers à relire
+    sur ses fichiers ; paliers sous le tiers, sous les deux tiers, au-delà.
+  - Démon : `timonier_daemon::debt`, calculé par le fil des vues avec la tête (les fenêtres closes
+    gardées en mémoire), `ViewNode.debt { files, of, untracked }` dans la vue (protocole 4).
+  - Carte : bouton « Dette de revue » dans la barre d'outils et commande de palette ; une boîte
+    fermée dit « 9 fichiers à relire » à la place de son nombre d'éléments, un rôle fermé
+    « 12 à relire » dans son titre (la somme de ses membres) ; le corps prend l'un des trois
+    paliers du ton d'attention ; le non suivi a une marque hachurée et le mot « non suivi » ; la
+    légende explique les paliers et les hachures. Dans le calque, la dette seule (pas les
+    marques du diff de revue). L'état est gardé avec la page. La barre d'outils passe à la
+    ligne avant de courir sous la légende.
+  - Tests : `debt.rs` (comptes par boîte), `a_view_shows_the_review_debt` sur un vrai démon (une
+    session crée de la dette, un changement hors session de la dette non suivie, une revue
+    l'efface), `mapModel` et `uiState` (paliers, somme d'un rôle, état gardé), et
+    `webview/test/a11y/debt.a11y.ts` (8 : bascule, mots, noms accessibles, légende, AA dans les
+    six thèmes).
+  - Checklist d'accessibilité :
+    - [x] contraste AA dans les six thèmes, texte à 4,5:1 sur les paliers (le texte atténué
+      d'une boîte en dette prend la couleur du texte), marques à 3:1 ;
+    - [x] au clavier et en commande (« Afficher ou masquer la dette de revue sur la carte ») ;
+    - [x] noms accessibles : « 12 files to read again, untracked. » ;
+    - [x] jamais la couleur seule : des mots sur chaque boîte, des hachures et un mot pour le
+      non suivi ;
+    - [x] aucune animation.
+  - Trouvé en route : la mesure du texte des tests d'accessibilité comptait les spans sans
+    texte (icônes, nuancier) ; elle les laisse aux marques (`measure.ts`).
+- [x] 6.6 Panneaux — critère : les panneaux se mettent à jour en direct quand l'agent appelle
   les outils (test d'intégration) ; test des cinq secondes. Contenu :
   - plan : jalons → tâches, avancement calculé, panneau latéral permanent ;
   - todo en direct ;
   - journal des sessions : objectif, tâches, composants touchés, diff structurel, tests
     (l'effet sur les performances arrive en Phase 8).
+
+  Fait (2026-10-20) :
+  - [ADR 0031](docs/adr/0031-vue-du-suivi.md). Protocole version 5 : `tracking/subscribe`
+    répond l'état entier (`TrackingView` : jalons avec l'avancement calculé par le démon, todo
+    de la session ouverte, les 50 dernières sessions, fichiers illisibles) ; `tracking/update`
+    le renvoie entier à chaque changement : après chaque `tools/call`, après chaque changement
+    du graphe tant qu'une session est ouverte, et quand `.timonier/` change hors du démon (une
+    seconde au plus, regardé seulement tant qu'un panneau est abonné).
+  - Diff d'une session : le diff de revue (ADR 0024) entre ses deux snapshots, qui gardent le
+    contenu de leurs fichiers (`Store::freeze_keeping_contents`, `forget_contents` ;
+    `Reader::reviewed_contents` devient `kept_contents`) ; écrit à la fin dans le journal
+    (`changes` : fichiers, boîtes ajoutées, modifiées, retirées, dépendances ajoutées et
+    retirées ; schéma `docs/schemas/session.schema.json` refait), en direct pour la session
+    ouverte (`timonier_daemon::journal`).
+  - Interface : une vue webview « Plan, todo et sessions » dans la barre latérale secondaire
+    (voir plus bas), une seconde page de la webview
+    (`webview/tracking.html`, construite à part dans `dist/tracking/` : sous la CSP par nonce,
+    une page ne peut charger qu'un seul script), un relais (`trackingRelay.ts`, un abonnement
+    pour les trois vues, refait à chaque connexion). Jalons repliables avec barre de
+    progression et mots ; une forme par état de tâche (anneau, demi-disque, triangle, disque
+    coché, anneau barré) ; todo avec la tâche servie ; journal repliable, la session ouverte
+    dépliée, composants touchés avec les marques du diff de revue.
+  - Tests : `TrackingView::new` (ordre, session ouverte en direct, plafond), magasin (contenus
+    gardés à travers une revue puis oubliés), `the_tracking_follows_the_agent_live` sur un
+    vrai démon (deux connexions : le panneau suit l'agent, le diff de la session ouverte suit
+    le code et finit à l'identique dans le journal, un `plan.json` cassé puis réparé à la
+    main), `TrackingPanel.test.tsx` (16), `trackingRelay.test.ts` (7), et le test
+    d'intégration VSCode « shows the plan and the todo live as the agent calls the tools » :
+    les pages des vues Plan et Todo accusent la révision qui porte l'appel de l'agent.
+  - Checklist d'accessibilité (`webview/test/a11y/tracking.a11y.ts`, 20) :
+    - [x] contraste AA des trois panneaux dans les six thèmes (texte, icônes, barre de
+      progression, anneau de focus) ;
+    - [x] au clavier : jalons, tâches et sessions sont des `details` natifs ;
+    - [x] noms accessibles : la barre de progression dit « Phase 6 : 2 of 5 tasks done », chaque
+      tâche et chaque élément de todo disent leur état en mots ;
+    - [x] jamais la couleur seule : une forme par état, des mots pour en cours, bloquée,
+      abandonnée ;
+    - [x] seule animation : le chevron qui tourne et la barre qui avance, coupés par
+      `prefers-reduced-motion`.
+  - Test des cinq secondes n° 1 (2026-10-20, toi, capture des trois panneaux côte à côte,
+    Dark Modern, français) : **échoué en partie**. Réponse : « on voit un résumé de
+    l'avancement à gauche, et le plan au centre en résumé, on dirait un plan plus détaillé sur
+    la colonne tout à droite ». Le plan est lu ; la todo est prise pour un résumé du plan, le
+    journal pour un plan détaillé. Causes : la capture posait les panneaux côte à côte sans
+    leurs en-têtes de vue (VSCode les empile sous « PLAN », « TODO », « SESSIONS ») ; la todo
+    s'ouvrait sur l'objectif sans dire de quoi il s'agit, et le journal répétait toute la todo
+    de la session ouverte.
+  - Précisé par toi : « le titre est trompeur », l'objectif de la session d'exemple (« Show the
+    plan, the todo and the journal in the side bar »), présent en gros sur deux colonnes.
+  - Corrigé (2026-10-20) : dans la todo, l'objectif n'est plus un titre mais une ligne
+    discrète, « Session en cours : … », la liste est l'essentiel ; l'exemple a un objectif
+    sans rapport avec les panneaux (« Cache the extraction of unchanged files ») ; dans le
+    journal, la session ouverte ne donne que son compte (« 2 sur 4 faits · le détail est dans
+    le panneau Todo ») ; la page de démo montre les trois panneaux empilés sous leurs
+    en-têtes, comme la barre latérale (`?tracking=all`). Test n° 2 à faire.
+  - Test des cinq secondes n° 2 (2026-10-20, toi, capture empilée) : **réussi** (« c'est
+    mieux comme ça »), avec une demande : Sessions à droite, Plan et Todo dans la même colonne.
+    Fait : Sessions passe dans un conteneur de la barre latérale secondaire (ADR 0031), Plan et
+    Todo restent sous la vue d'ensemble ; le test d'intégration ouvre les trois et les voit
+    suivre l'agent ; la démo `?tracking=all` montre les deux barres.
+  - Puis, à ta demande (« il faudrait que les colonnes soient collées »), entre tout à droite,
+    tout à gauche, deux barres ou un onglet, tu as choisi tout à droite : une seule vue « Plan,
+    todo et sessions » dans la barre latérale secondaire, deux colonnes collées (le plan et la
+    todo, puis les sessions, chacune sous son titre) dès 36 rem de large, empilées sinon ; la
+    vue d'ensemble reste à gauche. Tests : `TrackingPanel.test.tsx` (18), `tracking.a11y.ts`
+    (27, dont les colonnes collées à 700 px et empilées à 300 px), intégration (la vue suit
+    l'agent). Capture : `/mnt/travail/timonier-panneaux-phase6-4.png`.
+  - Écarts : les tests du journal attendent `timonier test` (Phase 8) : le journal le dit ;
+    une session finie avant ce changement n'a pas de `changes` (« Non enregistré »).
 - [ ] 6.7 Le pont (H5) : où en est le plan, ce qui s'est passé depuis la dernière revue, où
   regarder — critère : test des cinq secondes.
+
+  Fait (2026-10-20), reste le test des cinq secondes :
+  - Tes réponses : Q45 (les alertes puis la dette), Q46 (un clic ouvre la carte sur la boîte),
+    Q47 (la vue d'ensemble, à gauche). [ADR 0032](docs/adr/0032-le-pont.md), protocole version 6.
+  - Démon (`timonier_daemon::bridge`) : l'état du suivi porte le résumé du diff de revue, la
+    dette du projet, les sessions commencées depuis la revue (à la seconde : une session de la
+    seconde de la revue compte avant) et « Où regarder », cinq éléments au plus : fichiers
+    illisibles, tâches bloquées, cycles ajoutés, puis les boîtes en dette, non suivies d'abord,
+    la plus précise quand toute la dette d'une boîte tient dans une fille ; chaque boîte avec
+    son chemin depuis le haut de la carte. Recalculé à chaque changement du graphe.
+  - Carte : commande `reveal { target, path }` : ouvre le rôle du haut du chemin, déplie le
+    chemin, centre et sélectionne la boîte (`uiState.reveal`).
+  - Interface : la vue d'ensemble devient une vue webview (partie `bridge` de la page du
+    suivi) : « Plan » (jalon en cours, barre, tâches en cours et bloquées, session ouverte),
+    « Depuis votre revue du … » (comptes du diff, sessions, fichiers à relire ; « Ouvrir la
+    carte », « Marquer comme revu »), « Où regarder » (alertes en mots avec le triangle
+    d'attention, boîtes cliquables, les non suivies marquées d'un filet et du mot). Commande
+    « Où regarder : montrer sur la carte une boîte à relire » (liste dans la palette).
+  - Tests : `bridge.rs` (3 : classement, plafond et chemin, sessions depuis la revue),
+    `the_tracking_follows_the_agent_live` étendu (dette et « Où regarder » après la session,
+    remis à zéro par une revue), `TrackingPanel.test.tsx` (pont, 5), `uiState.test.ts`
+    (reveal, 2), intégration VSCode « shows the bridge, and reveals a box on the map from it ».
+  - Checklist d'accessibilité (`tracking.a11y.ts`, 34 en tout) :
+    - [x] contraste AA du pont dans les six thèmes ;
+    - [x] au clavier : « Ouvrir la carte », « Marquer comme revu », puis chaque boîte ; et
+      la commande de palette ;
+    - [x] noms accessibles : « timonier-daemon 9 files to read again · untracked », barre de
+      progression nommée ;
+    - [x] jamais la couleur seule : triangle et mots pour les alertes, mot « non suivi » ;
+    - [x] aucune animation de plus.
+  - Capture : `/mnt/travail/timonier-pont.png`.
 - [ ] 6.8 `timonier init` — critère : tests sur des projets fixtures Rust et TS ; une deuxième
   exécution ne change rien ; `--dry-run` affiche le diff exact. Contenu :
   - détection : langages, gestionnaire de paquets, runner de tests, agents installés, état
@@ -2447,7 +2631,8 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
 
 Critère de sortie : Timonier pilote son propre développement.
 
-Décisions : —
+Décisions :
+- ADR 0027, 0028, 0029, 0030, 0031, 0032 (« Proposé »).
 Écarts : —
 
 ## Phase 7 — Tableau blanc et intention
@@ -2620,7 +2805,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | jsonrpsee | 0.26.1 | MIT | **Écarté** (ADR 0019) : serveurs HTTP et WebSocket seulement |
 | ts-rs | 12.0.1 | MIT | Vérifié le 2026-10-16 ; types TypeScript du protocole (ADR 0019). specta écarté (2.0.0-rc.25) |
 | async-lsp / tower-lsp-server | 0.2.4 / 0.23.0 | MIT OR Apache-2.0 | tower-lsp n'est plus maintenu ; lsp-types est figé |
-| rmcp | 3.5.1 | Apache-2.0 (parties en MIT) | SDK Rust officiel de MCP |
+| rmcp | 3.5.1 | Apache-2.0 (parties en MIT) | SDK Rust officiel de MCP ; revérifié le 2026-10-20 (Rust 1.88 au moins ; la 3.6.0 du jour attend), verrouillé dans `Cargo.lock` (ADR 0027) |
+| schemars | 1.2.3 | MIT | Vérifié le 2026-10-20 ; schémas JSON des entrées des outils MCP (ADR 0027) |
 | tonic / prost / axum | 0.14.6 / 0.14.4 / 0.8.9 | MIT / Apache-2.0 / MIT | |
 | clap | 4.6.7 | MIT OR Apache-2.0 | |
 | blake3 | 1.8.7 | CC0-1.0 OR Apache-2.0 | |

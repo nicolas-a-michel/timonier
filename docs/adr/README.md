@@ -31,3 +31,9 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0024 | [Diff de revue](0024-diff-de-revue.md) | Accepté | 5 |
 | 0025 | [Snapshot de commit : les paquets du commit](0025-paquets-du-commit.md) | Accepté | 5 |
 | 0026 | [Densité de la carte](0026-densite-de-la-carte.md) | Accepté | 5 |
+| 0027 | [Serveur MCP : rmcp sur stdio, mince proxy vers le démon](0027-serveur-mcp.md) | Proposé | 6 |
+| 0028 | [En-tête de boîte aux lettres](0028-en-tete-boite-aux-lettres.md) | Proposé | 6 |
+| 0029 | [Formats du suivi : plan, todo et sessions](0029-formats-du-suivi.md) | Proposé | 6 |
+| 0030 | [Dette de revue](0030-dette-de-revue.md) | Proposé | 6 |
+| 0031 | [Vue du suivi : plan, todo et journal dans l'IDE](0031-vue-du-suivi.md) | Proposé | 6 |
+| 0032 | [Le pont : la vue d'accueil](0032-le-pont.md) | Proposé | 6 |

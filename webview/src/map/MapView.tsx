@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { EdgeLegend, Toolbar } from "../design/components";
 import { ArrowIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
-import type { Density, MapCommand, Role, Span } from "../protocol";
+import type { Density, MapCommand, NodeDebt, Role, Span } from "../protocol";
 import type { ViewData } from "../viewModel";
 import { edgeTypes, nodeTypes, type BoxNode, type LineEdge, type RoleNode, type Sides } from "./elements";
 import { layout, ROOT, type Layout, type Pins } from "./layout";
@@ -58,6 +58,18 @@ export interface MapViewProps {
   /** What did not change since the last review is quieter (ADR 0024). */
   onlyChanges?: boolean;
   onToggleChanges?: () => void;
+  /** The review debt shows on the boxes (ADR 0030, Q44). */
+  showDebt?: boolean;
+  onToggleDebt?: () => void;
+  /** Open what leads to a box (ADR 0032): the host's state changes, the map centers it. */
+  onReveal?: (target: string, path: string[]) => void;
+}
+
+/** The words of a review debt, for screen readers: as many files, and whether untracked. */
+function debtLine(debt: NodeDebt | null, locale: Locale): string[] {
+  if (!debt) return [];
+  const t = messages[locale].review;
+  return [`${t.debtFiles(debt.files)}${debt.untracked > 0 ? `, ${t.untracked}` : ""}.`];
 }
 
 /** Where the palette's commands come in; those that came before the map are kept in `pending`. */
@@ -112,6 +124,7 @@ function flowNodes(
   locale: Locale,
   onlyChanges: boolean,
   density: Density,
+  debt: boolean,
 ): Node[] {
   const nodes: Node[] = [];
   const ins = new Set(content.edges.map((edge) => edge.target));
@@ -126,7 +139,10 @@ function flowNodes(
       position: { x: at.x, y: at.y },
       width: at.width,
       height: at.height,
-      ariaLabel: describe(item, locale).label,
+      ariaLabel: [
+        describe(item, locale).label,
+        ...(debt ? debtLine(item.kind === "role" ? item.debt : item.node.debt, locale) : []),
+      ].join(" "),
       draggable: true,
       connectable: false,
       selectable: true,
@@ -135,13 +151,17 @@ function flowNodes(
       ...(item.open ? { dragHandle: ".tim-map-frame__header", className: "tim-map-node--frame" } : {}),
     };
     if (item.kind === "role") {
-      nodes.push({ ...common, type: "role", data: { group: item, locale, sides, quiet, density } } satisfies RoleNode);
+      nodes.push({
+        ...common,
+        type: "role",
+        data: { group: item, locale, sides, quiet, density, debt },
+      } satisfies RoleNode);
     } else {
       nodes.push({
         ...common,
         type: "box",
         parentId: item.parent.startsWith("@role/") || placed.has(item.parent) ? item.parent : undefined,
-        data: { box: item, locale, sides, quiet, density },
+        data: { box: item, locale, sides, quiet, density, debt },
       } satisfies BoxNode);
     }
   }
@@ -218,6 +238,9 @@ function Canvas({
   density = "comfortable",
   onlyChanges: filter = false,
   onToggleChanges,
+  showDebt = false,
+  onToggleDebt,
+  onReveal,
 }: MapViewProps) {
   // Before the first review there is nothing to highlight: the map shows as it is (Q27).
   const onlyChanges = filter && view.review.since !== null;
@@ -262,8 +285,8 @@ function Canvas({
     };
   }, [content, pins, density]);
   const laidOut = useMemo(
-    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density) : []),
-    [placed, locale, onlyChanges, density],
+    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt) : []),
+    [placed, locale, onlyChanges, density, showDebt],
   );
   const nodes = useMemo(
     () =>
@@ -421,6 +444,19 @@ function Canvas({
         return;
       case "toggleReviewDetails":
         setReviewDetails(!reviewDetails);
+        return;
+      case "reveal": {
+        // Opened by the host's state first (main.tsx); centered once laid out, and selected.
+        onReveal?.(command.target, command.path);
+        setSelected(new Set([command.target]));
+        setFocused(command.target);
+        if (placed?.layout.has(command.target)) {
+          void flow.fitView({ nodes: [{ id: command.target }], padding: 0.2, duration: 0, maxZoom: 1 });
+        } else reveal.current = command.target;
+        return;
+      }
+      case "toggleDebt":
+        onToggleDebt?.();
         return;
     }
   };
@@ -582,11 +618,14 @@ function Canvas({
                 { id: "zoom-out", label: t.zoomOut, onSelect: () => run({ name: "zoomOut" }) },
                 { id: "close", label: t.closeAll, onSelect: closeAll },
                 { id: "reset", label: t.resetLayout, onSelect: resetLayout },
+                ...(onToggleDebt
+                  ? [{ id: "debt", label: t.review.debtLayer, pressed: showDebt, onSelect: onToggleDebt }]
+                  : []),
               ]}
             />
           </Panel>
           <Panel position="top-right">
-            <EdgeLegend locale={locale} changes={view.review.since !== null} />
+            <EdgeLegend locale={locale} changes={view.review.since !== null} debt={showDebt} />
           </Panel>
           {described && (
             <Panel position="bottom-left">

@@ -10,9 +10,12 @@ interface Manifest {
   capabilities?: { untrustedWorkspaces?: { supported: boolean | "limited" } };
   contributes: {
     configuration?: { properties: Record<string, { scope?: string }> };
-    viewsContainers: { activitybar: { id: string; title: string; icon: string }[] };
-    views: Record<string, { id: string; name: string; icon?: string }[]>;
-    viewsWelcome: { view: string; contents: string }[];
+    viewsContainers: {
+      activitybar: { id: string; title: string; icon: string }[];
+      secondarySidebar?: { id: string; title: string; icon: string }[];
+    };
+    views: Record<string, { id: string; name: string; icon?: string; type?: string }[]>;
+    viewsWelcome?: { view: string; contents: string }[];
     commands: { command: string; icon?: string }[];
     menus: { "view/title": { command: string; when: string; group?: string }[] };
   };
@@ -43,23 +46,44 @@ describe("activity bar entry", () => {
     );
   });
 
-  it("holds a single overview view, with an icon in case it is moved", () => {
-    const views = contributes.views.timonier ?? [];
+  it("holds the overview on the left, the tracking alone on the right (ADR 0031)", () => {
+    const left = contributes.views.timonier ?? [];
+    const right = contributes.views["timonier-journal"] ?? [];
     assert.deepEqual(
-      views.map((v) => v.id),
+      left.map((v) => v.id),
       ["timonier.home"],
     );
-    assert.ok(views[0]?.icon && existsSync(path.join(root, views[0].icon)));
+    assert.deepEqual(
+      right.map((v) => v.id),
+      ["timonier.tracking"],
+    );
+    assert.equal(right[0]?.type, "webview");
+    assert.deepEqual(
+      contributes.viewsContainers.secondarySidebar?.map((c) => c.id),
+      ["timonier-journal"],
+    );
+    for (const view of [...left, ...right]) assert.ok(view.icon && existsSync(path.join(root, view.icon)), view.id);
+    // The view's name and the container's title, in both languages.
+    const keys = [right[0]?.name ?? "", contributes.viewsContainers.secondarySidebar?.[0]?.title ?? ""];
+    for (const file of ["package.nls.json", "package.nls.fr.json"]) {
+      for (const key of keys) assert.ok(nls(file)[key.replace(/^%|%$/g, "")], `${key} in ${file}`);
+    }
   });
 
-  it("offers « Open Map » as the overview's welcome button, in both languages", () => {
-    const welcome = contributes.viewsWelcome.find((w) => w.view === "timonier.home");
-    assert.ok(welcome);
-    const key = welcome.contents.replace(/^%|%$/g, "");
-    for (const file of ["package.nls.json", "package.nls.fr.json"]) {
-      // A command link alone on its line is rendered as a button.
-      assert.match(nls(file)[key] ?? "", /^\[[^\]]+\]\(command:timonier\.openMap\)$/m, file);
+  it("packages both pages of the webview: the map and the panels (ADR 0031)", () => {
+    const kept = readFileSync(path.join(root, ".vscodeignore"), "utf8").split("\n");
+    for (const page of ["dist/webview", "dist/webview/tracking"]) {
+      for (const file of ["assets/**", ".vite/manifest.json", "THIRD-PARTY-NOTICES.md"]) {
+        assert.ok(kept.includes(`!${page}/${file}`), `${page}/${file} is left out of the .vsix`);
+      }
     }
+  });
+
+  it("makes the overview the bridge, a page of the webview (ADR 0032)", () => {
+    const home = contributes.views.timonier?.find((v) => v.id === "timonier.home");
+    assert.equal(home?.type, "webview");
+    // A page has no welcome content: its own « Open Map » button replaces it.
+    assert.equal(contributes.viewsWelcome, undefined);
   });
 
   it("puts the map button in the overview's title bar", () => {

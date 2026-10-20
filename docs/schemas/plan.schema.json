@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan",
+  "description": "`.timonier/plan.json`: milestones, each with its tasks.",
+  "type": "object",
+  "properties": {
+    "milestones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Milestone"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "milestones"
+  ],
+  "$defs": {
+    "Milestone": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`M-<n>`, given by the daemon, never reused.",
+          "type": "string"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Task"
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "tasks"
+      ]
+    },
+    "Note": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "session",
+        "text"
+      ]
+    },
+    "Stamp": {
+      "description": "When, and in which session.",
+      "type": "object",
+      "properties": {
+        "at": {
+          "description": "UTC, RFC 3339 (`2026-10-20T08:15:00Z`).",
+          "type": "string"
+        },
+        "session": {
+          "description": "The session that wrote it.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "session"
+      ]
+    },
+    "Task": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "description": "Components of the whiteboard (`C-…`), from Phase 7 on (H7).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created": {
+          "$ref": "#/$defs/Stamp"
+        },
+        "criterion": {
+          "description": "What says the task is done.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "`T-<n>`, given by the daemon, never reused.",
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Note"
+          }
+        },
+        "sessions": {
+          "description": "The sessions that worked on it.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status",
+        "created"
+      ]
+    },
+    "TaskStatus": {
+      "description": "The states of a task (ADR 0029).",
+      "type": "string",
+      "enum": [
+        "todo",
+        "in_progress",
+        "blocked",
+        "done",
+        "dropped"
+      ]
+    }
+  }
+}

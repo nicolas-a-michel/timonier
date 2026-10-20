@@ -9,7 +9,16 @@ import type { Pins } from "./map/layout";
 import type { Toggle } from "./map/mapModel";
 import type { MapCommands } from "./map/MapView";
 import { isHostMessage, readyMessage, subscribeTo, type Density } from "./protocol";
-import { applyToggle, closeAll, parseUi, toggleChanges, type Applied, type UiState } from "./uiState";
+import {
+  applyToggle,
+  closeAll,
+  parseUi,
+  reveal,
+  toggleChanges,
+  toggleDebt,
+  type Applied,
+  type UiState,
+} from "./uiState";
 import { initialModel, reduce, type ViewModel } from "./viewModel";
 import "./tokens.css";
 import "./design/design.css";
@@ -74,6 +83,8 @@ function render() {
         density={density}
         onMarkReviewed={() => host?.postMessage({ type: "markReviewed" })}
         onToggleChanges={() => apply(toggleChanges(ui))}
+        onToggleDebt={() => apply(toggleDebt(ui))}
+        onReveal={(target, path) => apply(reveal(ui, target, path, model.view))}
         commandsRef={mapCommands}
         onReady={announceReady}
       />

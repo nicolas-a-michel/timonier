@@ -5,7 +5,16 @@
  * timonier-store, which closes a cycle; timonier-daemon and a component of timonier-index were
  * modified; timonier-core's fan-in jumped; a crate and a link went away.
  */
-import type { EdgeReview, NodeReview, ReviewBox, ReviewSummary, ViewEdge, ViewNode, ViewSnapshot } from "../protocol";
+import type {
+  EdgeReview,
+  NodeDebt,
+  NodeReview,
+  ReviewBox,
+  ReviewSummary,
+  ViewEdge,
+  ViewNode,
+  ViewSnapshot,
+} from "../protocol";
 
 const CLI = "pkg:cargo/timonier-cli";
 const CORE = "pkg:cargo/timonier-core";
@@ -24,6 +33,15 @@ const NODES: Record<string, NodeReview> = {
   [EXTRACT]: { ...QUIET, change: "modified" },
   [CORE]: { ...QUIET, change: "modified", fanIn: { before: 4, after: 7 }, cycle: true },
   [STORE]: { ...QUIET, cycle: true },
+};
+
+/** The review debt since then (ADR 0030): what the sessions wrote, and b changed outside one. */
+const DEBT: Record<string, NodeDebt> = {
+  [MCP]: { files: 3, of: 3, untracked: 0 },
+  [DAEMON]: { files: 2, of: 18, untracked: 1 },
+  [INDEX]: { files: 9, of: 21, untracked: 0 },
+  [EXTRACT]: { files: 1, of: 1, untracked: 0 },
+  [CORE]: { files: 6, of: 14, untracked: 0 },
 };
 
 const EDGES: Record<string, EdgeReview> = {
@@ -56,7 +74,7 @@ export function withReview(open: ViewSnapshot, since: number): ViewSnapshot {
     approximateOnly: false,
     review: null,
   };
-  const nodes = open.nodes.map((node) => ({ ...node, review: NODES[node.id] ?? null }));
+  const nodes = open.nodes.map((node) => ({ ...node, review: NODES[node.id] ?? null, debt: DEBT[node.id] ?? null }));
   const edges = [...open.edges, closing].map((edge) => ({ ...edge, review: EDGES[`${edge.src}>${edge.dst}`] ?? null }));
   const box = (id: string, fallback?: string) => named(nodes, id, fallback);
   const review: ReviewSummary = {
@@ -79,7 +97,7 @@ export function withReview(open: ViewSnapshot, since: number): ViewSnapshot {
 export function justReviewed(open: ViewSnapshot, since: number): ViewSnapshot {
   return {
     ...open,
-    nodes: open.nodes.map((node) => ({ ...node, review: null })),
+    nodes: open.nodes.map((node) => ({ ...node, review: null, debt: null })),
     edges: open.edges.map((edge) => ({ ...edge, review: null })),
     review: {
       since: { seq: 42, timestampMs: since },

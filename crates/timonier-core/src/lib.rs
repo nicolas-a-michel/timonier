@@ -16,6 +16,8 @@ pub mod protocol;
 pub mod review;
 pub mod rpc;
 mod snapshot;
+pub mod tools;
+pub mod tracking;
 pub mod tree;
 mod update;
 

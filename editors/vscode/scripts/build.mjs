@@ -35,6 +35,7 @@ const result = await build({
 writeNotices(result.metafile, path.join(packageRoot, "dist", "THIRD-PARTY-NOTICES.md"));
 cpSync(webviewDist, path.join(packageRoot, "dist", "webview"), { recursive: true });
 withSources(path.join(packageRoot, "dist", "webview", "THIRD-PARTY-NOTICES.md"));
+withSources(path.join(packageRoot, "dist", "webview", "tracking", "THIRD-PARTY-NOTICES.md"));
 cpSync(path.join(repoRoot, "LICENSE"), path.join(packageRoot, "LICENSE"));
 
 /** The licences of the packages bundled into extension.js, as the webview's build does for its own. */

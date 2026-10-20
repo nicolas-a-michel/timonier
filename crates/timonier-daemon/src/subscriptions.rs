@@ -13,14 +13,21 @@ use std::thread::JoinHandle;
 use std::time::Instant;
 
 use serde_json::Value;
-use timonier_core::protocol::{ReviewMark, ReviewSummary, ViewSpec, errors, methods};
+use timonier_core::protocol::{
+    ReviewMark, ReviewSummary, TrackingProblem, TrackingSnapshot, TrackingView, ViewSpec, errors,
+    methods,
+};
 use timonier_core::review::{self, ReviewDiff};
 use timonier_core::rpc::{ErrorObject, Id, Message};
-use timonier_core::{ContentHash, SnapshotKind};
+use timonier_core::tracking::{Refusal, SessionChanges, SessionStatus};
+use timonier_core::{ContentHash, NodeKind, SnapshotKind};
 use timonier_store::{Reader, Store};
 use tokio::sync::Notify;
 use tokio::sync::mpsc::{self, error::TrySendError};
 
+use crate::bridge;
+use crate::journal;
+use crate::tracking::Tracker;
 use crate::view::{self, Graph, Review, ViewState};
 
 /// Frames waiting to be written to one client.
@@ -44,6 +51,13 @@ pub(crate) enum Command {
         id: Id,
         spec: ViewSpec,
     },
+    /// The plan, the todo and the journal (ADR 0031).
+    SubscribeTracking {
+        connection: u64,
+        id: Id,
+    },
+    /// A tool ran, or a file of `.timonier/` changed: the tracking is read again.
+    Tracked,
     Resync {
         connection: u64,
         id: Id,
@@ -77,6 +91,14 @@ struct Subscription {
     lost: bool,
 }
 
+/// A view of the tracking: all of them show the same state.
+struct TrackingSubscription {
+    connection: u64,
+    revision: u64,
+    /// An update did not fit in the client's queue: sent again once it drained.
+    lost: bool,
+}
+
 /// The snapshot of the last review, frozen: read once per review (ADR 0024).
 struct Reviewed {
     mark: ReviewMark,
@@ -89,6 +111,10 @@ struct Reviewed {
 struct Head {
     graph: Graph,
     review: Option<(ReviewDiff, ReviewSummary)>,
+    /// The review debt of each box (ADR 0030).
+    debt: HashMap<timonier_core::NodeId, timonier_core::protocol::NodeDebt>,
+    /// The content hash of each file.
+    contents: HashMap<String, ContentHash>,
 }
 
 impl Head {
@@ -104,12 +130,23 @@ impl Head {
 
 struct Subscriptions {
     store: Store,
+    /// The project's root: its `.timonier/` holds the sessions (ADR 0030).
+    root: std::path::PathBuf,
+    /// The files of the debt's closed windows.
+    windows: crate::debt::Windows,
     reader: Option<Reader>,
     /// The head as last read; `None` when it changed since, or nobody looks.
     head: Option<Head>,
     reviewed: Option<Reviewed>,
     clients: HashMap<u64, Client>,
     subscriptions: BTreeMap<u64, Subscription>,
+    tracking: BTreeMap<u64, TrackingSubscription>,
+    /// The tracking as last sent; `None` when nobody looks.
+    tracked: Option<TrackingView>,
+    /// The open session's start, for its live diff (ADR 0031).
+    started: Option<journal::Started>,
+    /// Whether a tracking view is open: `.timonier/` is watched only then.
+    watching: Arc<AtomicBool>,
     next: u64,
 }
 
@@ -117,7 +154,9 @@ struct Subscriptions {
 /// set by the pipeline thread whenever the graph changed.
 pub(crate) fn spawn(
     store: Store,
+    root: std::path::PathBuf,
     changed: Arc<AtomicBool>,
+    watching: Arc<AtomicBool>,
     mut commands: mpsc::Receiver<Command>,
 ) -> std::io::Result<JoinHandle<()>> {
     std::thread::Builder::new()
@@ -125,11 +164,17 @@ pub(crate) fn spawn(
         .spawn(move || {
             let mut subscriptions = Subscriptions {
                 store,
+                root,
+                windows: crate::debt::Windows::new(),
                 reader: None,
                 head: None,
                 reviewed: None,
                 clients: HashMap::new(),
                 subscriptions: BTreeMap::new(),
+                tracking: BTreeMap::new(),
+                tracked: None,
+                started: None,
+                watching,
                 next: 1,
             };
             while let Some(command) = commands.blocking_recv() {
@@ -140,6 +185,8 @@ pub(crate) fn spawn(
                 if changed.swap(false, Ordering::SeqCst) {
                     subscriptions.head = None;
                     subscriptions.refresh();
+                    // The open session's diff, the review and the debt follow the head.
+                    subscriptions.refresh_tracking();
                 }
             }
         })
@@ -172,10 +219,11 @@ impl Subscriptions {
                 let state = match self.read_head() {
                     Ok(()) => {
                         let head = self.head.as_ref().expect("read just above");
-                        ViewState::compute(
+                        ViewState::compute_with(
                             &head.graph,
                             &spec,
                             head.review(self.reviewed.as_ref()).as_ref(),
+                            Some(&head.debt),
                         )
                     }
                     Err(error) => {
@@ -206,6 +254,32 @@ impl Subscriptions {
                 );
                 self.answer(connection, Message::result(id, to_value(&snapshot)));
             }
+            Command::SubscribeTracking { connection, id } => {
+                let tracking = match &self.tracked {
+                    Some(tracking) => tracking.clone(),
+                    None => self.read_tracking(),
+                };
+                let subscription = self.next;
+                self.next += 1;
+                self.tracking.insert(
+                    subscription,
+                    TrackingSubscription {
+                        connection,
+                        revision: 0,
+                        lost: false,
+                    },
+                );
+                self.watching.store(true, Ordering::SeqCst);
+                let snapshot = TrackingSnapshot {
+                    subscription,
+                    revision: 0,
+                    tracking: tracking.clone(),
+                };
+                self.tracked = Some(tracking);
+                tracing::debug!(connection, subscription, "tracking subscribed");
+                self.answer(connection, Message::result(id, to_value(&snapshot)));
+            }
+            Command::Tracked => self.refresh_tracking(),
             Command::Resync {
                 connection,
                 id,
@@ -230,9 +304,17 @@ impl Subscriptions {
                 id,
                 subscription,
             } => {
-                let answer = match self.subscriptions.get(&subscription) {
-                    Some(s) if s.connection == connection => {
+                let answer = match (
+                    self.subscriptions.get(&subscription),
+                    self.tracking.get(&subscription),
+                ) {
+                    (Some(s), _) if s.connection == connection => {
                         self.subscriptions.remove(&subscription);
+                        Message::result(id, Value::Null)
+                    }
+                    (_, Some(s)) if s.connection == connection => {
+                        self.tracking.remove(&subscription);
+                        self.stop_tracking_when_unseen();
                         Message::result(id, Value::Null)
                     }
                     _ => unknown(id, subscription),
@@ -255,8 +337,9 @@ impl Subscriptions {
             None => self.reader.insert(self.store.reader()?),
         };
         let cache = &mut self.reviewed;
+        let (root, windows) = (&self.root, &mut self.windows);
         // The head, the review and the contents as of one moment (review n° 1 of Phase 5, m11).
-        let (graph, review) = reader.consistent(|reader| -> crate::Result<_> {
+        let (graph, review, debt, contents) = reader.consistent(|reader| -> crate::Result<_> {
             let graph = view::load(reader)?;
             let review = match reader.latest(SnapshotKind::ReviewMark)? {
                 // No diff before the first review (Q27).
@@ -272,7 +355,7 @@ impl Subscriptions {
                                 reader.nodes_at(mark.seq)?,
                                 reader.edges_at(mark.seq)?,
                             ),
-                            contents: reader.reviewed_contents(mark.seq)?,
+                            contents: reader.kept_contents(mark.seq)?,
                         });
                     }
                     let reviewed = cache.as_ref().expect("read just above");
@@ -286,13 +369,27 @@ impl Subscriptions {
                     Some((diff, summary))
                 }
             };
-            Ok((graph, review))
+            let contents = reader.file_contents()?;
+            // A debt that cannot be read is none: the tools say what is wrong.
+            let debt = match crate::debt::debt(reader, root, windows) {
+                Ok(debt) => crate::debt::counts(&graph, &debt),
+                Err(error) => {
+                    tracing::warn!(%error, "cannot read the review debt");
+                    HashMap::new()
+                }
+            };
+            Ok((graph, review, debt, contents))
         })?;
         tracing::debug!(
             elapsed_ms = start.elapsed().as_secs_f64() * 1000.0,
             "head read for the views"
         );
-        self.head = Some(Head { graph, review });
+        self.head = Some(Head {
+            graph,
+            review,
+            debt,
+            contents,
+        });
         Ok(())
     }
 
@@ -310,7 +407,12 @@ impl Subscriptions {
         let review = head.review(self.reviewed.as_ref());
         let mut deltas = Vec::new();
         for (id, subscription) in &mut self.subscriptions {
-            let next = ViewState::compute(&head.graph, &subscription.spec, review.as_ref());
+            let next = ViewState::compute_with(
+                &head.graph,
+                &subscription.spec,
+                review.as_ref(),
+                Some(&head.debt),
+            );
             let delta = subscription.state.delta(&next, *id, subscription.revision);
             if delta.is_empty() {
                 continue;
@@ -377,6 +479,31 @@ impl Subscriptions {
     /// revision to the next. The client sees the gap and asks for `view/resync`, even when the
     /// graph does not change any more.
     fn signal_lost(&mut self, connection: u64) {
+        // A lost tracking update: the whole state again, at the next revision.
+        let lost: Vec<u64> = self
+            .tracking
+            .iter()
+            .filter(|(_, s)| s.connection == connection && s.lost)
+            .map(|(id, _)| *id)
+            .collect();
+        for id in lost {
+            let (Some(tracking), Some(subscription)) = (&self.tracked, self.tracking.get(&id))
+            else {
+                continue;
+            };
+            let snapshot = TrackingSnapshot {
+                subscription: id,
+                revision: subscription.revision + 1,
+                tracking: tracking.clone(),
+            };
+            let message = Message::notification(methods::TRACKING_UPDATE, to_value(&snapshot));
+            if self.notify(connection, message)
+                && let Some(subscription) = self.tracking.get_mut(&id)
+            {
+                subscription.revision += 1;
+                subscription.lost = false;
+            }
+        }
         let lost: Vec<u64> = self
             .subscriptions
             .iter()
@@ -401,10 +528,142 @@ impl Subscriptions {
     fn forget(&mut self, connection: u64) {
         self.clients.remove(&connection);
         self.subscriptions.retain(|_, s| s.connection != connection);
-        if self.subscriptions.is_empty() {
+        self.tracking.retain(|_, s| s.connection != connection);
+        self.stop_tracking_when_unseen();
+        if self.subscriptions.is_empty() && self.tracking.is_empty() {
             self.head = None;
             self.reviewed = None;
         }
+    }
+
+    fn stop_tracking_when_unseen(&mut self) {
+        if self.tracking.is_empty() {
+            self.tracked = None;
+            self.started = None;
+            self.watching.store(false, Ordering::SeqCst);
+        }
+    }
+
+    /// The tracking again, sent whole to each tracking view when it changed (ADR 0031).
+    fn refresh_tracking(&mut self) {
+        if self.tracking.is_empty() {
+            return;
+        }
+        let start = Instant::now();
+        let next = self.read_tracking();
+        tracing::debug!(
+            elapsed_ms = start.elapsed().as_secs_f64() * 1000.0,
+            "tracking read"
+        );
+        if self.tracked.as_ref() == Some(&next) {
+            return;
+        }
+        let mut lost = Vec::new();
+        for (id, subscription) in &mut self.tracking {
+            subscription.revision += 1;
+            let snapshot = TrackingSnapshot {
+                subscription: *id,
+                revision: subscription.revision,
+                tracking: next.clone(),
+            };
+            let message = Message::notification(methods::TRACKING_UPDATE, to_value(&snapshot));
+            lost.push((*id, subscription.connection, message));
+        }
+        self.tracked = Some(next);
+        for (id, connection, message) in lost {
+            if !self.notify(connection, message)
+                && let Some(subscription) = self.tracking.get_mut(&id)
+            {
+                subscription.lost = true;
+            }
+        }
+    }
+
+    /// The tracking as `.timonier/` holds it now, with the open session's diff since its start.
+    fn read_tracking(&mut self) -> TrackingView {
+        let tracker = Tracker::new(&self.root);
+        let mut problems = Vec::new();
+        let mut problem = |file: &str, refusal: Refusal| {
+            problems.push(TrackingProblem {
+                file: file.to_owned(),
+                message: refusal.message,
+            });
+        };
+        let plan = tracker.plan().map_err(|r| problem("plan.json", r)).ok();
+        let todo = tracker.todo().map_err(|r| problem("todo.json", r)).ok();
+        let (sessions, unread) = tracker.journal();
+        problems.extend(
+            unread
+                .into_iter()
+                .map(|(file, message)| TrackingProblem { file, message }),
+        );
+        let open = todo
+            .as_ref()
+            .and_then(|t| t.session.as_ref())
+            .and_then(|id| sessions.iter().find(|s| &s.id == id))
+            .filter(|s| s.status == SessionStatus::Open)
+            .map(|s| s.snapshots.start);
+        let live = open.and_then(|start| match self.live_changes(start) {
+            Ok(changes) => Some(changes),
+            Err(error) => {
+                tracing::warn!(%error, "cannot compute the open session's changes");
+                None
+            }
+        });
+        if open.is_none() {
+            self.started = None;
+        }
+        let total = sessions.clone();
+        let mut view = TrackingView::new(
+            plan.as_ref(),
+            todo.as_ref(),
+            sessions,
+            live,
+            problems.clone(),
+        );
+        // The bridge (ADR 0032): what the head says since the review, and where to look.
+        match self.read_head() {
+            Ok(()) => {
+                let head = self.head.as_ref().expect("read just above");
+                view.review = head
+                    .review
+                    .as_ref()
+                    .map_or_else(ReviewSummary::default, |(_, summary)| summary.clone());
+                view.debt = head
+                    .graph
+                    .nodes()
+                    .find(|n| n.kind == NodeKind::Repo)
+                    .and_then(|repo| head.debt.get(&repo.id).copied());
+                view.look = bridge::look(
+                    &problems,
+                    plan.as_ref(),
+                    &view.review,
+                    &head.debt,
+                    &head.graph,
+                );
+            }
+            Err(error) => tracing::warn!(%error, "cannot read the graph for the bridge"),
+        }
+        let since = view.review.since.map(|mark| mark.timestamp_ms);
+        view.sessions_since_review = bridge::sessions_since(&total, since);
+        view
+    }
+
+    /// The open session's changes, from `start` to the head.
+    fn live_changes(&mut self, start: u64) -> crate::Result<SessionChanges> {
+        self.read_head()?;
+        if self.started.as_ref().map(|s| s.snapshot.seq) != Some(start) {
+            let reader = match &mut self.reader {
+                Some(reader) => reader,
+                None => self.reader.insert(self.store.reader()?),
+            };
+            self.started = Some(journal::Started::read(reader, start)?);
+        }
+        let (started, head) = (
+            self.started.as_ref().expect("read just above"),
+            self.head.as_ref().expect("read just above"),
+        );
+        Ok(journal::changes(started, &head.graph, &head.contents))
     }
 }
 

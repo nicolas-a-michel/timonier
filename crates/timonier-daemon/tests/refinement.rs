@@ -361,7 +361,7 @@ fn quiet_watch(pipeline: Pipeline) -> (Watch, mpsc::Receiver<Step>) {
             let step = match event {
                 Event::Refined(refined) => Step::Refined(refined.expect("test helper")),
                 Event::Indexed(_) => Step::Indexed,
-                Event::Committed(_) | Event::Reviewed(_) => return,
+                Event::Committed(_) | Event::Reviewed(_) | Event::Frozen(_) => return,
             };
             let _ = send.send(step);
         },
@@ -2981,7 +2981,7 @@ fn a_review_mark_catches_the_store_up_first() {
             .any(|n| n.id.as_str().ends_with("::later")),
         "the review has what the disk has"
     );
-    let reviewed = reader.reviewed_contents(review.seq).unwrap();
+    let reviewed = reader.kept_contents(review.seq).unwrap();
     assert_eq!(reviewed, reader.file_contents().unwrap());
     assert!(reviewed.contains_key("file:crates/core/src/util.rs"));
 }
@@ -3008,7 +3008,7 @@ fn a_review_mark_takes_what_the_disk_holds() {
         "the save is in the review"
     );
     assert_eq!(
-        reader.reviewed_contents(review.seq).unwrap(),
+        reader.kept_contents(review.seq).unwrap(),
         reader.file_contents().unwrap()
     );
     // The watcher's late event changes nothing.

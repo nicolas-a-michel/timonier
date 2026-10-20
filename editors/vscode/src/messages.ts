@@ -12,6 +12,9 @@ const isSpan = (value: unknown) =>
 const isPixel = (value: unknown) =>
   typeof value === "number" && Number.isSafeInteger(value) && Math.abs(value) <= 10_000_000;
 
+/** The panels of the tracking (ADR 0031). */
+export const PANELS = ["all", "bridge", "plan", "todo", "sessions"];
+
 /** At most as many pins as the map keeps (ADR 0021). */
 export const MAX_PINS = 5000;
 
@@ -44,6 +47,12 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
       return isPins(message.pins);
     case "markReviewed":
       return true;
+    case "reveal":
+      return typeof message.target === "string" && isStrings(message.path);
+    case "openMap":
+      return true;
+    case "trackingShown":
+      return PANELS.includes(message.panel as string) && isCount(message.revision);
     case "rendered":
       return isCount(message.subscription) && isCount(message.revision) && isCount(message.nodes);
     default:

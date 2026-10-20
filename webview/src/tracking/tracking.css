@@ -1,0 +1,494 @@
+/* The panels of the tracking (ADR 0031), in the side bar. Tokens only (tokens.css). */
+body {
+  background: var(--tim-color-sidebar);
+  color: var(--tim-color-sidebar-fg);
+}
+
+.tim-tracking {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+  padding: var(--tim-space-2) var(--tim-space-3) var(--tim-space-4);
+  line-height: var(--tim-line-height);
+}
+
+.tim-tracking .tim-empty {
+  height: auto;
+  padding: var(--tim-space-6) var(--tim-space-2);
+}
+
+.tim-tracking .tim-empty__title {
+  font-size: var(--tim-font-size);
+}
+
+.tim-tracking__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+}
+
+.tim-tracking__quiet {
+  margin: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-tracking__term {
+  margin: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-tracking__detail {
+  display: block;
+  margin-top: var(--tim-space-1);
+  font-family: var(--tim-font-family-code);
+  font-size: var(--tim-font-size-small);
+  overflow-wrap: anywhere;
+}
+
+/* A file that does not read: the attention tone, with its shape. */
+.tim-tracking__problem {
+  display: flex;
+  gap: var(--tim-space-2);
+  margin: 0;
+  padding: var(--tim-space-2);
+  border: 1px solid var(--tim-color-attention);
+  border-radius: var(--tim-radius);
+}
+
+.tim-tracking__problem .tim-icon {
+  color: var(--tim-color-attention);
+}
+
+.tim-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Folding: the native disclosure, with the IDE's focus. */
+.tim-tracking summary {
+  cursor: pointer;
+  border-radius: var(--tim-radius);
+}
+
+.tim-tracking summary:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 1px;
+}
+
+/* The native marker gives way to a chevron, which turns when open. */
+.tim-tracking summary {
+  list-style: none;
+}
+
+.tim-tracking summary::-webkit-details-marker {
+  display: none;
+}
+
+.tim-chevron {
+  color: var(--tim-color-muted);
+  transition: transform var(--tim-duration-short) var(--tim-easing);
+}
+
+details[open] > summary > .tim-chevron {
+  transform: rotate(90deg);
+}
+
+.tim-tracking summary:hover {
+  background: var(--tim-color-surface-hover);
+}
+
+.tim-plain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The plan */
+.tim-milestone__summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: var(--tim-space-1) var(--tim-space-2);
+  padding: var(--tim-space-1);
+}
+
+.tim-milestone__title {
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-milestone__count {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+  white-space: nowrap;
+}
+
+.tim-progress {
+  grid-column: 2 / -1;
+  display: block;
+  height: var(--tim-progress-height);
+  overflow: hidden;
+  border-radius: var(--tim-progress-height);
+  background: var(--tim-progress-track);
+}
+
+.tim-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--tim-progress-fill);
+  transition: width var(--tim-duration-medium) var(--tim-easing);
+}
+
+.tim-tasks {
+  margin: var(--tim-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tim-task__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+  padding: 2px var(--tim-space-1);
+}
+
+/* The icon sits on the first line of the title. */
+.tim-task__head .tim-icon {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.tim-task__title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tim-task__state,
+.tim-task__id,
+.tim-todo__task {
+  flex: none;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+/* To do and done say it with their shape; the words stay for screen readers. */
+.tim-task[data-state="todo"] .tim-task__state,
+.tim-task[data-state="done"] .tim-task__state {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tim-task[data-state="done"] .tim-task__title,
+.tim-task[data-state="dropped"] .tim-task__title {
+  color: var(--tim-color-muted);
+}
+
+.tim-task[data-state="dropped"] .tim-task__title {
+  text-decoration: line-through;
+}
+
+.tim-task__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: 0 0 var(--tim-space-2) calc(16px + var(--tim-space-2) + var(--tim-space-1));
+}
+
+.tim-task__detail p {
+  margin: 0;
+}
+
+.tim-notes {
+  margin: 0;
+  padding-left: var(--tim-space-4);
+}
+
+.tim-state {
+  color: var(--tim-color-muted);
+}
+
+.tim-state[data-state="inProgress"] {
+  color: var(--tim-color-info);
+}
+
+.tim-state[data-state="blocked"] {
+  color: var(--tim-color-attention);
+}
+
+.tim-state[data-state="done"] {
+  color: var(--tim-color-conformity);
+}
+
+/* The todo */
+.tim-session__head p {
+  margin: 0;
+}
+
+.tim-session__objective {
+  font-weight: var(--tim-font-weight-strong);
+  overflow-wrap: anywhere;
+}
+
+.tim-todo__count {
+  margin: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-todo {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tim-todo__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+  padding: 2px 0;
+}
+
+.tim-todo__item .tim-icon {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--tim-color-muted);
+}
+
+.tim-todo__item[data-done="true"] .tim-icon {
+  color: var(--tim-color-conformity);
+}
+
+.tim-todo__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The task of the plan an item serves: under its text. */
+.tim-todo__text .tim-todo__task {
+  display: block;
+}
+
+.tim-todo__item[data-done="true"] .tim-todo__text {
+  color: var(--tim-color-muted);
+}
+
+/* The journal */
+.tim-session {
+  border-bottom: 1px solid var(--tim-color-divider);
+}
+
+.tim-session__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--tim-space-2);
+  padding: var(--tim-space-1);
+}
+
+.tim-session__summary .tim-session__objective {
+  flex: 1 1 12rem;
+}
+
+.tim-session__open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-session__open .tim-icon {
+  color: var(--tim-color-info);
+}
+
+.tim-session__meta {
+  flex-basis: 100%;
+  padding-left: calc(16px + var(--tim-space-2));
+}
+
+.tim-session__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+  padding: var(--tim-space-1) var(--tim-space-1) var(--tim-space-3) calc(var(--tim-space-4) + var(--tim-space-1));
+}
+
+.tim-session__part {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tim-session__part p {
+  margin: 0;
+}
+
+.tim-changes li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+}
+
+.tim-changes .tim-icon {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--tim-color-muted);
+}
+
+.tim-changes__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The whole view (ADR 0031): the plan and the todo, then the sessions; side by side, glued,
+   once the side bar is wide enough for two readable columns. */
+.tim-tracking__columns,
+.tim-tracking__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-4);
+}
+
+@container (min-width: 36rem) {
+  .tim-tracking__columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .tim-tracking__column + .tim-tracking__column {
+    padding-left: var(--tim-space-3);
+    border-left: 1px solid var(--tim-color-divider);
+  }
+
+  .tim-tracking__column:first-child {
+    padding-right: var(--tim-space-3);
+  }
+}
+
+.tim-tracking__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+}
+
+/* As VSCode heads a view: small capitals, the side bar's text. */
+.tim-tracking__heading {
+  margin: 0;
+  font-size: var(--tim-font-size-small);
+  font-weight: var(--tim-font-weight-strong);
+  text-transform: uppercase;
+}
+
+/* The bridge (ADR 0032): three short parts, each under its heading. */
+.tim-bridge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-4);
+}
+
+.tim-bridge__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+}
+
+.tim-bridge__part p {
+  margin: 0;
+}
+
+.tim-bridge__part .tim-progress {
+  margin: 2px 0;
+}
+
+.tim-bridge__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tim-space-2);
+}
+
+.tim-bridge__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-2);
+  margin-top: var(--tim-space-2);
+}
+
+.tim-look {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tim-look__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+}
+
+.tim-look__item .tim-icon {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--tim-color-attention);
+}
+
+/* A box to look at: the whole line opens the map on it. */
+.tim-look__box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--tim-space-2);
+  width: 100%;
+  padding: 2px var(--tim-space-1);
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: var(--tim-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tim-look__box:hover {
+  background: var(--tim-color-surface-hover);
+}
+
+.tim-look__box:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 1px;
+}
+
+/* Untracked: the hatching of the map's debt layer, and the word. */
+.tim-look__box[data-untracked="true"] {
+  border-left-color: var(--tim-color-attention);
+}
+
+.tim-look__box .tim-icon {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--tim-color-muted);
+}
+
+.tim-look__name {
+  overflow-wrap: anywhere;
+}
+
+.tim-look__detail {
+  flex-basis: 100%;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}

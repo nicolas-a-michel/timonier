@@ -4,7 +4,7 @@ import { NO_REVIEW, type Role, type ViewEdge, type ViewNode } from "../protocol"
 import type { ViewData } from "../viewModel";
 import { edgeKey } from "../viewModel";
 import { layout, roleHeight } from "./layout";
-import { mapContent, roleGroupId, toggleExpanded, toggleOf } from "./mapModel";
+import { debtLevel, mapContent, roleGroupId, toggleExpanded, toggleOf } from "./mapModel";
 
 function node(id: string, role: Role | null, parent: string | null = null, children = 0): ViewNode {
   return {
@@ -18,6 +18,7 @@ function node(id: string, role: Role | null, parent: string | null = null, child
     file: null,
     span: null,
     review: null,
+    debt: null,
   };
 }
 
@@ -226,5 +227,18 @@ describe("edge budget (PLAN.md 4.10)", () => {
     expect(lifted.map((e) => [e.source, e.target, e.edges, e.approximate])).toEqual([
       ["pkg:cargo/a", "pkg:cargo/b", 2, false],
     ]);
+  });
+
+  it("adds up the review debt of a role's members, and gives its level (ADR 0030)", () => {
+    const debt = (files: number, of: number, untracked = 0) => ({ files, of, untracked });
+    const a = { ...node("pkg:cargo/a", "utility"), debt: debt(1, 4) };
+    const b = { ...node("pkg:cargo/b", "utility"), debt: debt(2, 2, 1) };
+    const c = node("pkg:cargo/c", "utility");
+    const group = mapContent(view([a, b, c]), new Set()).items[0];
+    expect(group?.kind === "role" ? group.debt : undefined).toEqual(debt(3, 6, 1));
+    expect([debtLevel(null), debtLevel(debt(0, 9)), debtLevel(debt(1, 4)), debtLevel(debt(1, 3))]).toEqual([
+      0, 0, 1, 2,
+    ]);
+    expect([debtLevel(debt(2, 3)), debtLevel(debt(3, 3))]).toEqual([3, 3]);
   });
 });

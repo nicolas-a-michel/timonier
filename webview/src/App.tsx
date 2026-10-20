@@ -27,6 +27,8 @@ export interface AppProps {
   onMarkReviewed?: () => void;
   /** The filter « only the changes » (ADR 0024). */
   onToggleChanges?: () => void;
+  onToggleDebt?: () => void;
+  onReveal?: (target: string, path: string[]) => void;
   /** Where the palette's commands for the map come in. */
   commandsRef?: MapCommands;
   /** Called once, after the first render reached the DOM. */
@@ -47,6 +49,8 @@ export function App({
   density,
   onMarkReviewed,
   onToggleChanges,
+  onToggleDebt,
+  onReveal,
   commandsRef,
   onReady,
 }: AppProps) {
@@ -82,6 +86,9 @@ export function App({
           onMarkReviewed={onMarkReviewed}
           onlyChanges={ui.onlyChanges ?? false}
           onToggleChanges={onToggleChanges}
+          showDebt={ui.debt ?? false}
+          onToggleDebt={onToggleDebt}
+          onReveal={onReveal}
           commandsRef={commandsRef}
         />
       </main>

@@ -4,7 +4,16 @@ import { revealCode } from "./code";
 import { DaemonSupervisor, type DaemonStatus } from "./daemon";
 import { daemonProgram } from "./launch";
 import { MapPanel } from "./mapPanel";
-import { METHODS, type Direction, type MapCommand, type Pin, type ReviewMark } from "./protocol/generated";
+import {
+  METHODS,
+  type Direction,
+  type MapCommand,
+  type Pin,
+  type ReviewMark,
+  type TrackingSnapshot,
+} from "./protocol/generated";
+import { TrackingRelay, type TrackingSource } from "./trackingRelay";
+import { registerTrackingViews } from "./trackingViews";
 import type { DaemonSource, Rendered } from "./viewRelay";
 
 /** What `activate` exports. Only the integration tests use it for now. */
@@ -23,9 +32,11 @@ export interface TimonierApi {
   daemonRequest<T>(method: string, params: unknown): Promise<T>;
   /** A command for the open map, as the palette sends them: for the tests. */
   mapCommand(command: MapCommand): Thenable<boolean>;
+  /** The tracking last received from the daemon (ADR 0031). */
+  tracking(): TrackingSnapshot | undefined;
+  /** The revision a panel of the tracking last said it shows; undefined before its page. */
+  trackingShown(panel: string): number | undefined;
 }
-
-export const HOME_VIEW_ID = "timonier.home";
 
 /** Where the workspace state keeps the boxes moved by hand on the map (ADR 0021). */
 const PINS_KEY = "timonier.map.pins";
@@ -40,19 +51,36 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
   context.subscriptions.push(log);
   const root = projectRoot();
   let daemon: DaemonSource;
+  let tracked: TrackingSource;
   if (root) {
     const setting = vscode.workspace.getConfiguration("timonier").get<string>("daemon.path");
     const supervisor = new DaemonSupervisor(daemonProgram(process.env, setting), root, log);
     context.subscriptions.push(supervisor);
     supervisor.start();
     daemon = supervisor;
+    tracked = supervisor;
     context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(() => supervisor.announceEditors()));
   } else {
     daemon = {
       status: { state: "unavailable", detail: vscode.l10n.t("Open a folder: Timonier maps the project it holds.") },
       client: undefined,
     };
+    tracked = daemon;
   }
+  // The plan, the todo and the journal: one subscription for the three panels (ADR 0031).
+  const tracking = new TrackingRelay(tracked, log);
+  context.subscriptions.push({ dispose: () => void tracking.dispose() });
+  context.subscriptions.push(
+    ...registerTrackingViews(context.extensionUri, tracking, log, {
+      // The map, opened or shown, then the box (Q46).
+      reveal: async (target, path) => {
+        await vscode.commands.executeCommand("timonier.openMap");
+        await MapPanel.command({ name: "reveal", target, path });
+      },
+      openMap: () => vscode.commands.executeCommand("timonier.openMap"),
+      markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
+    }),
+  );
 
   // The boxes moved by hand on the map: kept in this workspace, on this machine (H13).
   const pins = {
@@ -61,11 +89,6 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
   };
 
   context.subscriptions.push(
-    // The overview has no data yet: VSCode then shows its welcome content (package.json,
-    // `viewsWelcome`), which carries the « Open Map » button. Plan, todo and log land here later.
-    vscode.window.createTreeView<never>(HOME_VIEW_ID, {
-      treeDataProvider: { getChildren: () => [], getTreeItem: (element: never) => element },
-    }),
     vscode.commands.registerCommand("timonier.openMap", () => {
       try {
         const openCode = (file: string, span: Parameters<typeof revealCode>[2]) =>
@@ -84,6 +107,44 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       }
     }),
     vscode.commands.registerCommand("timonier.showLog", () => log.show()),
+    // The bridge's « Where to look », from the palette (ADR 0032): a box, then the map on it.
+    vscode.commands.registerCommand("timonier.whereToLook", async () => {
+      const items = (tracking.state?.tracking.look ?? []).flatMap((item) => {
+        if (item.kind === "debt") {
+          const detail = vscode.l10n.t("{0} files to read again", item.debt.files);
+          return [
+            {
+              label: item.item.within ? `${item.item.within} › ${item.item.name}` : item.item.name,
+              description: item.debt.untracked > 0 ? `${detail} · ${vscode.l10n.t("untracked")}` : detail,
+              target: item.item.id,
+              path: item.path,
+            },
+          ];
+        }
+        if (item.kind === "cycle" && item.boxes[0]) {
+          const first = item.boxes[0];
+          return [
+            {
+              label: item.boxes.map((b) => b.name).join(" → "),
+              description: vscode.l10n.t("cycle added"),
+              target: first.id,
+              path: item.path,
+            },
+          ];
+        }
+        return [];
+      });
+      if (items.length === 0) {
+        void vscode.window.showInformationMessage(vscode.l10n.t("Nothing to read again."));
+        return;
+      }
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: vscode.l10n.t("Which box to show on the map?"),
+      });
+      if (!picked) return;
+      await vscode.commands.executeCommand("timonier.openMap");
+      await MapPanel.command({ name: "reveal", target: picked.target, path: picked.path });
+    }),
     // The review diff starts again from here (ADR 0024); a discreet confirmation.
     vscode.commands.registerCommand("timonier.markReviewed", async () => {
       const client = daemon.client;
@@ -130,6 +191,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         ["timonier.map.resetLayout", { name: "resetLayout" }],
         ["timonier.map.onlyChanges", { name: "toggleChanges" }],
         ["timonier.map.reviewDetails", { name: "toggleReviewDetails" }],
+        ["timonier.map.reviewDebt", { name: "toggleDebt" }],
       ] as const
     ).map(([id, command]) =>
       vscode.commands.registerCommand(id, async () => {
@@ -149,6 +211,8 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       if (daemon instanceof DaemonSupervisor) await daemon.stop();
     },
     mapCommand: (command) => MapPanel.command(command),
+    tracking: () => tracking.state,
+    trackingShown: (panel) => tracking.shown(panel),
     daemonRequest: async <T>(method: string, params: unknown) => {
       const client = daemon.client;
       if (!client) throw new Error("not connected to the daemon");

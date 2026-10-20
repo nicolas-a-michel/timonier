@@ -1,7 +1,7 @@
 // Generated from crates/timonier-core/src/protocol.rs by its test `typescript_is_up_to_date`.
 // Do not edit: change the Rust types, then run `TIMONIER_UPDATE_TS=1 cargo test -p timonier-core`.
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 6;
 
 export type NodeKind = "repo" | "component" | "package" | "file" | "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
 
@@ -82,6 +82,8 @@ export type NodeReview = { change: ReviewChange | null, fanIn: FanJump | null, f
  */
 cycle: boolean, };
 
+export type NodeDebt = { files: number, of: number, untracked: number, };
+
 export type EdgeReview = { 
 /**
  * No edge linked these two nodes at the review, and a change of the code explains it.
@@ -132,7 +134,12 @@ file: string | null, span: Span | null,
  * What changed in it since the last review; `null` without change, and before the first
  * review (ADR 0024).
  */
-review: NodeReview | null, };
+review: NodeReview | null, 
+/**
+ * Its review debt: files written since the last review and not read since (ADR 0030);
+ * `null` without any.
+ */
+debt: NodeDebt | null, };
 
 export type ViewEdge = { src: string, dst: string, kind: EdgeKind, weight: number, 
 /**
@@ -238,6 +245,109 @@ named: number,
  */
 byName: number, };
 
+export type ChangedBox = { 
+/**
+ * Its id in the graph (`pkg:cargo/demo`, `component:dir/src`).
+ */
+id: string, name: string, 
+/**
+ * The name of the box that holds it; `null` at the top.
+ */
+within: string | null, };
+
+export type ChangedLink = { from: ChangedBox, to: ChangedBox, };
+
+export type SessionChanges = { 
+/**
+ * Files added, removed or changed.
+ */
+files: number, added: Array<ChangedBox>, modified: Array<ChangedBox>, removed: Array<ChangedBox>, 
+/**
+ * Dependencies between boxes that the session brought.
+ */
+linked: Array<ChangedLink>, 
+/**
+ * Dependencies that it took away.
+ */
+unlinked: Array<ChangedLink>, };
+
+export type TaskState = "todo" | "inProgress" | "blocked" | "done" | "dropped";
+
+export type NoteView = { 
+/**
+ * UTC, RFC 3339.
+ */
+at: string, session: string, text: string, };
+
+export type TaskView = { id: string, title: string, criterion: string | null, status: TaskState, sessions: Array<string>, notes: Array<NoteView>, };
+
+export type MilestoneView = { id: string, title: string, 
+/**
+ * Tasks done, over tasks not dropped (ADR 0029).
+ */
+done: number, of: number, tasks: Array<TaskView>, };
+
+export type TodoItemView = { id: string, text: string, task: string | null, done: boolean, };
+
+export type SessionView = { id: string, agent: string, objective: string, tasks: Array<string>, open: boolean, 
+/**
+ * UTC, RFC 3339.
+ */
+startedAt: string, endedAt: string | null, summary: string | null, 
+/**
+ * Its todo: the live one while it is open.
+ */
+todo: Array<TodoItemView>, 
+/**
+ * What it changed in the code: since its start while it is open; `null` for a session
+ * that ended without it.
+ */
+changes: SessionChanges | null, };
+
+export type TrackingProblem = { 
+/**
+ * Relative to `.timonier/`.
+ */
+file: string, message: string, };
+
+export type LookItem = { "kind": "problem", file: string, } | { "kind": "blocked", task: string, title: string, } | { "kind": "cycle", boxes: Array<ReviewBox>, path: Array<string>, } | { "kind": "debt", item: ReviewBox, debt: NodeDebt, path: Array<string>, };
+
+export type TrackingView = { milestones: Array<MilestoneView>, 
+/**
+ * The open session's id; `null` between sessions.
+ */
+open: string | null, todo: Array<TodoItemView>, 
+/**
+ * The latest sessions first, at most [`JOURNAL_LIMIT`].
+ */
+sessions: Array<SessionView>, 
+/**
+ * How many sessions the journal holds in all.
+ */
+sessionsTotal: number, 
+/**
+ * The files that do not read: what they hold is not shown.
+ */
+problems: Array<TrackingProblem>, 
+/**
+ * The review diff since the last review, for the bridge (ADR 0032).
+ */
+review: ReviewSummary, 
+/**
+ * The review debt of the whole project; `null` when nothing is to read again.
+ */
+debt: NodeDebt | null, 
+/**
+ * The sessions started since the last review; all of them before the first.
+ */
+sessionsSinceReview: number, 
+/**
+ * What to look at first (Q45), at most [`LOOK_LIMIT`].
+ */
+look: Array<LookItem>, };
+
+export type TrackingSnapshot = { subscription: number, revision: number, tracking: TrackingView, };
+
 export type Pin = { 
 /**
  * The id of the container: a role group, an open box, or `@root` for the map itself.
@@ -250,15 +360,15 @@ export type Density = "comfortable" | "compact";
 
 export type DaemonState = "starting" | "connected" | "restarting" | "unavailable";
 
-export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" };
+export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "reveal", target: string, path: Array<string>, };
 
 export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "type": "delta", delta: ViewDelta, } | { "type": "daemon", state: DaemonState, 
 /**
  * Why, for a person: the error, the program looked for.
  */
-detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, };
+detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -275,6 +385,8 @@ export const METHODS = {
   DEFINITIONS: "lsp/definitions",
   REFERENCES: "lsp/references",
   REVIEW_MARK: "review/mark",
+  TRACKING_SUBSCRIBE: "tracking/subscribe",
+  TRACKING_UPDATE: "tracking/update",
 } as const;
 
 export const ERRORS = {

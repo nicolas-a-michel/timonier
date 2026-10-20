@@ -377,6 +377,15 @@ impl Pipeline {
         Ok(self.store.freeze(Freeze::ReviewMark)?)
     }
 
+    /// Freezes the head as a `working_tree` snapshot, the start or the end of a session
+    /// (ADR 0029): what the disk holds, as for a review mark.
+    pub fn freeze_working_tree(&mut self) -> Result<Snapshot> {
+        self.catch_up()?;
+        self.sync_with_disk()?;
+        // The contents too: the session's diff compares them (ADR 0031).
+        Ok(self.store.freeze_keeping_contents(Freeze::WorkingTree)?)
+    }
+
     /// Where git keeps what the watcher follows; `None` outside a repository.
     pub(crate) fn git_places(&self) -> Option<git::Places> {
         git::places(self.root())

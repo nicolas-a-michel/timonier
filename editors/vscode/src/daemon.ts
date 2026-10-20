@@ -22,6 +22,7 @@ import {
   type InitializeResult,
   type OutgoingCallsParams,
   type ReferencesParams,
+  type TrackingSnapshot,
   type ViewDelta,
 } from "./protocol/generated";
 
@@ -42,11 +43,14 @@ export class DaemonSupervisor implements vscode.Disposable {
   private readonly stateEmitter = new vscode.EventEmitter<DaemonStatus>();
   private readonly connectEmitter = new vscode.EventEmitter<MessageConnection>();
   private readonly deltaEmitter = new vscode.EventEmitter<ViewDelta>();
+  private readonly trackingEmitter = new vscode.EventEmitter<TrackingSnapshot>();
   /** The state, then each change. */
   readonly onDidChangeState = this.stateEmitter.event;
   /** Each connection, once initialized: subscriptions are made again on it. */
   readonly onDidConnect = this.connectEmitter.event;
   readonly onDidReceiveDelta = this.deltaEmitter.event;
+  /** The plan, the todo and the journal, whole, at each change (ADR 0031). */
+  readonly onDidReceiveTracking = this.trackingEmitter.event;
 
   private current: DaemonStatus = { state: "starting", detail: null };
   private connection: MessageConnection | undefined;
@@ -118,6 +122,7 @@ export class DaemonSupervisor implements vscode.Disposable {
     this.stateEmitter.dispose();
     this.connectEmitter.dispose();
     this.deltaEmitter.dispose();
+    this.trackingEmitter.dispose();
   }
 
   /** The files open in the editor come first in the refinement queue (ADR 0014). */
@@ -193,6 +198,9 @@ export class DaemonSupervisor implements vscode.Disposable {
       const connection = createMessageConnection(new SocketMessageReader(socket), new SocketMessageWriter(socket));
       this.connection = connection;
       connection.onNotification(METHODS.UPDATE, (delta: ViewDelta) => this.deltaEmitter.fire(delta));
+      connection.onNotification(METHODS.TRACKING_UPDATE, (update: TrackingSnapshot) =>
+        this.trackingEmitter.fire(update),
+      );
       // The IDE's language servers, relayed to the daemon's refinement (ADR 0014).
       // Their answers hold only for the content on disk: see `SavedDocuments`.
       connection.onRequest(METHODS.OUTGOING_CALLS, (params: OutgoingCallsParams) =>

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Todo",
+  "description": "`.timonier/todo.json`: what the session in progress has to do.",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TodoItem"
+      }
+    },
+    "session": {
+      "description": "The session the items belong to; none between sessions.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "items"
+  ],
+  "$defs": {
+    "TodoItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`D-<n>`, given by the daemon within the session.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TodoStatus"
+        },
+        "task": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "status"
+      ]
+    },
+    "TodoStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "done"
+      ]
+    }
+  }
+}

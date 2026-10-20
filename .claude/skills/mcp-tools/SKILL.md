@@ -69,9 +69,23 @@ Which tools belong to which phase is in `PLAN.md`. Multi-agents, communication a
     - the template of the managed block in `AGENTS.md` / `CLAUDE.md` mentions it if agents
       must use it.
 
-## SDK
+## How it is built (ADR 0027, 0028, 0029)
 
-The Rust SDK candidate is `rmcp` 3.5.1, from the official `modelcontextprotocol/rust-sdk`,
-implementing MCP spec 2026-07-28. Its licence is Apache-2.0, with some older contributions
-still under MIT. The choice and the transport (stdio) are fixed by ADR in Phase 6. Read its
-documentation before calling any API.
+- SDK: `rmcp` 3.5.1 (locked in `Cargo.lock`), stdio only. `timonier mcp` (CLI) finds or starts
+  the daemon quietly (stdout carries MCP), then `timonier-mcp` relays MCP `tools/list` and
+  `tools/call` to the daemon's JSON-RPC methods of the same names (protocol version 4).
+- A tool is:
+  1. its input type in `timonier_core::tracking` (or the module of its domain): serde with
+     `deny_unknown_fields`, `schemars` bounds (`length`, `pattern`);
+  2. its entry in `timonier_core::tools::catalogue()` (name, description, read-only hint);
+  3. its handling in the daemon (`timonier_daemon::tracking::Tracker::run`), which validates
+     again and writes;
+  4. the snapshot `crates/timonier-core/tests/tools.json`, refreshed with
+     `TIMONIER_UPDATE_TOOLS=1 cargo test -p timonier-core` after checking the change.
+- Results are MCP `CallToolResult`s built by `tools::success` / `tools::failure`: the mailbox
+  header (`{unread, priority}`) in the structured content and as the first text line.
+- Error codes in use: `invalid_argument`, `unknown_tool`, `unknown_task`, `unknown_milestone`,
+  `unknown_item`, `unknown_session`, `forbidden_transition`, `no_open_session`,
+  `session_already_open`, `invalid_file`, `io_error`, `internal`.
+- Tests: core unit tests for the operations, daemon unit tests for the files, and
+  `crates/timonier-cli/tests/mcp.rs` for a real MCP client → `tim mcp` → a real daemon.

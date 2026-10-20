@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use timonier_core::NodeId;
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, PROTOCOL_VERSION, ReviewChange, ReviewMark,
-    ReviewSummary, StatusResult, SubscribeParams, SubscriptionParams, ViewDelta, ViewSnapshot,
-    ViewSpec, errors, methods,
+    FilesParams, InitializeParams, InitializeResult, LookItem, PROTOCOL_VERSION, ReviewChange,
+    ReviewMark, ReviewSummary, StatusResult, SubscribeParams, SubscriptionParams, TrackingSnapshot,
+    TrackingView, ViewDelta, ViewSnapshot, ViewSpec, errors, methods,
 };
 use timonier_core::rpc::{Id, Message};
 use timonier_daemon::view::ViewState;
@@ -342,6 +342,279 @@ fn follow_until(client: &mut Client, mirror: &mut Mirror, done: impl Fn(&ViewSta
             mirror.resync(client);
         }
     }
+}
+
+/// The review debt of a box in a view (ADR 0030).
+fn debt_of(state: &ViewState, id: &str) -> Option<timonier_core::protocol::NodeDebt> {
+    state
+        .nodes()
+        .find(|n| n.id.as_str() == id)
+        .and_then(|n| n.debt)
+}
+
+/// A tool of the tracking, through the daemon's `tools/call` (ADR 0027): its structured content.
+fn tool(client: &mut Client, name: &str, arguments: Value) -> Value {
+    let result: Value = client
+        .request(
+            methods::TOOLS_CALL,
+            &serde_json::json!({ "name": name, "arguments": arguments }),
+        )
+        .expect("the tool answers");
+    assert_eq!(result["isError"], false, "{result}");
+    result["structuredContent"].clone()
+}
+
+/// The next tracking update, within 20 s, that satisfies `done` (ADR 0031).
+#[track_caller]
+fn tracking_until(
+    client: &mut Client,
+    subscription: u64,
+    done: impl Fn(&TrackingView) -> bool,
+) -> TrackingSnapshot {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut last = None;
+    loop {
+        let left = deadline.saturating_duration_since(Instant::now());
+        let Some(incoming) = client.next_incoming(left).expect("read") else {
+            panic!("not reached; last update: {last:#?}");
+        };
+        if incoming.method != methods::TRACKING_UPDATE {
+            continue;
+        }
+        let update: TrackingSnapshot = serde_json::from_value(incoming.params).expect("an update");
+        assert_eq!(update.subscription, subscription);
+        if done(&update.tracking) {
+            return update;
+        }
+        last = Some(update);
+    }
+}
+
+/// PLAN.md 6.6, ADR 0031, on a real daemon: a panel sees the plan, the todo and the journal
+/// change as an agent calls the tools on another connection, the open session's diff follow
+/// the code, and a change made by hand in `.timonier/`.
+#[test]
+fn the_tracking_follows_the_agent_live() {
+    let repo = tempfile::tempdir().unwrap();
+    let root = repo.path();
+    write(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"a\", \"b\"]\n",
+    );
+    write(root, "a/Cargo.toml", "[package]\nname = \"a\"\n");
+    write(root, "a/src/lib.rs", "pub fn f() {}\n");
+    write(root, "b/Cargo.toml", "[package]\nname = \"b\"\n");
+    write(root, "b/src/lib.rs", "pub fn g() {}\n");
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut panel = daemon.client();
+    panel.initialize("vscode").unwrap();
+    indexed(&mut panel, 2);
+    let first: TrackingSnapshot = panel
+        .request(methods::TRACKING_SUBSCRIBE, &Value::Null)
+        .expect("subscribed");
+    assert_eq!(first.revision, 0);
+    assert_eq!(first.tracking, TrackingView::default());
+    let subscription = first.subscription;
+    let mut agent = daemon.client();
+    agent.initialize("test-agent").unwrap();
+
+    tool(
+        &mut agent,
+        "session_start",
+        json!({"objective": "Link a to b"}),
+    );
+    tool(
+        &mut agent,
+        "plan_add_task",
+        json!({"title": "Link", "new_milestone": "First"}),
+    );
+    tool(
+        &mut agent,
+        "todo_add",
+        json!({"text": "Call g", "task": "T-1"}),
+    );
+    let seen = tracking_until(&mut panel, subscription, |t| !t.todo.is_empty());
+    assert!(seen.revision > 0);
+    let tracking = &seen.tracking;
+    assert_eq!(tracking.milestones[0].title, "First");
+    assert_eq!(
+        (tracking.milestones[0].done, tracking.milestones[0].of),
+        (0, 1)
+    );
+    assert_eq!(tracking.todo[0].text, "Call g");
+    assert_eq!(tracking.sessions[0].agent, "test-agent");
+    assert!(tracking.sessions[0].open);
+
+    // The code changes: the open session's diff follows.
+    write(
+        root,
+        "a/Cargo.toml",
+        "[package]\nname = \"a\"\n[dependencies]\nb = { path = \"../b\" }\n",
+    );
+    write(root, "a/src/lib.rs", "pub fn f() { b::g() }\n");
+    let seen = tracking_until(&mut panel, subscription, |t| {
+        t.sessions[0]
+            .changes
+            .as_ref()
+            .is_some_and(|c| !c.linked.is_empty() && c.files == 1)
+    });
+    // The manifest is no file of the graph: the one file is a/src/lib.rs.
+    let changes = seen.tracking.sessions[0].changes.clone().unwrap();
+    assert_eq!(changes.modified[0].id, "pkg:cargo/a", "{changes:?}");
+    assert_eq!(
+        (
+            changes.linked[0].from.name.as_str(),
+            changes.linked[0].to.name.as_str()
+        ),
+        ("a", "b")
+    );
+
+    tool(&mut agent, "todo_complete", json!({"item_id": "D-1"}));
+    tool(
+        &mut agent,
+        "plan_update_task",
+        json!({"task_id": "T-1", "status": "in_progress"}),
+    );
+    tool(
+        &mut agent,
+        "plan_update_task",
+        json!({"task_id": "T-1", "status": "done"}),
+    );
+    tool(&mut agent, "session_end", json!({"summary": "a calls b."}));
+    let seen = tracking_until(&mut panel, subscription, |t| t.open.is_none());
+    let tracking = &seen.tracking;
+    assert_eq!(
+        (tracking.milestones[0].done, tracking.milestones[0].of),
+        (1, 1)
+    );
+    assert!(tracking.todo.is_empty());
+    let ended = &tracking.sessions[0];
+    assert_eq!(ended.summary.as_deref(), Some("a calls b."));
+    assert!(ended.todo[0].done);
+    // Written in the journal at the end, the same as it showed live.
+    assert_eq!(ended.changes.as_ref(), Some(&changes));
+    let journal: Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join(format!(".timonier/sessions/{}.json", ended.id)))
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(journal["changes"]["linked"][0]["to"]["id"], "pkg:cargo/b");
+    // The bridge (ADR 0032): no review yet, so every session counts, and a's file is to read.
+    assert_eq!(tracking.sessions_since_review, 1);
+    assert!(tracking.review.since.is_none());
+    assert!(
+        tracking.debt.is_some_and(|d| d.files >= 1),
+        "{:?}",
+        tracking.debt
+    );
+    assert!(
+        tracking.look.iter().any(|item| matches!(
+            item,
+            LookItem::Debt { item, path, .. } if item.id.as_str() == "pkg:cargo/a" && path.is_empty()
+        )),
+        "{:?}",
+        tracking.look
+    );
+    // Reviewed: nothing to look at, no session since.
+    let _: ReviewMark = panel
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked");
+    let seen = tracking_until(&mut panel, subscription, |t| t.review.since.is_some());
+    assert_eq!(seen.tracking.sessions_since_review, 0);
+    let seen = if seen.tracking.look.is_empty() {
+        seen
+    } else {
+        tracking_until(&mut panel, subscription, |t| t.look.is_empty())
+    };
+    assert!(seen.tracking.debt.is_none());
+
+    // By hand: the panel sees the file break, then mend.
+    let plan = root.join(".timonier/plan.json");
+    let kept = std::fs::read_to_string(&plan).unwrap();
+    std::fs::write(&plan, "{ not json").unwrap();
+    let seen = tracking_until(&mut panel, subscription, |t| !t.problems.is_empty());
+    assert_eq!(seen.tracking.problems[0].file, "plan.json");
+    assert!(seen.tracking.milestones.is_empty());
+    std::fs::write(&plan, kept.replace("\"First\"", "\"Renamed\"")).unwrap();
+    tracking_until(&mut panel, subscription, |t| {
+        t.problems.is_empty() && t.milestones.first().is_some_and(|m| m.title == "Renamed")
+    });
+}
+
+/// PLAN.md 6.5, ADR 0030, on a real daemon: what a session writes is debt until a review; what
+/// changes with no session open is debt too, and untracked.
+#[test]
+fn a_view_shows_the_review_debt() {
+    let repo = tempfile::tempdir().unwrap();
+    let root = repo.path();
+    write(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"a\", \"b\"]\n",
+    );
+    write(root, "a/Cargo.toml", "[package]\nname = \"a\"\n");
+    write(root, "a/src/lib.rs", "pub mod two;\npub fn f() {}\n");
+    write(root, "a/src/two.rs", "pub fn t() {}\n");
+    write(root, "b/Cargo.toml", "[package]\nname = \"b\"\n");
+    write(root, "b/src/lib.rs", "pub fn g() {}\n");
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test-agent").unwrap();
+    indexed(&mut client, 3);
+    let _: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked");
+    let snapshot = subscribe(&mut client, &[]);
+    let mut mirror = Mirror::new(&snapshot);
+    follow_until(&mut client, &mut mirror, |state| {
+        debt_of(state, "pkg:cargo/a").is_none()
+    });
+
+    // A session writes a/src/two.rs: one file of a's two to read again, none untracked.
+    tool(
+        &mut client,
+        "session_start",
+        serde_json::json!({"objective": "Change a"}),
+    );
+    write(root, "a/src/two.rs", "pub fn t() {}\npub fn u() {}\n");
+    follow_until(&mut client, &mut mirror, |state| {
+        debt_of(state, "pkg:cargo/a").is_some()
+    });
+    assert_eq!(
+        debt_of(&mirror.state, "pkg:cargo/a"),
+        Some(timonier_core::protocol::NodeDebt {
+            files: 1,
+            of: 2,
+            untracked: 0
+        })
+    );
+    assert_eq!(debt_of(&mirror.state, "pkg:cargo/b"), None);
+    tool(
+        &mut client,
+        "session_end",
+        serde_json::json!({"summary": "a changed."}),
+    );
+
+    // b changes with no session open: debt, and untracked.
+    write(root, "b/src/lib.rs", "pub fn g() {}\npub fn h() {}\n");
+    follow_until(&mut client, &mut mirror, |state| {
+        debt_of(state, "pkg:cargo/b").is_some_and(|d| d.untracked == 1)
+    });
+    assert_eq!(
+        debt_of(&mirror.state, "pkg:cargo/a").map(|d| d.files),
+        Some(1)
+    );
+
+    // Reviewed: no debt left.
+    let _: ReviewMark = client
+        .request(methods::REVIEW_MARK, &Value::Null)
+        .expect("marked");
+    follow_until(&mut client, &mut mirror, |state| {
+        debt_of(state, "pkg:cargo/a").is_none() && debt_of(state, "pkg:cargo/b").is_none()
+    });
 }
 
 /// PLAN.md 5.2, ADR 0024, on a real daemon: nothing before the first review (Q27); after it, a

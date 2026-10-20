@@ -426,4 +426,58 @@ describe("Timonier daemon (ADR 0019)", () => {
     assert.ok(!before.lastReview || after.lastReview.seq > before.lastReview.seq);
     assert.equal(after.head, after.lastReview.seq + 1);
   });
+  it("shows the plan and the todo live as the agent calls the tools (PLAN.md 6.6, ADR 0031)", async function () {
+    this.timeout(60_000);
+    await waitFor("connected", () => timonier.daemonStatus().state === "connected");
+    const shown = (panel: string) => timonier.trackingShown(panel) ?? -1;
+    {
+      // The secondary side bar, as the human opens it: the plan, the todo and the sessions.
+      await vscode.commands.executeCommand("workbench.view.extension.timonier-journal");
+      await vscode.commands.executeCommand("timonier.tracking.focus");
+      await waitFor("the view shows the tracking", () => shown("all") >= 0);
+      // An agent, through the daemon's tools (ADR 0027): what MCP relays.
+      const tool = async (name: string, args: unknown) => {
+        const result = await timonier.daemonRequest<{ isError: boolean }>("tools/call", { name, arguments: args });
+        assert.equal(result.isError, false, JSON.stringify(result));
+      };
+      await tool("session_start", { objective: "Try the panels" });
+      await tool("plan_add_task", { title: "Show the plan", new_milestone: "Panels" });
+      await tool("todo_add", { text: "Watch the todo fill", task: "T-1" });
+      const carrying = () => {
+        const state = timonier.tracking();
+        return state?.tracking.todo.some((item) => item.text === "Watch the todo fill") ? state.revision : undefined;
+      };
+      await waitFor("the relay has the todo", () => carrying() !== undefined);
+      const revision = carrying() ?? Infinity;
+      await waitFor("the view shows it", () => shown("all") >= revision);
+      const state = timonier.tracking()?.tracking;
+      assert.equal(state?.milestones[0]?.title, "Panels");
+      assert.equal(state?.open, state?.sessions[0]?.id);
+      // Done, then the session ends: the todo empties, live too.
+      await tool("todo_complete", { item_id: "D-1" });
+      await tool("session_end", { summary: "The panels follow." });
+      await waitFor("the session ended", () => timonier.tracking()?.tracking.open === null);
+      const ended = timonier.tracking()?.revision ?? Infinity;
+      await waitFor("the view shows it", () => shown("all") >= ended);
+    }
+  });
+  it("shows the bridge, and reveals a box on the map from it (PLAN.md 6.7, ADR 0032)", async function () {
+    this.timeout(60_000);
+    await waitFor("connected", () => timonier.daemonStatus().state === "connected");
+    await vscode.commands.executeCommand("timonier.home.focus");
+    await waitFor("the bridge shows the tracking", () => (timonier.trackingShown("bridge") ?? -1) >= 0);
+    // Where to look: what the bridge's box sends, run as the extension runs it.
+    // The map as the test before left it (the package open), then closed: the top alone.
+    await vscode.commands.executeCommand("timonier.openMap");
+    await waitFor("the map shows boxes", () => (timonier.mapRendered()?.nodes ?? 0) > 0);
+    const open = timonier.mapRendered()?.nodes ?? 0;
+    await vscode.commands.executeCommand("timonier.map.closeAll");
+    await waitFor("the map closed", () => (timonier.mapRendered()?.nodes ?? 0) < open);
+    const before = timonier.mapRendered()?.nodes ?? 0;
+    assert.equal(
+      await timonier.mapCommand({ name: "reveal", target: "file:src/main.ts", path: ["pkg:npm/fixture"] }),
+      true,
+    );
+    await waitFor("the package opened on its files", () => (timonier.mapRendered()?.nodes ?? 0) > before);
+  });
 });

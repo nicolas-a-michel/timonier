@@ -22,6 +22,7 @@ function node(id: string, name = id): ViewNode {
     file: null,
     span: null,
     review: null,
+    debt: null,
   };
 }
 

@@ -7,15 +7,20 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use ts_rs::TS;
 
+use crate::tracking::{
+    ChangedBox, ChangedLink, Plan, Session, SessionChanges, SessionStatus, TaskStatus, Todo,
+    TodoItem, TodoStatus,
+};
 use crate::{
     AggregatedEdge, EdgeKind, Language, NodeId, NodeKind, Position, Provenance, Role, Snapshot,
     Span,
 };
 
 /// Bumped when a change breaks clients; a client with another version is refused.
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 6;
 
 /// Method names (ADR 0019).
 pub mod methods {
@@ -39,6 +44,12 @@ pub mod methods {
     pub const REFERENCES: &str = "lsp/references";
     /// A request from the client: the head is marked as reviewed (ADR 0024).
     pub const REVIEW_MARK: &str = "review/mark";
+    /// Requests from a client: the MCP tools, as MCP lists and calls them (ADR 0027).
+    pub const TOOLS_LIST: &str = "tools/list";
+    pub const TOOLS_CALL: &str = "tools/call";
+    /// The plan, the todo and the journal, whole, then again at each change (ADR 0031).
+    pub const TRACKING_SUBSCRIBE: &str = "tracking/subscribe";
+    pub const TRACKING_UPDATE: &str = "tracking/update";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -165,6 +176,14 @@ pub struct ViewSpec {
     pub expanded: Vec<NodeId>,
 }
 
+/// `tools/call` (ADR 0027): a tool and its arguments, as MCP gives them.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ToolCallParams {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<Value>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SubscribeParams {
@@ -204,6 +223,19 @@ pub struct ViewNode {
     /// What changed in it since the last review; `null` without change, and before the first
     /// review (ADR 0024).
     pub review: Option<NodeReview>,
+    /// Its review debt: files written since the last review and not read since (ADR 0030);
+    /// `null` without any.
+    pub debt: Option<NodeDebt>,
+}
+
+/// The review debt of a box or a file (ADR 0030): of its `of` files, `files` changed since the
+/// last review, in sessions or not, and `untracked` of them changed with no session open.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDebt {
+    pub files: u32,
+    pub of: u32,
+    pub untracked: u32,
 }
 
 /// What changed in a box or a file since the last review (ADR 0024).
@@ -395,6 +427,280 @@ impl ViewDelta {
     }
 }
 
+/// The project's tracking as the panels show it (ADR 0031): what `tracking/subscribe` answers
+/// and `tracking/update` sends again, whole, at each change.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackingSnapshot {
+    #[ts(type = "number")]
+    pub subscription: u64,
+    #[ts(type = "number")]
+    pub revision: u64,
+    pub tracking: TrackingView,
+}
+
+/// The plan, the todo of the open session and the journal, read in `.timonier/`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackingView {
+    pub milestones: Vec<MilestoneView>,
+    /// The open session's id; `null` between sessions.
+    pub open: Option<String>,
+    pub todo: Vec<TodoItemView>,
+    /// The latest sessions first, at most [`JOURNAL_LIMIT`].
+    pub sessions: Vec<SessionView>,
+    /// How many sessions the journal holds in all.
+    pub sessions_total: u32,
+    /// The files that do not read: what they hold is not shown.
+    pub problems: Vec<TrackingProblem>,
+    /// The review diff since the last review, for the bridge (ADR 0032).
+    pub review: ReviewSummary,
+    /// The review debt of the whole project; `null` when nothing is to read again.
+    pub debt: Option<NodeDebt>,
+    /// The sessions started since the last review; all of them before the first.
+    pub sessions_since_review: u32,
+    /// What to look at first (Q45), at most [`LOOK_LIMIT`].
+    pub look: Vec<LookItem>,
+}
+
+/// How many things the bridge proposes to look at (Q45).
+pub const LOOK_LIMIT: usize = 5;
+
+/// Something to look at, as the bridge ranks them (ADR 0032, Q45). A box carries its path from
+/// the top of the map (its ancestors, the repository left out), for the map to reveal it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LookItem {
+    /// A file of `.timonier/` that does not read.
+    Problem { file: String },
+    /// A task of the plan, blocked.
+    Blocked { task: String, title: String },
+    /// A cycle added since the review; the path leads to its first box.
+    Cycle {
+        boxes: Vec<ReviewBox>,
+        path: Vec<String>,
+    },
+    /// A box with files to read again.
+    Debt {
+        item: ReviewBox,
+        debt: NodeDebt,
+        path: Vec<String>,
+    },
+}
+
+/// How many sessions the panels receive (ADR 0031).
+pub const JOURNAL_LIMIT: usize = 50;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct MilestoneView {
+    pub id: String,
+    pub title: String,
+    /// Tasks done, over tasks not dropped (ADR 0029).
+    pub done: u32,
+    pub of: u32,
+    pub tasks: Vec<TaskView>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskView {
+    pub id: String,
+    pub title: String,
+    pub criterion: Option<String>,
+    pub status: TaskState,
+    pub sessions: Vec<String>,
+    pub notes: Vec<NoteView>,
+}
+
+/// The states of a task (ADR 0029).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum TaskState {
+    Todo,
+    InProgress,
+    Blocked,
+    Done,
+    Dropped,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteView {
+    /// UTC, RFC 3339.
+    pub at: String,
+    pub session: String,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TodoItemView {
+    pub id: String,
+    pub text: String,
+    pub task: Option<String>,
+    pub done: bool,
+}
+
+/// A session of the journal.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionView {
+    pub id: String,
+    pub agent: String,
+    pub objective: String,
+    pub tasks: Vec<String>,
+    pub open: bool,
+    /// UTC, RFC 3339.
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub summary: Option<String>,
+    /// Its todo: the live one while it is open.
+    pub todo: Vec<TodoItemView>,
+    /// What it changed in the code: since its start while it is open; `null` for a session
+    /// that ended without it.
+    pub changes: Option<SessionChanges>,
+}
+
+/// A tracking file that does not read (ADR 0029).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackingProblem {
+    /// Relative to `.timonier/`.
+    pub file: String,
+    pub message: String,
+}
+
+impl TrackingView {
+    /// The view of what the files hold. `sessions` in any order; `live` is the open session's
+    /// changes since its start.
+    pub fn new(
+        plan: Option<&Plan>,
+        todo: Option<&Todo>,
+        mut sessions: Vec<Session>,
+        live: Option<SessionChanges>,
+        problems: Vec<TrackingProblem>,
+    ) -> Self {
+        let item = |item: &TodoItem| TodoItemView {
+            id: item.id.clone(),
+            text: item.text.clone(),
+            task: item.task.clone(),
+            done: item.status == TodoStatus::Done,
+        };
+        let todo_items: Vec<TodoItemView> =
+            todo.map_or_else(Vec::new, |t| t.items.iter().map(item).collect());
+        let open = sessions
+            .iter()
+            .find(|s| {
+                s.status == SessionStatus::Open
+                    && todo.and_then(|t| t.session.as_ref()) == Some(&s.id)
+            })
+            .map(|s| s.id.clone());
+        // The latest first: ids sort by date, then by number.
+        sessions.sort_by(|a, b| session_order(b).cmp(&session_order(a)));
+        let total = u32::try_from(sessions.len()).unwrap_or(u32::MAX);
+        sessions.truncate(JOURNAL_LIMIT);
+        let mut live = live;
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let is_open = open.as_deref() == Some(session.id.as_str());
+                SessionView {
+                    todo: if is_open {
+                        todo_items.clone()
+                    } else {
+                        session.todo.iter().map(item).collect()
+                    },
+                    changes: if is_open {
+                        live.take()
+                    } else {
+                        session.changes
+                    },
+                    id: session.id,
+                    agent: session.agent,
+                    objective: session.objective,
+                    tasks: session.tasks,
+                    open: is_open,
+                    started_at: session.started_at,
+                    ended_at: session.ended_at,
+                    summary: session.summary,
+                }
+            })
+            .collect();
+        let milestones = plan.map_or_else(Vec::new, |plan| {
+            plan.milestones
+                .iter()
+                .map(|milestone| {
+                    let (done, of) = milestone.progress();
+                    MilestoneView {
+                        id: milestone.id.clone(),
+                        title: milestone.title.clone(),
+                        done,
+                        of,
+                        tasks: milestone
+                            .tasks
+                            .iter()
+                            .map(|task| TaskView {
+                                id: task.id.clone(),
+                                title: task.title.clone(),
+                                criterion: task.criterion.clone(),
+                                status: TaskState::from(task.status),
+                                sessions: task.sessions.clone(),
+                                notes: task
+                                    .notes
+                                    .iter()
+                                    .map(|note| NoteView {
+                                        at: note.at.clone(),
+                                        session: note.session.clone(),
+                                        text: note.text.clone(),
+                                    })
+                                    .collect(),
+                            })
+                            .collect(),
+                    }
+                })
+                .collect()
+        });
+        Self {
+            milestones,
+            todo: if open.is_some() {
+                todo_items
+            } else {
+                Vec::new()
+            },
+            open,
+            sessions,
+            sessions_total: total,
+            problems,
+            review: ReviewSummary::default(),
+            debt: None,
+            sessions_since_review: 0,
+            look: Vec::new(),
+        }
+    }
+}
+
+/// `S-2026-10-20-12` after `S-2026-10-20-9`: by date, then by number.
+fn session_order(session: &Session) -> (&str, u64) {
+    let id = session.id.as_str();
+    match id.rsplit_once('-') {
+        Some((day, n)) => (day, n.parse().unwrap_or(0)),
+        None => (id, 0),
+    }
+}
+
+impl From<TaskStatus> for TaskState {
+    fn from(status: TaskStatus) -> Self {
+        match status {
+            TaskStatus::Todo => TaskState::Todo,
+            TaskStatus::InProgress => TaskState::InProgress,
+            TaskStatus::Blocked => TaskState::Blocked,
+            TaskStatus::Done => TaskState::Done,
+            TaskStatus::Dropped => TaskState::Dropped,
+        }
+    }
+}
+
 /// Files, relative to the root: opened in the editor, or shown on the map.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -514,6 +820,12 @@ pub enum HostMessage {
     Density {
         density: Density,
     },
+    /// The plan, the todo and the journal, whole, at a revision (ADR 0031).
+    Tracking {
+        #[ts(type = "number")]
+        revision: u64,
+        tracking: TrackingView,
+    },
 }
 
 /// The density of the map: the sizes of its boxes and the room between them (Q32).
@@ -575,6 +887,14 @@ pub enum MapCommand {
     ToggleChanges,
     /// Show or hide the lists of the review summary.
     ToggleReviewDetails,
+    /// Show or hide the review debt on the boxes (ADR 0030, Q44).
+    ToggleDebt,
+    /// Open what leads to a box, then center and select it (ADR 0032, Q46): `path` are its
+    /// ancestors from the top of the map.
+    Reveal {
+        target: String,
+        path: Vec<String>,
+    },
 }
 
 /// From the webview to its host.
@@ -603,6 +923,16 @@ pub enum WebviewMessage {
     },
     /// The map's « Mark as reviewed » button: the host runs the command (ADR 0024).
     MarkReviewed,
+    /// The bridge asks the map to show a box (ADR 0032, Q46).
+    Reveal { target: String, path: Vec<String> },
+    /// The bridge's « Open Map » button.
+    OpenMap,
+    /// A panel of the tracking shows this revision now (ADR 0031).
+    TrackingShown {
+        panel: String,
+        #[ts(type = "number")]
+        revision: u64,
+    },
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]
@@ -641,6 +971,7 @@ pub fn typescript() -> String {
         ReviewChange::decl(&cfg),
         FanJump::decl(&cfg),
         NodeReview::decl(&cfg),
+        NodeDebt::decl(&cfg),
         EdgeReview::decl(&cfg),
         ReviewBox::decl(&cfg),
         ReviewDependency::decl(&cfg),
@@ -663,6 +994,19 @@ pub fn typescript() -> String {
         ReferencesParams::decl(&cfg),
         LspAnswers::decl(&cfg),
         LookupCounts::decl(&cfg),
+        ChangedBox::decl(&cfg),
+        ChangedLink::decl(&cfg),
+        SessionChanges::decl(&cfg),
+        TaskState::decl(&cfg),
+        NoteView::decl(&cfg),
+        TaskView::decl(&cfg),
+        MilestoneView::decl(&cfg),
+        TodoItemView::decl(&cfg),
+        SessionView::decl(&cfg),
+        TrackingProblem::decl(&cfg),
+        LookItem::decl(&cfg),
+        TrackingView::decl(&cfg),
+        TrackingSnapshot::decl(&cfg),
         Pin::decl(&cfg),
         Direction::decl(&cfg),
         Density::decl(&cfg),
@@ -690,6 +1034,8 @@ pub fn typescript() -> String {
         ("DEFINITIONS", methods::DEFINITIONS),
         ("REFERENCES", methods::REFERENCES),
         ("REVIEW_MARK", methods::REVIEW_MARK),
+        ("TRACKING_SUBSCRIBE", methods::TRACKING_SUBSCRIBE),
+        ("TRACKING_UPDATE", methods::TRACKING_UPDATE),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -711,6 +1057,125 @@ pub fn typescript() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tracking::{Milestone, SessionSnapshots, Stamp, Task};
+
+    fn session(id: &str, status: SessionStatus) -> Session {
+        Session {
+            version: 1,
+            id: id.to_owned(),
+            agent: "agent".into(),
+            objective: format!("objective of {id}"),
+            tasks: Vec::new(),
+            status,
+            started_at: "2026-10-20T08:00:00Z".into(),
+            ended_at: None,
+            snapshots: SessionSnapshots {
+                start: 1,
+                end: None,
+            },
+            summary: None,
+            todo: vec![TodoItem {
+                id: "D-1".into(),
+                text: "kept".into(),
+                task: None,
+                status: TodoStatus::Done,
+            }],
+            changes: Some(SessionChanges {
+                files: 3,
+                ..SessionChanges::default()
+            }),
+        }
+    }
+
+    fn task(id: &str, status: TaskStatus) -> Task {
+        Task {
+            id: id.into(),
+            title: id.into(),
+            criterion: None,
+            status,
+            components: Vec::new(),
+            sessions: Vec::new(),
+            created: Stamp {
+                at: "2026-10-20T08:00:00Z".into(),
+                session: "S-2026-10-20-1".into(),
+            },
+            notes: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_tracking_view_puts_the_latest_sessions_first_and_the_open_one_live() {
+        let plan = Plan {
+            version: 1,
+            milestones: vec![Milestone {
+                id: "M-1".into(),
+                title: "First".into(),
+                tasks: vec![
+                    task("T-1", TaskStatus::Done),
+                    task("T-2", TaskStatus::Dropped),
+                    task("T-3", TaskStatus::InProgress),
+                ],
+            }],
+        };
+        let todo = Todo {
+            version: 1,
+            session: Some("S-2026-10-20-10".into()),
+            items: vec![TodoItem {
+                id: "D-1".into(),
+                text: "live".into(),
+                task: Some("T-3".into()),
+                status: TodoStatus::Open,
+            }],
+        };
+        let mut sessions: Vec<Session> = (1..=9)
+            .map(|n| session(&format!("S-2026-10-20-{n}"), SessionStatus::Ended))
+            .collect();
+        sessions.push(session("S-2026-10-19-4", SessionStatus::Ended));
+        sessions.insert(0, session("S-2026-10-20-10", SessionStatus::Open));
+        let live = SessionChanges {
+            files: 1,
+            ..SessionChanges::default()
+        };
+        let view = TrackingView::new(Some(&plan), Some(&todo), sessions, Some(live), Vec::new());
+        let milestone = &view.milestones[0];
+        assert_eq!(
+            (milestone.done, milestone.of),
+            (1, 2),
+            "dropped tasks do not count"
+        );
+        assert_eq!(milestone.tasks[2].status, TaskState::InProgress);
+        assert_eq!(view.open.as_deref(), Some("S-2026-10-20-10"));
+        let ids: Vec<&str> = view.sessions.iter().map(|s| s.id.as_str()).collect();
+        assert_eq!(
+            ids[..3],
+            ["S-2026-10-20-10", "S-2026-10-20-9", "S-2026-10-20-8"]
+        );
+        assert_eq!(ids.last(), Some(&"S-2026-10-19-4"));
+        assert_eq!(view.sessions_total, 11);
+        let open = &view.sessions[0];
+        assert!(open.open);
+        assert_eq!(open.todo[0].text, "live");
+        assert_eq!(open.changes.as_ref().map(|c| c.files), Some(1));
+        assert_eq!(view.todo, open.todo);
+        assert_eq!(view.sessions[1].todo[0].text, "kept");
+        assert_eq!(view.sessions[1].changes.as_ref().map(|c| c.files), Some(3));
+        // Between sessions: no todo, none open.
+        let mut closed = todo.clone();
+        closed.session = None;
+        let between = TrackingView::new(Some(&plan), Some(&closed), Vec::new(), None, Vec::new());
+        assert!(between.open.is_none() && between.todo.is_empty());
+    }
+
+    #[test]
+    fn the_journal_is_capped() {
+        let sessions = (1..=60)
+            .map(|n| session(&format!("S-2026-10-20-{n}"), SessionStatus::Ended))
+            .collect();
+        let view = TrackingView::new(None, None, sessions, None, Vec::new());
+        assert_eq!(view.sessions.len(), JOURNAL_LIMIT);
+        assert_eq!(view.sessions_total, 60);
+        assert_eq!(view.sessions[0].id, "S-2026-10-20-60");
+    }
 
     fn names(union: &str) -> Vec<String> {
         union
@@ -752,9 +1217,18 @@ mod tests {
                 fan_out: None,
                 cycle: false,
             }),
+            debt: Some(NodeDebt {
+                files: 1,
+                of: 1,
+                untracked: 0,
+            }),
         };
         let json = serde_json::to_value(&node).unwrap();
         assert_eq!(json["kind"], "file");
+        assert_eq!(
+            json["debt"],
+            serde_json::json!({"files": 1, "of": 1, "untracked": 0})
+        );
         assert_eq!(json["review"]["change"], "added");
         assert_eq!(json["review"]["fanIn"]["after"], 4);
         assert_eq!(json["parent"], "pkg:cargo/a");

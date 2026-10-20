@@ -1,6 +1,7 @@
 //! The `timonier` command line, also installed as `tim`.
 
 mod daemon;
+mod mcp;
 
 use std::process::ExitCode;
 
@@ -21,6 +22,8 @@ enum Command {
         #[command(subcommand)]
         action: daemon::Action,
     },
+    /// Serve the MCP tools to an agent on stdio, starting the daemon if needed
+    Mcp(daemon::Target),
 }
 
 /// Entry point shared by the `timonier` and `tim` binaries.
@@ -34,6 +37,7 @@ pub fn run() -> ExitCode {
     };
     match cli.command {
         Some(Command::Daemon { action }) => daemon::run(action),
+        Some(Command::Mcp(target)) => mcp::run(&target),
         // No command: show the help.
         None => match command.print_help() {
             Ok(()) => ExitCode::SUCCESS,

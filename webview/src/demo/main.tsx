@@ -65,6 +65,35 @@ void applyTheme(theme).then(async (names) => {
       : map
         ? views[`../../test/views/${map}/open.json`]
         : undefined;
+  // `?tracking=plan|todo|sessions`: a panel of the tracking, in the side bar (ADR 0031);
+  // `&empty=1`, before anything is tracked; `&problem=1`, with a file that does not read.
+  const panel = params.get("tracking");
+  if (panel) {
+    await import("../tracking/tracking.css");
+    const { SAMPLE_TRACKING, EMPTY_TRACKING } = await import("../tracking/sample");
+    const { TrackingPanel } = await import("../tracking/TrackingPanel");
+    const { panelOf } = await import("../tracking/panel");
+    const tracking = params.get("empty") === "1" ? { ...EMPTY_TRACKING } : SAMPLE_TRACKING;
+    const problems =
+      params.get("problem") === "1" ? [{ file: "plan.json", message: "expected value at line 1 column 3" }] : [];
+    // `all` (the default): the view of the secondary side bar (ADR 0031); `&width=` its width.
+    const width = Number(params.get("width") ?? "300");
+    createRoot(container).render(
+      <StrictMode>
+        <div className="demo-sidebar" style={{ width: `${width}px` }}>
+          <TrackingPanel
+            locale={locale}
+            panel={panelOf(panel)}
+            tracking={{ ...tracking, problems }}
+            daemon={{ state: "connected", detail: null }}
+            actions={{ onReveal: () => undefined, onOpenMap: () => undefined, onMarkReviewed: () => undefined }}
+          />
+        </div>
+      </StrictMode>,
+    );
+    ready();
+    return;
+  }
   const content = view ? (
     <MapDemo
       locale={locale}
@@ -72,6 +101,7 @@ void applyTheme(theme).then(async (names) => {
       openAll={openAll}
       review={params.get("review") === "1"}
       only={params.get("only") === "1"}
+      debt={params.get("debt") === "1"}
       density={density}
       onRendered={ready}
     />

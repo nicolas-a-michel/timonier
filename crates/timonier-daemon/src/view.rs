@@ -2,11 +2,11 @@
 //! since the client's last revision; with the review diff (ADR 0024). Pure, apart from
 //! [`load`].
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use timonier_core::protocol::{
-    EdgeRef, EdgeReview, FanJump, NodeReview, ReviewBox, ReviewChange, ReviewDependency, ReviewFan,
-    ReviewMark, ReviewSummary, ViewDelta, ViewEdge, ViewNode, ViewSnapshot, ViewSpec,
+    EdgeRef, EdgeReview, FanJump, NodeDebt, NodeReview, ReviewBox, ReviewChange, ReviewDependency,
+    ReviewFan, ReviewMark, ReviewSummary, ViewDelta, ViewEdge, ViewNode, ViewSnapshot, ViewSpec,
 };
 use timonier_core::review::{self, Change, Dependency, Jump, ReviewDiff};
 use timonier_core::{IdForm, Node, NodeId, NodeKind, aggregate};
@@ -128,7 +128,7 @@ fn is_box(node: &Node) -> bool {
     matches!(node.kind, NodeKind::Component | NodeKind::Package)
 }
 
-fn review_box(graph: &Graph, node: &Node) -> ReviewBox {
+pub(crate) fn review_box(graph: &Graph, node: &Node) -> ReviewBox {
     // The nearest box above: a package or a component, not the repository.
     let within = graph
         .ancestors(&node.id)
@@ -185,6 +185,16 @@ impl ViewState {
     /// The top of the map is what lies under the repository; each expanded node that is shown
     /// shows its children too. An expanded node under a collapsed one stays hidden.
     pub fn compute(graph: &Graph, spec: &ViewSpec, review: Option<&Review<'_>>) -> Self {
+        Self::compute_with(graph, spec, review, None)
+    }
+
+    /// [`ViewState::compute`], with the review debt of each box (ADR 0030).
+    pub fn compute_with(
+        graph: &Graph,
+        spec: &ViewSpec,
+        review: Option<&Review<'_>>,
+        debt: Option<&HashMap<NodeId, NodeDebt>>,
+    ) -> Self {
         let expanded: HashSet<&NodeId> = spec.expanded.iter().collect();
         let mut top: Vec<&NodeId> = Vec::new();
         for root in graph.roots() {
@@ -216,6 +226,7 @@ impl ViewState {
                     file: file_path(graph, id),
                     span: node.span,
                     review: review.and_then(|r| node_review(r.diff, id)),
+                    debt: debt.and_then(|d| d.get(id).copied()),
                 },
             );
             if expanded.contains(id) {

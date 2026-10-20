@@ -266,9 +266,10 @@ impl Reader {
         Ok(rows)
     }
 
-    /// The content hash of every file scope when snapshot `seq` was marked as reviewed, by
-    /// scope key; empty for any other snapshot (ADR 0024).
-    pub fn reviewed_contents(&self, seq: u64) -> Result<HashMap<String, ContentHash>> {
+    /// The content hash of every file scope when snapshot `seq` was frozen, by scope key, for
+    /// the last review mark and the snapshots frozen with their contents (ADR 0024, 0031); empty
+    /// for any other snapshot.
+    pub fn kept_contents(&self, seq: u64) -> Result<HashMap<String, ContentHash>> {
         let mut statement = self
             .connection
             .prepare_cached("SELECT scope, content_hash FROM snapshot_content WHERE seq = ?1")?;

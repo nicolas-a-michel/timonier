@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Session",
+  "description": "`.timonier/sessions/<id>.json`: one session of an agent.",
+  "type": "object",
+  "properties": {
+    "agent": {
+      "description": "The MCP client that opened it (`claude-code`…).",
+      "type": "string"
+    },
+    "changes": {
+      "description": "What it changed in the code, written at its end (ADR 0031).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionChanges"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id": {
+      "description": "`S-<date>-<n>` (`S-2026-10-20-1`).",
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "snapshots": {
+      "description": "The snapshots frozen at its start and end (ADR 0029).",
+      "$ref": "#/$defs/SessionSnapshots"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/SessionStatus"
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tasks": {
+      "description": "The plan's tasks it worked on.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "todo": {
+      "description": "Its todo, kept at its end.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TodoItem"
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "id",
+    "agent",
+    "objective",
+    "status",
+    "started_at",
+    "snapshots"
+  ],
+  "$defs": {
+    "ChangedBox": {
+      "description": "A package or a component, as the journal names it.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Its id in the graph (`pkg:cargo/demo`, `component:dir/src`).",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "within": {
+          "description": "The name of the box that holds it; `null` at the top.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "ChangedLink": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/ChangedBox"
+        },
+        "to": {
+          "$ref": "#/$defs/ChangedBox"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "SessionChanges": {
+      "description": "What a session changed in the code, between its snapshots, as the review diff tells it\n(ADR 0024, 0031). The boxes added, modified or removed are the components it touched. One\nword per field: the journal and the protocol spell them the same.",
+      "type": "object",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedBox"
+          }
+        },
+        "files": {
+          "description": "Files added, removed or changed.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "linked": {
+          "description": "Dependencies between boxes that the session brought.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedLink"
+          }
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedBox"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedBox"
+          }
+        },
+        "unlinked": {
+          "description": "Dependencies that it took away.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedLink"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "files",
+        "added",
+        "modified",
+        "removed",
+        "linked",
+        "unlinked"
+      ]
+    },
+    "SessionSnapshots": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start"
+      ]
+    },
+    "SessionStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "ended"
+      ]
+    },
+    "TodoItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`D-<n>`, given by the daemon within the session.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/TodoStatus"
+        },
+        "task": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "status"
+      ]
+    },
+    "TodoStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "done"
+      ]
+    }
+  }
+}

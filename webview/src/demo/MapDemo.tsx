@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { App } from "../App";
 import type { Locale } from "../i18n";
 import type { Density, ViewSnapshot } from "../protocol";
-import { applyToggle, closeAll, initialUi, toggleChanges, type Applied, type UiState } from "../uiState";
+import { applyToggle, closeAll, initialUi, toggleChanges, toggleDebt, type Applied, type UiState } from "../uiState";
 import { initialModel, reduce, type ViewModel } from "../viewModel";
 import type { Pins } from "../map/layout";
 import { roleGroupId } from "../map/mapModel";
@@ -20,6 +20,8 @@ export interface MapDemoProps {
   review?: boolean;
   /** The filter « highlight the changes » on from the start, as a page reloaded keeps it. */
   only?: boolean;
+  /** The layer of the review debt on from the start (ADR 0030). */
+  debt?: boolean;
   density?: Density;
   onRendered?: () => void;
 }
@@ -36,13 +38,14 @@ function everythingOpen(open: ViewSnapshot): UiState {
 }
 
 /** The webview's App, as main.tsx runs it, with a daemon that answers from a snapshot. */
-export function MapDemo({ locale, open: snapshot, openAll, review, only, density, onRendered }: MapDemoProps) {
+export function MapDemo({ locale, open: snapshot, openAll, review, only, debt, density, onRendered }: MapDemoProps) {
   // Marked as reviewed again on the page: nothing changed since.
   const [markedAt, setMarkedAt] = useState<number | undefined>();
   const open = markedAt ? justReviewed(snapshot, markedAt) : review ? withReview(snapshot, REVIEWED_AT) : snapshot;
   const [ui, setUi] = useState<UiState>(() => ({
     ...(openAll ? everythingOpen(open) : initialUi),
     ...(only ? { onlyChanges: true } : {}),
+    ...(debt ? { debt: true } : {}),
   }));
   // The host keeps the pins: here, the page, which the tests read.
   const [pins, setPins] = useState<Pins>({});
@@ -79,6 +82,7 @@ export function MapDemo({ locale, open: snapshot, openAll, review, only, density
           document.body.dataset.opened = JSON.stringify({ file, span });
         }}
         onToggleChanges={() => apply(toggleChanges(ui))}
+        onToggleDebt={() => apply(toggleDebt(ui))}
         onMarkReviewed={() => {
           // What the daemon would do: a new review, the diff starts from it.
           const now = Date.now();

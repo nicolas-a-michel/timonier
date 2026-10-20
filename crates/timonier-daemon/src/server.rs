@@ -6,7 +6,7 @@
 
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -14,7 +14,7 @@ use serde_json::Value;
 use timonier_core::SnapshotKind;
 use timonier_core::protocol::{
     FilesParams, InitializeParams, InitializeResult, LookupCounts, PROTOCOL_VERSION, ReviewMark,
-    StatusResult, SubscribeParams, SubscriptionParams, errors, methods,
+    StatusResult, SubscribeParams, SubscriptionParams, ToolCallParams, errors, methods,
 };
 use timonier_core::rpc::{Decoder, ErrorObject, Id, InvalidMessage, Message};
 use timonier_index::lsp::Priority;
@@ -151,8 +151,15 @@ impl Daemon {
         let (shutdown, _) = watch::channel(false);
         let changed = Arc::new(AtomicBool::new(false));
         let (views, commands) = mpsc::channel(VIEW_COMMANDS);
-        let views_thread = subscriptions::spawn(store.clone(), Arc::clone(&changed), commands)
-            .map_err(Error::Thread)?;
+        let watching = Arc::new(AtomicBool::new(false));
+        let views_thread = subscriptions::spawn(
+            store.clone(),
+            paths.root.clone(),
+            Arc::clone(&changed),
+            Arc::clone(&watching),
+            commands,
+        )
+        .map_err(Error::Thread)?;
         let files = Arc::new(AtomicUsize::new(0));
         let lookups: Arc<[AtomicU32; 2]> = Arc::new([AtomicU32::new(0), AtomicU32::new(0)]);
         let on_event = {
@@ -187,6 +194,7 @@ impl Daemon {
 
         let shared = Arc::new(Shared {
             root: paths.root.display().to_string(),
+            root_path: paths.root.clone(),
             store,
             views,
             watch: Mutex::new(Some(watch)),
@@ -198,9 +206,11 @@ impl Daemon {
             relay,
             lookups,
             source_extensions,
+            tracking: Mutex::new(()),
         });
         let mut background = JoinSet::new();
         background.spawn(idle(Arc::clone(&shared), options.idle));
+        background.spawn(watch_tracking(Arc::clone(&shared), watching));
         if options.signals {
             background.spawn(signals(Arc::clone(&shared)));
         }
@@ -250,6 +260,8 @@ impl Daemon {
 
 struct Shared {
     root: String,
+    /// The same, as a path: where `.timonier/` is.
+    root_path: std::path::PathBuf,
     store: Store,
     views: mpsc::Sender<Command>,
     watch: Mutex<Option<Watch>>,
@@ -264,6 +276,8 @@ struct Shared {
     lookups: Arc<[AtomicU32; 2]>,
     /// The file extensions the packs read.
     source_extensions: Vec<String>,
+    /// One tool call of the tracking at a time: the daemon is the only writer (ADR 0029).
+    tracking: Mutex<()>,
 }
 
 impl Shared {
@@ -310,6 +324,56 @@ async fn idle(shared: Arc<Shared>, idle: Duration) {
             return;
         }
     }
+}
+
+/// While a tracking view is open, looks at `.timonier/` every second: a change made outside the
+/// daemon (by hand, by git) reaches the panels too (ADR 0031). The watcher of the code skips it.
+async fn watch_tracking(shared: Arc<Shared>, watching: Arc<AtomicBool>) {
+    let mut last = None;
+    loop {
+        tokio::time::sleep(TRACKING_POLL).await;
+        if !watching.load(Ordering::SeqCst) {
+            last = None;
+            continue;
+        }
+        let dir = shared.root_path.join(".timonier");
+        let Ok(now) = tokio::task::spawn_blocking(move || tracking_files(&dir)).await else {
+            continue;
+        };
+        // The first look may come after a change: the views thread sends only what differs.
+        if last.as_ref() != Some(&now) {
+            // Full: the views thread is busy, and looks again at the next tick.
+            if shared.views.try_send(Command::Tracked).is_err() {
+                continue;
+            }
+        }
+        last = Some(now);
+    }
+}
+
+/// How often `.timonier/` is looked at while a tracking view is open.
+const TRACKING_POLL: Duration = Duration::from_secs(1);
+
+/// The size and time of each tracking file: what says one changed.
+fn tracking_files(dir: &std::path::Path) -> Vec<(std::path::PathBuf, u64, Option<SystemTime>)> {
+    let stat = |path: std::path::PathBuf| {
+        let meta = std::fs::metadata(&path).ok();
+        let (len, modified) = meta.map_or((0, None), |m| (m.len(), m.modified().ok()));
+        (path, len, modified)
+    };
+    let mut files: Vec<_> = ["plan.json", "todo.json"]
+        .iter()
+        .map(|name| stat(dir.join(name)))
+        .collect();
+    let mut sessions: Vec<std::path::PathBuf> = std::fs::read_dir(dir.join("sessions"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .collect();
+    sessions.sort();
+    files.extend(sessions.into_iter().map(stat));
+    files
 }
 
 async fn signals(shared: Arc<Shared>) {
@@ -369,6 +433,7 @@ async fn connection(shared: Arc<Shared>, stream: UnixStream) {
             connection: id,
             outbox,
             initialized: false,
+            client: String::new(),
         };
         let mut stop = shared.shutdown.subscribe();
         let mut decoder = Decoder::default();
@@ -417,6 +482,8 @@ struct Session {
     connection: u64,
     outbox: Outbox,
     initialized: bool,
+    /// Who connected: the agent of the sessions it opens (ADR 0029).
+    client: String,
 }
 
 impl Session {
@@ -467,6 +534,13 @@ impl Session {
             },
             methods::STATUS => self.status().await,
             methods::REVIEW_MARK => self.mark_reviewed().await,
+            methods::TOOLS_LIST => {
+                Ok(serde_json::json!({ "tools": timonier_core::tools::catalogue() }))
+            }
+            methods::TOOLS_CALL => match parse::<ToolCallParams>(params) {
+                Ok(params) => self.call_tool(params).await,
+                Err(error) => Err(error),
+            },
             methods::SHUTDOWN => {
                 self.send(Message::result(id, Value::Null)).await;
                 tracing::info!(connection, "shutdown asked");
@@ -488,6 +562,16 @@ impl Session {
                 }
                 Err(error) => Err(error),
             },
+            methods::TRACKING_SUBSCRIBE => {
+                let command = Command::SubscribeTracking {
+                    connection,
+                    id: id.clone(),
+                };
+                if self.to_views(command).await {
+                    return;
+                }
+                Err(shutting_down())
+            }
             methods::RESYNC | methods::UNSUBSCRIBE => match parse::<SubscriptionParams>(params) {
                 Ok(SubscriptionParams { subscription }) => {
                     let id = id.clone();
@@ -543,6 +627,7 @@ impl Session {
             return Err(error);
         }
         self.initialized = true;
+        self.client = params.client.clone();
         tracing::info!(connection = self.connection, client = %params.client, relay = params.lsp_relay, "client initialized");
         if params.lsp_relay {
             self.shared
@@ -610,6 +695,57 @@ impl Session {
         });
         match marked.await {
             Ok(Ok(mark)) => Ok(json(&mark)),
+            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
+    /// A tool of the tracking (ADR 0027, 0029), run off the runtime: it reads and writes
+    /// `.timonier/`, and a session's start or end waits for a snapshot.
+    async fn call_tool(&self, params: ToolCallParams) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let agent = self.client.clone();
+        let called = tokio::task::spawn_blocking(move || {
+            let freeze = || -> Result<timonier_core::Snapshot> {
+                let pending = shared
+                    .watch
+                    .lock()
+                    .map_err(|_| Error::Poisoned)?
+                    .as_ref()
+                    .ok_or(Error::Stopped)?
+                    .freeze_working_tree()?;
+                pending.wait()
+            };
+            let now_ms = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX));
+            let _writing = shared.tracking.lock().map_err(|_| Error::Poisoned)?;
+            let tracker = crate::tracking::Tracker::new(&shared.root_path);
+            Ok::<_, Error>(tracker.call(
+                &params.name,
+                params.arguments,
+                &crate::tracking::Context {
+                    agent: &agent,
+                    now_ms,
+                    freeze: &freeze,
+                    changed_files: &|from, to| {
+                        let mut reader = shared.store.reader()?;
+                        crate::tracking::changed_files(&mut reader, from, to)
+                    },
+                    changes: &|start, end| {
+                        let mut reader = shared.store.reader()?;
+                        crate::journal::between(&mut reader, start, end)
+                    },
+                    forget_contents: &|| Ok(shared.store.forget_contents()?),
+                },
+            ))
+        });
+        let called = called.await;
+        // The panels show what the tool did (ADR 0031); full, the views thread is busy and
+        // the watch of `.timonier/` catches up within a second.
+        let _ = self.shared.views.try_send(Command::Tracked);
+        match called {
+            Ok(Ok(result)) => Ok(result),
             Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
             Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
         }

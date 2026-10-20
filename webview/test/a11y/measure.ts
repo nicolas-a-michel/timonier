@@ -84,6 +84,8 @@ export async function textSamples(page: Page, selector: string): Promise<Sample[
   return page.evaluate<Sample[], string>((selector) => {
     const found: Sample[] = [];
     for (const element of document.querySelectorAll(selector)) {
+      // Text only: an icon's span, with no text, is measured as a mark (`samples`, at 3:1).
+      if (!element.textContent?.trim()) continue;
       const layers: string[] = [];
       for (let e: Element | null = element; e; e = e.parentElement) {
         const colour = getComputedStyle(e).backgroundColor;

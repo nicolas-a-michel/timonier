@@ -31,6 +31,7 @@ function node(id: string, review: NodeReview | null = null, parent: string | nul
     file: null,
     span: null,
     review,
+    debt: null,
   };
 }
 

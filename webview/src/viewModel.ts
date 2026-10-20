@@ -42,10 +42,12 @@ function rendered(view: ViewData): WebviewMessage {
 
 export function reduce(model: ViewModel, message: HostMessage): Reduced {
   switch (message.type) {
-    // For the map itself (main.tsx), not for the view's data.
+    // For the map itself (main.tsx), not for the view's data; the tracking is for its panels
+    // (ADR 0031).
     case "command":
     case "pins":
     case "density":
+    case "tracking":
       return { model, effects: [] };
     case "daemon":
       return { model: { ...model, daemon: { state: message.state, detail: message.detail } }, effects: [] };

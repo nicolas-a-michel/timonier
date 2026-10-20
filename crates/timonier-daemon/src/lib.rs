@@ -2,14 +2,18 @@
 //!
 //! One daemon per project; it wires the other crates together. See the `rust-daemon` skill.
 
+pub mod bridge;
 pub mod client;
+pub mod debt;
 mod error;
 mod git;
 pub mod indexing;
+pub mod journal;
 mod relay;
 pub mod runtime;
 pub mod server;
 mod subscriptions;
+pub mod tracking;
 pub mod view;
 pub mod watch;
 

@@ -58,7 +58,7 @@ pub fn run(action: Action) -> ExitCode {
     }
 }
 
-fn resolve(target: &Target) -> Result<Paths> {
+pub fn resolve(target: &Target) -> Result<Paths> {
     let root = match &target.root {
         Some(root) => root.clone(),
         None => {
@@ -86,12 +86,33 @@ fn connect(paths: &Paths) -> Option<Client> {
 }
 
 fn start(paths: &Paths) -> Result<ExitCode> {
-    if connect(paths).is_some() {
-        println!(
+    match launch(paths)? {
+        Launched::Running => println!(
             "The Timonier daemon already runs for {}.",
             paths.root.display()
-        );
-        return Ok(ExitCode::SUCCESS);
+        ),
+        Launched::Started(process) => {
+            println!(
+                "The Timonier daemon runs for {} (process {process}).",
+                paths.root.display(),
+            );
+            println!("Its log: {}", paths.log.display());
+        }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// What [`launch`] found or did.
+pub enum Launched {
+    Running,
+    Started(u32),
+}
+
+/// Starts this project's daemon in the background unless one answers, and waits until it
+/// does. Prints nothing: `timonier mcp` speaks MCP on its standard output.
+pub fn launch(paths: &Paths) -> Result<Launched> {
+    if connect(paths).is_some() {
+        return Ok(Launched::Running);
     }
     // The runtime directory, closed to others, before the log goes in it.
     timonier_daemon::runtime::prepare_runtime(paths)?;
@@ -116,22 +137,12 @@ fn start(paths: &Paths) -> Result<ExitCode> {
     let deadline = Instant::now() + WAIT;
     while Instant::now() < deadline {
         if connect(paths).is_some() {
-            println!(
-                "The Timonier daemon runs for {} (process {}).",
-                paths.root.display(),
-                child.id()
-            );
-            println!("Its log: {}", paths.log.display());
-            return Ok(ExitCode::SUCCESS);
+            return Ok(Launched::Started(child.id()));
         }
         if let Some(exit) = child.try_wait()? {
             // Another start may have won the lock meanwhile.
             if connect(paths).is_some() {
-                println!(
-                    "The Timonier daemon already runs for {}.",
-                    paths.root.display()
-                );
-                return Ok(ExitCode::SUCCESS);
+                return Ok(Launched::Running);
             }
             bail!(
                 "the daemon stopped ({exit}); its log: {}",

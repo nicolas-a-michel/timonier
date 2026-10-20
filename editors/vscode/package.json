@@ -36,6 +36,13 @@
           "title": "Timonier",
           "icon": "media/timonier.svg"
         }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "timonier-journal",
+          "title": "%container.journal.title%",
+          "icon": "media/timonier.svg"
+        }
       ]
     },
     "views": {
@@ -44,16 +51,20 @@
           "id": "timonier.home",
           "name": "%view.home.name%",
           "icon": "media/timonier.svg",
+          "contextualTitle": "Timonier",
+          "type": "webview"
+        }
+      ],
+      "timonier-journal": [
+        {
+          "type": "webview",
+          "id": "timonier.tracking",
+          "name": "%view.tracking.name%",
+          "icon": "media/timonier.svg",
           "contextualTitle": "Timonier"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "timonier.home",
-        "contents": "%view.home.welcome%"
-      }
-    ],
     "commands": [
       {
         "command": "timonier.openMap",
@@ -122,8 +133,18 @@
         "category": "Timonier"
       },
       {
+        "command": "timonier.map.reviewDebt",
+        "title": "%command.map.reviewDebt.title%",
+        "category": "Timonier"
+      },
+      {
         "command": "timonier.markReviewed",
         "title": "%command.markReviewed.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whereToLook",
+        "title": "%command.whereToLook.title%",
         "category": "Timonier"
       }
     ],

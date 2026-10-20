@@ -80,6 +80,22 @@ impl Store {
     /// Freezes the head as a commit, a review mark or a working-tree snapshot, and opens a new
     /// head. Returns the frozen snapshot.
     pub fn freeze(&self, freeze: Freeze) -> Result<Snapshot> {
+        self.freeze_with(freeze, false)
+    }
+
+    /// Freezes like [`Store::freeze`], and keeps the content of each file for the snapshot, as
+    /// a review mark does: a session's diff compares them (ADR 0031). They stay until
+    /// [`Store::forget_contents`].
+    pub fn freeze_keeping_contents(&self, freeze: Freeze) -> Result<Snapshot> {
+        self.freeze_with(freeze, true)
+    }
+
+    /// Forgets the contents kept for snapshots other than review marks.
+    pub fn forget_contents(&self) -> Result<()> {
+        self.inner.writer.run(write::forget_contents)
+    }
+
+    fn freeze_with(&self, freeze: Freeze, keep_contents: bool) -> Result<Snapshot> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |elapsed| {
@@ -87,7 +103,7 @@ impl Store {
             });
         self.inner
             .writer
-            .run(move |connection| write::freeze(connection, &freeze, now))
+            .run(move |connection| write::freeze(connection, &freeze, now, keep_contents))
     }
 
     /// Saves extractions of the indexer and forgets the paths of `remove` (ADR 0013), in one

@@ -5,7 +5,7 @@
  * Semantic zoom: the opening shows one box per role; a role opens on its components; a component
  * opens on what it holds (the daemon expands it), down to the symbols.
  */
-import type { EdgeReview, Role, ViewEdge, ViewNode } from "../protocol";
+import type { EdgeReview, NodeDebt, Role, ViewEdge, ViewNode } from "../protocol";
 import type { ViewData } from "../viewModel";
 
 /** A role group's id on the map: no view node can have it (ids have a `<prefix>:`). */
@@ -22,6 +22,8 @@ export interface MapGroup {
   open: boolean;
   /** Its members changed since the last review (ADR 0024). */
   changes: number;
+  /** The review debt of its members, added up (ADR 0030); `null` without any. */
+  debt: NodeDebt | null;
 }
 
 export interface MapBox {
@@ -105,9 +107,18 @@ export function mapContent(view: ViewData, openRoles: ReadonlySet<string>, optio
       members: [],
       open: openRoles.has(id),
       changes: 0,
+      debt: null,
     };
     group.members.push(node);
     if (node.review) group.changes++;
+    if (node.debt) {
+      const sum = group.debt ?? { files: 0, of: 0, untracked: 0 };
+      group.debt = {
+        files: sum.files + node.debt.files,
+        of: sum.of + node.debt.of,
+        untracked: sum.untracked + node.debt.untracked,
+      };
+    }
     groups.set(id, group);
   }
   const ordered = [...groups.values()].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
@@ -282,4 +293,15 @@ export function toggleExpanded(expanded: readonly string[], id: string, view: Vi
     }
   }
   return expanded.filter((e) => !folded.has(e));
+}
+
+/**
+ * The level of a review debt (ADR 0030): 1 under a third of the files, 2 under two thirds, 3
+ * beyond; 0 without any.
+ */
+export function debtLevel(debt: NodeDebt | null): 0 | 1 | 2 | 3 {
+  if (!debt || debt.files === 0) return 0;
+  if (debt.files * 3 < debt.of) return 1;
+  if (debt.files * 3 < debt.of * 2) return 2;
+  return 3;
 }
