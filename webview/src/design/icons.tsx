@@ -127,6 +127,19 @@ export function ToneIcon({ tone }: { tone: Tone }) {
   }
 }
 
+/**
+ * What a box is to the whiteboard (ADR 0042): the box a drawn component stands for, a ringed
+ * tick; a box that holds one deeper, the same tick in a dashed ring. Two shapes, not two colours.
+ */
+export function IntentIcon({ kind }: { kind: "drawn" | "within" }) {
+  return (
+    <Icon className={`tim-icon--intent-${kind}`}>
+      <circle cx="8" cy="8" r="6" strokeDasharray={kind === "within" ? "3.6 2.6" : undefined} />
+      <path d="M5.2 8.2l1.9 1.9 3.7-4" />
+    </Icon>
+  );
+}
+
 /** What changed since the last review (ADR 0024). */
 export type ChangeKind = "added" | "modified" | "cycle" | "fanIn" | "fanOut";
 

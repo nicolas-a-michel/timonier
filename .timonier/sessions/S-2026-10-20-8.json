@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-8",
+  "agent": "claude-code",
+  "objective": "7.2: typed shapes on the whiteboard (box, arrow with policy, zone, note, budget note), editable by mouse and keyboard, serialization tested",
+  "tasks": [
+    "T-87"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-20T16:32:16Z",
+  "ended_at": "2026-10-20T16:52:46Z",
+  "snapshots": {
+    "start": 17,
+    "end": 18
+  },
+  "summary": "7.2 done: typed shapes on the whiteboard (box, zone, arrow with policy, note, budget note), board state v2 with C-/L-/E-/N- ids by prefix, layer computed from the drawing (Q62), free-text role (Q63), depends_on only (Q64), notes attached to the selection or what they are put on (Q65). Properties panel, keyboard creation, palette commands, Delete as one undo step. Tests: vitest 19 (serialization of every kind), Playwright 14 on the production build incl. a11y with shapes in 6 themes, integration 24. Fixed: stale selection when node and edge changes come in one click. ADR 0038 proposed. Next: 7.3 intent.json.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Board model v2 with typed shapes, ids by prefix, layer from the drawing, cascade removal; serialization tests",
+      "task": "T-87",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Shape tools, nodes and arrows, properties panel, keyboard creation; protocol tools and add command; palette commands",
+      "task": "T-87",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Production tests (pointer, keyboard, a11y in 6 themes), integration test, ADR 0038, PLAN Q62-Q65, README",
+      "task": "T-87",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 15,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

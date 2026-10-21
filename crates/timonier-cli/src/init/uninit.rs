@@ -81,7 +81,10 @@ pub fn only_init_tracking(root: &Path) -> bool {
     });
     let todo_empty = json(dir.join("todo.json"))
         .is_none_or(|todo| todo["items"].as_array().is_none_or(Vec::is_empty));
-    let no_intent = !dir.join("intent.json").exists();
+    // The empty whiteboard `init` wrote is init's; one drawn on is the developer's.
+    let no_intent = std::fs::read_to_string(dir.join("intent.json")).map_or(true, |text| {
+        text == timonier_core::intent::Intent::empty().to_text()
+    });
     sessions_by_init && plan_by_init && todo_empty && no_intent
 }
 
@@ -110,6 +113,13 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
             continue;
         }
         let Some(current) = read(&path) else { continue };
+        // The whiteboard `init` wrote goes while still empty; drawn on, it is the tracking's to
+        // keep or purge (Q54).
+        if path == Path::new(super::plan::INTENT)
+            && current != timonier_core::intent::Intent::empty().to_text()
+        {
+            continue;
+        }
         match without(&path, &current) {
             Ok(after) => changes.push(Change {
                 path,
@@ -136,6 +146,8 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
             .filter(|p| purge || **p != "intent.json")
             .map(|p| Path::new(".timonier").join(p.trim_end_matches('/')))
             .filter(|p| root.join(p).exists())
+            // The empty whiteboard `init` wrote already goes with the setup.
+            .filter(|p| !changes.iter().any(|c: &Change| &c.path == p))
             .collect()
     } else {
         Vec::new()

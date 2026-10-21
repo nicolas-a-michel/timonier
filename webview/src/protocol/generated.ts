@@ -1,7 +1,7 @@
 // Generated from crates/timonier-core/src/protocol.rs by its test `typescript_is_up_to_date`.
 // Do not edit: change the Rust types, then run `TIMONIER_UPDATE_TS=1 cargo test -p timonier-core`.
 
-export const PROTOCOL_VERSION = 8;
+export const PROTOCOL_VERSION = 9;
 
 export type NodeKind = "repo" | "component" | "package" | "file" | "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
 
@@ -369,15 +369,199 @@ export type Density = "comfortable" | "compact";
 
 export type DaemonState = "starting" | "connected" | "restarting" | "unavailable";
 
-export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "reveal", target: string, path: Array<string>, };
+export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "toggleIntent" } | { "name": "reveal", target: string, path: Array<string>, };
+
+export type WhiteboardTool = "select" | "pen" | "eraser" | "box" | "zone" | "note" | "budget" | "arrow";
+
+export type WhiteboardShape = "box" | "zone" | "note" | "budget";
+
+export type WhiteboardCommand = { "name": "undo" } | { "name": "redo" } | { "name": "tool", tool: WhiteboardTool, } | { "name": "add", shape: WhiteboardShape, } | { "name": "deleteSelection" } | { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" };
+
+export type Intent = { version: number, 
+/**
+ * By id.
+ */
+layers: Array<IntentLayer>, components: Array<IntentComponent>, edges: Array<IntentEdge>, notes: Array<IntentNote>, budgets: Array<IntentBudget>, 
+/**
+ * Where things are drawn: for the whiteboard only, never a constraint.
+ */
+sketch: Sketch, };
+
+export type IntentLayer = { 
+/**
+ * `L-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, name: string, };
+
+export type IntentComponent = { 
+/**
+ * `C-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, name: string, 
+/**
+ * The layer it is drawn in (Q62); `null` outside every layer.
+ */
+layer: string | null, 
+/**
+ * What it does, in a sentence (Q63).
+ */
+role: string, };
+
+export type Policy = "allowed" | "forbidden" | "required";
+
+export type IntentEdgeKind = "depends_on";
+
+export type IntentEdge = { 
+/**
+ * `E-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, src: string, dst: string, kind: IntentEdgeKind, policy: Policy, };
+
+export type IntentNote = { 
+/**
+ * `N-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, text: string, attached_to: string | null, };
+
+export type IntentBudget = { 
+/**
+ * `N-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, attached_to: string | null, 
+/**
+ * Latency, in milliseconds.
+ */
+p50_ms?: number, p95_ms?: number, 
+/**
+ * Peak memory, in megabytes.
+ */
+memory_mb?: number, allocations?: number, calls?: number, };
+
+export type Sketch = { 
+/**
+ * By id: the top-left corner of each layer, component, note and budget, and the size of
+ * layers and components.
+ */
+shapes: { [key in string]: Place }, 
+/**
+ * In drawing order: the last one is on top.
+ */
+strokes: Array<SketchStroke>, 
+/**
+ * The number of each prefix's next id (`C`, `E`, `L`, `N`, `S`): ids are never reused.
+ */
+next: Record<string, number>, };
+
+export type Place = { x: number, y: number, width?: number, height?: number, };
+
+export type SketchStroke = { 
+/**
+ * `S-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).
+ */
+id: string, x: number, y: number, points: Array<[number, number, number]>, 
+/**
+ * Drawn with a pen that says its pressure.
+ */
+pen?: boolean, };
+
+export type ActualDependency = { from: string, to: string, 
+/**
+ * The kinds of the edges it stands for (`calls`, `imports`, `depends_on`…), sorted.
+ */
+kinds: Array<string>, 
+/**
+ * The sum of their weights.
+ */
+weight: number, };
+
+export type Anchor = { 
+/**
+ * The drawn component (`C-1`).
+ */
+component: string, name: string, 
+/**
+ * The real box (`pkg:cargo/timonier-daemon`, `component:dir/src/net`); `null` when the
+ * code has none by that name.
+ */
+actual: string | null, 
+/**
+ * How many real boxes had the name, the chosen one included.
+ */
+candidates: number, };
+
+export type Crossing = { 
+/**
+ * The edge (`E-2`) and its ends as drawn.
+ */
+edge: string, src: string, dst: string, 
+/**
+ * The real dependencies from what `src` stands for to what `dst` stands for.
+ */
+dependencies: Array<ActualDependency>, };
+
+export type Unchecked = { edge: string, 
+/**
+ * The drawn ends that stand for nothing in the code.
+ */
+unanchored: Array<string>, };
+
+export type Drift = { 
+/**
+ * Every drawn component, by id.
+ */
+anchors: Array<Anchor>, 
+/**
+ * The drawn components the code lacks.
+ */
+missing: Array<string>, 
+/**
+ * Forbidden edges the code crosses, with the dependencies that cross them.
+ */
+forbidden: Array<Crossing>, 
+/**
+ * Required edges with no dependency in the code.
+ */
+required: Array<Crossing>, 
+/**
+ * Forbidden or required edges an end of which stands for nothing.
+ */
+unchecked: Array<Unchecked>, };
+
+export type DriftView = { 
+/**
+ * Something is drawn on the whiteboard.
+ */
+drawn: boolean, 
+/**
+ * Why `intent.json` does not read, when it does not.
+ */
+problem: string | null, drift: Drift, 
+/**
+ * The drawn layers and components, by id.
+ */
+names: Record<string, string>, 
+/**
+ * The ancestors of each real box the drift cites, from the top, the box excluded.
+ */
+ancestors: Record<string, Array<string>>, };
+
+export type IntentRead = { intent: Intent | null, problem: string | null, };
+
+export type IntentWriteParams = { intent: Intent, };
+
+export type IntentWritten = { intent: Intent, changed: boolean, };
 
 export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "type": "delta", delta: ViewDelta, } | { "type": "daemon", state: DaemonState, 
 /**
  * Why, for a person: the error, the program looked for.
  */
-detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, };
+detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, } | { "type": "whiteboard", command: WhiteboardCommand, } | { "type": "intent", intent: Intent | null, 
+/**
+ * Why the file does not read; the page then waits for the developer to start over.
+ */
+problem: string | null, } | { "type": "intentSaved", saved: boolean, detail: string | null, } | { "type": "drift", drift: DriftView | null, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -396,6 +580,9 @@ export const METHODS = {
   REVIEW_MARK: "review/mark",
   TRACKING_SUBSCRIBE: "tracking/subscribe",
   TRACKING_UPDATE: "tracking/update",
+  INTENT_READ: "intent/read",
+  INTENT_WRITE: "intent/write",
+  INTENT_DRIFT: "intent/drift",
 } as const;
 
 export const ERRORS = {

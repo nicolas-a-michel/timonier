@@ -1146,14 +1146,22 @@
           "id": "T-83",
           "title": "6.13 Bascule : `timonier init` sur le dépôt Timonier. Ensuite, une session Timonier par tâche, et plan et todo tenus via MCP selon Q11",
           "criterion": "vérifiable dans le journal des sessions",
-          "status": "in_progress",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-20-5"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T15:42:02Z",
+              "session": "S-2026-10-20-5",
+              "text": "Vérifié dans le journal : S-2026-10-20-5, ouverte depuis Claude Code après le correctif B1, porte l'agent claude-code ; le travail depuis la bascule s'est fait en sessions MCP."
+            }
+          ]
         },
         {
           "id": "T-84",
@@ -1186,106 +1194,176 @@
           "id": "T-85",
           "title": "7.0 ADR sur le remplaçant de tldraw (React Flow ou Excalidraw, voir Q3), soumise à ta validation car la spec en parlait explicitement",
           "criterion": "ADR acceptée, licence vérifiée",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-20-6"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T16:06:48Z",
+              "session": "S-2026-10-20-6",
+              "text": "ADR 0036 accepted by the human (Q60): React Flow + perfect-freehand 1.2.3 (MIT). Licences verified on npm 2026-10-20."
+            }
+          ]
         },
         {
           "id": "T-86",
           "title": "7.1 Tableau blanc dans la webview, avec la bibliothèque retenue en 7.0",
           "criterion": "dessin libre, annulation et clavier fonctionnent dans le build de production du panneau, pas seulement en développement",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-20-7"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T16:29:47Z",
+              "session": "S-2026-10-20-7",
+              "text": "Criterion verified: webview/test/production/whiteboard.prod.ts draws, erases, undoes and works by keyboard on the production build under the webview CSP (12 tests, WCAG AA in 6 themes); VSCode integration test opens the panel. ADR 0037 proposed."
+            }
+          ]
         },
         {
           "id": "T-87",
           "title": "7.2 Formes typées optionnelles",
           "criterion": "sérialisation testée. Correspondances : voir PLAN.md",
-          "status": "todo",
+          "status": "done",
           "sessions": [
             "S-2026-10-20-2",
-            "S-2026-10-20-3"
+            "S-2026-10-20-3",
+            "S-2026-10-20-8"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T16:52:46Z",
+              "session": "S-2026-10-20-8",
+              "text": "Criterion verified: serialization round trip of every shape kind and refusal of inconsistent states (vitest); typed shapes by pointer and keyboard on the production build (Playwright). Q62-Q65 answered, ADR 0038 proposed."
+            }
+          ]
         },
         {
           "id": "T-88",
           "title": "7.3 `.timonier/intent.json` version 1, conforme à la spec : sémantique séparée de la géométrie, IDs `C-` / `E-` / `L-` / `N-` stables, écrit seulement sur action de l'humain, ordre stable pour des di…",
           "criterion": "round-trip testé ; les IDs ne changent pas quand une forme est déplacée",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-20-9",
+            "S-2026-10-21-4"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-20T17:27:43Z",
+              "session": "S-2026-10-20-9",
+              "text": "Criterion verified: round trip tested in Rust (spec example read and rewritten identically) and TypeScript (board -> intent -> board); a moved shape keeps every id and changes one line. Saved after each gesture per Q66 (the human's answer), ADR 0039 proposed; protocol 9, timonier reinstalled."
+            },
+            {
+              "at": "2026-10-21T07:52:36Z",
+              "session": "S-2026-10-21-4",
+              "text": "Correction (review of Phase 7, I2): the spec's literal example (ids C-parser, L-domain) was refused until Q69; it is read now, and the earlier note's claim held only for a numbered rewrite of it."
+            }
+          ]
         },
         {
           "id": "T-89",
           "title": "7.4 Interprétation du dessin libre (texte et vision), selon Q6",
-          "criterion": "défini avec la réponse",
-          "status": "todo",
+          "criterion": "défini avec ta réponse Q67 : le croquis rendu en PNG (traits, formes et leurs IDs) et l'emplacement de chaque trait en texte (couche, composant proche), testés sur des fixtures ; rien ne revient sur le tableau",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-1"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T06:15:32Z",
+              "session": "S-2026-10-21-1",
+              "text": "Defined with Q67 and verified: sketch rendered as PNG (shapes, arrows by policy, strokes, ids) and stroke places in text, tested on fixtures; nothing goes back onto the whiteboard. ADR 0040 proposed; tiny-skia 0.12.0 BSD-3-Clause."
+            }
+          ]
         },
         {
           "id": "T-90",
           "title": "7.5 Outils MCP `get_intended_architecture` et `get_drift`",
           "criterion": "tests d'intégration MCP",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-2"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T07:20:29Z",
+              "session": "S-2026-10-21-2",
+              "text": "Criterion verified: MCP integration test (rmcp client -> tim mcp -> real daemon on a two-crate workspace) reads the whiteboard with its PNG image and finds the forbidden edge app -> store crossed and Web missing. Q68 answered, ADR 0041 proposed."
+            }
+          ]
         },
         {
           "id": "T-91",
           "title": "7.6 Option « comparer à l'intention » sur la carte",
           "criterion": "des fixtures d'intention et de graphe donnent la dérive attendue",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-3"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T07:36:02Z",
+              "session": "S-2026-10-21-3",
+              "text": "Criterion verified: a_whiteboard_and_a_graph_give_the_expected_drift (intent + graph fixtures give the expected anchors, missing, forbidden crossing and required missing); map marks, banner and legend tested in vitest, Playwright (a11y in 6 themes) and VSCode integration with the real daemon. ADR 0042 proposed."
+            }
+          ]
         },
         {
           "id": "T-92",
           "title": "7.7 Relecture par `phase-reviewer`",
           "criterion": "verdict « prête »",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-4"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T09:08:49Z",
+              "session": "S-2026-10-21-4",
+              "text": "Relecture n° 8 : « prête » (1 mineur, documenté dans l'ADR 0042). Phase 7 validée par l'humain le 2026-10-21 ; ADR 0037 à 0042 acceptées."
+            }
+          ]
         }
       ]
     },

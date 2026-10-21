@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-2",
+  "agent": "claude-code",
+  "objective": "7.5: MCP tools get_intended_architecture (intent, places, sketch image) and get_drift (anchoring per Q68, missing components, forbidden edges crossed, required edges missing), with MCP integration tests",
+  "tasks": [
+    "T-90"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T07:13:55Z",
+  "ended_at": "2026-10-21T07:20:29Z",
+  "snapshots": {
+    "start": 23,
+    "end": 24
+  },
+  "summary": "7.5 done: get_intended_architecture (structure, places, sketch as MCP image content, image:false option) and get_drift (anchors per Q68: loose name then place; missing; forbidden edges crossed with dependencies; required missing; unchecked), computed by timonier_core::drift from intent.json and the head's architecture, never written. AGENTS.md block and its template tell agents when to call them; doctor says when the whiteboard is missing. Tests: drift 3, base64, daemon tools, MCP integration on a two-crate workspace, doctor. ADR 0041 proposed; timonier reinstalled. Next: 7.6 compare with the intent on the map.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Drift in timonier-core (anchoring per Q68, forbidden/required edges), the two tools in catalogue and daemon (image content), AGENTS.md block, doctor wording",
+      "task": "T-90",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Tests: drift, base64, daemon tools, MCP integration on a real two-crate workspace; ADR 0041, PLAN Q68, README",
+      "task": "T-90",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 10,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

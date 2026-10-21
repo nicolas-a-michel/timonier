@@ -1,22 +1,4 @@
 {
   "version": 1,
-  "session": "S-2026-10-20-4",
-  "items": [
-    {
-      "id": "D-1",
-      "text": "ADR 0027 à 0035 en « Accepté », index et ADR 0002 ; T-71 faite",
-      "task": "T-71",
-      "status": "done"
-    },
-    {
-      "id": "D-2",
-      "text": "Noter Q58 (un .vsix par plateforme) et Q59 (publication en Phase 9) ; ajouter la tâche de publication au jalon de la Phase 9",
-      "status": "done"
-    },
-    {
-      "id": "D-3",
-      "text": "Commit signé et push, puis vérifier la CI",
-      "status": "open"
-    }
-  ]
+  "items": []
 }

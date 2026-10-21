@@ -24,5 +24,21 @@
   "container.journal.title": "Timonier",
   "view.tracking.name": "Plan, todo and sessions",
   "command.whereToLook.title": "Where to look: show a box to read again on the map",
-  "command.configure.title": "Set the project up for your agents"
+  "command.configure.title": "Set the project up for your agents",
+  "command.openWhiteboard.title": "Open the Whiteboard",
+  "command.whiteboard.undo.title": "Undo on the Whiteboard",
+  "command.whiteboard.redo.title": "Redo on the Whiteboard",
+  "command.whiteboard.select.title": "Select on the Whiteboard",
+  "command.whiteboard.pen.title": "Draw on the Whiteboard",
+  "command.whiteboard.eraser.title": "Erase on the Whiteboard",
+  "command.whiteboard.deleteSelection.title": "Delete the Selection on the Whiteboard",
+  "command.whiteboard.fitView.title": "Fit the Whiteboard to the Window",
+  "command.whiteboard.zoomIn.title": "Zoom In on the Whiteboard",
+  "command.whiteboard.zoomOut.title": "Zoom Out on the Whiteboard",
+  "command.whiteboard.arrow.title": "Draw an Arrow on the Whiteboard",
+  "command.whiteboard.addBox.title": "Add a Component Box to the Whiteboard",
+  "command.whiteboard.addZone.title": "Add a Layer Zone to the Whiteboard",
+  "command.whiteboard.addNote.title": "Add a Note to the Whiteboard",
+  "command.whiteboard.addBudget.title": "Add a Budget Note to the Whiteboard",
+  "command.map.compareIntent.title": "Compare the Map with the Whiteboard (On or Off)"
 }

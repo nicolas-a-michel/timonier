@@ -322,6 +322,48 @@ body.vscode-high-contrast .tim-map-frame__header {
   stroke: var(--tim-color-attention);
 }
 
+/* A line that crosses a forbidden edge of the whiteboard (ADR 0042): in the violation tone, with
+   the word « forbidden » halfway; never the colour alone. Not thicker: thickness is for the traffic
+   measured (ADR 0021, Phase 8; review n° 4 of Phase 7, I-1). */
+.tim-map .react-flow__edge-path.tim-edge--forbidden {
+  stroke: var(--tim-color-violation);
+}
+
+/* What a box is to the whiteboard (ADR 0042): its icon in the conformity tone; the shape says
+   which (a tick in a ring, or in a dashed ring). */
+.tim-intent-mark {
+  display: inline-flex;
+  flex: none;
+  color: var(--tim-color-conformity);
+}
+
+:is(.tim-box__header, .tim-map-frame__header, .tim-map-role__title) .tim-intent-mark {
+  color: var(--tim-color-conformity-on-header);
+}
+
+.tim-edge-flag--forbidden {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  /* In the viewport's portal, over the boxes and the other lines' labels; its spot along the line
+     avoids the boxes when it can (labelSpot.ts). */
+  z-index: 10000;
+}
+
+.tim-edge-flag__review {
+  display: inline-flex;
+  color: var(--tim-color-attention);
+}
+
+/* The tone of the comparison's banner: its shape says it too (ToneIcon). */
+.tim-review__mark[data-tone="violation"] {
+  color: var(--tim-color-violation);
+}
+
+.tim-review__mark[data-tone="conformity"] {
+  color: var(--tim-color-conformity);
+}
+
 .tim-edge-flag {
   position: absolute;
   padding: 0 var(--tim-space-1);

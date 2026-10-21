@@ -1,6 +1,7 @@
 # 0021 — Carte d'architecture : rôles, zoom sémantique, mise en page
 
-- Statut : Accepté (2026-10-18, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-18, validation de la phase par l'humain) ; complétée par l'ADR 0042
+  (le mot « interdite » d'un lien, seule étiquette sur les boîtes)
 - Date : 2026-10-16
 - Phase : 4
 - Liens : spec « Expérience et design », « Composants », « Précision affichée » ; ADR 0016,

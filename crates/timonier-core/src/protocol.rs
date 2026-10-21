@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use ts_rs::TS;
 
+use crate::intent::Intent;
 use crate::tracking::{
     ChangedBox, ChangedLink, Plan, Session, SessionChanges, SessionStatus, TaskStatus, Todo,
     TodoItem, TodoStatus,
@@ -20,7 +21,7 @@ use crate::{
 };
 
 /// Bumped when a change breaks clients; a client with another version is refused.
-pub const PROTOCOL_VERSION: u32 = 8;
+pub const PROTOCOL_VERSION: u32 = 9;
 
 /// Method names (ADR 0019).
 pub mod methods {
@@ -54,6 +55,13 @@ pub mod methods {
     pub const AGENT_STOP: &str = "agent/stop";
     /// Writes `.timonier/actual.json` from the head (ADR 0033, Q50).
     pub const ACTUAL_WRITE: &str = "actual/write";
+    /// Reads `.timonier/intent.json`, the whiteboard (ADR 0039).
+    pub const INTENT_READ: &str = "intent/read";
+    /// Writes it, after a gesture of the developer on the whiteboard (Q66). The extension's
+    /// method, never an agent's: the whiteboard has a single author.
+    pub const INTENT_WRITE: &str = "intent/write";
+    /// How the code drifts from the whiteboard, for the map (ADR 0042).
+    pub const INTENT_DRIFT: &str = "intent/drift";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -487,6 +495,28 @@ pub struct ActualWritten {
     pub changed: bool,
 }
 
+/// What `intent/read` finds: the whiteboard, none yet, or the reason it does not read.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct IntentRead {
+    pub intent: Option<Intent>,
+    pub problem: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct IntentWriteParams {
+    pub intent: Intent,
+}
+
+/// What `intent/write` wrote: the whiteboard in its one order, and whether the file changed.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct IntentWritten {
+    pub intent: Intent,
+    pub changed: bool,
+}
+
 /// How many things the bridge proposes to look at (Q45).
 pub const LOOK_LIMIT: usize = 5;
 
@@ -817,7 +847,7 @@ pub enum DaemonState {
 
 /// From a front-end host (the VSCode extension) to its webview, by `postMessage`. The webview
 /// never talks to the daemon (ADR 0019).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum HostMessage {
     /// The whole view: after a subscription, a resync, or a restart of the daemon.
@@ -850,6 +880,27 @@ pub enum HostMessage {
         #[ts(type = "number")]
         revision: u64,
         tracking: TrackingView,
+    },
+    /// A command of the palette, for the whiteboard (ADR 0037).
+    Whiteboard {
+        command: WhiteboardCommand,
+    },
+    /// The whiteboard as `.timonier/intent.json` holds it: when the page opens, and when the
+    /// file changes outside it (ADR 0039). `null` before anything was drawn.
+    Intent {
+        intent: Option<Intent>,
+        /// Why the file does not read; the page then waits for the developer to start over.
+        problem: Option<String>,
+    },
+    /// Whether the last gestures reached `intent.json` (Q66).
+    IntentSaved {
+        saved: bool,
+        detail: Option<String>,
+    },
+    /// How the code drifts from the whiteboard, while the map compares them (ADR 0042); `null`
+    /// when it cannot be had.
+    Drift {
+        drift: Option<crate::drift::DriftView>,
     },
 }
 
@@ -914,6 +965,8 @@ pub enum MapCommand {
     ToggleReviewDetails,
     /// Show or hide the review debt on the boxes (ADR 0030, Q44).
     ToggleDebt,
+    /// Compare the map with the whiteboard, or no longer (ADR 0042).
+    ToggleIntent,
     /// Open what leads to a box, then center and select it (ADR 0032, Q46): `path` are its
     /// ancestors from the top of the map.
     Reveal {
@@ -922,8 +975,57 @@ pub enum MapCommand {
     },
 }
 
-/// From the webview to its host.
+/// What the pointer does on the whiteboard (ADR 0036).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum WhiteboardTool {
+    /// Select, move and delete what is drawn; drag the board.
+    Select,
+    /// Draw freehand.
+    Pen,
+    /// Erase the strokes the pointer goes over.
+    Eraser,
+    /// Put a typed shape where the pointer clicks (ADR 0038).
+    Box,
+    Zone,
+    Note,
+    Budget,
+    /// Draw an arrow from a box or zone to another: two clicks.
+    Arrow,
+}
+
+/// A typed shape the palette adds in the middle of the view (ADR 0038).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum WhiteboardShape {
+    Box,
+    Zone,
+    Note,
+    Budget,
+}
+
+/// What the palette asks the whiteboard (ADR 0037).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(tag = "name", rename_all = "camelCase")]
+pub enum WhiteboardCommand {
+    Undo,
+    Redo,
+    Tool {
+        tool: WhiteboardTool,
+    },
+    /// Add a shape in the middle of the view, selected, its properties open.
+    Add {
+        shape: WhiteboardShape,
+    },
+    /// Delete what is selected.
+    DeleteSelection,
+    FitView,
+    ZoomIn,
+    ZoomOut,
+}
+
+/// From the webview to its host.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum WebviewMessage {
     /// Rendered for the first time: the bundle runs under the CSP.
@@ -960,6 +1062,12 @@ pub enum WebviewMessage {
         #[ts(type = "number")]
         revision: u64,
     },
+    /// The whiteboard after a gesture of the developer: the host writes it (Q66, ADR 0039).
+    Intent { intent: Intent },
+    /// The map compares with the whiteboard, or no longer (ADR 0042).
+    CompareIntent { on: bool },
+    /// The map's « Open the whiteboard » button.
+    OpenWhiteboard,
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]
@@ -1039,6 +1147,29 @@ pub fn typescript() -> String {
         Density::decl(&cfg),
         DaemonState::decl(&cfg),
         MapCommand::decl(&cfg),
+        WhiteboardTool::decl(&cfg),
+        WhiteboardShape::decl(&cfg),
+        WhiteboardCommand::decl(&cfg),
+        crate::intent::Intent::decl(&cfg),
+        crate::intent::IntentLayer::decl(&cfg),
+        crate::intent::IntentComponent::decl(&cfg),
+        crate::intent::Policy::decl(&cfg),
+        crate::intent::IntentEdgeKind::decl(&cfg),
+        crate::intent::IntentEdge::decl(&cfg),
+        crate::intent::IntentNote::decl(&cfg),
+        crate::intent::IntentBudget::decl(&cfg),
+        crate::intent::Sketch::decl(&cfg),
+        crate::intent::Place::decl(&cfg),
+        crate::intent::SketchStroke::decl(&cfg),
+        crate::actual::ActualDependency::decl(&cfg),
+        crate::drift::Anchor::decl(&cfg),
+        crate::drift::Crossing::decl(&cfg),
+        crate::drift::Unchecked::decl(&cfg),
+        crate::drift::Drift::decl(&cfg),
+        crate::drift::DriftView::decl(&cfg),
+        IntentRead::decl(&cfg),
+        IntentWriteParams::decl(&cfg),
+        IntentWritten::decl(&cfg),
         HostMessage::decl(&cfg),
         WebviewMessage::decl(&cfg),
     ] {
@@ -1063,6 +1194,9 @@ pub fn typescript() -> String {
         ("REVIEW_MARK", methods::REVIEW_MARK),
         ("TRACKING_SUBSCRIBE", methods::TRACKING_SUBSCRIBE),
         ("TRACKING_UPDATE", methods::TRACKING_UPDATE),
+        ("INTENT_READ", methods::INTENT_READ),
+        ("INTENT_WRITE", methods::INTENT_WRITE),
+        ("INTENT_DRIFT", methods::INTENT_DRIFT),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -1274,6 +1408,26 @@ mod tests {
         assert_eq!(json["removedNodes"][0], "file:src/b.rs");
         assert_eq!(json["review"]["dependenciesAdded"], serde_json::json!([]));
         assert_eq!(json["review"]["since"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn whiteboard_commands_say_their_name_and_tool() {
+        let message = HostMessage::Whiteboard {
+            command: WhiteboardCommand::Tool {
+                tool: WhiteboardTool::Pen,
+            },
+        };
+        let json = serde_json::to_value(&message).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({"type": "whiteboard", "command": {"name": "tool", "tool": "pen"}})
+        );
+        assert_eq!(
+            serde_json::from_value::<HostMessage>(json).unwrap(),
+            message
+        );
+        let undo = serde_json::to_value(WhiteboardCommand::DeleteSelection).unwrap();
+        assert_eq!(undo, serde_json::json!({"name": "deleteSelection"}));
     }
 
     /// The TypeScript in the repository is what the Rust types say (ADR 0019).

@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Intent",
+  "type": "object",
+  "properties": {
+    "budgets": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/IntentBudget"
+      }
+    },
+    "components": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/IntentComponent"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/IntentEdge"
+      }
+    },
+    "layers": {
+      "description": "By id.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/IntentLayer"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/IntentNote"
+      }
+    },
+    "sketch": {
+      "description": "Where things are drawn: for the whiteboard only, never a constraint.",
+      "$ref": "#/$defs/Sketch",
+      "default": {
+        "next": {},
+        "shapes": {},
+        "strokes": []
+      }
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint32",
+      "maximum": 1,
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version"
+  ],
+  "$defs": {
+    "IntentBudget": {
+      "description": "A measurable limit on a component or a path (spec « Budgets de performance »); every limit\nis optional.",
+      "type": "object",
+      "properties": {
+        "allocations": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "maximum": 1000000000000,
+          "minimum": 0
+        },
+        "attached_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calls": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "maximum": 1000000000000,
+          "minimum": 0
+        },
+        "id": {
+          "description": "`N-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^N-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "memory_mb": {
+          "description": "Peak memory, in megabytes.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "maximum": 1000000000000.0,
+          "minimum": 0.0
+        },
+        "p50_ms": {
+          "description": "Latency, in milliseconds.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "maximum": 1000000000000.0,
+          "minimum": 0.0
+        },
+        "p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "maximum": 1000000000000.0,
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ]
+    },
+    "IntentComponent": {
+      "description": "An intended component (a box of the whiteboard).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`C-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^C-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "layer": {
+          "description": "The layer it is drawn in (Q62); `null` outside every layer.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "role": {
+          "description": "What it does, in a sentence (Q63).",
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "role"
+      ]
+    },
+    "IntentEdge": {
+      "description": "An arrow between two components or layers; between layers, it holds for all they contain.",
+      "type": "object",
+      "properties": {
+        "dst": {
+          "type": "string"
+        },
+        "id": {
+          "description": "`E-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^E-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "kind": {
+          "$ref": "#/$defs/IntentEdgeKind"
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "src": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "src",
+        "dst",
+        "kind",
+        "policy"
+      ]
+    },
+    "IntentEdgeKind": {
+      "description": "The kind of an intended edge: any dependency of the code (Q64).",
+      "type": "string",
+      "enum": [
+        "depends_on"
+      ]
+    },
+    "IntentLayer": {
+      "description": "A layer or a boundary (a zone of the whiteboard).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`L-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^L-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "IntentNote": {
+      "description": "A constraint in words, attached to a component, a layer or an edge, or to nothing.",
+      "type": "object",
+      "properties": {
+        "attached_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "`N-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^N-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text"
+      ]
+    },
+    "Place": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "width": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "Policy": {
+      "description": "What an edge says of the dependency between its ends.",
+      "type": "string",
+      "enum": [
+        "allowed",
+        "forbidden",
+        "required"
+      ]
+    },
+    "Sketch": {
+      "description": "The geometry of the whiteboard: where each element is, and the freehand strokes.",
+      "type": "object",
+      "properties": {
+        "next": {
+          "description": "The number of each prefix's next id (`C`, `E`, `L`, `N`, `S`): ids are never reused.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "default": {}
+        },
+        "shapes": {
+          "description": "By id: the top-left corner of each layer, component, note and budget, and the size of\nlayers and components.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Place"
+          },
+          "default": {}
+        },
+        "strokes": {
+          "description": "In drawing order: the last one is on top.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SketchStroke"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SketchStroke": {
+      "description": "A freehand stroke: its points (x, y, pressure), relative to its corner `x`, `y`.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "`S-` and a number up to 2^53 − 1 (9007199254740991), or a name (Q69).",
+          "type": "string",
+          "pattern": "^S-([1-9][0-9]{0,15}|(?=[A-Za-z0-9_-]*[A-Za-z_-])[A-Za-z0-9][A-Za-z0-9_-]{0,63})$"
+        },
+        "pen": {
+          "description": "Drawn with a pen that says its pressure.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "maxItems": 3,
+            "minItems": 3
+          }
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "x",
+        "y",
+        "points"
+      ]
+    }
+  }
+}

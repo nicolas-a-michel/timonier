@@ -240,6 +240,45 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q69 — Les IDs écrits à la main** (relecture n° 1 de la Phase 7, I2) — ✅ répondu le
+2026-10-21 : **accepter en lecture**. Un `intent.json` écrit avec des IDs nommés comme l'exemple de
+la spec (`C-parser`, `L-domain`) se lit et se dessine ; le tableau blanc continue de numéroter ce
+qu'il crée (`C-1`) et garde les IDs existants (ADR 0039).
+
+**Q68 — L'ancrage d'une boîte dessinée** (7.5) — ✅ répondu le 2026-10-21 : **nom souple, puis
+emplacement**. Casse, espaces, tirets et soulignés ignorés ; un paquet dont le nom finit par le nom
+dessiné compte aussi ; entre plusieurs candidats, le plus proche des composants déjà ancrés de la
+même couche, sinon le plus haut ; sans correspondance, « manquant » (ADR 0041).
+
+**Q67 — Ce que l'agent reçoit du dessin libre** (7.4) — ✅ répondu le 2026-10-21 : **une image
+et des emplacements**. Le démon dessine le croquis en PNG (traits et formes), que l'agent reçoit
+avec l'intention ; en texte, où est chaque trait (couche, composant proche), pour un agent sans
+vision. Rien ne revient sur le tableau (ADR 0040).
+
+**Q66 — Comment le dessin persiste** (7.3) — ✅ répondu le 2026-10-20 (« le dessin doit
+forcément être persistant ») : **enregistré tout seul dans `intent.json`**, après chaque geste ;
+l'agent lit toujours le dernier état, même un dessin en cours (ADR 0039).
+
+**Q65 — Comment une note s'attache** (7.2) — ✅ répondu le 2026-10-20 : **posée dessus, ou
+choisie**. Une note créée avec un élément sélectionné, ou posée sur une boîte ou une zone, s'y
+attache ; ses propriétés permettent de changer l'élément, au clavier aussi (ADR 0038).
+
+**Q64 — Ce que dit une flèche** (7.2) — ✅ répondu le 2026-10-20 : **une dépendance seulement**
+(`depends_on`, tout lien du code compte) ; seule la politique se choisit.
+
+**Q63 — Le rôle d'une boîte** (7.2) — ✅ répondu le 2026-10-20 : **texte libre**, une phrase sur
+ce que fait le composant, comme l'exemple de la spec.
+
+**Q62 — La couche d'une boîte** (7.2) — ✅ répondu le 2026-10-20 : **en étant dessinée dedans**.
+La couche se déduit de la zone qui contient la boîte ; la déplacer hors de la zone l'en sort.
+
+**Q61 — Critère de sortie de la Phase 7** (2026-10-20) — ✅ répondu le 2026-10-20 : **accepté
+tel quel**.
+
+**Q60 — Le remplaçant de tldraw** (7.0) — ✅ répondu le 2026-10-20 : **React Flow et
+perfect-freehand** (ADR 0036). Excalidraw est écarté : polices chargées depuis un CDN, CSP à
+ouvrir (worker, `'unsafe-eval'`), canevas non accessible, formes typées sans validation.
+
 **Q59 — Quand publier l'extension** (2026-10-20) — ✅ répondu le 2026-10-20 : **à la fin du
 MVP (Phase 9)**. Jusque-là, F5 et le `.vsix` local ; une tâche de la Phase 9 la porte.
 
@@ -2471,7 +2510,8 @@ Décisions :
 
 ## Phase 6 — MCP, initialisation et suivi
 
-Statut : en cours (commencée le 2026-10-20)
+Statut : terminée (2026-10-20 ; ADR 0027 à 0035 acceptées par toi, en attente de ton feu vert
+pour la Phase 7)
 
 Prérequis : Q10 et Q11, répondues le 2026-10-20.
 
@@ -2810,8 +2850,11 @@ Prérequis : Q10 et Q11, répondues le 2026-10-20.
       `timonier-migration`) : 11 jalons, 108 tâches dans leur état ; ici, les cases retirées,
       le détail gardé (ta réponse) ; le hook de début de session lit `plan.json` ; le
       relecteur lit l'état dans `plan.json`.
-  - Reste : la suite du développement en sessions Timonier, une par tâche, depuis une session
-    Claude Code qui a le serveur MCP `timonier` (à redémarrer et à approuver).
+  - Vérifié (2026-10-20) : depuis la bascule, le travail s'est fait en sessions Timonier tenues
+    par les outils MCP (`S-2026-10-20-3` pour 6.14, `S-2026-10-20-4` pour 6.1 et le commit,
+    `S-2026-10-20-5` pour cette vérification), le plan et la todo aussi (`plan_update_task`,
+    `todo_add`, `todo_complete`). Après le redémarrage de Claude Code avec le correctif B1,
+    `S-2026-10-20-5` porte l'agent `claude-code` ; les deux d'avant, `mcp-client` (écart dit).
   - À faire par toi, si tu veux le JUnit des tests Rust : `cargo install cargo-nextest --locked`
     (`timonier doctor` le signale).
 - 6.14 Relecture par `phase-reviewer` — critère : verdict « prête ».
@@ -2912,29 +2955,111 @@ Décisions :
 
 ## Phase 7 — Tableau blanc et intention
 
-Statut : à faire
+Statut : terminée (validée par toi le 2026-10-21, « commit et push et passe à la suite » ; ADR
+0037 à 0042 acceptées). Restent de tes mains, notés : ton propre dessin pour le critère de sortie
+(joué par Claude sur une copie, 7.7) et les tests des cinq secondes du tableau blanc et de la
+comparaison. La relecture n° 8 a conclu « prête ».
 
-Réponses appliquées : Q3 (pas de tldraw) et Q6.
+Réponses appliquées : Q3 (pas de tldraw), Q6, Q57, Q60 à Q69.
 
 - 7.0 ADR sur le remplaçant de tldraw (React Flow ou Excalidraw, voir Q3), soumise à ta
   validation car la spec en parlait explicitement — critère : ADR acceptée, licence vérifiée.
+  - Fait : ADR 0036, acceptée le 2026-10-20 (Q60) : React Flow (`@xyflow/react` 12.12.0, MIT)
+    pour les formes typées, perfect-freehand 1.2.3 (MIT, sans dépendance) pour le dessin libre.
+    Paquet d'Excalidraw 0.18.1 lu sans l'exécuter : polices sur `esm.sh` par défaut (13 Mo à
+    embarquer), un worker de module, `new Function` dans un module WebAssembly, 18 Mo de build.
 - 7.1 Tableau blanc dans la webview, avec la bibliothèque retenue en 7.0 — critère : dessin
   libre, annulation et clavier fonctionnent dans le build de production du panneau, pas
   seulement en développement.
+  - Fait : ADR 0037. Troisième page `whiteboard.html` (`--mode whiteboard`, `dist/whiteboard/`),
+    panneau `timonier.whiteboard`, commande « Ouvrir le tableau blanc » et une commande de palette
+    par action (message `whiteboard` de l'hôte, `WhiteboardCommand` généré depuis Rust, protocole
+    du démon inchangé). Chaque trait est un nœud React Flow encré par perfect-freehand 1.2.3 ;
+    outils sélection (V), crayon (P), gomme (E) ; historique de 200 pas (Ctrl+Z, Ctrl+Maj+Z,
+    Ctrl+Y) ; le dessin est gardé dans l'état de la webview jusqu'à 7.3.
+  - Tests : modèle et historique (vitest, 11) ; `webview/test/production/whiteboard.prod.ts`
+    (Playwright, 12) sur le build de production servi dans la page de l'extension, sous sa CSP :
+    aucune violation, dessin à la souris, gomme, annulation et rétablissement, rechargement,
+    sélection, déplacement aux flèches et suppression au clavier, barre d'outils, français, puis
+    WCAG AA dans les 6 thèmes ; test d'intégration VSCode (le panneau dit « prêt », les commandes
+    arrivent). `npm run test:a11y` construit la page avant (121 tests).
+  - Mesure : `npm run bench:whiteboard -w webview` (`webview/test/perf/whiteboard.perf.ts`, build
+    de production, Chromium, 2026-10-21) : 1 000 traits chargés en 0,31 s, un trait ajouté en
+    27 ms, une annulation en 35 ms ; 3 000 traits : 0,63 s, 63 ms, 95 ms. (La première mesure, du
+    2026-10-20, n'était pas versionnée : relecture n° 1, I4.)
+  - Écart : l'ADR 0036 disait un calque SVG sous les nœuds ; chaque trait est un nœud (ADR 0037),
+    pour garder sélection, focus et noms de React Flow.
 - 7.2 Formes typées optionnelles — critère : sérialisation testée. Correspondances :
   - boîte → composant voulu (nom, rôle) ;
   - flèche → arête `allowed`, `forbidden` ou `required` ;
   - zone → couche ;
   - note → contrainte en texte rattachée à un élément ;
   - note budget (latence p50/p95, mémoire max, allocations, nombre d'appels).
+  - Fait : ADR 0038, Q62 à Q65. Outils Boîte (B), Zone (Z), Flèche (A, deux clics), Note (N),
+    Budget (M) ; panneau des propriétés (nom, rôle, taille, politique, texte, attache, limites,
+    « Nouvelle flèche vers ») ; au clavier, un outil de forme activé par Entrée pose la forme au
+    milieu de la vue, et les commandes de palette « Ajouter … » font de même. IDs `C-`, `L-`,
+    `E-`, `N-` numérotés par préfixe, jamais réutilisés. Couche calculée depuis le dessin ; une
+    zone déplacée emporte son contenu ; une boîte supprimée emporte ses flèches et détache ses
+    notes, en un pas. État de la page version 2 (la 1 se relit).
+  - Tests : vitest, 19 sur le tableau blanc, dont 8 sur les formes : IDs, sérialisation aller-retour de
+    chaque sorte, refus d'un état incohérent (référence vers rien, mauvais préfixe, limite
+    négative, politique inconnue), lecture d'un état 7.1, couche, suppression en cascade,
+    modification en un pas ; Playwright sur le build de production (14 au total) : formes au
+    pointeur (zone, boîtes, couche, flèche et politique, note rattachée, zone qui emporte sa
+    boîte, suppression et annulation), formes au clavier seul (boîte, note, budget, flèche par
+    les propriétés, rechargement), WCAG AA dans les 6 thèmes avec des formes et le panneau
+    ouvert ; test d'intégration (commande « Ajouter une boîte »).
+  - Écart : Suppr est une touche du tableau, pas le raccourci de React Flow, qui ne se
+    déclenchait pas sur une boîte reliée et aurait fait deux pas d'annulation (ADR 0038).
 - 7.3 `.timonier/intent.json` version 1, conforme à la spec : sémantique séparée de la
   géométrie, IDs `C-` / `E-` / `L-` / `N-` stables, écrit seulement sur action de l'humain,
   ordre stable pour des diffs git lisibles, schéma JSON — critère : round-trip testé ; les
   IDs ne changent pas quand une forme est déplacée.
-- 7.4 Interprétation du dessin libre (texte et vision), selon Q6 — critère : défini avec la
-  réponse.
+  - Fait : ADR 0039, Q66. Format dans `timonier_core::intent` (schéma
+    `docs/schemas/intent.schema.json`, types TypeScript générés) : `layers`, `components` (avec
+    leur couche, calculée depuis le dessin), `edges`, `notes`, `budgets`, puis `sketch`
+    (`shapes`, `strokes`, `next`). Validation entière, ordre par ID, points d'un trait sur une
+    ligne. Le démon seul écrit, par `intent/write` ; `intent/read` (protocole 9). L'extension
+    enregistre 250 ms après le dernier geste, réessaie sans démon, écrit à la fermeture, recharge
+    la page si le fichier change ailleurs ; la page dit « Enregistré » ou « Non enregistré », et
+    n'écrase pas un fichier illisible. `init` écrit le tableau vide (Q57), `uninit` le reprend
+    tant qu'il est vide.
+  - Relecture n° 1 : l'exemple littéral de la spec était refusé (IDs nommés) ; Q69, il se lit
+    maintenant (`reads_the_specs_example_and_writes_it_back_the_same` le lit tel quel, complété de
+    la couche `L-infra` que son arête vise).
+  - Tests : Rust, le format (5 : un tableau relu et réécrit à l'identique, forme déplacée
+    = une ligne de diff et mêmes IDs, refus de 12 incohérences, tableau vide), le démon (lecture,
+    écriture, ordre, réécriture sans changement, refus, fichier illisible), `init` / `uninit`
+    (tableau vide, gardé une fois dessiné) ; vitest, la conversion (4 : sens séparé de la
+    géométrie, aller-retour, IDs gardés au déplacement, intent incohérent) ; node:test,
+    l'enregistrement (8 : délai, page rechargée, nouvel essai, refus, changement extérieur, fermeture,
+    fichier illisible, démon arrivé après la page) ; Playwright, envoi après chaque geste, fichier
+    changé ailleurs, état d'enregistrement, fichier illisible ; intégration VSCode : une boîte
+    ajoutée par la palette arrive dans `intent.json` par le vrai démon, et son annulation aussi.
+- 7.4 Interprétation du dessin libre (texte et vision), selon Q6 — critère : défini avec ta
+  réponse Q67 : le croquis rendu en PNG (traits, formes et leurs IDs) et l'emplacement de chaque
+  trait en texte (couche, composant proche), testés sur des fixtures ; rien ne revient sur le
+  tableau.
+  - Fait : ADR 0040. `timonier_daemon::sketch::render` (tiny-skia 0.12.0) : noir sur blanc,
+    couches tiretées, composants, flèches selon leur politique, notes, traits, IDs écrits en
+    police de points ; 1 600 pixels au plus. `Intent::stroke_places` dans `timonier-core`.
+    Exemple `cargo run -p timonier-daemon --example sketch [intent.json] [out.png]`.
+  - Tests : emplacements (4 traits : sur un composant, près de lui, dans une couche seule, hors
+    de tout) ; image (couleurs aux bons endroits, même image pour le même tableau, aucune pour un
+    tableau vide, plus grand côté borné, IDs écrits point par point).
 - 7.5 Outils MCP `get_intended_architecture` et `get_drift` — critère : tests
   d'intégration MCP.
+  - Fait : ADR 0041, Q68. `get_intended_architecture` (structure, places des formes et des traits,
+    image PNG en contenu MCP, `image: false` pour s'en passer) ; `get_drift` (ancrages, manquants,
+    arêtes interdites franchies avec leurs dépendances, requises absentes, non vérifiables),
+    calculée par `timonier_core::drift` depuis `intent.json` et l'architecture de la tête. Le bloc
+    d'`AGENTS.md` dit quand les appeler ; `doctor` dit quand le tableau blanc manque.
+  - Tests : `drift` (3 : ancrage par nom souple et par place, interdites et requises entre couches
+    et composants, rien de dessiné), base64 (RFC 4648), démon (les deux outils, avec et sans image,
+    fichier illisible refusé) ; intégration MCP (client MCP → `tim mcp` → démon réel sur un
+    workspace de deux crates : l'image arrive par le proxy, la flèche interdite `app` → `store`
+    est franchie par l'appel réel, « Web » manque, le fichier n'est pas réécrit) ; `doctor`.
 - 7.6 Option « comparer à l'intention » sur la carte — critère : des fixtures d'intention et
   de graphe donnent la dérive attendue. Contenu :
   - ancrage boîte dessinée ↔ composant réel par nom et emplacement, calculé et jamais écrit ;
@@ -2942,14 +3067,150 @@ Réponses appliquées : Q3 (pas de tldraw) et Q6.
   - arêtes interdites franchies signalées (une arête entre couches s'applique à tout leur
     contenu) ;
   - arêtes requises absentes signalées.
+  - Fait : ADR 0042. Méthode `intent/drift` (dérive, noms dessinés, lignée des boîtes citées) ;
+    bouton « Comparer à l'intention » et commande de palette ; bandeau (ton, compte, manquants,
+    interdites franchies avec leurs dépendances, requises absentes, « Ouvrir le tableau blanc ») ;
+    une icône dans la barre de titre de la boîte qui le montre (coche cerclée : dessinée ; dans un
+    cercle tireté : en contient une plus profonde ; relecture n° 3), et sur les membres d'une carte
+    de rôle ; les mots dans son nom, son infobulle et le panneau de détails ; lien franchissant une
+    arête interdite au ton de violation avec le mot « interdite », pas plus épais (ADR 0021), dans
+    la légende aussi.
+    Rafraîchie 500 ms après chaque révision et chaque changement d'`intent.json`. Un tableau vide
+    n'est « rien de dessiné », pour la carte et pour `get_intended_architecture` / `get_drift`
+    (trouvé par le test d'intégration : le tableau vide d'`init`).
+  - Tests : Rust, une intention et un graphe de code donnent la dérive attendue (le critère ;
+    `a_whiteboard_and_a_graph_give_the_expected_drift`), noms et lignées, tableau vide ; démon
+    (`intent/drift`) ; vitest, où se montre une boîte (groupe, boîte, boîte qui la contient) et
+    quel lien porte la traversée (3) ; node:test, l'alimentation de la carte (2) ; Playwright sur
+    la démo de Timonier (bouton, bandeau, ouverture du tableau, marques, lien, légende, français,
+    WCAG AA dans les 6 thèmes, puis les cas des relectures : 18) ; intégration VSCode : la carte compare avec le vrai démon,
+    rien de dessiné puis un composant ancré sur `pkg:npm/fixture` et un manquant.
 - 7.7 Relecture par `phase-reviewer` — critère : verdict « prête ».
+  - Relecture n° 1 (2026-10-21) : « prête avec réserves », aucun bloquant, 5 importants, 8
+    mineurs ; tous les contrôles verts (Rust 471, vitest 134, node:test 83 + 27, a11y 134,
+    intégration 25). Corrigé :
+    - I1 : le démon et la page n'avaient pas les mêmes règles (bornes des limites, `pen: false`,
+      longueurs en caractères, taille des numéros) ; un fichier accepté par le démon pouvait
+      s'ouvrir vide puis être écrasé. Mêmes règles des deux côtés, jeu de fichiers commun
+      (`crates/timonier-core/tests/intent/`, lu par Rust et vitest), et un fichier que la page ne
+      sait pas dessiner est signalé au lieu d'être montré vide ;
+    - I2 : Q69 ; PLAN.md disait l'exemple de la spec relu à tort ;
+    - I4 : le banc du tableau blanc est versionné, chiffres refaits ;
+    - m1 : schéma JSON avec les motifs d'ID, la version et les bornes ; m2 : les noms comparés
+      gardent leurs accents ; m3 : le skill disait « calque SVG » ; m4 : écarts complétés ; m6 :
+      noté dans l'ADR 0039 ; m7 : « Non enregistré » est un statut, plus une alerte répétée ;
+      m8 : un démon d'une autre version se dit comme tel (« refuse this one… `timonier daemon
+      stop` »), et s'arrête sans poignée de main (à partir de cette version) ;
+    - trouvé en jouant le critère de sortie sur une copie : le badge « Dessiné : Daemon » était
+      coupé dans une boîte fermée ; une boîte dit « Dessiné », son nom et le panneau de détails
+      disent lequel, et le test vérifie qu'il tient dans la boîte.
+    Restent à toi : I3 (dessiner dans ce dépôt pour le critère de sortie) et I5 (les tests des
+    cinq secondes du tableau blanc et de la comparaison) ; m5 est un écart (ci-dessous).
+  - Relecture n° 2 (2026-10-21) : « prête avec réserves », aucun bloquant, 2 importants, 6
+    mineurs ; les corrections de la n° 1 tiennent ; contrôles verts (Rust 474, vitest 136,
+    node:test 83 + 27, a11y 134, intégration 25). Corrigé :
+    - I-1 : l'image envoyée à l'agent effaçait ou déformait les IDs nommés (« L- », « C-NE ») ;
+      police complète (capitales, chiffres, tiret, souligné ; un caractère inconnu est un carré
+      creux), testée ;
+    - I-2 : une carte de rôle fermée coupait son dernier membre ; plus de ligne d'intention : une
+      coche sur chaque membre qui porte un composant dessiné ; les en-têtes ouverts et les boîtes
+      fermées disent le mot seul, la ligne d'une boîte ne passe plus à la ligne ; « Contient du
+      dessiné » devient « Dessiné dedans » (il était tronqué) ; tests de tenue ;
+    - m-1 : motifs d'ID du schéma sans chiffres seuls nommés, longueurs des noms et des textes ;
+      m-2 : la page range les IDs comme le démon ; m-3 : pas d'ID au-delà de 2⁵³ − 1 ; m-4 : une
+      place de trait dans `sketch.shapes` est refusée ; m-5 : la CLI ne dit « autre version »
+      que sur le refus de version, et dit comment arrêter un démon plus ancien ;
+    - m-6, pour toi : l'exemple littéral de la spec reste refusé, non pour ses IDs mais parce que
+      son arête vise `L-infra`, une couche qu'il ne déclare pas.
+  - Relecture n° 3 (2026-10-21) : « prête avec réserves », aucun bloquant, 1 important, 8 mineurs ;
+    contrôles verts (Rust 475, vitest 138, a11y 134, intégration 25). Corrigé :
+    - I-1 : la correction n° 2 avait déplacé le défaut : avec la couche de dette, en densité
+      compacte ou repliée, le badge « Dessiné » d'une boîte fermée tombait à 0 px ou se lisait
+      « Dessiné… ». La marque devient une icône dans la barre de titre (coche cerclée, ou dans un
+      cercle tireté pour « contient »), qui a toujours la place et reste au zoom lointain (m-2) ;
+      la ligne du bas redevient ce qu'elle était avant la Phase 7. Tests de tenue : dette et revue,
+      compact et revue, en anglais et en français. En thème clair, la coche verte sur la teinte
+      de la barre de titre n'avait que 2,91:1 : un jeton `--tim-color-conformity-on-header` ;
+    - m-1 : les membres d'une carte de rôle distinguent « dessiné » et « contient » par la forme,
+      la légende explique les deux ; m-6 : un lien interdit et nouveau garde ses deux marques ;
+      m-4 : le conseil d'arrêt vise le seul démon du dépôt (`pkill -f -- "daemon run --root …"`) ;
+      m-7 : PLAN.md à jour ; m-8 : la borne des numéros (2⁵³ − 1) est dans la description du
+      schéma, une expression régulière ne la porte pas ; m-3 : noté dans l'ADR 0040 (deux IDs qui
+      ne diffèrent que par la casse s'écrivent pareil sur l'image).
+  - Relecture n° 4 (2026-10-21) : « prête avec réserves », aucun bloquant, 1 important, 7
+    mineurs ; contrôles verts (Rust 475, vitest 138, a11y 138, intégration 25). Corrigé :
+    - I-1 : le lien interdit était deux fois plus épais, contre l'ADR 0021 acceptée (l'épaisseur
+      est au trafic mesuré, Phase 8) ; il garde l'épaisseur des autres, testé ;
+    - m-1 : un lien interdit et nouveau (ou d'un cycle ajouté) garde ses deux marques, testé ;
+      m-2 : la marque de revue et l'icône d'intention ne se touchent plus ; m-4 : le conseil
+      d'arrêt dit `pgrep` puis `kill` au lieu d'un `pkill` qui pouvait viser trop large, et le
+      refus de version a son test côté CLI ; m-5 : le nom d'une carte de rôle dit, membre par
+      membre, quel composant dessiné il porte, et chaque icône de membre a son infobulle ; m-6 :
+      le README dit l'icône ;
+    - écarts notés : m-3, avec la revue, le nom d'une boîte fermée étroite est coupé plus tôt
+      (le badge de revue depuis la Phase 5, l'icône ajoute 16 px) ; son nom entier reste dans son
+      nom accessible, son infobulle et le panneau de détails ; m-7, antérieur à la Phase 7 : le
+      titre d'un rôle ouvert dans un cadre étroit se réduit, pour une phase suivante.
+  - Relecture n° 5 (2026-10-21) : « prête avec réserves », aucun bloquant, 1 important, 4
+    mineurs ; contrôles verts (Rust 476, vitest 138, a11y 139, intégration 25). Corrigé :
+    - I-1 : `daemon/shutdown` admis avant la poignée de main changeait une règle de l'ADR 0019
+      acceptée sans ADR ; noté dans l'ADR 0039 (« complète l'ADR 0019 »), et la ligne de statut
+      de l'ADR 0019 y renvoie ;
+    - m-1 : sur un lien interdit et nouveau, l'étiquette double passait sous une boîte voisine et
+      cachait le mot ; la marque de revue y est son icône seule, et un test vérifie que le mot
+      « forbidden » se voit (`elementFromPoint`) ; m-2 : textes périmés corrigés ; m-3 : la ligne
+      « Écarts » de la phase reprend ceux de la relecture n° 4 ; m-4 : un test vérifie que la
+      marque de revue et l'icône d'intention ne se chevauchent pas.
+  - Relecture n° 6 (2026-10-21) : « prête avec réserves », aucun bloquant, 1 important, 2
+    mineurs. Corrigé :
+    - I-1 : le correctif m-1 de la n° 5 ne tenait pas, et son test ne pouvait pas le voir : React
+      Flow dessine les boîtes par-dessus les étiquettes, et l'étiquette du lien inverse couvrait
+      le mot. Le mot se place le long de son lien, hors du milieu, là où aucune boîte ne le couvre
+      (`map/labelSpot.ts`, testé), dans le calque au-dessus des boîtes (`ViewportPortal`) ; le test
+      mesure chaque mot « forbidden » en cinq points, toutes les étiquettes rendues mesurables,
+      sur quatre tailles de vue ; l'ADR 0042 note cette seule étiquette sur une boîte ;
+    - m-1 : le décompte des tests ; m-2 : l'index des ADR dit que la 0039 complète la 0019 ;
+    - en passant : le cercle tireté de « contient » se distingue mieux du cercle plein.
+  - Relecture n° 7 (2026-10-21) : « prête avec réserves », aucun bloquant, 1 important, 3
+    mineurs ; contrôles verts (Rust 476, vitest 141, a11y 143, intégration 25). Corrigé :
+    - I-1 : le mot du lien `timonier-core → timonier-store` flottait au milieu de la boîte, sur un
+      tronçon caché de son lien, contre sa barre de titre, et le test ne le mesurait pas à trois
+      tailles sur quatre. Le mot ne se pose plus que sur un tronçon visible de son lien, là où il
+      couvre le moins (une barre de titre pèse 50 fois un corps de boîte) ; le test cadre toute la
+      carte, exige chaque mot mesuré, et vérifie qu'aucun ne couvre un nom, une marque ou un titre
+      ni ne se pose sur une partie cachée de son lien, sur cinq cas (quatre tailles, compact) ;
+    - m-1 : les obstacles se calculent une fois par mise en page, plus à chaque image d'un
+      déplacement ou d'un zoom ; m-2 : le cas compact est dans le test ; m-3 : l'ADR 0021 et
+      l'index renvoient à l'ADR 0042.
+  - Relecture n° 8 (2026-10-21) : « prête », aucun bloquant ni important, 1 mineur ; contrôles
+    verts (Rust 476, vitest 142, a11y 144, intégration 25) ; le correctif I-1 tient sur 125
+    configurations. m-1 : quand tout autre tronçon couvrirait une barre de titre, le mot du lien
+    `timonier-core → timonier-store` revient au milieu, sur l'étiquette « Cycle » du lien
+    inverse ; dernier recours voulu (il porte lui-même l'icône de cycle, le lien inverse garde sa
+    couleur et son nom), désormais écrit dans l'ADR 0042.
+  - Critère de sortie joué par Claude sur une copie jetable du dépôt (2026-10-21, à ta
+    demande, ton tableau blanc n'étant pas le sien) : le vrai tableau blanc de production
+    (zone « Cœur », boîtes « Daemon », « Store », « Web », flèche interdite Daemon → Store, un
+    trait autour de Web), écrit par `intent/write` d'un vrai démon ; la carte comparée dit
+    « 3 composants dessinés, 2 trouvés dans le code, 1 manquant · 1 arête interdite franchie »,
+    liste Web et « Daemon → Store : 6 dépendances », marque `timonier-daemon` et `timonier-store`
+    et signale le lien au ton de violation, avec le mot « interdite » ; l'agent, par `tim mcp`, lit l'intention, l'image et la dérive (« Forbidden
+    edge E-1 crossed: C-1 Daemon → C-2 Store, 6 dependencies »). Reste ton dessin à toi.
 
-Critère de sortie (proposé, à valider) : tu dessines trois boîtes et une flèche interdite pour
+Critère de sortie (validé le 2026-10-20, Q61) : tu dessines trois boîtes et une flèche interdite pour
 Timonier ; la carte les met en évidence, liste les manquants et signale la violation ; l'agent
 lit l'intention via MCP.
 
-Décisions : —
-Écarts : —
+Décisions : ADR 0036 à 0042.
+Écarts : 7.1, les traits sont des nœuds React Flow et non un calque à part (ADR 0037) ; 7.2,
+Suppr est une touche du tableau et non le raccourci de React Flow (ADR 0038) ; les réglages du
+panneau des propriétés (nom, rôle, taille, politique, attache, limites, « Nouvelle flèche vers »)
+se font au clavier dans le panneau, sans commande de palette chacun : les outils, l'ajout des
+formes, l'annulation et la suppression en ont une (relecture n° 1, m5) ; avec la revue, le nom
+d'une boîte fermée étroite est coupé un peu plus tôt par l'icône d'intention, son nom entier
+restant dans son nom accessible, son infobulle et le panneau de détails (relecture n° 4, m-3) ;
+le titre d'un rôle ouvert dans un cadre étroit se réduit, défaut antérieur à la Phase 7
+(relecture n° 4, m-7).
 
 ## Phase 8 — Performances
 
@@ -3101,6 +3362,9 @@ avant ajout si plus d'un mois s'est écoulé.
 | scheduler | 0.28.0 | MIT | Vérifié le 2026-10-16 ; tiré par react-dom |
 | elkjs | 0.12.0 | EPL-2.0 OR GPL-3.0-or-later | Utilisé sous EPL-2.0, sans worker (ADR 0021) ; la notice lie le paquet de cette version |
 | tldraw | 5.5.2 | Propriétaire, avec clé | **Écarté** (Q3) |
+| tiny-skia | 0.12.0 | BSD-3-Clause | Vérifié le 2026-10-21 ; dans le démon, image du croquis pour l'agent (ADR 0040) ; apporte png 0.18.1 (MIT OR Apache-2.0), flate2, miniz_oxide, zlib-rs (Zlib), arrayref (BSD-2-Clause), bytemuck, strict-num |
+| perfect-freehand | 1.2.3 | MIT | Vérifié le 2026-10-20 ; sans dépendance, 112 ko ; dessin libre du tableau blanc (ADR 0036) |
+| @excalidraw/excalidraw | 0.18.1 | MIT | Vérifié le 2026-10-20 ; **écarté** (ADR 0036, Q60) |
 | uplot / pixi.js | 1.6.32 / 8.22.0 | MIT | |
 | react, react-dom | 19.3.0 | MIT | |
 | vite / @vitejs/plugin-react / vitest | 8.3.4 / 6.1.2 / 5.0.4 | MIT | |
@@ -3310,3 +3574,39 @@ capture des thèmes.
   vu) ; corrigé : marques pleines, « 2 modifiés », bandeau en haut, bouton principal, légende
   des marques. Phase 5 validée par toi (« commit et push et passe à la suite ») : ADR 0024 à
   0026 acceptées ; 5.5 close avec réserves (Q42) ; Phase 6 commencée.
+- 2026-10-20 — Phase 6 : MCP (proxy et outils de suivi), non suivi et dette de revue, vue « Plan,
+  todo et sessions », pont, `timonier init` / `uninit` / `doctor`, volet init des packs, détection
+  dans VSCode ; bascule de Timonier sur lui-même (plan dans `plan.json`, sessions par MCP).
+  Quatre relectures, la dernière « prête » ; ADR 0027 à 0035 acceptées par toi ; commit
+  `ae83bb7` poussé, CI verte. Phase terminée, en attente de ton feu vert pour la Phase 7.
+- 2026-10-20 — Phase 7 commencée (ton « en avant ») : 7.0 faite, ADR 0036 acceptée (Q60 : React
+  Flow et perfect-freehand), critère de sortie validé (Q61) ; 7.1 faite, ADR 0037 proposée :
+  tableau blanc dans sa propre page, testé sur le build de production sous la CSP.
+- 2026-10-20 — 7.2 faite (ton « passe à la suite ») : Q62 à Q65 répondues, ADR 0038 proposée ;
+  formes typées au pointeur et au clavier, sérialisation testée.
+- 2026-10-20 — 7.3 faite : ta demande « le dessin doit forcément être persistant » (Q66) ;
+  `intent.json` écrit après chaque geste par le démon, relu à l'ouverture, ADR 0039 proposée.
+- 2026-10-21 — 7.4 faite : Q67 répondue (une image et des emplacements), ADR 0040 proposée.
+- 2026-10-21 — 7.5 faite : Q68 répondue (ancrage par nom souple, puis emplacement), ADR 0041
+  proposée ; `get_intended_architecture` et `get_drift` par MCP.
+- 2026-10-21 — 7.6 faite : la carte comparée à l'intention, ADR 0042 proposée.
+- 2026-10-21 — Phase 7, relecture n° 1 « prête avec réserves » (5 importants, 8 mineurs) ; ta
+  réponse Q69 (IDs nommés acceptés en lecture) ; corrigé, sauf ce qui demande tes mains (dessiner
+  dans ce dépôt, tests des cinq secondes). Critère de sortie joué sur une copie, captures envoyées.
+- 2026-10-21 — Phase 7, relecture n° 2 « prête avec réserves » (2 importants, 6 mineurs :
+  l'image écrivait mal les IDs nommés, une carte de rôle coupait son dernier membre) ; corrigé.
+- 2026-10-21 — Phase 7, relecture n° 3 « prête avec réserves » (1 important : la marque d'une
+  boîte fermée disparaissait avec la dette ; 8 mineurs) ; la marque devient une icône de barre de
+  titre ; corrigé.
+- 2026-10-21 — Phase 7, relecture n° 4 « prête avec réserves » (1 important : le lien interdit
+  épaissi contredisait l'ADR 0021 ; 7 mineurs) ; corrigé, deux écarts notés.
+- 2026-10-21 — Phase 7, relecture n° 5 « prête avec réserves » (1 important : `daemon/shutdown`
+  sans poignée de main non noté en ADR ; 4 mineurs) ; corrigé.
+- 2026-10-21 — Phase 7, relecture n° 6 « prête avec réserves » (1 important : le mot
+  « interdite » restait caché sous les boîtes ou l'étiquette du lien inverse ; 2 mineurs) ;
+  corrigé.
+- 2026-10-21 — Phase 7, relecture n° 7 « prête avec réserves » (1 important : le mot
+  « interdite » posé sur une partie cachée de son lien, contre une barre de titre ; 3 mineurs) ;
+  corrigé.
+- 2026-10-21 — Phase 7 validée par toi (« commit et push et passe à la suite ») : ADR 0037 à 0042
+  acceptées ; Phase 8 commencée.

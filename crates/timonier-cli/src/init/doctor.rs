@@ -80,6 +80,10 @@ fn finding(change: &Change) -> Option<String> {
         _ if path.ends_with("pre-commit") => {
             "the git hook that writes .timonier/actual.json is missing".to_owned()
         }
+        ".timonier/intent.json" => {
+            "the whiteboard (.timonier/intent.json) is missing: `--fix` puts an empty one"
+                .to_owned()
+        }
         _ => format!("{path} is not as Timonier writes it"),
     })
 }

@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-4",
+  "agent": "claude-code",
+  "objective": "7.7: independent review of Phase 7 by the phase-reviewer subagent, then fix what it finds",
+  "tasks": [
+    "T-92",
+    "T-88"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T07:36:16Z",
+  "ended_at": "2026-10-21T09:08:51Z",
+  "snapshots": {
+    "start": 27,
+    "end": 28
+  },
+  "summary": "Phase 7 closed: review n° 8 says « prête » (its minor finding is documented in ADR 0042); ADRs 0037 to 0042 accepted; PLAN.md updated. Still in the human's hands: their own drawing for the exit criterion, and the five-second tests.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Review 2: sketch font for every id character (I-1), role card mark per member instead of an extra line (I-2), schema patterns and lengths, page order like Rust, counter at the bound, stroke places refused, CLI version message",
+      "task": "T-92",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Review 3: intent mark as a title-bar icon (drawn vs within by shape), meta line back to wrapping, role card icons by kind, legend, forbidden+review link keeps both marks, CLI advice per root, schema id bound described, PLAN",
+      "task": "T-92",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Review 4: no thicker forbidden link (ADR 0021), test forbidden+new link, flag gap, members named for screen readers, CLI stop advice by pgrep and a CLI test, README",
+      "task": "T-92",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Review 5: record daemon/shutdown before the handshake (ADR 0039, 0019 status), forbidden mark readable beside its review mark with a visibility test, stale texts, écarts line, no-overlap assertion",
+      "task": "T-92",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "Review 6: forbidden label placed along its link where no box or reverse-label midpoint covers it (pure, tested), visibility test over every forbidden label and several viewports, PLAN count, ADR 0039 title note",
+      "task": "T-92",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "Review 7: label only on a visible stretch of its line, least cover with title bars weighted, obstacles once per layout (not per frame), test fits the view, requires each word measured, no title/name/flag covered; ADR 0021 status and index",
+      "task": "T-92",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 29,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/webview/src/whiteboard",
+        "name": "whiteboard",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "component:dir/webview/src/design",
+          "name": "design",
+          "within": "@timonier/webview"
+        },
+        "to": {
+          "id": "component:dir/webview/src/map",
+          "name": "map",
+          "within": "@timonier/webview"
+        }
+      },
+      {
+        "from": {
+          "id": "component:dir/webview/src/tracking",
+          "name": "tracking",
+          "within": "@timonier/webview"
+        },
+        "to": {
+          "id": "component:dir/webview/src/map",
+          "name": "map",
+          "within": "@timonier/webview"
+        }
+      }
+    ],
+    "unlinked": []
+  }
+}

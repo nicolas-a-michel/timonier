@@ -1,4 +1,6 @@
 import * as assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 import * as vscode from "vscode";
 
@@ -18,6 +20,17 @@ function isMapTab(tab: vscode.Tab | undefined): boolean {
 
 function mapTabs(): vscode.Tab[] {
   return vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter(isMapTab);
+}
+
+function whiteboardTabs(): vscode.Tab[] {
+  return vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.endsWith("timonier.whiteboard"));
+}
+
+/** Rejects when `promise` takes longer than `ms`. */
+function inTime<T>(promise: Promise<T>, what: string, ms = 10_000): Promise<T> {
+  return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(what)), ms))]);
 }
 
 async function waitFor(condition: () => boolean, timeoutMs = 5000): Promise<void> {
@@ -70,5 +83,29 @@ describe("Timonier extension", () => {
     await vscode.commands.executeCommand("timonier.openMap");
     await waitFor(() => isMapTab(vscode.window.tabGroups.activeTabGroup.activeTab));
     assert.equal(mapTabs().length, 1);
+  });
+
+  it("opens the whiteboard, whose production bundle runs under the strict CSP (ADR 0036)", async () => {
+    const timonier = await api();
+    assert.equal(await timonier.whiteboardCommand({ name: "undo" }), false, "a command without a whiteboard");
+    await vscode.commands.executeCommand("timonier.openWhiteboard");
+    await waitFor(() => whiteboardTabs().length === 1);
+    const ready = timonier.whenWhiteboardReady();
+    assert.ok(ready, "no whiteboard panel is tracked");
+    await inTime(ready, "the whiteboard never said ready");
+    // The palette's commands reach its page.
+    assert.equal(await inTime(timonier.whiteboardCommand({ name: "tool", tool: "eraser" }), "no command"), true);
+    await vscode.commands.executeCommand("timonier.whiteboard.addBox");
+    // The box reaches `.timonier/intent.json` on its own, through the daemon (Q66, ADR 0039).
+    const project = process.env.TIMONIER_FIXTURE;
+    assert.ok(project, "no fixture project");
+    const file = path.join(project, ".timonier", "intent.json");
+    const read = () => (existsSync(file) ? readFileSync(file, "utf8") : "");
+    await waitFor(() => read().includes('"id": "C-1"'), 20_000);
+    assert.match(read(), /^\{\n {2}"version": 1,\n/);
+    await vscode.commands.executeCommand("timonier.whiteboard.undo");
+    await waitFor(() => !read().includes('"id": "C-1"'), 20_000);
+    await vscode.commands.executeCommand("timonier.openWhiteboard");
+    assert.equal(whiteboardTabs().length, 1);
   });
 });

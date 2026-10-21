@@ -70,9 +70,9 @@ describe("activity bar entry", () => {
     }
   });
 
-  it("packages both pages of the webview: the map and the panels (ADR 0031)", () => {
+  it("packages the three pages of the webview: the map, the panels and the whiteboard (ADR 0031, 0037)", () => {
     const kept = readFileSync(path.join(root, ".vscodeignore"), "utf8").split("\n");
-    for (const page of ["dist/webview", "dist/webview/tracking"]) {
+    for (const page of ["dist/webview", "dist/webview/tracking", "dist/webview/whiteboard"]) {
       for (const file of ["assets/**", ".vite/manifest.json", "THIRD-PARTY-NOTICES.md"]) {
         assert.ok(kept.includes(`!${page}/${file}`), `${page}/${file} is left out of the .vsix`);
       }

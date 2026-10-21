@@ -73,6 +73,81 @@
         "icon": "$(type-hierarchy)"
       },
       {
+        "command": "timonier.openWhiteboard",
+        "title": "%command.openWhiteboard.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.undo",
+        "title": "%command.whiteboard.undo.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.redo",
+        "title": "%command.whiteboard.redo.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.select",
+        "title": "%command.whiteboard.select.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.pen",
+        "title": "%command.whiteboard.pen.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.eraser",
+        "title": "%command.whiteboard.eraser.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.arrow",
+        "title": "%command.whiteboard.arrow.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.addBox",
+        "title": "%command.whiteboard.addBox.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.addZone",
+        "title": "%command.whiteboard.addZone.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.addNote",
+        "title": "%command.whiteboard.addNote.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.addBudget",
+        "title": "%command.whiteboard.addBudget.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.deleteSelection",
+        "title": "%command.whiteboard.deleteSelection.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.fitView",
+        "title": "%command.whiteboard.fitView.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.zoomIn",
+        "title": "%command.whiteboard.zoomIn.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.whiteboard.zoomOut",
+        "title": "%command.whiteboard.zoomOut.title%",
+        "category": "Timonier"
+      },
+      {
         "command": "timonier.restartDaemon",
         "title": "%command.restartDaemon.title%",
         "category": "Timonier"
@@ -135,6 +210,11 @@
       {
         "command": "timonier.map.reviewDebt",
         "title": "%command.map.reviewDebt.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.compareIntent",
+        "title": "%command.map.compareIntent.title%",
         "category": "Timonier"
       },
       {

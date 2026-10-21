@@ -1,6 +1,6 @@
 import * as assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import * as vscode from "vscode";
@@ -480,6 +480,33 @@ describe("Timonier daemon (ADR 0019)", () => {
       true,
     );
     await waitFor("the package opened on its files", () => (timonier.mapRendered()?.nodes ?? 0) > before);
+  });
+  it("compares the map with the whiteboard, from the daemon's drift (PLAN.md 7.6, ADR 0042)", async function () {
+    this.timeout(60_000);
+    await waitFor("connected", () => timonier.daemonStatus().state === "connected");
+    await vscode.commands.executeCommand("timonier.openMap");
+    await waitFor("the map shows boxes", () => (timonier.mapRendered()?.nodes ?? 0) > 0);
+    await vscode.commands.executeCommand("timonier.map.compareIntent");
+    await waitFor("the map gets a drift", () => timonier.mapDrift() !== undefined);
+    assert.equal(timonier.mapDrift()?.drawn, false, JSON.stringify(timonier.mapDrift()));
+    // The developer draws the package and a component the code lacks.
+    const intent = path.join(fixture(), ".timonier", "intent.json");
+    writeFileSync(
+      intent,
+      JSON.stringify({
+        version: 1,
+        components: [
+          { id: "C-1", name: "Fixture", layer: null, role: "" },
+          { id: "C-2", name: "Billing", layer: null, role: "" },
+        ],
+      }),
+    );
+    await waitFor("the map gets the drift", () => timonier.mapDrift()?.drawn === true);
+    const drift = timonier.mapDrift()?.drift;
+    assert.equal(drift?.anchors[0]?.actual, "pkg:npm/fixture");
+    assert.deepEqual(drift?.missing, ["C-2"]);
+    await vscode.commands.executeCommand("timonier.map.compareIntent");
+    rmSync(intent);
   });
   it("offers to set the project up, runs init in a terminal, and stops offering (PLAN.md 6.12)", async function () {
     this.timeout(60_000);

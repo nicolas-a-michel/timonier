@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "layers": [
+    {
+      "id": "L-domain",
+      "name": "Domaine"
+    },
+    {
+      "id": "L-infra",
+      "name": "Infra"
+    }
+  ],
+  "components": [
+    {
+      "id": "C-parser",
+      "name": "Parser",
+      "layer": "L-domain",
+      "role": "Transforme les tokens en AST"
+    }
+  ],
+  "edges": [
+    {
+      "id": "E-2",
+      "src": "L-domain",
+      "dst": "L-infra",
+      "kind": "depends_on",
+      "policy": "forbidden"
+    }
+  ],
+  "notes": [
+    {
+      "id": "N-1",
+      "text": "Aucune allocation dans la boucle chaude",
+      "attached_to": "C-parser"
+    }
+  ],
+  "sketch": {}
+}

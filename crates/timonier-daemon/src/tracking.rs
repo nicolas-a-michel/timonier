@@ -10,6 +10,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use timonier_core::Snapshot;
+use timonier_core::drift::Drift;
+use timonier_core::intent::{Intent, Policy};
 use timonier_core::tools::{self, Mailbox};
 use timonier_core::tracking::{
     FORMAT_VERSION, GetSession, MAX_TEXT, NoArguments, Outcome, Plan, PlanAddTask, PlanUpdateTask,
@@ -36,6 +38,8 @@ pub struct Context<'a> {
     pub changes: &'a dyn Fn(u64, u64) -> crate::Result<SessionChanges>,
     /// Forgets the contents the sessions' snapshots kept, once a session's diff is written.
     pub forget_contents: &'a dyn Fn() -> crate::Result<()>,
+    /// The architecture the head holds, as `actual.json` says it (ADR 0033): for `get_drift`.
+    pub actual: &'a dyn Fn() -> crate::Result<timonier_core::actual::Actual>,
 }
 
 impl Tracker {
@@ -48,6 +52,15 @@ impl Tracker {
     /// Runs a tool: its result as MCP's `CallToolResult`, the mailbox header first (ADR 0028).
     pub fn call(&self, name: &str, arguments: Option<Value>, context: &Context) -> Value {
         let mailbox = Mailbox::default();
+        if name == tools::GET_INTENDED_ARCHITECTURE {
+            return match self.intended(arguments) {
+                Ok((summary, result, Some(png))) => {
+                    tools::with_image(tools::success(mailbox, &summary, result), &png)
+                }
+                Ok((summary, result, None)) => tools::success(mailbox, &summary, result),
+                Err(refusal) => tools::failure(mailbox, &refusal),
+            };
+        }
         match self.run(name, arguments, context) {
             Ok((summary, result)) => tools::success(mailbox, &summary, result),
             Err(refusal) => tools::failure(mailbox, &refusal),
@@ -104,6 +117,15 @@ impl Tracker {
                 let item = todo.complete(&input)?;
                 self.write("todo.json", &todo)?;
                 Ok((format!("Todo item {} done.", item.id), json(&item)))
+            }
+            tools::GET_DRIFT => {
+                let _: NoArguments = tools::arguments(arguments)?;
+                let Some(intent) = self.intent()?.filter(|i| !i.is_empty()) else {
+                    return Ok((NOTHING_DRAWN.to_owned(), json(&Drift::default())));
+                };
+                let actual = (context.actual)().map_err(|e| internal(e.to_string()))?;
+                let drift = timonier_core::drift::drift(&intent, &actual);
+                Ok((drift_summary(&intent, &drift), json(&drift)))
             }
             tools::GET_PLAN => {
                 let _: NoArguments = tools::arguments(arguments)?;
@@ -434,6 +456,50 @@ impl Tracker {
         Ok(todo)
     }
 
+    /// The whiteboard, `None` before anything is drawn; refused when the file does not read.
+    fn intent(&self) -> Outcome<Option<Intent>> {
+        match std::fs::read_to_string(self.dir.join("intent.json")) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(io_refusal(&self.dir.join("intent.json"), &error)),
+            Ok(text) => timonier_core::intent::parse(&text).map(|i| Some(i.normalized())),
+        }
+    }
+
+    /// `get_intended_architecture` (ADR 0041): the structure, where things are drawn, and the
+    /// image of the sketch (Q67) unless declined.
+    fn intended(&self, arguments: Option<Value>) -> Outcome<(String, Value, Option<Vec<u8>>)> {
+        let input: tools::GetIntendedArchitecture = tools::arguments(arguments)?;
+        let Some(intent) = self.intent()?.filter(|i| !i.is_empty()) else {
+            return Ok((
+                NOTHING_DRAWN.to_owned(),
+                serde_json::json!({ "drawn": false }),
+                None,
+            ));
+        };
+        let shapes: std::collections::BTreeMap<&String, _> = intent
+            .sketch
+            .shapes
+            .keys()
+            .filter_map(|id| Some((id, intent.bounds_of(id)?)))
+            .collect();
+        let image = if input.image == Some(false) {
+            None
+        } else {
+            crate::sketch::render(&intent)
+        };
+        let result = serde_json::json!({
+            "drawn": true,
+            "layers": intent.layers,
+            "components": intent.components,
+            "edges": intent.edges,
+            "notes": intent.notes,
+            "budgets": intent.budgets,
+            "places": { "shapes": shapes, "strokes": intent.stroke_places() },
+            "image": image.is_some(),
+        });
+        Ok((intended_summary(&intent, image.is_some()), result, image))
+    }
+
     fn write_session(&self, session: &Session) -> Outcome<()> {
         self.write(&format!("sessions/{}.json", session.id), session)
     }
@@ -602,6 +668,103 @@ fn internal(error: impl ToString) -> Refusal {
     Refusal::new("internal", error.to_string())
 }
 
+/// What the whiteboard tools say before anything is drawn.
+const NOTHING_DRAWN: &str = "Nothing is drawn yet: the developer draws the architecture they want on \
+     Timonier's whiteboard (« Timonier: Open the Whiteboard »).";
+
+fn count(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
+}
+
+fn intended_summary(intent: &Intent, image: bool) -> String {
+    let forbidden = intent
+        .edges
+        .iter()
+        .filter(|e| e.policy == Policy::Forbidden)
+        .count();
+    let required = intent
+        .edges
+        .iter()
+        .filter(|e| e.policy == Policy::Required)
+        .count();
+    format!(
+        "{}, {}, {} ({forbidden} forbidden, {required} required), {}, {}, {}.{}",
+        count(intent.layers.len(), "layer", "layers"),
+        count(intent.components.len(), "component", "components"),
+        count(intent.edges.len(), "edge", "edges"),
+        count(intent.notes.len(), "note", "notes"),
+        count(intent.budgets.len(), "budget", "budgets"),
+        count(
+            intent.sketch.strokes.len(),
+            "freehand stroke",
+            "freehand strokes"
+        ),
+        if image {
+            " The sketch is attached as an image; ids are written on it."
+        } else {
+            ""
+        }
+    )
+}
+
+fn drift_summary(intent: &Intent, drift: &Drift) -> String {
+    let name = |id: &str| {
+        intent
+            .layers
+            .iter()
+            .map(|l| (&l.id, &l.name))
+            .chain(intent.components.iter().map(|c| (&c.id, &c.name)))
+            .find(|(i, _)| *i == id)
+            .map_or_else(|| id.to_owned(), |(_, n)| format!("{id} {n}"))
+    };
+    let mut said = vec![format!(
+        "{}: {} found in the code, {} missing{}.",
+        count(drift.anchors.len(), "drawn component", "drawn components"),
+        drift.anchors.len() - drift.missing.len(),
+        drift.missing.len(),
+        if drift.missing.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " ({})",
+                drift
+                    .missing
+                    .iter()
+                    .map(|m| name(m))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+    )];
+    for crossing in &drift.forbidden {
+        said.push(format!(
+            "Forbidden edge {} crossed: {} → {}, {}.",
+            crossing.edge,
+            name(&crossing.src),
+            name(&crossing.dst),
+            count(crossing.dependencies.len(), "dependency", "dependencies")
+        ));
+    }
+    for crossing in &drift.required {
+        said.push(format!(
+            "Required edge {} missing: {} → {}.",
+            crossing.edge,
+            name(&crossing.src),
+            name(&crossing.dst)
+        ));
+    }
+    if !drift.unchecked.is_empty() {
+        said.push(format!(
+            "{} not checked: an end stands for nothing in the code.",
+            count(drift.unchecked.len(), "edge", "edges")
+        ));
+    }
+    if drift.forbidden.is_empty() && drift.required.is_empty() && drift.missing.is_empty() {
+        said.push("The code follows the whiteboard.".to_owned());
+    }
+    said.join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -624,7 +787,131 @@ mod tests {
                 })
             },
             forget_contents: &|| Ok(()),
+            actual: &|| {
+                Ok(timonier_core::actual::Actual {
+                    version: 1,
+                    boxes: Vec::new(),
+                    dependencies: Vec::new(),
+                })
+            },
         }
+    }
+
+    /// PLAN.md 7.5, ADR 0041: the whiteboard read for the agent, with its image, and compared
+    /// with the code.
+    #[test]
+    fn the_agent_reads_the_whiteboard_and_its_drift() {
+        use timonier_core::actual::{Actual, ActualBox, ActualDependency};
+        let root = tempfile::tempdir().unwrap();
+        let tracker = Tracker::new(root.path());
+        let actual = || {
+            Ok(Actual {
+                version: 1,
+                boxes: ["a", "b"]
+                    .iter()
+                    .map(|n| ActualBox {
+                        id: format!("pkg:cargo/{n}"),
+                        kind: "package".into(),
+                        name: (*n).into(),
+                        role: None,
+                        parent: None,
+                    })
+                    .collect(),
+                dependencies: vec![ActualDependency {
+                    from: "pkg:cargo/a".into(),
+                    to: "pkg:cargo/b".into(),
+                    kinds: vec!["calls".into()],
+                    weight: 3,
+                }],
+            })
+        };
+        let freeze = || Ok(snapshot(1));
+        let changed = |_: Option<u64>, _: u64| Ok(Vec::new());
+        let context = Context {
+            actual: &actual,
+            ..context(&freeze, &changed, 0)
+        };
+        let call = |name: &str, arguments: Value| tracker.call(name, Some(arguments), &context);
+
+        // Nothing drawn yet, or the empty whiteboard `init` puts: said so, no image, no drift.
+        std::fs::create_dir_all(root.path().join(".timonier")).unwrap();
+        std::fs::write(
+            root.path().join(".timonier/intent.json"),
+            Intent::empty().to_text(),
+        )
+        .unwrap();
+        let nothing = call(tools::GET_INTENDED_ARCHITECTURE, json!({}));
+        assert_eq!(nothing["structuredContent"]["result"]["drawn"], false);
+        assert!(
+            nothing["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("Nothing is drawn yet")
+        );
+        assert_eq!(nothing["content"].as_array().unwrap().len(), 1);
+
+        std::fs::create_dir_all(root.path().join(".timonier")).unwrap();
+        std::fs::write(
+            root.path().join(".timonier/intent.json"),
+            timonier_core::intent::parse(
+                r#"{"version": 1,
+                    "components": [{"id": "C-1", "name": "A", "layer": null, "role": "Front"},
+                                   {"id": "C-2", "name": "B", "layer": null, "role": ""},
+                                   {"id": "C-3", "name": "Web", "layer": null, "role": ""}],
+                    "edges": [{"id": "E-1", "src": "C-1", "dst": "C-2", "kind": "depends_on", "policy": "forbidden"}],
+                    "sketch": {"shapes": {"C-1": {"x": 0, "y": 0, "width": 180, "height": 80},
+                                          "C-2": {"x": 300, "y": 0, "width": 180, "height": 80}},
+                               "strokes": [{"id": "S-1", "x": 10, "y": 100, "points": [[0, 0, 0.5], [50, 5, 0.5]]}]}}"#,
+            )
+            .unwrap()
+            .to_text(),
+        )
+        .unwrap();
+        let read = call(tools::GET_INTENDED_ARCHITECTURE, json!({}));
+        let result = &read["structuredContent"]["result"];
+        assert_eq!(result["components"][0]["role"], "Front");
+        assert_eq!(result["places"]["strokes"][0]["near"], "C-1");
+        assert_eq!(result["places"]["shapes"]["C-2"]["x"], 300.0);
+        assert!(
+            result.get("sketch").is_none(),
+            "the points stay out: the image says them"
+        );
+        let text = read["content"][0]["text"].as_str().unwrap();
+        assert!(
+            text.contains("3 components, 1 edge (1 forbidden, 0 required)"),
+            "{text}"
+        );
+        assert_eq!(read["content"][1]["mimeType"], "image/png");
+        assert!(
+            read["content"][1]["data"]
+                .as_str()
+                .unwrap()
+                .starts_with("iVBORw0KGgo"),
+            "a PNG"
+        );
+        let plain = call(tools::GET_INTENDED_ARCHITECTURE, json!({"image": false}));
+        assert_eq!(plain["content"].as_array().unwrap().len(), 1);
+        assert_eq!(plain["structuredContent"]["result"]["image"], false);
+
+        let drift = call(tools::GET_DRIFT, json!({}));
+        let text = drift["content"][0]["text"].as_str().unwrap();
+        assert_eq!(
+            text,
+            "Mailbox: 0 unread.\n3 drawn components: 2 found in the code, 1 missing (C-3 Web). \
+             Forbidden edge E-1 crossed: C-1 A → C-2 B, 1 dependency."
+        );
+        let result = &drift["structuredContent"]["result"];
+        assert_eq!(result["anchors"][0]["actual"], "pkg:cargo/a");
+        assert_eq!(result["forbidden"][0]["dependencies"][0]["weight"], 3);
+
+        // A file that does not read: refused, with the reason.
+        std::fs::write(root.path().join(".timonier/intent.json"), "{").unwrap();
+        let refused = call(tools::GET_DRIFT, json!({}));
+        assert_eq!(refused["isError"], true);
+        assert_eq!(
+            refused["structuredContent"]["error"]["code"],
+            "invalid_file"
+        );
     }
 
     fn snapshot(seq: u64) -> Snapshot {

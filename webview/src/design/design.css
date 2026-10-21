@@ -220,6 +220,7 @@ body.vscode-high-contrast .tim-box__header {
 .tim-box__flag {
   display: inline-flex;
   flex: none;
+  gap: var(--tim-space-1);
   margin-left: auto;
 }
 

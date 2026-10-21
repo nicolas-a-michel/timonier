@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-6",
+  "agent": "claude-code",
+  "objective": "7.0 : comparer les remplaçants de tldraw (licence, version, compatibilité CSP, formes typées) et écrire l'ADR à soumettre",
+  "tasks": [
+    "T-85"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-20T15:59:00Z",
+  "ended_at": "2026-10-20T16:06:48Z",
+  "snapshots": {
+    "start": 13,
+    "end": 14
+  },
+  "summary": "7.0 done: compared tldraw's replacements (Excalidraw 0.18.1 read from its package: CDN fonts, module worker, new Function, canvas without accessibility; Konva, Fabric). ADR 0036 accepted: React Flow for typed shapes, perfect-freehand for freehand strokes. Q60 and Q61 (exit criterion accepted) recorded in PLAN.md, Phase 7 in progress, dependency table and webview skill updated. Next: 7.1, the whiteboard in the webview.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Inspect the candidates (npm versions, licences, Excalidraw's package against the webview CSP)",
+      "task": "T-85",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Write ADR 0036 and get the human's choice (Q60) and exit criterion (Q61)",
+      "task": "T-85",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

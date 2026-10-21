@@ -1,6 +1,7 @@
 # 0019 — Protocole entre le démon et l'extension
 
-- Statut : Accepté (2026-10-18, validation de la phase par l'humain)
+- Statut : Accepté (2026-10-18, validation de la phase par l'humain) ; complétée par l'ADR 0039
+  (`daemon/shutdown` admis avant `initialize`)
 - Date : 2026-10-16
 - Phase : 4
 - Liens : spec « Architecture technique », « Décisions techniques » (protocole) ; ADR 0003,

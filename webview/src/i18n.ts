@@ -50,6 +50,41 @@ export interface Messages {
   kinds: Record<"repo" | "component" | "package" | "file" | "symbol", string>;
   /** The review diff (ADR 0024). */
   review: ReviewMessages;
+  /** The map compared with the whiteboard (ADR 0042). */
+  intent: IntentMessages;
+}
+
+export interface IntentMessages {
+  /** The toolbar's toggle. */
+  layer: string;
+  summaryLabel: string;
+  title: string;
+  /** « 3 drawn components: 2 found, 1 missing » */
+  counts: (drawn: number, found: number) => string;
+  forbiddenCount: (count: number) => string;
+  requiredCount: (count: number) => string;
+  uncheckedCount: (count: number) => string;
+  follows: string;
+  missingHeading: string;
+  forbiddenHeading: string;
+  requiredHeading: string;
+  /** « Front → Data: 2 dependencies (app → store, …) » */
+  crossing: (edge: string, count: number, examples: string) => string;
+  nothingTitle: string;
+  nothingText: string;
+  openWhiteboard: string;
+  unreadTitle: string;
+  unavailable: string;
+  /** On a box: drawn components it stands for, and those inside it. */
+  drawnBadge: (names: string) => string;
+  withinBadge: (names: string) => string;
+  /** On a line: the forbidden edges it crosses. */
+  forbiddenLine: (edges: string) => string;
+  forbiddenMark: string;
+  legendTitle: string;
+  legendForbidden: string;
+  legendDrawn: string;
+  legendWithin: string;
 }
 
 export interface ReviewMessages {
@@ -160,6 +195,36 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} to ${target}: ${links === 1 ? "1 link" : `${links} links`}, ${approximate ? "approximate" : "certain"}`,
     kinds: { repo: "Repository", component: "Component", package: "Package", file: "File", symbol: "Symbol" },
+    intent: {
+      layer: "Compare with the intent",
+      summaryLabel: "The map compared with the whiteboard",
+      title: "Compared with the whiteboard",
+      counts: (drawn, found) =>
+        `${drawn === 1 ? "1 drawn component" : `${drawn} drawn components`}, ${found} found in the code, ${drawn - found} missing`,
+      forbiddenCount: (count) => (count === 1 ? "1 forbidden edge crossed" : `${count} forbidden edges crossed`),
+      requiredCount: (count) => (count === 1 ? "1 required edge missing" : `${count} required edges missing`),
+      uncheckedCount: (count) => (count === 1 ? "1 edge not checked" : `${count} edges not checked`),
+      follows: "the code follows the whiteboard.",
+      missingHeading: "Drawn, not in the code",
+      forbiddenHeading: "Forbidden edges crossed",
+      requiredHeading: "Required edges missing",
+      crossing: (edge, count, examples) =>
+        `${edge}: ${count === 1 ? "1 dependency" : `${count} dependencies`} (${examples})`,
+      nothingTitle: "Nothing drawn yet",
+      nothingText:
+        "Draw the architecture you want on the whiteboard: the map then shows how the code stands against it.",
+      openWhiteboard: "Open the whiteboard",
+      unreadTitle: "The whiteboard does not read",
+      unavailable: "The comparison is not available while the daemon is not running.",
+      drawnBadge: (names) => `Drawn: ${names}`,
+      withinBadge: (names) => `Holds drawn: ${names}`,
+      forbiddenLine: (edges) => `Crosses the forbidden edge ${edges}.`,
+      forbiddenMark: "forbidden",
+      legendTitle: "Compared with the whiteboard",
+      legendForbidden: "a link that crosses a forbidden edge",
+      legendDrawn: "the box a drawn component stands for",
+      legendWithin: "a box that holds one, deeper",
+    },
     review: {
       added: "New",
       modified: "Modified",
@@ -261,6 +326,36 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} vers ${target} : ${links === 1 ? "1 lien" : `${links} liens`}, ${approximate ? "approché" : "sûr"}`,
     kinds: { repo: "Dépôt", component: "Composant", package: "Paquet", file: "Fichier", symbol: "Symbole" },
+    intent: {
+      layer: "Comparer à l'intention",
+      summaryLabel: "La carte comparée au tableau blanc",
+      title: "Comparée au tableau blanc",
+      counts: (drawn, found) =>
+        `${drawn <= 1 ? `${drawn} composant dessiné` : `${drawn} composants dessinés`}, ${found} ${found <= 1 ? "trouvé" : "trouvés"} dans le code, ${drawn - found} ${drawn - found <= 1 ? "manquant" : "manquants"}`,
+      forbiddenCount: (count) =>
+        count <= 1 ? `${count} arête interdite franchie` : `${count} arêtes interdites franchies`,
+      requiredCount: (count) => (count <= 1 ? `${count} arête requise absente` : `${count} arêtes requises absentes`),
+      uncheckedCount: (count) => (count <= 1 ? `${count} arête non vérifiée` : `${count} arêtes non vérifiées`),
+      follows: "le code suit le tableau blanc.",
+      missingHeading: "Dessinés, absents du code",
+      forbiddenHeading: "Arêtes interdites franchies",
+      requiredHeading: "Arêtes requises absentes",
+      crossing: (edge, count, examples) =>
+        `${edge} : ${count <= 1 ? `${count} dépendance` : `${count} dépendances`} (${examples})`,
+      nothingTitle: "Rien de dessiné encore",
+      nothingText: "Dessinez l'architecture voulue sur le tableau blanc : la carte montre alors où en est le code.",
+      openWhiteboard: "Ouvrir le tableau blanc",
+      unreadTitle: "Le tableau blanc ne se lit pas",
+      unavailable: "La comparaison n'est pas disponible tant que le démon ne tourne pas.",
+      drawnBadge: (names) => `Dessiné : ${names}`,
+      withinBadge: (names) => `Contient du dessiné : ${names}`,
+      forbiddenLine: (edges) => `Franchit l'arête interdite ${edges}.`,
+      forbiddenMark: "interdite",
+      legendTitle: "Comparée au tableau blanc",
+      legendForbidden: "un lien qui franchit une arête interdite",
+      legendDrawn: "la boîte que désigne un composant dessiné",
+      legendWithin: "une boîte qui en contient un, plus profond",
+    },
     review: {
       added: "Nouveau",
       modified: "Modifié",

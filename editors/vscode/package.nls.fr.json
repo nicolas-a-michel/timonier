@@ -24,5 +24,21 @@
   "container.journal.title": "Timonier",
   "view.tracking.name": "Plan, todo et sessions",
   "command.whereToLook.title": "Où regarder : montrer sur la carte une boîte à relire",
-  "command.configure.title": "Configurer le projet pour vos agents"
+  "command.configure.title": "Configurer le projet pour vos agents",
+  "command.openWhiteboard.title": "Ouvrir le tableau blanc",
+  "command.whiteboard.undo.title": "Annuler sur le tableau blanc",
+  "command.whiteboard.redo.title": "Rétablir sur le tableau blanc",
+  "command.whiteboard.select.title": "Sélectionner sur le tableau blanc",
+  "command.whiteboard.pen.title": "Dessiner sur le tableau blanc",
+  "command.whiteboard.eraser.title": "Gommer sur le tableau blanc",
+  "command.whiteboard.deleteSelection.title": "Supprimer la sélection du tableau blanc",
+  "command.whiteboard.fitView.title": "Ajuster le tableau blanc à la fenêtre",
+  "command.whiteboard.zoomIn.title": "Zoom avant sur le tableau blanc",
+  "command.whiteboard.zoomOut.title": "Zoom arrière sur le tableau blanc",
+  "command.whiteboard.arrow.title": "Tracer une flèche sur le tableau blanc",
+  "command.whiteboard.addBox.title": "Ajouter une boîte de composant au tableau blanc",
+  "command.whiteboard.addZone.title": "Ajouter une zone de couche au tableau blanc",
+  "command.whiteboard.addNote.title": "Ajouter une note au tableau blanc",
+  "command.whiteboard.addBudget.title": "Ajouter une note budget au tableau blanc",
+  "command.map.compareIntent.title": "Comparer la carte au tableau blanc (activer ou non)"
 }

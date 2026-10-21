@@ -102,6 +102,8 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
     assert_eq!(
         names,
         [
+            "get_drift",
+            "get_intended_architecture",
             "get_plan",
             "get_session",
             "get_todo",
@@ -254,4 +256,105 @@ fn a_client_named_in_its_requests_metadata_names_the_session() {
         answer["result"]["structuredContent"]["result"]["agent"], "claude-code",
         "{answer}"
     );
+}
+
+/// PLAN.md 7.5, ADR 0041: an agent reads the whiteboard, its sketch as an image, and how the
+/// indexed code stands against it, through the proxy and a real daemon.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_agent_reads_the_whiteboard_and_the_drift_of_the_code() {
+    let project = Project::new();
+    let root = project.repo.path();
+    // Two crates: `app` calls `store`.
+    std::fs::write(
+        root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"app\", \"store\"]\n",
+    )
+    .expect("workspace");
+    std::fs::remove_dir_all(root.join("src")).expect("no root crate");
+    for (name, manifest, code) in [
+        (
+            "store",
+            "[package]\nname = \"store\"\n",
+            "pub fn save() {}\n",
+        ),
+        (
+            "app",
+            "[package]\nname = \"app\"\n\n[dependencies]\nstore = { path = \"../store\" }\n",
+            "pub fn run() {\n    store::save();\n}\n",
+        ),
+    ] {
+        std::fs::create_dir_all(root.join(name).join("src")).expect("src");
+        std::fs::write(root.join(name).join("Cargo.toml"), manifest).expect("manifest");
+        std::fs::write(root.join(name).join("src/lib.rs"), code).expect("lib");
+    }
+    let agent = project.agent().await;
+    let (nothing, _) = call(&agent, "get_intended_architecture", json!({})).await;
+    assert_eq!(nothing["result"]["drawn"], false);
+
+    // The developer draws: the app may not depend on the store; a web front is wanted.
+    std::fs::create_dir_all(root.join(".timonier")).expect(".timonier");
+    std::fs::write(
+        root.join(".timonier/intent.json"),
+        r#"{"version": 1,
+            "components": [{"id": "C-1", "name": "App", "layer": null, "role": "Runs"},
+                           {"id": "C-2", "name": "Store", "layer": null, "role": "Keeps"},
+                           {"id": "C-3", "name": "Web", "layer": null, "role": ""}],
+            "edges": [{"id": "E-1", "src": "C-1", "dst": "C-2", "kind": "depends_on", "policy": "forbidden"}],
+            "sketch": {"shapes": {"C-1": {"x": 0, "y": 0, "width": 180, "height": 80},
+                                  "C-2": {"x": 300, "y": 0, "width": 180, "height": 80},
+                                  "C-3": {"x": 600, "y": 0, "width": 180, "height": 80}},
+                       "strokes": [{"id": "S-1", "x": 20, "y": 100, "points": [[0, 0, 0.5], [60, 8, 0.5]]}]}}"#,
+    )
+    .expect("intent.json");
+
+    let result = agent
+        .call_tool(CallToolRequestParams::new(
+            "get_intended_architecture".to_owned(),
+        ))
+        .await
+        .expect("the call answers");
+    let content = serde_json::to_value(&result.content).expect("content");
+    assert_eq!(content[1]["type"], "image", "{content}");
+    assert_eq!(content[1]["mimeType"], "image/png");
+    assert!(
+        content[1]["data"]
+            .as_str()
+            .is_some_and(|d| d.starts_with("iVBORw0KGgo"))
+    );
+    let structured = result.structured_content.expect("structured content");
+    assert_eq!(structured["result"]["components"][2]["name"], "Web");
+    assert_eq!(structured["result"]["places"]["strokes"][0]["near"], "C-1");
+
+    // Once the code is indexed, the drift: the forbidden edge is crossed, the web is missing.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let drift = loop {
+        let (drift, error) = call(&agent, "get_drift", json!({})).await;
+        assert!(!error, "{drift}");
+        if !drift["result"]["forbidden"]
+            .as_array()
+            .is_none_or(Vec::is_empty)
+        {
+            break drift;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "never crossed: {drift}"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    };
+    let result = &drift["result"];
+    assert_eq!(result["anchors"][0]["actual"], "pkg:cargo/app");
+    assert_eq!(result["anchors"][1]["actual"], "pkg:cargo/store");
+    assert_eq!(result["missing"], json!(["C-3"]));
+    assert_eq!(result["forbidden"][0]["edge"], "E-1");
+    let crossed = &result["forbidden"][0]["dependencies"][0];
+    assert!(
+        crossed["from"].as_str().is_some_and(|f| f.contains("app"))
+            && crossed["to"].as_str().is_some_and(|t| t.contains("store")),
+        "{crossed}"
+    );
+    // Never written back: the whiteboard is the developer's.
+    let kept = std::fs::read_to_string(root.join(".timonier/intent.json")).expect("kept");
+    assert!(kept.starts_with(r#"{"version": 1,"#));
+    agent.cancel().await.expect("the agent goes");
 }

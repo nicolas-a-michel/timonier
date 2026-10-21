@@ -6,7 +6,7 @@ import { cloneElement, useId, useRef, useState, type KeyboardEvent, type ReactEl
 
 import { messages, type Locale } from "../i18n";
 import type { Role } from "../protocol";
-import { ChangeIcon, RoleIcon, ToneIcon, type Tone } from "./icons";
+import { ChangeIcon, IntentIcon, RoleIcon, ToneIcon, type Tone } from "./icons";
 
 export interface ComponentBoxProps {
   name: string;
@@ -96,10 +96,13 @@ export function EdgeLegend({
   locale,
   changes = false,
   debt = false,
+  intent = false,
 }: {
   locale: Locale;
   changes?: boolean;
   debt?: boolean;
+  /** The map is compared with the whiteboard (ADR 0042). */
+  intent?: boolean;
 }) {
   const t = messages[locale];
   const sample = (approximate: boolean, label: string) => (
@@ -160,6 +163,29 @@ export function EdgeLegend({
             <li className="tim-legend__item">
               <span className="tim-legend__swatch tim-debt__hatch" aria-hidden="true" />
               <span>{`${t.review.untracked} : ${t.review.untrackedLegend}`}</span>
+            </li>
+          </ul>
+        </>
+      )}
+      {intent && (
+        <>
+          <p className="tim-legend__title tim-legend__subtitle">{t.intent.legendTitle}</p>
+          <ul className="tim-legend__list">
+            <li className="tim-legend__item">
+              <Badge tone="violation" label={t.intent.forbiddenMark} />
+              <span>{t.intent.legendForbidden}</span>
+            </li>
+            <li className="tim-legend__item">
+              <span className="tim-legend__mark tim-intent-mark" data-contrast="icon">
+                <IntentIcon kind="drawn" />
+              </span>
+              <span>{t.intent.legendDrawn}</span>
+            </li>
+            <li className="tim-legend__item">
+              <span className="tim-legend__mark tim-intent-mark" data-contrast="icon">
+                <IntentIcon kind="within" />
+              </span>
+              <span>{t.intent.legendWithin}</span>
             </li>
           </ul>
         </>
@@ -254,7 +280,8 @@ export interface ToolbarItem {
   icon?: ReactNode;
   /** A toggle: on or off. */
   pressed?: boolean;
-  onSelect?: () => void;
+  /** `keyboard`: pressed with Enter or Space, not clicked with a pointer. */
+  onSelect?: (how: { keyboard: boolean }) => void;
 }
 
 /** Where the focus goes for `key` in a toolbar of `count` items; `undefined`: nowhere new. */
@@ -301,9 +328,10 @@ export function Toolbar({ label, items }: { label: string; items: ToolbarItem[] 
           aria-pressed={item.pressed}
           aria-label={item.icon ? item.label : undefined}
           title={item.icon ? item.label : undefined}
-          onClick={() => {
+          onClick={(event) => {
             setActive(index);
-            item.onSelect?.();
+            // A click from the keyboard has no pointer, and no count of clicks.
+            item.onSelect?.({ keyboard: event.detail === 0 });
           }}
         >
           {item.icon ?? item.label}

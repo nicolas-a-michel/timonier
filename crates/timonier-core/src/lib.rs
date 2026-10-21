@@ -7,11 +7,13 @@
 pub mod actual;
 pub mod aggregate;
 pub mod diff;
+pub mod drift;
 mod edge;
 mod error;
 pub mod fusion;
 pub mod graph;
 mod id;
+pub mod intent;
 mod node;
 pub mod protocol;
 pub mod review;

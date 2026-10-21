@@ -34,7 +34,14 @@ export function isHostMessage(data: unknown): data is HostMessage {
   const { type, density } = data as { type?: unknown; density?: unknown };
   // The density picks the map's metrics: one of the two, or the layout has none (Q32).
   if (type === "density") return density === "comfortable" || density === "compact";
-  return type === "snapshot" || type === "delta" || type === "daemon" || type === "command" || type === "pins";
+  return (
+    type === "snapshot" ||
+    type === "delta" ||
+    type === "daemon" ||
+    type === "command" ||
+    type === "pins" ||
+    type === "drift"
+  );
 }
 
 /** The host's messages to a panel of the tracking (ADR 0031): the state, and the daemon's. */
@@ -44,4 +51,25 @@ export function isTrackingMessage(data: unknown): data is TrackingHostMessage {
   if (typeof data !== "object" || data === null) return false;
   const { type } = data as { type?: unknown };
   return type === "tracking" || type === "daemon";
+}
+
+/** The host's messages to the whiteboard (ADR 0037, 0039): a command of the palette, the board, whether it is saved. */
+export type WhiteboardHostMessage = Extract<HostMessage, { type: "whiteboard" | "intent" | "intentSaved" }>;
+
+const TOOLS: readonly string[] = ["select", "pen", "eraser", "box", "zone", "note", "budget", "arrow"];
+const SHAPES: readonly string[] = ["box", "zone", "note", "budget"];
+const COMMANDS: readonly string[] = ["undo", "redo", "deleteSelection", "fitView", "zoomIn", "zoomOut"];
+
+export function isWhiteboardMessage(data: unknown): data is WhiteboardHostMessage {
+  if (typeof data !== "object" || data === null) return false;
+  const { type, command } = data as {
+    type?: unknown;
+    command?: { name?: unknown; tool?: unknown; shape?: unknown } | null;
+  };
+  // The board and its saving come from the extension, which had them from the daemon.
+  if (type === "intent" || type === "intentSaved") return true;
+  if (type !== "whiteboard" || typeof command !== "object" || command === null) return false;
+  if (command.name === "tool") return TOOLS.includes(command.tool as string);
+  if (command.name === "add") return SHAPES.includes(command.shape as string);
+  return COMMANDS.includes(command.name as string);
 }

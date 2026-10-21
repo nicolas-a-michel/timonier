@@ -45,7 +45,7 @@ description: Building Timonier's VSCode extension and React webview — the stac
 | UI                          | `react`           | 19.3.0, MIT                                                                        |
 | Architecture map            | `@xyflow/react`   | 12.12.0, MIT. The old `reactflow` package is frozen: do not use it.                |
 | Hierarchical layout         | `elkjs`           | 0.12.0, EPL-2.0 OR GPL-3.0-or-later. Use it under EPL-2.0.                         |
-| Whiteboard                  | to be chosen      | **Not tldraw**: the human ruled it out (`PLAN.md` Q3, proprietary licence with a key). The replacement is chosen by ADR at the start of Phase 7; the leading option is React Flow. |
+| Whiteboard                  | `@xyflow/react` + `perfect-freehand` | React Flow for the typed shapes (accessible nodes and edges), perfect-freehand 1.2.3 (MIT, no dependency) inks each freehand stroke, itself a React Flow node (ADR 0036, 0037). **Not tldraw** (`PLAN.md` Q3), not Excalidraw (CDN fonts, CSP, canvas without accessibility). |
 | Timelines and perf curves   | `uplot`           | 1.6.32, MIT                                                                        |
 | Data-flow animation (v2)    | `pixi.js`         | 8.22.0, MIT                                                                        |
 | Native-looking widgets      | `@vscode-elements/elements` | 2.5.1, MIT. `@vscode/webview-ui-toolkit` is deprecated: do not use it.  |

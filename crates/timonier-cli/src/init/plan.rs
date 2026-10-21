@@ -26,6 +26,9 @@ you go.
 - Keep the plan current: `plan_add_task` for new work, `plan_update_task` when a task starts, is \
 blocked, done or dropped.
 - When the work is done, call `session_end` with a summary of what was done and what is left.
+- Before changing the structure of the code, read the architecture the developer wants with \
+`get_intended_architecture` (their whiteboard, with an image of the sketch); after, check \
+`get_drift`: forbidden edges crossed, required edges and drawn components missing.
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and \
 `intent.json`, the whiteboard, belongs to the developer.
 - Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says.
@@ -124,6 +127,8 @@ pub struct TestRunner {
 }
 
 pub const TESTS: &str = ".timonier/tests.json";
+/// `.timonier/intent.json`: the whiteboard (ADR 0039).
+pub const INTENT: &str = ".timonier/intent.json";
 
 fn read(root: &Path, path: &Path) -> Option<String> {
     std::fs::read_to_string(root.join(path)).ok()
@@ -314,6 +319,17 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
             let path = PathBuf::from(format!(".timonier/conventions/{}/{name}", runner.language));
             change(path, Ok(text.clone()), false, "");
         }
+    }
+    // An empty whiteboard (spec « Initialisation », 6; Q57): drawn on in VSCode, read by the
+    // agents. One already there is the developer's.
+    let intent = PathBuf::from(INTENT);
+    if read(root, &intent).is_none() {
+        change(
+            intent,
+            Ok(timonier_core::intent::Intent::empty().to_text()),
+            false,
+            "",
+        );
     }
     if !choices.runners.is_empty() {
         let tests = Tests {
@@ -542,6 +558,7 @@ mod tests {
                 ".claude/settings.json",
                 ".github/hooks/timonier.json",
                 ".codex/hooks.json",
+                ".timonier/intent.json",
                 ".timonier/.gitignore",
                 ".git/hooks/pre-commit",
                 ".timonier/init.json",

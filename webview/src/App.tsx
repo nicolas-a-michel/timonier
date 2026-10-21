@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { EmptyState } from "./design/components";
 import { messages, type Locale } from "./i18n";
 import type { Toggle } from "./map/mapModel";
-import type { Density, Span } from "./protocol";
+import type { Density, DriftView, Span } from "./protocol";
 import type { Pins } from "./map/layout";
 import { MapView, type MapCommands } from "./map/MapView";
 import { initialUi, type UiState } from "./uiState";
@@ -29,6 +29,10 @@ export interface AppProps {
   onToggleChanges?: () => void;
   onToggleDebt?: () => void;
   onReveal?: (target: string, path: string[]) => void;
+  /** The map compared with the whiteboard (ADR 0042): the toggle, and the drift the host gave. */
+  onToggleIntent?: () => void;
+  intent?: DriftView | null;
+  onOpenWhiteboard?: () => void;
   /** Where the palette's commands for the map come in. */
   commandsRef?: MapCommands;
   /** Called once, after the first render reached the DOM. */
@@ -51,6 +55,9 @@ export function App({
   onToggleChanges,
   onToggleDebt,
   onReveal,
+  onToggleIntent,
+  intent,
+  onOpenWhiteboard,
   commandsRef,
   onReady,
 }: AppProps) {
@@ -89,6 +96,10 @@ export function App({
           showDebt={ui.debt ?? false}
           onToggleDebt={onToggleDebt}
           onReveal={onReveal}
+          compareIntent={ui.intent ?? false}
+          intent={intent}
+          onToggleIntent={onToggleIntent}
+          onOpenWhiteboard={onOpenWhiteboard}
           commandsRef={commandsRef}
         />
       </main>

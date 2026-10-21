@@ -14,6 +14,8 @@ export interface UiState {
   onlyChanges?: boolean;
   /** The review debt shows on the boxes (ADR 0030, Q44). */
   debt?: boolean;
+  /** The map is compared with the whiteboard (ADR 0042). */
+  intent?: boolean;
 }
 
 export const initialUi: UiState = { openRoles: [], expanded: [] };
@@ -25,12 +27,13 @@ function strings(value: unknown): string[] | undefined {
 /** What `getState` gave back, if it is a state of this version. */
 export function parseUi(saved: unknown): UiState {
   if (typeof saved !== "object" || saved === null) return initialUi;
-  const { openRoles, expanded, focus, onlyChanges, debt } = saved as {
+  const { openRoles, expanded, focus, onlyChanges, debt, intent } = saved as {
     openRoles?: unknown;
     expanded?: unknown;
     focus?: unknown;
     onlyChanges?: unknown;
     debt?: unknown;
+    intent?: unknown;
   };
   return {
     openRoles: strings(openRoles) ?? [],
@@ -38,6 +41,7 @@ export function parseUi(saved: unknown): UiState {
     ...(typeof focus === "string" ? { focus } : {}),
     ...(onlyChanges === true ? { onlyChanges } : {}),
     ...(debt === true ? { debt } : {}),
+    ...(intent === true ? { intent } : {}),
   };
 }
 
@@ -62,7 +66,12 @@ export function applyToggle(ui: UiState, toggle: Toggle, view: ViewData | undefi
 /** Back to the opening of the map; the filter and the debt layer stay as they were. */
 export function closeAll(ui: UiState): Applied {
   return {
-    ui: { ...initialUi, ...(ui.onlyChanges ? { onlyChanges: true } : {}), ...(ui.debt ? { debt: true } : {}) },
+    ui: {
+      ...initialUi,
+      ...(ui.onlyChanges ? { onlyChanges: true } : {}),
+      ...(ui.debt ? { debt: true } : {}),
+      ...(ui.intent ? { intent: true } : {}),
+    },
     subscribe: ui.expanded.length > 0 ? [] : undefined,
   };
 }
@@ -71,6 +80,12 @@ export function closeAll(ui: UiState): Applied {
 export function toggleDebt(ui: UiState): Applied {
   const { debt, ...rest } = ui;
   return { ui: debt ? rest : { ...rest, debt: true } };
+}
+
+/** The comparison with the whiteboard, on or off (ADR 0042). */
+export function toggleIntent(ui: UiState): Applied {
+  const { intent, ...rest } = ui;
+  return { ui: intent ? rest : { ...rest, intent: true } };
 }
 
 /** The filter « only the changes », on or off (ADR 0024). */

@@ -2,7 +2,7 @@
  * What the accessibility tests measure (ADR 0020): axe-core's verdict, and the 3:1 contrast of
  * lines, icons and the focus ring that axe does not measure.
  */
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -40,7 +40,9 @@ function describe(rule: { id: string; targets: string[] }): string {
 
 /** The violations of WCAG A and AA axe-core finds, and the contrasts it could not decide. */
 export async function axeFindings(page: Page): Promise<{ violations: string[]; undecided: Undecided[] }> {
-  await page.addScriptTag({ path: axe });
+  // Evaluated, not added as a script tag: under the webview's CSP, a tag without the nonce would
+  // not run (test/production).
+  await page.evaluate(readFileSync(axe, "utf8"));
   const found = await page.evaluate(async () => {
     interface Node {
       target: string[];

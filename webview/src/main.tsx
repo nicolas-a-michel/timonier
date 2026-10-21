@@ -8,7 +8,7 @@ import { resolveLocale } from "./i18n";
 import type { Pins } from "./map/layout";
 import type { Toggle } from "./map/mapModel";
 import type { MapCommands } from "./map/MapView";
-import { isHostMessage, readyMessage, subscribeTo, type Density } from "./protocol";
+import { isHostMessage, readyMessage, subscribeTo, type Density, type DriftView } from "./protocol";
 import {
   applyToggle,
   closeAll,
@@ -16,6 +16,7 @@ import {
   reveal,
   toggleChanges,
   toggleDebt,
+  toggleIntent,
   type Applied,
   type UiState,
 } from "./uiState";
@@ -46,6 +47,8 @@ const announceReady = () => {
   announced = true;
   host?.postMessage(readyMessage());
   host?.postMessage(subscribeTo(ui.expanded));
+  // A map left compared with the whiteboard asks for the drift again (ADR 0042).
+  if (ui.intent) host?.postMessage({ type: "compareIntent", on: true });
 };
 
 function apply({ ui: next, subscribe }: Applied) {
@@ -54,6 +57,15 @@ function apply({ ui: next, subscribe }: Applied) {
   if (subscribe) host?.postMessage(subscribeTo(subscribe));
   render();
 }
+
+// The drift the host gave while the map compares with the whiteboard (ADR 0042).
+let intent: DriftView | null | undefined;
+const onToggleIntent = () => {
+  apply(toggleIntent(ui));
+  intent = undefined;
+  host?.postMessage({ type: "compareIntent", on: ui.intent === true });
+  render();
+};
 
 // One function for every render: the map says the drawn files again only when they change.
 const onDisplayed = (paths: string[]) => host?.postMessage({ type: "displayed", paths });
@@ -84,6 +96,9 @@ function render() {
         onMarkReviewed={() => host?.postMessage({ type: "markReviewed" })}
         onToggleChanges={() => apply(toggleChanges(ui))}
         onToggleDebt={() => apply(toggleDebt(ui))}
+        onToggleIntent={onToggleIntent}
+        intent={intent}
+        onOpenWhiteboard={() => host?.postMessage({ type: "openWhiteboard" })}
         onReveal={(target, path) => apply(reveal(ui, target, path, model.view))}
         commandsRef={mapCommands}
         onReady={announceReady}
@@ -101,6 +116,11 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
   }
   if (event.data.type === "density") {
     density = applyDensity(event.data.density);
+    render();
+    return;
+  }
+  if (event.data.type === "drift") {
+    intent = event.data.drift;
     render();
     return;
   }

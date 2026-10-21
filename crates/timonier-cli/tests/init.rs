@@ -459,6 +459,13 @@ fn doctor_finds_and_repairs_the_setup() {
         "{}",
         stdout(&blocked)
     );
+    std::fs::remove_file(project.root().join(".timonier/intent.json")).unwrap();
+    let no_whiteboard = check(&project, &["doctor", "--check"]);
+    assert!(
+        stdout(&no_whiteboard).contains("the whiteboard (.timonier/intent.json) is missing"),
+        "{}",
+        stdout(&no_whiteboard)
+    );
     std::fs::remove_file(project.root().join(".mcp.json")).unwrap();
     std::fs::write(project.root().join(".timonier/todo.json"), "{ broken").unwrap();
     let broken = check(&project, &["doctor", "--check"]);
@@ -635,4 +642,32 @@ fn uninit_takes_back_what_init_wrote_into_a_folder_the_daemon_made() {
     let out = stdout(&project.tim(&["uninit"]));
     assert!(!out.contains("they were there before"), "{out}");
     assert_eq!(project.tree(), original, "{out}");
+}
+
+/// Q57, ADR 0039: `init` puts an empty whiteboard; `uninit` takes it back while empty, and keeps
+/// one the developer drew on unless `--purge`.
+#[test]
+fn init_puts_an_empty_whiteboard_that_uninit_keeps_once_drawn_on() {
+    let empty = timonier_core::intent::Intent::empty().to_text();
+    let project = Fixture::new(RUST);
+    let intent = project.root().join(".timonier/intent.json");
+    project.tim(&["init", "--yes", "--agents", "claude"]);
+    assert_eq!(std::fs::read_to_string(&intent).unwrap(), empty);
+    project.tim(&["uninit", "--yes"]);
+    assert!(!intent.exists(), "still empty: init's");
+
+    project.tim(&["init", "--yes", "--agents", "claude"]);
+    // As the whiteboard writes it after a gesture, through the daemon.
+    let drawn = timonier_core::intent::parse(
+        r#"{"version": 1, "layers": [{"id": "L-1", "name": "Domain"}]}"#,
+    )
+    .unwrap()
+    .to_text();
+    std::fs::write(&intent, &drawn).unwrap();
+    let out = stdout(&project.tim(&["uninit"]));
+    assert_eq!(std::fs::read_to_string(&intent).unwrap(), drawn, "{out}");
+    assert!(out.contains("--purge` removes them too"), "{out}");
+    // A second `init` leaves the drawing as it is.
+    project.tim(&["init", "--yes", "--agents", "claude"]);
+    assert_eq!(std::fs::read_to_string(&intent).unwrap(), drawn);
 }

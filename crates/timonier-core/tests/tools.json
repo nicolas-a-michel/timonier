@@ -5,6 +5,42 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
+    "description": "Compare the code with the developer's whiteboard: each drawn component and the real package or component it stands for (by name, then place), the drawn components the code lacks, the forbidden edges the code crosses with the dependencies that cross them, and the required edges it lacks. Check it after changing the structure.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "get_drift"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read the architecture the developer wants, from their whiteboard: layers, intended components (name, layer, role), edges with their policy (allowed, forbidden, required; between layers they hold for all their content), notes and performance budgets, where each shape and freehand stroke is drawn, and an image of the sketch for the freehand drawing. Read it before designing or changing the structure.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "default": null,
+          "description": "`false`: no image of the sketch, the structure and the places only.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_intended_architecture"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
     "description": "Read the plan: milestones, their tasks, statuses and progress.",
     "inputSchema": {
       "additionalProperties": false,

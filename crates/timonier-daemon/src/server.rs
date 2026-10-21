@@ -12,9 +12,12 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use timonier_core::SnapshotKind;
+use timonier_core::drift::DriftView;
+use timonier_core::intent::Intent;
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, LookupCounts, PROTOCOL_VERSION, ReviewMark,
-    StatusResult, SubscribeParams, SubscriptionParams, ToolCallParams, errors, methods,
+    FilesParams, InitializeParams, InitializeResult, IntentRead, IntentWriteParams, IntentWritten,
+    LookupCounts, PROTOCOL_VERSION, ReviewMark, StatusResult, SubscribeParams, SubscriptionParams,
+    ToolCallParams, errors, methods,
 };
 use timonier_core::rpc::{Decoder, ErrorObject, Id, InvalidMessage, Message};
 use timonier_index::lsp::Priority;
@@ -540,7 +543,10 @@ impl Session {
     }
 
     async fn request(&mut self, id: Id, method: &str, params: Value) {
-        if !self.initialized && method != methods::INITIALIZE {
+        // `daemon/shutdown` needs no handshake: a client of another version, which the daemon
+        // refuses, can still stop it, so that the next start runs the version installed
+        // (review of Phase 7, m8). The socket is the user's own (0700).
+        if !self.initialized && method != methods::INITIALIZE && method != methods::SHUTDOWN {
             let error = ErrorObject::new(errors::NOT_INITIALIZED, "`initialize` first");
             return self.send(Message::error(Some(id), error)).await;
         }
@@ -557,6 +563,12 @@ impl Session {
             }
             methods::AGENT_STOP => self.agent_stop().await,
             methods::ACTUAL_WRITE => self.write_actual().await,
+            methods::INTENT_READ => self.read_intent().await,
+            methods::INTENT_DRIFT => self.intent_drift().await,
+            methods::INTENT_WRITE => match parse::<IntentWriteParams>(params) {
+                Ok(params) => self.write_intent(params.intent).await,
+                Err(error) => Err(error),
+            },
             methods::TOOLS_CALL => match parse::<ToolCallParams>(params) {
                 Ok(params) => self.call_tool(params).await,
                 Err(error) => Err(error),
@@ -777,6 +789,107 @@ impl Session {
         }
     }
 
+    /// Reads `.timonier/intent.json` (ADR 0039): none yet, the whiteboard, or why it does not read.
+    async fn read_intent(&self) -> Result<Value, ErrorObject> {
+        let path = self.shared.root_path.join(".timonier").join("intent.json");
+        let read = tokio::task::spawn_blocking(move || match std::fs::read_to_string(&path) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => IntentRead {
+                intent: None,
+                problem: None,
+            },
+            Err(error) => IntentRead {
+                intent: None,
+                problem: Some(error.to_string()),
+            },
+            Ok(text) => match timonier_core::intent::parse(&text) {
+                Ok(intent) => IntentRead {
+                    intent: Some(intent.normalized()),
+                    problem: None,
+                },
+                Err(refusal) => IntentRead {
+                    intent: None,
+                    problem: Some(refusal.message),
+                },
+            },
+        })
+        .await
+        .map_err(|error| ErrorObject::new(errors::INTERNAL, error.to_string()))?;
+        Ok(serde_json::to_value(read).unwrap_or(Value::Null))
+    }
+
+    /// How the head drifts from the whiteboard, for the map (ADR 0042): nothing drawn, why the
+    /// file does not read, or the drift with what the map needs to show it.
+    async fn intent_drift(&self) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let shown = tokio::task::spawn_blocking(move || -> Result<DriftView> {
+            let path = shared.root_path.join(".timonier").join("intent.json");
+            let text = match std::fs::read_to_string(&path) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    return Ok(DriftView::default());
+                }
+                Err(error) => {
+                    return Ok(DriftView {
+                        problem: Some(error.to_string()),
+                        ..DriftView::default()
+                    });
+                }
+                Ok(text) => text,
+            };
+            let intent = match timonier_core::intent::parse(&text) {
+                Ok(intent) => intent.normalized(),
+                Err(refusal) => {
+                    return Ok(DriftView {
+                        problem: Some(refusal.message),
+                        ..DriftView::default()
+                    });
+                }
+            };
+            let mut reader = shared.store.reader()?;
+            let graph = crate::view::load(&mut reader)?;
+            Ok(timonier_core::drift::view(
+                &intent,
+                &timonier_core::actual::actual(&graph),
+            ))
+        })
+        .await;
+        match shown {
+            Ok(Ok(shown)) => Ok(serde_json::to_value(shown).unwrap_or(Value::Null)),
+            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
+    /// Writes `.timonier/intent.json` after a gesture on the whiteboard (Q66): checked, in its
+    /// one order and layout, only when it changed, through a temporary file and a rename.
+    async fn write_intent(&self, intent: Intent) -> Result<Value, ErrorObject> {
+        if let Err(refusal) = intent.check() {
+            return Err(ErrorObject::new(errors::INVALID_PARAMS, refusal.message));
+        }
+        let intent = intent.normalized();
+        let shared = Arc::clone(&self.shared);
+        let written = tokio::task::spawn_blocking(move || -> Result<IntentWritten> {
+            let folder = shared.root_path.join(".timonier");
+            let path = folder.join("intent.json");
+            let text = intent.to_text();
+            let changed = std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str());
+            if changed {
+                let _writing = shared.tracking.lock().map_err(|_| Error::Poisoned)?;
+                std::fs::create_dir_all(&folder).map_err(|e| Error::Tracking(e.to_string()))?;
+                let temporary = folder.join(".intent.json.tmp");
+                std::fs::write(&temporary, &text).map_err(|e| Error::Tracking(e.to_string()))?;
+                std::fs::rename(&temporary, &path).map_err(|e| Error::Tracking(e.to_string()))?;
+                tracing::debug!(path = %path.display(), "intent written");
+            }
+            Ok(IntentWritten { intent, changed })
+        })
+        .await;
+        match written {
+            Ok(Ok(written)) => Ok(serde_json::to_value(written).unwrap_or(Value::Null)),
+            Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
     async fn call_tool(&self, params: ToolCallParams) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
         let agent = self.client.clone();
@@ -812,6 +925,11 @@ impl Session {
                         crate::journal::between(&mut reader, start, end)
                     },
                     forget_contents: &|| Ok(shared.store.forget_contents()?),
+                    actual: &|| {
+                        let mut reader = shared.store.reader()?;
+                        let graph = crate::view::load(&mut reader)?;
+                        Ok(timonier_core::actual::actual(&graph))
+                    },
                 },
             ))
         });

@@ -10,6 +10,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+tiny-skia = { workspace = true }
 timonier-core = { workspace = true }
 timonier-store = { workspace = true }
 timonier-index = { workspace = true }

@@ -12,6 +12,7 @@ pub mod journal;
 mod relay;
 pub mod runtime;
 pub mod server;
+pub mod sketch;
 mod subscriptions;
 pub mod tracking;
 pub mod view;

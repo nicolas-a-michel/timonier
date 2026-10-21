@@ -11,6 +11,10 @@ export interface MapHostActions {
   ready(): void;
   /** The map's « Mark as reviewed » button: the command, confirmation included (ADR 0024). */
   markReviewed(): unknown;
+  /** The map compares with the whiteboard, or no longer (ADR 0042). */
+  compareIntent?(on: boolean): unknown;
+  /** The map's « Open the whiteboard » button. */
+  openWhiteboard?(): unknown;
   /** Every other message goes to the view relay. */
   relay(message: WebviewMessage): unknown;
 }
@@ -30,6 +34,14 @@ export function onPageMessage(message: unknown, actions: MapHostActions): void {
   }
   if (message.type === "markReviewed") {
     actions.markReviewed();
+    return;
+  }
+  if (message.type === "compareIntent") {
+    actions.compareIntent?.(message.on);
+    return;
+  }
+  if (message.type === "openWhiteboard") {
+    actions.openWhiteboard?.();
     return;
   }
   actions.relay(message);

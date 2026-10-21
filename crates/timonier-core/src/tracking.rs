@@ -963,6 +963,10 @@ mod tests {
                 "actual.schema.json",
                 schemars::schema_for!(crate::actual::Actual),
             ),
+            (
+                "intent.schema.json",
+                schemars::schema_for!(crate::intent::Intent),
+            ),
         ];
         let update = std::env::var_os("TIMONIER_UPDATE_TOOLS").is_some();
         for (name, schema) in schemas {

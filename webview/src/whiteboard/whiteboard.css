@@ -1,0 +1,434 @@
+/* The whiteboard (ADR 0036). Components use tokens only (see tokens.css); a test enforces it. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--tim-color-bg);
+  color: var(--tim-color-fg);
+  font-family: var(--tim-font-family);
+  font-size: var(--tim-font-size);
+}
+
+.tim-whiteboard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* A pen on a tablet draws: the browser does not scroll the page with it. */
+  touch-action: none;
+}
+
+.tim-whiteboard .react-flow {
+  background: var(--tim-color-bg);
+}
+
+.tim-whiteboard[data-tool="pen"] .react-flow__pane,
+.tim-whiteboard[data-tool="pen"] .react-flow__node {
+  cursor: crosshair;
+}
+
+.tim-whiteboard[data-tool="eraser"] .react-flow__pane,
+.tim-whiteboard[data-tool="eraser"] .react-flow__node {
+  cursor: cell;
+}
+
+/*
+ * A stroke is hit by its ink only, not by the box around it: React Flow sets the box's
+ * pointer events in its own style, hence the priority. The ink takes them back.
+ */
+.tim-whiteboard .react-flow__node-stroke {
+  pointer-events: none !important;
+  border-radius: var(--tim-radius);
+}
+
+.tim-stroke {
+  display: block;
+  overflow: visible;
+}
+
+.tim-stroke path,
+.tim-whiteboard__live path {
+  fill: var(--tim-color-fg);
+}
+
+.tim-stroke path {
+  pointer-events: visiblePainted;
+}
+
+/* What the eraser met fades until the pointer is lifted: it goes then. */
+.tim-stroke[data-erasing] path {
+  opacity: var(--tim-opacity-quiet);
+}
+
+.tim-whiteboard .react-flow__node-stroke:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}
+
+/* Selected: a dashed frame around the ink, a shape and not a colour alone. */
+.tim-whiteboard .react-flow__node-stroke.selected {
+  outline: 1px dashed var(--tim-color-selected-outline);
+  outline-offset: 2px;
+}
+
+.tim-whiteboard .react-flow__node-stroke.selected:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+}
+
+/* The stroke being drawn, over the board, where the pointer is. */
+.tim-whiteboard__live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The toolbar leaves room for the properties, on the right. */
+.tim-whiteboard .react-flow__panel.top.left {
+  max-width: calc(100% - 19rem);
+}
+
+.tim-whiteboard .react-flow__panel .tim-toolbar {
+  flex-wrap: wrap;
+  padding: var(--tim-space-1);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+}
+
+.tim-whiteboard__count,
+.tim-whiteboard__saved {
+  margin: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+/* Not saved: said in words, and in the attention tone (never the colour alone). */
+.tim-whiteboard__saved[data-saved="false"] {
+  color: var(--tim-color-attention);
+}
+
+/* What to do on an empty board: in its middle, under the pointer's way. */
+.tim-whiteboard__hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: var(--tim-measure);
+  padding: var(--tim-space-4);
+  transform: translate(-50%, -50%);
+  color: var(--tim-color-muted);
+  text-align: center;
+  pointer-events: none;
+}
+
+.tim-whiteboard__hint-title {
+  margin: 0 0 var(--tim-space-2);
+  color: var(--tim-color-fg);
+  font-size: var(--tim-font-size-title);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-whiteboard__hint p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* React Flow's attribution, as its authors ask: discreet, with the tokens (as on the map). */
+.tim-whiteboard .react-flow__attribution {
+  padding: var(--tim-space-1) var(--tim-space-2);
+  background: var(--tim-color-surface);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-whiteboard .react-flow__attribution a {
+  color: var(--tim-color-muted);
+}
+
+/* The tools that put a shape or an arrow take the pointer too. */
+.tim-whiteboard:is([data-tool="box"], [data-tool="zone"], [data-tool="note"], [data-tool="budget"]) .react-flow__pane,
+.tim-whiteboard:is([data-tool="box"], [data-tool="zone"], [data-tool="note"], [data-tool="budget"]) .react-flow__node {
+  cursor: copy;
+}
+
+/*
+ * With the arrow tool, React Flow lets the pointer go through nodes it cannot select; the boxes
+ * and zones take it back, to be chosen as an arrow's ends.
+ */
+.tim-whiteboard[data-tool="arrow"] :is(.react-flow__node-box, .react-flow__node-zone) {
+  pointer-events: all !important;
+  cursor: pointer;
+}
+
+/* The shapes' nodes: the focus ring is the IDE's; selected, a dashed frame (not a colour alone). */
+.tim-whiteboard :is(.react-flow__node-box, .react-flow__node-zone, .react-flow__node-note, .react-flow__node-budget) {
+  border-radius: var(--tim-radius-large);
+}
+
+.tim-whiteboard
+  :is(.react-flow__node-box, .react-flow__node-zone, .react-flow__node-note, .react-flow__node-budget):focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}
+
+.tim-whiteboard
+  :is(.react-flow__node-box, .react-flow__node-zone, .react-flow__node-note, .react-flow__node-budget).selected {
+  outline: 1px dashed var(--tim-color-selected-outline);
+  outline-offset: 3px;
+}
+
+/* Arrows hang from these ends; they are never seen nor dragged. */
+.tim-wb-end {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* An intended component: a box of the map, drawn with a dashed line. */
+.tim-wb-box {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  width: 100%;
+  height: 100%;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  overflow: hidden;
+  border: 1.5px dashed var(--tim-color-outline-hover);
+  border-radius: var(--tim-radius-large);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+}
+
+.tim-wb-box__name {
+  font-weight: var(--tim-font-weight-strong);
+  overflow-wrap: anywhere;
+}
+
+.tim-wb-box__role {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+[data-empty] {
+  color: var(--tim-color-muted);
+  font-style: italic;
+  font-weight: normal;
+}
+
+/* A layer: a wide dashed frame, its name in its corner. */
+.tim-wb-zone {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 2px dashed var(--tim-color-outline-hover);
+  border-radius: var(--tim-radius-large);
+  background: var(--tim-role-neutral-wash);
+}
+
+.tim-wb-zone__name {
+  display: inline-block;
+  padding: 0 var(--tim-space-1);
+  background: var(--tim-color-bg);
+  color: var(--tim-color-fg);
+  font-weight: var(--tim-font-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--tim-font-size-small);
+}
+
+/* The first end the arrow tool chose: a thicker line, as well as the words of the status. */
+:is(.tim-wb-box, .tim-wb-zone)[data-pending] {
+  border-style: solid;
+  border-width: 3px;
+  border-color: var(--tim-color-focus);
+}
+
+/* A note: a card with a folded corner's line on its left. */
+.tim-wb-note {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  width: 100%;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 1px solid var(--tim-color-outline);
+  border-left-width: 4px;
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+}
+
+.tim-wb-note__on {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-wb-note__text {
+  margin: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.tim-wb-budget__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-wb-budget__limits {
+  margin: 0;
+  padding-left: var(--tim-space-4);
+  font-family: var(--tim-font-family-code);
+  font-size: var(--tim-font-size-small);
+}
+
+/* Arrows: the policy is in the line's shape and in its word, the colour only adds to them. */
+.tim-whiteboard .react-flow__edge-path.tim-wb-arrow {
+  stroke: var(--tim-color-fg);
+  stroke-width: 1.5;
+}
+
+.tim-whiteboard .react-flow__edge-path.tim-wb-arrow--forbidden {
+  stroke: var(--tim-color-violation);
+  stroke-dasharray: 6 4;
+}
+
+.tim-whiteboard .react-flow__edge-path.tim-wb-arrow--required {
+  stroke-width: 3;
+}
+
+.tim-whiteboard .react-flow__edge-path.tim-wb-arrow--selected {
+  stroke-width: 3.5;
+}
+
+.tim-wb-arrow__head {
+  fill: var(--tim-color-fg);
+}
+
+.tim-wb-arrow__head--forbidden {
+  fill: var(--tim-color-violation);
+}
+
+.tim-whiteboard .react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: var(--tim-color-focus);
+}
+
+.tim-wb-arrow__mark {
+  position: absolute;
+  padding: 0 var(--tim-space-1);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-bg);
+  color: var(--tim-color-fg);
+  font-size: var(--tim-font-size-small);
+  pointer-events: none;
+}
+
+.tim-wb-arrow__mark--forbidden {
+  border-color: var(--tim-color-violation);
+  color: var(--tim-color-violation);
+}
+
+.tim-whiteboard .react-flow__edge-path.tim-wb-attach {
+  stroke: var(--tim-color-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+/* The resizer of a selected box or zone, in the focus colour. */
+.tim-whiteboard .tim-wb-resize {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--tim-color-bg);
+  background: var(--tim-color-focus);
+}
+
+.tim-whiteboard .tim-wb-resize-line {
+  border-color: var(--tim-color-focus);
+}
+
+/* The properties of the selected shape. */
+.tim-wb-props {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+  width: 16rem;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  padding: var(--tim-space-3);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+}
+
+.tim-wb-props__title {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: var(--tim-font-size);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-wb-props__id {
+  color: var(--tim-color-muted);
+  font-family: var(--tim-font-family-code);
+  font-weight: normal;
+}
+
+.tim-wb-props__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  min-width: 0;
+}
+
+.tim-wb-props__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tim-space-2);
+}
+
+.tim-wb-props__row > .tim-wb-props__field {
+  flex: 1;
+}
+
+.tim-wb-props__input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--tim-space-1) var(--tim-space-2);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-bg);
+  color: var(--tim-color-fg);
+  font: inherit;
+}
+
+.tim-wb-props__input:focus-visible,
+.tim-wb-props__policy input:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 1px;
+}
+
+.tim-wb-props__policy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: 0;
+  padding: var(--tim-space-2);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+}
+
+.tim-wb-props__ends {
+  margin: 0;
+}

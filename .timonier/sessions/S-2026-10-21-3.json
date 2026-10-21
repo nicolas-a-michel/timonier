@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-3",
+  "agent": "claude-code",
+  "objective": "7.6: the map's « compare with the intent » option: drawn components marked, missing ones listed, forbidden edges crossed and required edges missing flagged, from the daemon's drift",
+  "tasks": [
+    "T-91"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T07:23:27Z",
+  "ended_at": "2026-10-21T07:36:02Z",
+  "snapshots": {
+    "start": 25,
+    "end": 26
+  },
+  "summary": "7.6 done: the map's « Compare with the intent » toggle and palette command; daemon intent/drift (drift, drawn names, ancestors of cited boxes); extension DriftFeed refreshing 500 ms after each revision and intent.json change; map banner (tone, counts, missing, forbidden crossings with dependencies, required missing, open whiteboard), « Drawn: … » / « Holds drawn: … » badges on the item that shows a box, forbidden crossings thicker with the word and in the legend. Found by the integration test and fixed: an empty whiteboard counts as nothing drawn (map and MCP tools). All checks green. ADR 0042 proposed. Next: 7.7 phase review.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Drift view and intent/drift in the daemon; DriftFeed in the extension; map marks, banner, legend, toggle and palette command; empty whiteboard = nothing drawn",
+      "task": "T-91",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Tests: graph + intent fixture, daemon, vitest marks, node:test feed, Playwright a11y, VSCode integration; ADR 0042, PLAN, README",
+      "task": "T-91",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 30,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

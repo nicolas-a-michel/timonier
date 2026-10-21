@@ -19,5 +19,9 @@
   "{0} files to read again": "{0} fichiers à relire",
   "untracked": "non suivi",
   "cycle added": "cycle ajouté",
-  "This project is not set up for your agents": "Ce projet n'est pas configuré pour vos agents"
+  "This project is not set up for your agents": "Ce projet n'est pas configuré pour vos agents",
+  "Timonier whiteboard": "Tableau blanc de Timonier",
+  "Timonier could not open the whiteboard: {0}": "Timonier n'a pas pu ouvrir le tableau blanc : {0}",
+  "Open the whiteboard first: « Timonier: Open the Whiteboard ».": "Ouvrez d'abord le tableau blanc : « Timonier : Ouvrir le tableau blanc ».",
+  "the daemon is not running": "le démon ne tourne pas"
 }

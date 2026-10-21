@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-9",
+  "agent": "claude-code",
+  "objective": "7.3: .timonier/intent.json version 1 (semantics apart from geometry, stable ids, stable order, JSON schema), saved on its own after each gesture (Q66), read back by the whiteboard; empty whiteboard created by init",
+  "tasks": [
+    "T-88"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-20T17:11:21Z",
+  "ended_at": "2026-10-20T17:27:43Z",
+  "snapshots": {
+    "start": 19,
+    "end": 20
+  },
+  "summary": "7.3 done: .timonier/intent.json v1 in timonier-core (types, check, stable order, points on one line, JSON schema, TS types), daemon intent/read and intent/write (protocol 9), extension IntentKeeper saving 250 ms after each gesture (Q66), retrying without daemon, flushing on close, reloading the page on outside changes; unreadable file not overwritten. init writes an empty whiteboard (Q57), uninit takes it back while empty. Tests: Rust core 5, daemon 1, CLI init 1; vitest 4; node:test 8; Playwright 16; VSCode integration (a box reaches intent.json via the real daemon). ADR 0039 proposed, ADR 0037 updated. timonier reinstalled. Next: 7.4 freehand interpretation (Q6).",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "intent.json format in timonier-core: types, check, stable order and layout, schema, TypeScript",
+      "task": "T-88",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Daemon intent/read and intent/write; extension keeper (save after each gesture, retry, flush, external change); page wiring",
+      "task": "T-88",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "init writes the empty whiteboard, uninit takes it back while empty; tests at every level; ADR 0039, PLAN Q66, README",
+      "task": "T-88",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 25,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

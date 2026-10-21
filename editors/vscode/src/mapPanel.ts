@@ -2,10 +2,11 @@ import { readFileSync } from "node:fs";
 
 import * as vscode from "vscode";
 
+import { DriftFeed } from "./driftFeed";
 import { webviewEntry, type WebviewEntry } from "./viteManifest";
 import { densityOf, onPageMessage, onSettingsChange, type MapHostActions } from "./mapHost";
 import { ViewRelay, type DaemonSource, type PinStore, type Rendered } from "./viewRelay";
-import type { Density, MapCommand, Span } from "./protocol/generated";
+import { METHODS, type Density, type DriftView, type MapCommand, type Span } from "./protocol/generated";
 import { createNonce, renderWebviewHtml } from "./webviewHtml";
 
 export const MAP_VIEW_TYPE = "timonier.map";
@@ -26,6 +27,7 @@ export class MapPanel {
     log: vscode.LogOutputChannel,
     openCode?: (file: string, span: Span | null) => Promise<unknown>,
     pins?: PinStore,
+    root?: string,
   ): void {
     if (MapPanel.current) {
       MapPanel.current.panel.reveal();
@@ -43,12 +45,17 @@ export class MapPanel {
         localResourceRoots: [webviewRoot],
       },
     );
-    MapPanel.current = new MapPanel(panel, webviewRoot, entry, daemon, log, openCode, pins);
+    MapPanel.current = new MapPanel(panel, webviewRoot, entry, daemon, log, openCode, pins, root);
   }
 
   /** Resolves once the open map's webview has rendered; undefined when no map is open. */
   static whenReady(): Promise<void> | undefined {
     return MapPanel.current?.ready;
+  }
+
+  /** The drift the open map was last given, while it compares with the whiteboard (ADR 0042). */
+  static drift(): DriftView | null | undefined {
+    return MapPanel.current?.drift.last;
   }
 
   /** What the open map's webview last said it shows. */
@@ -72,6 +79,7 @@ export class MapPanel {
 
   private readonly ready: Promise<void>;
   private readonly relay: ViewRelay;
+  private readonly drift: DriftFeed;
 
   private constructor(
     private readonly panel: vscode.WebviewPanel,
@@ -81,9 +89,27 @@ export class MapPanel {
     log: vscode.LogOutputChannel,
     openCode?: (file: string, span: Span | null) => Promise<unknown>,
     pins?: PinStore,
+    root?: string,
   ) {
     const webview = panel.webview;
     this.relay = new ViewRelay(daemon, (message) => webview.postMessage(message), log, openCode, pins);
+    // The map compared with the whiteboard (ADR 0042): the drift, again after each change of the
+    // code the map shows, and of `intent.json`.
+    this.drift = new DriftFeed({
+      fetch: () => {
+        if (!daemon.client) return Promise.reject(new Error("the daemon is not running"));
+        return daemon.client.sendRequest<DriftView>(METHODS.INTENT_DRIFT);
+      },
+      post: (message) => webview.postMessage(message),
+    });
+    const rendered = this.relay.onDidRender(() => this.drift.changed());
+    const whiteboard = root
+      ? vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, ".timonier/intent.json"))
+      : undefined;
+    const drawn = () => this.drift.changed();
+    whiteboard?.onDidChange(drawn);
+    whiteboard?.onDidCreate(drawn);
+    whiteboard?.onDidDelete(drawn);
     let announceReady: () => void = () => undefined;
     this.ready = new Promise((resolve) => (announceReady = resolve));
     const actions: MapHostActions = {
@@ -91,6 +117,8 @@ export class MapPanel {
       density: mapDensity,
       ready: () => announceReady(),
       markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
+      compareIntent: (on) => this.drift.compare(on),
+      openWhiteboard: () => vscode.commands.executeCommand("timonier.openWhiteboard"),
       relay: (message) => this.relay.receive(message),
     };
     const messages = webview.onDidReceiveMessage((message: unknown) => onPageMessage(message, actions));
@@ -105,12 +133,19 @@ export class MapPanel {
     });
     // Hidden, the panel loses its page (no `retainContextWhenHidden`): it reloads when shown.
     const visibility = panel.onDidChangeViewState(({ webviewPanel }) => {
-      if (!webviewPanel.visible) this.relay.unloaded();
+      if (!webviewPanel.visible) {
+        this.relay.unloaded();
+        // The new page says again whether it compares.
+        void this.drift.compare(false);
+      }
     });
     const settings = vscode.workspace.onDidChangeConfiguration((event) =>
       onSettingsChange((section) => event.affectsConfiguration(section), actions),
     );
     panel.onDidDispose(() => {
+      this.drift.dispose();
+      rendered.dispose();
+      whiteboard?.dispose();
       settings.dispose();
       visibility.dispose();
       messages.dispose();

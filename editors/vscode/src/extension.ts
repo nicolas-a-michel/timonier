@@ -14,10 +14,13 @@ import {
   type Pin,
   type ReviewMark,
   type TrackingSnapshot,
+  type DriftView,
+  type WhiteboardCommand,
 } from "./protocol/generated";
 import { TrackingRelay, type TrackingSource } from "./trackingRelay";
 import { registerTrackingViews } from "./trackingViews";
 import type { DaemonSource, Rendered } from "./viewRelay";
+import { WhiteboardPanel } from "./whiteboardPanel";
 
 /** What `activate` exports. Only the integration tests use it for now. */
 export interface TimonierApi {
@@ -41,6 +44,12 @@ export interface TimonierApi {
   bridgeBadge(): number | undefined;
   /** The revision a panel of the tracking last said it shows; undefined before its page. */
   trackingShown(panel: string): number | undefined;
+  /** The drift the open map was last given (ADR 0042): for the tests. */
+  mapDrift(): DriftView | null | undefined;
+  /** Resolves once the open whiteboard's page has rendered; undefined when none is open. */
+  whenWhiteboardReady(): Promise<void> | undefined;
+  /** A command for the open whiteboard, as the palette sends them: for the tests. */
+  whiteboardCommand(command: WhiteboardCommand): Promise<boolean>;
 }
 
 /** Where the workspace state keeps the boxes moved by hand on the map (ADR 0021). */
@@ -106,7 +115,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       try {
         const openCode = (file: string, span: Parameters<typeof revealCode>[2]) =>
           root ? revealCode(root, file, span) : Promise.resolve(undefined);
-        MapPanel.show(context.extensionUri, daemon, log, openCode, pins);
+        MapPanel.show(context.extensionUri, daemon, log, openCode, pins, root);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the map: {0}", reason));
@@ -216,11 +225,47 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         ["timonier.map.onlyChanges", { name: "toggleChanges" }],
         ["timonier.map.reviewDetails", { name: "toggleReviewDetails" }],
         ["timonier.map.reviewDebt", { name: "toggleDebt" }],
+        ["timonier.map.compareIntent", { name: "toggleIntent" }],
       ] as const
     ).map(([id, command]) =>
       vscode.commands.registerCommand(id, async () => {
         if (!(await MapPanel.command(command))) {
           void vscode.window.showInformationMessage(vscode.l10n.t("Open the map first: « Timonier: Open Map »."));
+        }
+      }),
+    ),
+    // The whiteboard (ADR 0036, 0037): one palette command for each of its actions.
+    vscode.commands.registerCommand("timonier.openWhiteboard", () => {
+      try {
+        WhiteboardPanel.show(context.extensionUri, daemon, root, log);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the whiteboard: {0}", reason));
+      }
+    }),
+    ...(
+      [
+        ["timonier.whiteboard.undo", { name: "undo" }],
+        ["timonier.whiteboard.redo", { name: "redo" }],
+        ["timonier.whiteboard.select", { name: "tool", tool: "select" }],
+        ["timonier.whiteboard.pen", { name: "tool", tool: "pen" }],
+        ["timonier.whiteboard.eraser", { name: "tool", tool: "eraser" }],
+        ["timonier.whiteboard.arrow", { name: "tool", tool: "arrow" }],
+        ["timonier.whiteboard.addBox", { name: "add", shape: "box" }],
+        ["timonier.whiteboard.addZone", { name: "add", shape: "zone" }],
+        ["timonier.whiteboard.addNote", { name: "add", shape: "note" }],
+        ["timonier.whiteboard.addBudget", { name: "add", shape: "budget" }],
+        ["timonier.whiteboard.deleteSelection", { name: "deleteSelection" }],
+        ["timonier.whiteboard.fitView", { name: "fitView" }],
+        ["timonier.whiteboard.zoomIn", { name: "zoomIn" }],
+        ["timonier.whiteboard.zoomOut", { name: "zoomOut" }],
+      ] as const
+    ).map(([id, command]) =>
+      vscode.commands.registerCommand(id, async () => {
+        if (!(await WhiteboardPanel.command(command))) {
+          void vscode.window.showInformationMessage(
+            vscode.l10n.t("Open the whiteboard first: « Timonier: Open the Whiteboard »."),
+          );
         }
       }),
     ),
@@ -238,6 +283,9 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     tracking: () => tracking.state,
     trackingShown: (panel) => tracking.shown(panel),
     bridgeBadge: () => bridgeBadge,
+    mapDrift: () => MapPanel.drift(),
+    whenWhiteboardReady: () => WhiteboardPanel.whenReady(),
+    whiteboardCommand: (command) => WhiteboardPanel.command(command),
     daemonRequest: async <T>(method: string, params: unknown) => {
       const client = daemon.client;
       if (!client) throw new Error("not connected to the daemon");

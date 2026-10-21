@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "S-2026-10-20-7",
+  "agent": "claude-code",
+  "objective": "7.1: the whiteboard in the webview (React Flow + perfect-freehand): freehand drawing, undo, keyboard, working in the production build of the panel",
+  "tasks": [
+    "T-86"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-20T16:12:39Z",
+  "ended_at": "2026-10-20T16:29:47Z",
+  "snapshots": {
+    "start": 15,
+    "end": 16
+  },
+  "summary": "7.1 done: whiteboard page (whiteboard.html, built apart), panel timonier.whiteboard, palette commands (HostMessage whiteboard, generated from Rust), strokes as React Flow nodes inked by perfect-freehand, select/pen/eraser tools, 200-step undo history, board kept in the webview state. Proven on the production build under the CSP with Playwright (12 tests incl. a11y in 6 themes) and a VSCode integration test (24 passing). Measured: 3,000 strokes load in 0.4 s, undo 100 ms. ADR 0037 proposed; PLAN, README, CLAUDE.md updated. GitHub CI on ae83bb7 is green; asked the user what failure they see. Next: 7.2 typed shapes.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Board model and undo history (pure modules, unit tests)",
+      "task": "T-86",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Whiteboard component: React Flow canvas, freehand tool with perfect-freehand, select/erase, keyboard shortcuts, toolbar",
+      "task": "T-86",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Third webview page whiteboard.html, built apart (--mode whiteboard), and the demo page",
+      "task": "T-86",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Extension: whiteboard panel, command, nls, .vscodeignore, build notices, unit and integration tests",
+      "task": "T-86",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "Playwright test on the production build under the webview CSP: draw, undo, keyboard; a11y in every theme",
+      "task": "T-86",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "PLAN.md 7.1 detail, CLAUDE.md map, README; all checks green",
+      "task": "T-86",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 21,
+    "added": [
+      {
+        "id": "pkg:npm/perfect-freehand",
+        "name": "perfect-freehand",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "tracking",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "pkg:npm/@timonier/webview",
+          "name": "@timonier/webview",
+          "within": null
+        },
+        "to": {
+          "id": "pkg:npm/timonier",
+          "name": "timonier",
+          "within": null
+        }
+      }
+    ],
+    "unlinked": []
+  }
+}

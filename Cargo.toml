@@ -50,6 +50,8 @@ ts-rs = "12.0.1"
 # MCP SDK and JSON schemas of the tools' inputs (ADR 0027), verified 2026-10-20.
 rmcp = { version = "3.5.1", default-features = false, features = ["server", "transport-io"] }
 schemars = "1.2.3"
+# Draws the whiteboard's sketch as a PNG for the agent's vision (ADR 0040).
+tiny-skia = "0.12.0"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

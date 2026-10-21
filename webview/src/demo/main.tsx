@@ -3,7 +3,8 @@
  * then /demo.html. `?theme=<name>` applies the variables VSCode gives a webview in that theme
  * (test/themes, captured by editors/vscode/scripts/capture-themes.mjs); `?locale=fr`, French;
  * `?map=timonier`, the map of a real repository (test/views); `&review=1`, with a review diff
- * (ADR 0024); `&density=compact`, the compact map (Q32).
+ * (ADR 0024); `&density=compact`, the compact map (Q32); `&intent=1`, compared with a
+ * whiteboard (ADR 0042).
  * The contrast tests (`npm run test:a11y`) read this page in every theme.
  */
 import { StrictMode } from "react";
@@ -108,6 +109,7 @@ void applyTheme(theme).then(async (names) => {
       review={params.get("review") === "1"}
       only={params.get("only") === "1"}
       debt={params.get("debt") === "1"}
+      intent={params.get("intent") === "1"}
       density={density}
       onRendered={ready}
     />

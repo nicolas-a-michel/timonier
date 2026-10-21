@@ -21,11 +21,11 @@ crew, here the agents, move the ship.
 ## Status
 
 **Early development, not released.** The MVP is planned in nine phases ([PLAN.md](PLAN.md)):
-phases 0 to 5 are done (up to the review diff on the map). Phase 6 is under way: the MCP tools,
-the plan, todo and session journal, the review debt, the bridge, `timonier init`, `uninit`
-and `doctor` work, and VSCode offers `init` in a project not set up; Timonier steering its own
-development comes next. Nothing is published on crates.io, npm or the VSCode Marketplace
-yet. It runs on Linux and macOS; Windows is not supported yet.
+phases 0 to 6 are done (up to the MCP tools, the tracking, the bridge and `timonier init`;
+Timonier now steers its own development). Phase 7 is under way: the whiteboard draws freehand
+and typed shapes, saved to `intent.json`, which agents read through MCP with how the code
+drifts from it, and the map compares the code with it. Nothing is published on crates.io, npm or
+the VSCode Marketplace yet. It runs on Linux and macOS; Windows is not supported yet.
 
 ## What works today
 
@@ -95,6 +95,12 @@ yet. It runs on Linux and macOS; Windows is not supported yet.
   Writes are structured operations, never whole files: a task follows its states (todo, in
   progress, blocked, done, dropped) and a forbidden transition is refused with what to do
   instead.
+- Intent tools: `get_intended_architecture` gives the architecture the developer drew (layers,
+  components, edges with their policy, notes, budgets, where each shape and stroke is) and an
+  image of the sketch for the agent's vision; `get_drift` compares the code with it: each drawn
+  component and the real package or component it stands for (by name, then place), the ones
+  missing, the forbidden edges the code crosses and the required ones it lacks. The agent reads
+  the whiteboard, never writes it.
 - The plan, the todo and the session journal are versioned JSON files in `.timonier/`
   (`plan.json`, `todo.json`, `sessions/`), their schemas in [docs/schemas](docs/schemas). Each
   session freezes the code graph at its start and end.
@@ -142,6 +148,14 @@ yet. It runs on Linux and macOS; Windows is not supported yet.
     « untracked »;
   - **density**: the `timonier.map.density` setting makes the map comfortable (the default) or
     compact, with smaller boxes and tighter gaps;
+  - **compare with the intent**: a toolbar toggle compares the map with the whiteboard. A banner
+    says how many drawn components the code has and lacks, the forbidden edges it crosses (with
+    the dependencies that cross them) and the required edges it lacks; a box that a drawn
+    component stands for carries a ringed tick in its title bar (a dashed ring when it holds one
+    deeper), its words in its tooltip, the details panel and for screen readers; a link that
+    crosses a forbidden edge takes the violation tone and the word « forbidden ». Drawn boxes are
+    matched to the code by name (case, spaces and dashes aside; a package whose name ends with
+    it), then by place;
   - keyboard navigation (Tab, arrow keys, Enter, Home, + and - to zoom) and a command-palette
     command for each action.
 - **The bridge**, the home view on the left, offers « Set up » (`timonier init` in a terminal)
@@ -157,6 +171,17 @@ yet. It runs on Linux and macOS; Windows is not supported yet.
   todo; the journal of sessions with their objective, tasks, components touched (live while the
   session is open), todo and summary. A file of `.timonier/` edited by hand shows too, and one
   that no longer reads is named.
+- **The whiteboard** (« Timonier: Open the Whiteboard »), in its own editor tab: freehand
+  drawing with the mouse or a pen and an eraser, and typed shapes that count as constraints: a
+  box is an intended component (a name and what it does), a zone a layer (the boxes drawn
+  inside it are in it), an arrow a dependency that is allowed, forbidden or required, a note a
+  constraint in words, a budget note a limit (latency p50 and p95, peak memory, allocations,
+  calls). A properties panel sets what each shape says; everything works from the keyboard too
+  (V, P, E, B, Z, A, N and M pick the tools; Ctrl+Z and Ctrl+Shift+Z undo and redo), and every
+  action is a command of the palette. Every gesture is saved on its own to
+  `.timonier/intent.json`, the file the agents read (the meaning apart from the geometry, in a
+  stable order for readable git diffs); a change of that file outside the whiteboard, such as a
+  `git checkout`, shows on it. `timonier init` puts an empty whiteboard.
 - Follows the IDE theme, light, dark and high contrast. WCAG AA contrast is checked automatically
   with axe-core in six built-in VSCode themes. The interface is in English and French.
 
@@ -164,10 +189,6 @@ yet. It runs on Linux and macOS; Windows is not supported yet.
 
 From the [specification](docs/spec.md) and [PLAN.md](PLAN.md), in order:
 
-- **Timonier steering itself** (phase 6, in progress): its own plan and sessions kept through
-  the MCP tools.
-- **Whiteboard of the intended architecture** (phase 7): free drawing, with shapes that can be
-  typed as constraints, compared to the real architecture.
 - **Performance** (phase 8): `timonier test` wraps the test runner, collects OpenTelemetry traces
   and resource use, and checks performance budgets written on the whiteboard.
 - **End of the MVP** (phase 9): a real project steered end to end without reading the code line

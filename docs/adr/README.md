@@ -25,7 +25,7 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0018 | [Compaction des arêtes de symboles](0018-compaction-des-aretes-de-symboles.md) | Accepté | 3 |
 | 0019 | [Protocole entre le démon et l'extension](0019-protocole-demon-extension.md) | Accepté | 4 |
 | 0020 | [Système de design de la webview](0020-systeme-de-design.md) | Accepté | 4 |
-| 0021 | [Carte d'architecture : rôles, zoom sémantique, mise en page](0021-carte-d-architecture.md) | Accepté | 4 |
+| 0021 | [Carte d'architecture : rôles, zoom sémantique, mise en page](0021-carte-d-architecture.md) (complétée par la 0042) | Accepté | 4 |
 | 0022 | [Vérifier les usages et les dépendants par le serveur de langage](0022-verification-des-usages-par-le-lsp.md) | Accepté | 4 |
 | 0023 | [Suivre les fichiers d'exclusion](0023-fichiers-d-exclusion-suivis.md) | Accepté | 4 |
 | 0024 | [Diff de revue](0024-diff-de-revue.md) | Accepté | 5 |
@@ -40,3 +40,10 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0033 | [`timonier init` : détection, blocs délimités, hooks et `actual.json`](0033-timonier-init.md) | Accepté | 6 |
 | 0034 | [Packs de langage, volet init : runners de tests, JUnit XML et conventions](0034-packs-volet-init.md) | Accepté | 6 |
 | 0035 | [Les tâches dans `plan.json` : la bascule](0035-taches-dans-plan-json.md) | Accepté | 6 |
+| 0036 | [Le tableau blanc : React Flow et perfect-freehand, à la place de tldraw](0036-tableau-blanc-react-flow.md) | Accepté | 7 |
+| 0037 | [Le panneau du tableau blanc : une troisième page, ses commandes, son état](0037-panneau-du-tableau-blanc.md) | Accepté | 7 |
+| 0038 | [Les formes typées du tableau blanc](0038-formes-typees.md) | Accepté | 7 |
+| 0039 | [`.timonier/intent.json` : le format du tableau blanc et son enregistrement](0039-intent-json.md) (complète la 0019 : `daemon/shutdown` sans poignée de main) | Accepté | 7 |
+| 0040 | [Le dessin libre pour l'agent : une image et des emplacements](0040-croquis-pour-l-agent.md) | Accepté | 7 |
+| 0041 | [Les outils `get_intended_architecture` et `get_drift`, et l'ancrage](0041-outils-intention-et-derive.md) | Accepté | 7 |
+| 0042 | [La carte comparée à l'intention](0042-carte-comparee-a-l-intention.md) (complète la 0021) | Accepté | 7 |

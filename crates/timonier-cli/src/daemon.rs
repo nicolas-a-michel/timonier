@@ -89,6 +89,34 @@ fn connect(paths: &Paths) -> Option<Client> {
     connect_as(paths, CLIENT)
 }
 
+/// A daemon answers on the socket but refuses this client: another version (the program was
+/// installed again while it ran). Said, with what to do, rather than « does not start ».
+fn refused(paths: &Paths) -> Result<()> {
+    let Ok(mut client) = Client::connect(&paths.socket) else {
+        return Ok(());
+    };
+    client.set_timeout(Duration::from_secs(5));
+    match client.initialize(CLIENT) {
+        Err(timonier_daemon::ClientError::Rpc(error))
+            if error.code == timonier_core::protocol::errors::VERSION_REFUSED =>
+        {
+            bail!(
+                "a Timonier daemon of another version runs for {} ({}): stop it with `timonier \
+                 daemon stop`, then start again; a daemon older than this version cannot be \
+                 stopped this way: find its process with `pgrep -af \"daemon run --root\"` and \
+                 end it with `kill` and its number",
+                paths.root.display(),
+                error.message
+            )
+        }
+        Err(error) => bail!(
+            "a Timonier daemon answers for {} but not to this client: {error}",
+            paths.root.display()
+        ),
+        Ok(_) => Ok(()),
+    }
+}
+
 /// A client of the daemon that names itself `name` (the agent of the sessions it opens), if
 /// one answers.
 pub fn connect_as(paths: &Paths, name: &str) -> Option<Client> {
@@ -127,6 +155,7 @@ pub fn launch(paths: &Paths) -> Result<Launched> {
     if connect(paths).is_some() {
         return Ok(Launched::Running);
     }
+    refused(paths)?;
     // The runtime directory, closed to others, before the log goes in it.
     timonier_daemon::runtime::prepare_runtime(paths)?;
     let log = OpenOptions::new()
@@ -172,7 +201,13 @@ pub fn launch(paths: &Paths) -> Result<Launched> {
 }
 
 pub fn stop(paths: &Paths) -> Result<ExitCode> {
-    let Some(mut client) = connect(paths) else {
+    // A daemon of another version refuses the handshake, but stops when asked.
+    let client = connect(paths).or_else(|| {
+        let mut client = Client::connect(&paths.socket).ok()?;
+        client.set_timeout(Duration::from_secs(30));
+        Some(client)
+    });
+    let Some(mut client) = client.filter(|_| Lock::is_held(paths).unwrap_or(true)) else {
         println!("No Timonier daemon runs for {}.", paths.root.display());
         return Ok(ExitCode::SUCCESS);
     };
@@ -281,5 +316,59 @@ mod tests {
         std::fs::create_dir(inner.join(".timonier")).unwrap();
         assert_eq!(project_root(&deep), inner);
         assert_eq!(project_root(&outer), outer);
+    }
+
+    /// Review n° 4 of Phase 7, m-4: a daemon that refuses this version is said as such, with
+    /// how to stop it; another refusal is not taken for a version.
+    #[test]
+    fn a_daemon_of_another_version_is_said_as_such() {
+        use std::io::{BufRead, BufReader, Read, Write};
+        let refused_with = |code: i64| -> String {
+            let root = tempfile::tempdir().unwrap();
+            let runtime = tempfile::tempdir().unwrap();
+            let paths = Paths::in_runtime(root.path(), runtime.path()).unwrap();
+            let listener = std::os::unix::net::UnixListener::bind(&paths.socket).unwrap();
+            // A daemon that answers every request with this error.
+            let fake = std::thread::spawn(move || {
+                let (stream, _) = listener.accept().unwrap();
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut length = 0;
+                loop {
+                    let mut line = String::new();
+                    reader.read_line(&mut line).unwrap();
+                    if let Some(n) = line.strip_prefix("Content-Length: ") {
+                        length = n.trim().parse().unwrap();
+                    }
+                    if line == "\r\n" {
+                        break;
+                    }
+                }
+                let mut body = vec![0; length];
+                reader.read_exact(&mut body).unwrap();
+                let request: Value = serde_json::from_slice(&body).unwrap();
+                let answer = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": request["id"],
+                    "error": {"code": code, "message": "this daemon speaks protocol 8, the client 9"},
+                });
+                (&stream)
+                    .write_all(&timonier_core::rpc::frame(answer.to_string().as_bytes()))
+                    .unwrap();
+            });
+            let said = refused(&paths).unwrap_err().to_string();
+            fake.join().unwrap();
+            said
+        };
+        let version = refused_with(timonier_core::protocol::errors::VERSION_REFUSED);
+        assert!(version.contains("another version"), "{version}");
+        assert!(
+            version.contains("timonier daemon stop") && version.contains("pgrep"),
+            "{version}"
+        );
+        let other = refused_with(-32603);
+        assert!(
+            other.contains("not to this client") && !other.contains("another version"),
+            "{other}"
+        );
     }
 }

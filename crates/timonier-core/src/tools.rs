@@ -20,6 +20,17 @@ pub const TODO_COMPLETE: &str = "todo_complete";
 pub const GET_PLAN: &str = "get_plan";
 pub const GET_TODO: &str = "get_todo";
 pub const GET_SESSION: &str = "get_session";
+pub const GET_INTENDED_ARCHITECTURE: &str = "get_intended_architecture";
+pub const GET_DRIFT: &str = "get_drift";
+
+/// `get_intended_architecture` (ADR 0041): the image of the sketch comes unless declined.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GetIntendedArchitecture {
+    /// `false`: no image of the sketch, the structure and the places only.
+    #[serde(default)]
+    pub image: Option<bool>,
+}
 
 /// The schema of a tool's input: strict, its subschemas inline, without `$schema`.
 fn input_schema<T: JsonSchema>() -> Value {
@@ -102,6 +113,23 @@ pub fn catalogue() -> Vec<Value> {
             "Read a session of the journal: the open one, or the one given.",
             true,
         ),
+        tool::<GetIntendedArchitecture>(
+            GET_INTENDED_ARCHITECTURE,
+            "Read the architecture the developer wants, from their whiteboard: layers, intended \
+             components (name, layer, role), edges with their policy (allowed, forbidden, \
+             required; between layers they hold for all their content), notes and performance \
+             budgets, where each shape and freehand stroke is drawn, and an image of the sketch \
+             for the freehand drawing. Read it before designing or changing the structure.",
+            true,
+        ),
+        tool::<NoArguments>(
+            GET_DRIFT,
+            "Compare the code with the developer's whiteboard: each drawn component and the real \
+             package or component it stands for (by name, then place), the drawn components the \
+             code lacks, the forbidden edges the code crosses with the dependencies that cross \
+             them, and the required edges it lacks. Check it after changing the structure.",
+            true,
+        ),
     ];
     tools.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
     tools
@@ -149,6 +177,36 @@ pub fn success(mailbox: Mailbox, summary: &str, result: Value) -> Value {
         "structuredContent": { "mailbox": mailbox, "result": result },
         "isError": false,
     })
+}
+
+/// A result with an image after its text (an MCP image content), for the agent's vision.
+pub fn with_image(mut result: Value, png: &[u8]) -> Value {
+    if let Some(content) = result["content"].as_array_mut() {
+        content.push(json!({ "type": "image", "data": base64(png), "mimeType": "image/png" }));
+    }
+    result
+}
+
+/// Standard base64 with padding (RFC 4648, § 4), as MCP carries images.
+pub fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(char::from(ALPHABET[(n >> (18 - 6 * i)) as usize & 63]));
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
 }
 
 /// A refused call: the header, a stable code and what to do.
@@ -242,6 +300,31 @@ mod tests {
             priority: Some(Priority::High),
         };
         assert_eq!(urgent.line(), "Mailbox: 2 unread, highest priority high.");
+    }
+
+    #[test]
+    fn images_go_after_the_text_in_base64() {
+        // RFC 4648, § 10.
+        for (bytes, encoded) in [
+            ("", ""),
+            ("f", "Zg=="),
+            ("fo", "Zm8="),
+            ("foo", "Zm9v"),
+            ("foob", "Zm9vYg=="),
+            ("fooba", "Zm9vYmE="),
+            ("foobar", "Zm9vYmFy"),
+        ] {
+            assert_eq!(base64(bytes.as_bytes()), encoded);
+        }
+        let result = with_image(
+            success(Mailbox::default(), "Drawn.", json!({})),
+            &[0xff, 0xd8],
+        );
+        assert_eq!(
+            result["content"][1],
+            json!({"type": "image", "data": "/9g=", "mimeType": "image/png"})
+        );
+        assert_eq!(result["content"][0]["type"], "text");
     }
 
     #[test]

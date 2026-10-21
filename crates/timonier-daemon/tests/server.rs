@@ -627,6 +627,82 @@ fn the_daemon_says_when_to_hold_an_agent_and_writes_the_actual_architecture() {
     assert!(!again.changed, "the same graph, the same file");
 }
 
+/// PLAN.md 7.3, ADR 0039 (Q66), on a real daemon: the whiteboard read and written, checked, in
+/// its one layout; a file that does not read says why, and is left as it is.
+#[test]
+fn the_daemon_reads_and_writes_the_whiteboard() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("vscode").unwrap();
+    let read = |client: &mut Client| -> Value {
+        client
+            .request(methods::INTENT_READ, &Value::Null)
+            .expect("answered")
+    };
+    assert_eq!(read(&mut client), json!({"intent": null, "problem": null}));
+
+    let intent = json!({
+        "version": 1,
+        "components": [
+            {"id": "C-2", "name": "Store", "layer": null, "role": ""},
+            {"id": "C-1", "name": "Parser", "layer": null, "role": "Turns tokens into a tree"}
+        ],
+        "edges": [{"id": "E-1", "src": "C-1", "dst": "C-2", "kind": "depends_on", "policy": "forbidden"}],
+        "sketch": {"shapes": {"C-1": {"x": 0, "y": 0, "width": 180, "height": 80}}}
+    });
+    let written: Value = client
+        .request(methods::INTENT_WRITE, &json!({ "intent": intent }))
+        .expect("written");
+    assert_eq!(written["changed"], true);
+    assert_eq!(
+        written["intent"]["components"][0]["id"], "C-1",
+        "in id order"
+    );
+    let text = std::fs::read_to_string(root.join(".timonier/intent.json")).unwrap();
+    assert!(text.starts_with("{\n  \"version\": 1,\n"), "{text}");
+    assert_eq!(read(&mut client)["intent"], written["intent"]);
+    let again: Value = client
+        .request(methods::INTENT_WRITE, &json!({ "intent": intent }))
+        .expect("written");
+    assert_eq!(
+        again["changed"], false,
+        "the same whiteboard, the same file"
+    );
+
+    // A whiteboard that does not hold together is refused, and the file stays.
+    let broken = json!({"version": 1, "edges": [{"id": "E-1", "src": "C-1", "dst": "C-9", "kind": "depends_on", "policy": "allowed"}]});
+    match client.request::<Value>(methods::INTENT_WRITE, &json!({ "intent": broken })) {
+        Err(ClientError::Rpc(error)) => {
+            assert!(error.message.contains("does not join"), "{error:?}")
+        }
+        other => panic!("not refused: {other:?}"),
+    }
+    assert_eq!(
+        std::fs::read_to_string(root.join(".timonier/intent.json")).unwrap(),
+        text
+    );
+
+    // The map's comparison (ADR 0042): the drawn names, and what the code lacks.
+    let drift: Value = client
+        .request(methods::INTENT_DRIFT, &Value::Null)
+        .expect("answered");
+    assert_eq!(drift["drawn"], true, "{drift}");
+    assert_eq!(drift["names"]["C-1"], "Parser");
+    assert_eq!(drift["drift"]["missing"], json!(["C-1", "C-2"]), "{drift}");
+
+    // Edited by hand into something that does not read: the reason, not a whiteboard.
+    std::fs::write(root.join(".timonier/intent.json"), "{ \"version\": 1, ").unwrap();
+    let problem = read(&mut client);
+    assert_eq!(problem["intent"], Value::Null);
+    assert!(
+        problem["problem"].as_str().unwrap().contains("intent.json"),
+        "{problem}"
+    );
+}
+
 /// PLAN.md 6.5, ADR 0030, on a real daemon: what a session writes is debt until a review; what
 /// changes with no session open is debt too, and untracked.
 #[test]
@@ -1046,6 +1122,27 @@ fn the_daemon_stops_after_a_while_without_clients() {
         "still running without clients"
     );
     assert!(!daemon.paths.socket.exists());
+}
+
+/// Review of Phase 7, m8: a client of another version, which the daemon refuses, can still stop
+/// it, so that the next start runs the version installed; nothing else goes before the handshake.
+#[test]
+fn a_client_of_another_version_can_stop_the_daemon() {
+    let repo = project();
+    let runtime = tempfile::tempdir().unwrap();
+    let mut daemon = Running::start(repo.path(), runtime.path(), Duration::from_secs(600));
+    let mut other = daemon.client();
+    let refused = other.request::<Value>(
+        methods::INITIALIZE,
+        &json!({"protocolVersion": PROTOCOL_VERSION + 1, "client": "timonier 9.9"}),
+    );
+    assert!(matches!(refused, Err(ClientError::Rpc(_))), "{refused:?}");
+    assert!(matches!(
+        other.request::<Value>(methods::STATUS, &Value::Null),
+        Err(ClientError::Rpc(_))
+    ));
+    let _: Value = other.request(methods::SHUTDOWN, &Value::Null).unwrap();
+    assert!(daemon.stopped(Duration::from_secs(20)));
 }
 
 #[test]

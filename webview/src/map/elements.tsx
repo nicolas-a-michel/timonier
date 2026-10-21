@@ -8,17 +8,21 @@ import {
   getBezierPath,
   Handle,
   Position,
+  ViewportPortal,
   type Edge,
   type EdgeProps,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
+import { useMemo } from "react";
 
 import { Badge, ComponentBox } from "../design/components";
-import { ChangeIcon, RoleIcon } from "../design/icons";
+import { ChangeIcon, IntentIcon, RoleIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
 import type { Density, NodeDebt, Role } from "../protocol";
 import { METRICS } from "./layout";
+import type { IntentMark } from "./intent";
+import { labelSpot, type Obstacle } from "./labelSpot";
 import { debtLevel, type MapBox, type MapEdge, type MapGroup } from "./mapModel";
 import { LinkBadge, primaryChange, ReviewBadge } from "./review";
 
@@ -62,7 +66,27 @@ function Ends({ y, sides }: { y: number; sides: Sides }) {
  * Out of the filter « only the changes »: drawn, but quieter (ADR 0024). `debt`: the layer of
  * the review debt is on (ADR 0030).
  */
-export type Quiet = { quiet: boolean; debt?: boolean };
+export type Quiet = { quiet: boolean; debt?: boolean; intent?: IntentMark };
+
+/**
+ * What a box says of the whiteboard (ADR 0042): an icon in its title bar, which always has room
+ * and stays at every zoom (review n° 3 of Phase 7, I-1); its words in its name, its tooltip and
+ * the details panel.
+ */
+function IntentFlag({ mark, locale }: { mark: IntentMark | undefined; locale: Locale }) {
+  if (!mark || (mark.drawn.length === 0 && mark.within.length === 0)) return null;
+  const t = messages[locale].intent;
+  const kind = mark.drawn.length > 0 ? "drawn" : "within";
+  const said = [
+    ...(mark.drawn.length > 0 ? [t.drawnBadge(mark.drawn.join(", "))] : []),
+    ...(mark.within.length > 0 ? [t.withinBadge(mark.within.join(", "))] : []),
+  ].join(" · ");
+  return (
+    <span className={`tim-intent-mark tim-intent-mark--${kind}`} data-contrast="icon" title={said} aria-hidden="true">
+      <IntentIcon kind={kind} />
+    </span>
+  );
+}
 
 /** The words of a review debt: how many files to read again, and whether some are untracked. */
 function DebtWords({ debt, locale, short }: { debt: NodeDebt; locale: Locale; short?: boolean }) {
@@ -123,6 +147,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
             ) : (
               <Changes count={group.changes} locale={locale} />
             )}
+            <IntentFlag mark={data.intent} locale={locale} />
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -147,6 +172,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
           ) : (
             <Changes count={group.changes} locale={locale} />
           )}
+          <IntentFlag mark={data.intent} locale={locale} />
         </div>
         <ul className="tim-map-role__members">
           {shown.map((member) => {
@@ -160,6 +186,22 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
                     <ChangeIcon kind={change} />
                   </span>
                 )}
+                {/* Holds a drawn component (ADR 0042): its icon in the list, as the changes are;
+                    the card's name says which member holds which, and the tooltip too. */}
+                {(() => {
+                  const holds = data.intent?.members.find((m) => m.id === member.id);
+                  return (
+                    holds && (
+                      <span
+                        className={`tim-map-role__change tim-intent-mark tim-intent-mark--${holds.drawn ? "drawn" : "within"}`}
+                        data-contrast="icon"
+                        title={(holds.drawn ? t.intent.drawnBadge : t.intent.withinBadge)(holds.names.join(", "))}
+                      >
+                        <IntentIcon kind={holds.drawn ? "drawn" : "within"} />
+                      </span>
+                    )
+                  );
+                })()}
               </li>
             );
           })}
@@ -196,6 +238,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
               {node.role ? t.roles[node.role] : t.noRole} · {t.items(node.children)}
             </span>
             {data.debt ? debt && <DebtWords debt={debt} locale={locale} short /> : flag}
+            <IntentFlag mark={data.intent} locale={locale} />
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -211,7 +254,14 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
         locale={locale}
         focusable={false}
         dimmed={quiet}
-        flag={data.debt ? undefined : flag}
+        flag={
+          (!data.debt && flag) || data.intent ? (
+            <>
+              {data.debt ? undefined : flag}
+              <IntentFlag mark={data.intent} locale={locale} />
+            </>
+          ) : undefined
+        }
         badges={box.folded ? <Badge tone="neutral" label={t.folded(node.children)} /> : undefined}
         debt={debt ? <DebtWords debt={debt} locale={locale} /> : undefined}
         debtLevel={debtLevel(debt)}
@@ -221,7 +271,17 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
   );
 }
 
-export type LineEdge = Edge<{ line: MapEdge; active: Role | "neutral" | null; locale: Locale } & Quiet, "line">;
+export type LineEdge = Edge<
+  {
+    line: MapEdge;
+    active: Role | "neutral" | null;
+    locale: Locale;
+    forbidden?: string[];
+    /** What the forbidden word may lie over, computed once per layout (labelSpot.ts). */
+    covering?: readonly Obstacle[];
+  } & Quiet,
+  "line"
+>;
 
 /**
  * An edge, a wire from the right of a box to the left of another: dashed and paler when
@@ -251,8 +311,17 @@ export function LineElement({
   const active = data?.active ?? null;
   const review = data?.line.review ?? null;
   const quiet = data?.quiet ?? false;
+  const forbidden = data?.forbidden ?? null;
+  const spot = useMemo(() => {
+    if (!forbidden || !data) return undefined;
+    const said = messages[data.locale].intent.forbiddenMark;
+    // The label's size, generous: the badge's icon, its word, the review's icon and the padding.
+    const size = { width: 48 + said.length * 8 + (review ? 24 : 0), height: 26 };
+    return labelSpot(path, data.covering ?? [], size);
+  }, [forbidden, data, review, path]);
   const classes = ["tim-edge", approximate ? "tim-edge--approximate" : "tim-edge--confirmed"];
-  if (review && !active) classes.push("tim-edge--review");
+  if (forbidden && !active) classes.push("tim-edge--forbidden");
+  else if (review && !active) classes.push("tim-edge--review");
   if (active) classes.push("tim-edge--active");
   if (quiet && !active) classes.push("tim-edge--quiet");
   return (
@@ -266,7 +335,31 @@ export function LineElement({
         // Quieted by the filter, it steps back: its contrast is no longer its job.
         data-contrast={quiet && !active ? undefined : "stroke"}
       />
-      {review && data && (
+      {forbidden && data && (
+        // Crossing a forbidden edge of the whiteboard (ADR 0042): the shape and the word, as on it,
+        // over the boxes (the viewport's portal comes after them), where they cover least
+        // (labelSpot): a word that a box would hide says nothing (review n° 6 of Phase 7).
+        <ViewportPortal>
+          <div
+            className="tim-edge-flag tim-edge-flag--forbidden nodrag nopan"
+            aria-hidden="true"
+            style={{
+              transform: `translate(-50%, -50%) translate(${spot?.x ?? labelX}px, ${spot?.y ?? labelY}px)`,
+            }}
+          >
+            <Badge tone="violation" label={messages[data.locale].intent.forbiddenMark} />
+            {/* New since the review too: both marks (review n° 3 of Phase 7, m-6); the review's as
+                its icon alone, so that the label stays narrow and clear of the boxes beside it
+                (review n° 5, m-1). Its words are in the line's name and the legend. */}
+            {review && (
+              <span className="tim-edge-flag__review" data-contrast="icon">
+                <ChangeIcon kind={review.cycle ? "cycle" : "added"} />
+              </span>
+            )}
+          </div>
+        </ViewportPortal>
+      )}
+      {review && !forbidden && data && (
         <EdgeLabelRenderer>
           <div
             className="tim-edge-flag nodrag nopan"

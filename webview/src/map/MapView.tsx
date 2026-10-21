@@ -21,12 +21,15 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { EdgeLegend, Toolbar } from "../design/components";
 import { ArrowIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
-import type { Density, MapCommand, NodeDebt, Role, Span } from "../protocol";
+import type { Density, DriftView, MapCommand, NodeDebt, Role, Span } from "../protocol";
 import type { ViewData } from "../viewModel";
 import { edgeTypes, nodeTypes, type BoxNode, type LineEdge, type RoleNode, type Sides } from "./elements";
-import { layout, ROOT, type Layout, type Pins } from "./layout";
+import { layout, METRICS, ROOT, type Layout, type Pins } from "./layout";
 import { changed, mapContent, toggleOf, type MapContent, type MapItem, type Toggle } from "./mapModel";
 import { directionOf, nearest, type Direction } from "./navigation";
+import { intentMarks, type IntentMark, type IntentMarks } from "./intent";
+import type { Obstacle } from "./labelSpot";
+import { IntentPanel } from "./intentPanel";
 import { reviewLines, ReviewSummaryPanel } from "./review";
 import { absolute } from "./stability";
 
@@ -63,6 +66,12 @@ export interface MapViewProps {
   onToggleDebt?: () => void;
   /** Open what leads to a box (ADR 0032): the host's state changes, the map centers it. */
   onReveal?: (target: string, path: string[]) => void;
+  /** The map compared with the whiteboard (ADR 0042), and the drift the host gave for it:
+   * `undefined` until it comes, `null` when it cannot. */
+  compareIntent?: boolean;
+  intent?: DriftView | null;
+  onToggleIntent?: () => void;
+  onOpenWhiteboard?: () => void;
 }
 
 /** The words of a review debt, for screen readers: as many files, and whether untracked. */
@@ -70,6 +79,19 @@ function debtLine(debt: NodeDebt | null, locale: Locale): string[] {
   if (!debt) return [];
   const t = messages[locale].review;
   return [`${t.debtFiles(debt.files)}${debt.untracked > 0 ? `, ${t.untracked}` : ""}.`];
+}
+
+/** What a box says of the whiteboard, for screen readers (ADR 0042); a role, member by member. */
+function intentLine(mark: IntentMark | undefined, locale: Locale): string[] {
+  if (!mark) return [];
+  const t = messages[locale].intent;
+  if (mark.members.length > 0) {
+    return mark.members.map((m) => `${m.name}: ${(m.drawn ? t.drawnBadge : t.withinBadge)(m.names.join(", "))}.`);
+  }
+  return [
+    ...(mark.drawn.length > 0 ? [`${t.drawnBadge(mark.drawn.join(", "))}.`] : []),
+    ...(mark.within.length > 0 ? [`${t.withinBadge(mark.within.join(", "))}.`] : []),
+  ];
 }
 
 /** Where the palette's commands come in; those that came before the map are kept in `pending`. */
@@ -125,6 +147,7 @@ function flowNodes(
   onlyChanges: boolean,
   density: Density,
   debt: boolean,
+  marks?: IntentMarks,
 ): Node[] {
   const nodes: Node[] = [];
   const ins = new Set(content.edges.map((edge) => edge.target));
@@ -142,6 +165,7 @@ function flowNodes(
       ariaLabel: [
         describe(item, locale).label,
         ...(debt ? debtLine(item.kind === "role" ? item.debt : item.node.debt, locale) : []),
+        ...intentLine(marks?.items.get(item.id), locale),
       ].join(" "),
       draggable: true,
       connectable: false,
@@ -154,14 +178,14 @@ function flowNodes(
       nodes.push({
         ...common,
         type: "role",
-        data: { group: item, locale, sides, quiet, density, debt },
+        data: { group: item, locale, sides, quiet, density, debt, intent: marks?.items.get(item.id) },
       } satisfies RoleNode);
     } else {
       nodes.push({
         ...common,
         type: "box",
         parentId: item.parent.startsWith("@role/") || placed.has(item.parent) ? item.parent : undefined,
-        data: { box: item, locale, sides, quiet, density, debt },
+        data: { box: item, locale, sides, quiet, density, debt, intent: marks?.items.get(item.id) },
       } satisfies BoxNode);
     }
   }
@@ -175,7 +199,13 @@ function wireColour(item: MapItem | undefined): Role | "neutral" | null {
 }
 
 /** The edges, as React Flow wants them: built once per layout. */
-function flowEdges(content: MapContent, locale: Locale, onlyChanges: boolean): LineEdge[] {
+function flowEdges(
+  content: MapContent,
+  locale: Locale,
+  onlyChanges: boolean,
+  marks?: IntentMarks,
+  covering?: readonly Obstacle[],
+): LineEdge[] {
   const t = messages[locale];
   const names = new Map(content.items.map((item) => [item.id, describe(item, locale).name]));
   return content.edges.map(
@@ -185,7 +215,14 @@ function flowEdges(content: MapContent, locale: Locale, onlyChanges: boolean): L
         source: line.source,
         target: line.target,
         type: "line",
-        data: { line, active: null, locale, quiet: onlyChanges && !line.review },
+        data: {
+          line,
+          active: null,
+          locale,
+          quiet: onlyChanges && !line.review,
+          forbidden: marks?.lines.get(line.id),
+          ...(marks?.lines.has(line.id) ? { covering } : {}),
+        },
         focusable: false,
         selectable: false,
         // Under every box: a line never crosses a box's text. Open frames have no fill.
@@ -199,6 +236,7 @@ function flowEdges(content: MapContent, locale: Locale, onlyChanges: boolean): L
           ),
           ...(line.review?.added ? [`${t.review.addedLong}.`] : []),
           ...(line.review?.cycle ? [`${t.review.cycleLong}.`] : []),
+          ...(marks?.lines.has(line.id) ? [t.intent.forbiddenLine((marks.lines.get(line.id) ?? []).join(", "))] : []),
         ].join(" "),
       }) satisfies LineEdge,
   );
@@ -241,6 +279,10 @@ function Canvas({
   showDebt = false,
   onToggleDebt,
   onReveal,
+  compareIntent = false,
+  intent,
+  onToggleIntent,
+  onOpenWhiteboard,
 }: MapViewProps) {
   // Before the first review there is nothing to highlight: the map shows as it is (Q27).
   const onlyChanges = filter && view.review.since !== null;
@@ -284,9 +326,14 @@ function Canvas({
       current = false;
     };
   }, [content, pins, density]);
+  // The map compared with the whiteboard: which item stands for which drawn component (ADR 0042).
+  const marks = useMemo(
+    () => (compareIntent && intent?.drawn && placed ? intentMarks(intent, placed.content, view) : undefined),
+    [compareIntent, intent, placed, view],
+  );
   const laidOut = useMemo(
-    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt) : []),
-    [placed, locale, onlyChanges, density, showDebt],
+    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt, marks) : []),
+    [placed, locale, onlyChanges, density, showDebt, marks],
   );
   const nodes = useMemo(
     () =>
@@ -327,9 +374,14 @@ function Canvas({
     () => (shownId ? placed?.content.items.find((item) => item.id === shownId) : undefined),
     [placed, shownId],
   );
+  // What a forbidden line's word may lie over, once per layout, not at each frame of a pan.
+  const covering = useMemo(
+    () => (placed && marks && marks.lines.size > 0 ? coveringOf(placed, density) : undefined),
+    [placed, marks, density],
+  );
   const allEdges = useMemo(
-    () => (placed ? flowEdges(placed.content, locale, onlyChanges) : []),
-    [placed, locale, onlyChanges],
+    () => (placed ? flowEdges(placed.content, locale, onlyChanges, marks, covering) : []),
+    [placed, locale, onlyChanges, marks, covering],
   );
   const edges = useMemo(() => withActive(allEdges, shownItem), [allEdges, shownItem]);
   const fitted = useRef(false);
@@ -458,6 +510,9 @@ function Canvas({
       case "toggleDebt":
         onToggleDebt?.();
         return;
+      case "toggleIntent":
+        onToggleIntent?.();
+        return;
     }
   };
   /** Pins boxes where they are now, relative to their container; the newest last. */
@@ -551,7 +606,10 @@ function Canvas({
     };
   });
   const details = shownId ? items.get(shownId) : undefined;
-  const described = details && describe(details, locale);
+  const described = details && {
+    ...describe(details, locale),
+    lines: [...describe(details, locale).lines, ...intentLine(marks?.items.get(details.id), locale)],
+  };
   const code = codeOf(shownId);
   return (
     <section
@@ -573,6 +631,9 @@ function Canvas({
         detailsOpen={reviewDetails}
         onToggleDetails={() => setReviewDetails(!reviewDetails)}
       />
+      {compareIntent && intent !== undefined && (
+        <IntentPanel view={intent} locale={locale} onOpenWhiteboard={onOpenWhiteboard} />
+      )}
       <div className="tim-map__flow">
         <ReactFlow
           nodes={nodes}
@@ -621,11 +682,19 @@ function Canvas({
                 ...(onToggleDebt
                   ? [{ id: "debt", label: t.review.debtLayer, pressed: showDebt, onSelect: onToggleDebt }]
                   : []),
+                ...(onToggleIntent
+                  ? [{ id: "intent", label: t.intent.layer, pressed: compareIntent, onSelect: onToggleIntent }]
+                  : []),
               ]}
             />
           </Panel>
           <Panel position="top-right">
-            <EdgeLegend locale={locale} changes={view.review.since !== null} debt={showDebt} />
+            <EdgeLegend
+              locale={locale}
+              changes={view.review.since !== null}
+              debt={showDebt}
+              intent={compareIntent && intent?.drawn === true}
+            />
           </Panel>
           {described && (
             <Panel position="bottom-left">
@@ -695,6 +764,27 @@ export function displayedFiles(content: MapContent): string[] {
 }
 
 /** Where each drawn item is on the map, for the arrow keys. */
+/** The height of a box's title bar (tim-box__header), on the board. */
+const BOX_HEADER = 32;
+
+/**
+ * What the word of a forbidden line may lie over (labelSpot.ts): a closed box or role card hides
+ * the line, its title bar most of all; an open frame shows what it holds, its title bar aside.
+ */
+function coveringOf(placed: { content: MapContent; layout: Layout }, density: Density): Obstacle[] {
+  const boxes = boxesOf(placed);
+  const obstacles: Obstacle[] = [];
+  for (const item of placed.content.items) {
+    const at = boxes.get(item.id);
+    if (!at) continue;
+    const metrics = METRICS[density];
+    const header = item.open ? metrics.containerHeader : item.kind === "role" ? metrics.role.header : BOX_HEADER;
+    obstacles.push({ ...at, height: Math.min(header, at.height), solid: true, title: true });
+    if (!item.open) obstacles.push({ ...at, solid: true, title: false });
+  }
+  return obstacles;
+}
+
 function boxesOf(placed: { content: MapContent; layout: Layout }) {
   const positions = absolute(placed.content, placed.layout);
   const boxes = new Map<string, { x: number; y: number; width: number; height: number }>();

@@ -54,6 +54,13 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
       return true;
     case "trackingShown":
       return PANELS.includes(message.panel as string) && isCount(message.revision);
+    case "compareIntent":
+      return typeof message.on === "boolean";
+    case "openWhiteboard":
+      return true;
+    case "intent":
+      // The board itself is checked by the daemon, the only one that writes the file.
+      return isObject(message.intent) && message.intent.version === 1;
     case "rendered":
       return isCount(message.subscription) && isCount(message.revision) && isCount(message.nodes);
     default:

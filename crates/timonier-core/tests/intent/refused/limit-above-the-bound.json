@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "budgets": [
+    {
+      "id": "N-1",
+      "attached_to": null,
+      "allocations": 1000000000001
+    }
+  ]
+}
