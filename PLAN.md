@@ -3830,6 +3830,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | typescript | 6.0.3 (7.0.2 existe) | Apache-2.0 | H11 |
 | eslint / typescript-eslint / prettier | 10.12.0 / 8.71.2 / 3.9.10 | MIT | |
 | @vscode/vsce / test-cli / test-electron | 4.0.0 / 0.0.15 / 3.1.0 | MIT | Node ≥ 22 |
+| serialize-javascript (forcé par `overrides`) | 7.1.2 | BSD-3-Clause | Vérifié le 2026-10-21. Mocha 11.8, par `@vscode/test-cli` 0.0.15 (sa dernière version), demande ^6.0.2, touché par GHSA-qj8w-gfj5-8c6v (haute) et GHSA-5c6j-r48x-rmvq ; la 7.1.2 (CommonJS, Node ≥ 20, celle de mocha 12) les corrige ; les 28 tests d'intégration passent. `npm ls` la dit « invalid » : faux positif de npm 11.16 sur un `overrides` dans un workspace. Reste `diff` (jsdiff, faible), outil de test aussi, laissé : il demanderait diff 8 à mocha 11 |
 | @types/vscode | 1.140.0 | MIT | VSCode stable : 1.141.2 |
 | @vscode-elements/elements | 2.5.1 | MIT | `@vscode/webview-ui-toolkit` est déprécié |
 | vscode-jsonrpc | 9.0.3 | MIT | Utilisé (ADR 0019) ; revérifié le 2026-10-16, sans dépendance |

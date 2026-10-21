@@ -507,7 +507,11 @@ fn the_home_folder_is_no_project() {
         .unwrap();
     let out = String::from_utf8_lossy(&status.stdout);
     assert!(
-        out.contains(&format!("Timonier init in {}", below.display())),
+        // Canonical: on macOS the temporary folders are under a link (`/var` → `/private/var`).
+        out.contains(&format!(
+            "Timonier init in {}",
+            below.canonicalize().unwrap().display()
+        )),
         "{out}"
     );
 }

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-32",
+  "agent": "claude-code",
+  "objective": "Corriger les deux alertes Dependabot sur serialize-javascript (outil de test, hors du .vsix), avant la publication.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T19:01:48Z",
+  "ended_at": "2026-10-21T19:07:05Z",
+  "snapshots": {
+    "start": 92,
+    "end": 93
+  },
+  "summary": "Dependabot's two alerts fixed: serialize-javascript forced to 7.1.2 by an npm override, lockfile changed for that entry only (randombytes gone); npm ci, 162 vitest, 93+27 node:test and the 28 VSCode integration tests pass. The low `diff` advisory left and recorded. Also fixed the macOS CI failure of the_home_folder_is_no_project (canonical temp path). Left: the rest of 9.7.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Forcer serialize-javascript 7.1.2 (overrides), vérifier npm ci, tests unitaires et d'intégration",
+      "task": "T-109",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 1,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}
