@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-29",
+  "agent": "claude-code",
+  "objective": "Vérifier le critère de 9.3 : une vraie session de Claude Code donne des tokens attribués.",
+  "tasks": [
+    "T-105"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T18:35:47Z",
+  "ended_at": "2026-10-21T18:36:10Z",
+  "snapshots": {
+    "start": 85,
+    "end": 86
+  },
+  "summary": "Criterion of 9.3 verified: this real Claude Code session's requests reached the agents' port and the stop hook attributed them to S-2026-10-21-29 (2 requests, 762k cache read, ≈ $0.18 estimated). T-105 done.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Constater que les requêtes de cette conversation arrivent sur le port 4319 et sont attribuées à la session",
+      "task": "T-105",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 4,
+    "input": 10,
+    "output": 1462,
+    "cache_read": 1527272,
+    "cache_creation": 3351,
+    "cost_usd_micros": 361542
+  }
+}

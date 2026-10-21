@@ -522,6 +522,18 @@ pub struct TrackingView {
     pub configured: bool,
 }
 
+/// `agent/stop`'s params: who stops (ADR 0058). Both optional: an older hook sends none.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStopParams {
+    /// The agent, as its hook names it (`claude`, `copilot`, `codex`).
+    #[serde(default)]
+    pub agent: Option<String>,
+    /// The agent's own session (Claude Code's `session_id`).
+    #[serde(default)]
+    pub agent_session: Option<String>,
+}
+
 /// `agent/stop`: a reason to hold the agent once, or none (ADR 0033, Q49).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -607,6 +619,17 @@ pub struct TaskView {
     pub status: TaskState,
     pub sessions: Vec<String>,
     pub notes: Vec<NoteView>,
+    /// The tokens of its sessions; `null`: not measured (ADR 0058).
+    pub usage: Option<TaskUsage>,
+}
+
+/// A task's tokens (ADR 0058): the sum of its sessions'.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskUsage {
+    pub tokens: crate::usage::TokenUsage,
+    /// A session of it served other tasks too: their tokens are in each one's sum.
+    pub shared: bool,
 }
 
 /// The states of a task (ADR 0029).
@@ -658,6 +681,8 @@ pub struct SessionView {
     pub changes: Option<SessionChanges>,
     /// The budgets the last runs exceeded when it ended (ADR 0052).
     pub budgets: Vec<String>,
+    /// The tokens its agent spent; `null`: not measured (ADR 0058).
+    pub usage: Option<crate::usage::TokenUsage>,
 }
 
 /// A tracking file that does not read (ADR 0029).
@@ -697,6 +722,28 @@ impl TrackingView {
         // The latest first: ids sort by date, then by number.
         sessions.sort_by(|a, b| session_order(b).cmp(&session_order(a)));
         let total = u32::try_from(sessions.len()).unwrap_or(u32::MAX);
+        // Each task's tokens, from every session of the journal (ADR 0058).
+        let mut task_usage: std::collections::HashMap<&str, TaskUsage> =
+            std::collections::HashMap::new();
+        for session in &sessions {
+            let Some(usage) = &session.usage else {
+                continue;
+            };
+            for task in &session.tasks {
+                let entry = task_usage
+                    .entry(task.as_str())
+                    .or_insert_with(|| TaskUsage {
+                        tokens: crate::usage::TokenUsage::default(),
+                        shared: false,
+                    });
+                entry.tokens.add(usage);
+                entry.shared |= session.tasks.len() > 1;
+            }
+        }
+        let task_usage: std::collections::HashMap<String, TaskUsage> = task_usage
+            .into_iter()
+            .map(|(task, usage)| (task.to_owned(), usage))
+            .collect();
         sessions.truncate(JOURNAL_LIMIT);
         let mut live = live;
         let sessions = sessions
@@ -723,6 +770,7 @@ impl TrackingView {
                     ended_at: session.ended_at,
                     summary: session.summary,
                     budgets: session.budgets,
+                    usage: session.usage,
                 }
             })
             .collect();
@@ -745,6 +793,7 @@ impl TrackingView {
                                 criterion: task.criterion.clone(),
                                 status: TaskState::from(task.status),
                                 sessions: task.sessions.clone(),
+                                usage: task_usage.get(&task.id).cloned(),
                                 notes: task
                                     .notes
                                     .iter()
@@ -1257,6 +1306,8 @@ pub fn typescript() -> String {
         MilestoneView::decl(&cfg),
         TodoItemView::decl(&cfg),
         SessionView::decl(&cfg),
+        crate::usage::TokenUsage::decl(&cfg),
+        TaskUsage::decl(&cfg),
         TrackingProblem::decl(&cfg),
         LookItem::decl(&cfg),
         TrackingView::decl(&cfg),
@@ -1398,6 +1449,8 @@ mod tests {
                 ..SessionChanges::default()
             }),
             budgets: Vec::new(),
+            agent_sessions: Vec::new(),
+            usage: None,
         }
     }
 

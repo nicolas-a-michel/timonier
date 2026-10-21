@@ -401,3 +401,18 @@ fn paths_through_a_symbolic_link_name_the_same_files() {
     let batch = indexer.refresh(&[other.join("web/src/main.tsx")]).unwrap();
     assert_eq!(batch.stats.removed, 1, "{:?}", scopes(&batch));
 }
+
+/// T-119: a whole indexing whose owner stops gives up its files, at once.
+#[test]
+fn a_whole_indexing_gives_up_when_cancelled() {
+    let dir = repository();
+    let mut indexer = indexer(dir.path());
+    indexer
+        .progress()
+        .cancelled
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(matches!(
+        indexer.index_all(&HashMap::new(), &[], None),
+        Err(timonier_index::Error::Cancelled)
+    ));
+}

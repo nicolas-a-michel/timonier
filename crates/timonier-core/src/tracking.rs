@@ -199,6 +199,13 @@ pub struct Session {
     /// The whiteboard's budgets the last runs exceeded when it ended, in words (ADR 0052).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub budgets: Vec<String>,
+    /// The agent's own sessions that worked in it (Claude Code's `session.id`), as its stop hook
+    /// says them (ADR 0058).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub agent_sessions: Vec<String>,
+    /// The tokens its agent spent while it was open; absent: not measured (ADR 0058).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage: Option<crate::usage::TokenUsage>,
 }
 
 /// What a session changed in the code, between its snapshots, as the review diff tells it

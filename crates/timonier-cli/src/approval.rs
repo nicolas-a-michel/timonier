@@ -24,14 +24,7 @@ fn folder() -> Option<PathBuf> {
     if let Some(data) = tests::DATA.with(|d| d.borrow().clone()) {
         return Some(data);
     }
-    let var = |name: &str| {
-        std::env::var_os(name)
-            .filter(|v| !v.is_empty())
-            .map(PathBuf::from)
-    };
-    var("TIMONIER_DATA_DIR")
-        .or_else(|| var("XDG_DATA_HOME").map(|d| d.join("timonier")))
-        .or_else(|| var("HOME").map(|h| h.join(".local").join("share").join("timonier")))
+    timonier_daemon::agents::data_dir()
 }
 
 fn key(root: &Path, command: &str) -> String {

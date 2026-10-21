@@ -12,6 +12,7 @@ publish.workspace = true
 [dependencies]
 timonier-core = { workspace = true }
 axum = { workspace = true }
+flate2 = { workspace = true }
 opentelemetry-proto = { workspace = true }
 prost = { workspace = true }
 serde = { workspace = true }

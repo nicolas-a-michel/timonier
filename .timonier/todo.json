@@ -1,42 +1,4 @@
 {
   "version": 1,
-  "session": "S-2026-10-21-27",
-  "items": [
-    {
-      "id": "D-1",
-      "text": "Lire le code du daemon : watcher, pipeline, store (pragmas sqlite, connexions), cache d'extraction, vues",
-      "task": "T-119",
-      "status": "open"
-    },
-    {
-      "id": "D-2",
-      "text": "Mesurer la baseline : CPU idle, RSS, temps d'indexation, I/O (relay __measure + /proc)",
-      "task": "T-119",
-      "status": "open"
-    },
-    {
-      "id": "D-3",
-      "text": "Identifier et implémenter les optimisations (runtime tokio, sqlite, cache, watcher)",
-      "task": "T-119",
-      "status": "open"
-    },
-    {
-      "id": "D-4",
-      "text": "Vérifier : cargo test workspace, clippy, re-mesure, écarts",
-      "task": "T-119",
-      "status": "open"
-    },
-    {
-      "id": "D-5",
-      "text": "timonier test --runs auto + get_regressions si possible",
-      "task": "T-119",
-      "status": "open"
-    },
-    {
-      "id": "D-6",
-      "text": "session_end avec résumé",
-      "task": "T-119",
-      "status": "open"
-    }
-  ]
+  "items": []
 }

@@ -6,9 +6,170 @@
   "tasks": [
     "T-119"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-21T17:44:40Z",
+  "ended_at": "2026-10-21T18:07:51Z",
   "snapshots": {
-    "start": 79
+    "start": 79,
+    "end": 82
+  },
+  "summary": "Interrupted: the agent vibe-perf-audit was stopped by the human before the end; session closed for it by another agent (Claude), at the human's word. Done: D-1 (read the daemon's code), D-2 (baseline measured; its figures were not recorded here). Left, for T-119: D-3 optimisations, D-4 checks, D-5 timonier test --runs auto and get_regressions, D-6/D-7. No file of the repository was changed by this session.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Lire le code du daemon : watcher, pipeline, store (pragmas sqlite, connexions), cache d'extraction, vues",
+      "task": "T-119",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Mesurer la baseline : CPU idle, RSS, temps d'indexation, I/O (relay __measure + /proc)",
+      "task": "T-119",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Identifier et implémenter les optimisations (runtime tokio, sqlite, cache, watcher)",
+      "task": "T-119",
+      "status": "open"
+    },
+    {
+      "id": "D-4",
+      "text": "Vérifier : cargo test workspace, clippy, re-mesure, écarts",
+      "task": "T-119",
+      "status": "open"
+    },
+    {
+      "id": "D-5",
+      "text": "timonier test --runs auto + get_regressions si possible",
+      "task": "T-119",
+      "status": "open"
+    },
+    {
+      "id": "D-6",
+      "text": "session_end avec résumé",
+      "task": "T-119",
+      "status": "open"
+    },
+    {
+      "id": "D-7",
+      "text": "Implémenter O1-O4 (tokio 2 workers, rayon cap 8, cache paresseux, content_hashes batché)",
+      "task": "T-119",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 25,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/webview/src/performance",
+        "name": "performance",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/whiteboard",
+        "name": "whiteboard",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
   }
 }

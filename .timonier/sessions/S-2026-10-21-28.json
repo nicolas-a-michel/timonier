@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-28",
+  "agent": "claude-code",
+  "objective": "Réparer le test instable de la CI (ETXTBSY sur le faux gh), inscrire la Phase 10 (Q86) au plan, puis 9.3 Coût de l'IA (Q7, Q85).",
+  "tasks": [
+    "T-105",
+    "T-120",
+    "T-121",
+    "T-122",
+    "T-123",
+    "T-124"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T18:07:58Z",
+  "ended_at": "2026-10-21T18:32:25Z",
+  "snapshots": {
+    "start": 83,
+    "end": 84
+  },
+  "summary": "Done: the forge test no longer races on ETXTBSY (fake gh probed before use); Phase 10 (Q86) in the plan, T-120 to T-124; 9.3 built (ADR 0058, Q85): Claude Code's api_request events on the machine's port 4319, kept in the data folder by the daemon of a registered project, attributed at agent/stop to the Claude sessions open or ended since, usage in the journal and per task, shown in the panel; init writes the four variables in ~/.claude/settings.json after agreement, uninit takes them back with the last project; the stop hook no longer holds Claude over another agent's session. All checks green (577 Rust, 162 vitest, 93+27 node:test, 185 a11y). Left (D-4): the criterion, a real Claude Code session after `tim init` and a restart, giving attributed tokens; T-105 stays in progress.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Réparer le test forge instable sur Ubuntu (ETXTBSY du faux gh)",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Inscrire la Phase 10 et ses cinq tâches au plan (Q86)",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "9.3 : récepteur, spool, attribution, init/uninit, panneau, tests, docs",
+      "task": "T-105",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Critère 9.3 : une vraie session de Claude Code (relancé après tim init) donne des tokens attribués",
+      "task": "T-105",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 27,
+    "added": [
+      {
+        "id": "pkg:cargo/flate2",
+        "name": "flate2",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+        "name": "lib",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ]
+}

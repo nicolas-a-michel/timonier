@@ -236,3 +236,110 @@ fn a_taken_port_gives_way_to_one_of_the_system_s_choice() {
     assert_eq!(receiver.endpoint(), format!("http://{}", receiver.http()));
     rt.block_on(receiver.stop());
 }
+
+#[derive(Default)]
+struct Requests(Mutex<Vec<(String, timonier_core::usage::AgentRequest)>>);
+
+impl timonier_otlp::AgentSink for Requests {
+    fn requests(&self, requests: Vec<(String, timonier_core::usage::AgentRequest)>) {
+        self.0.lock().expect("not poisoned").extend(requests);
+    }
+}
+
+/// One `claude_code.api_request` event, as Claude Code's exporter sends it.
+fn api_request(session: &str, input: i64) -> Vec<u8> {
+    use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
+    use opentelemetry_proto::tonic::logs::v1::{LogRecord, ResourceLogs, ScopeLogs};
+    let text = |value: &str| AnyValue {
+        value: Some(any_value::Value::StringValue(value.to_owned())),
+    };
+    let attribute = |key: &str, value: AnyValue| ProtoKeyValue {
+        key: key.to_owned(),
+        value: Some(value),
+        ..ProtoKeyValue::default()
+    };
+    ExportLogsServiceRequest {
+        resource_logs: vec![ResourceLogs {
+            scope_logs: vec![ScopeLogs {
+                log_records: vec![LogRecord {
+                    time_unix_nano: 1_792_606_078_000_000_000,
+                    body: Some(text("claude_code.api_request")),
+                    attributes: vec![
+                        attribute("session.id", text(session)),
+                        attribute("model", text("claude-opus-5-5")),
+                        attribute(
+                            "input_tokens",
+                            AnyValue {
+                                value: Some(any_value::Value::IntValue(input)),
+                            },
+                        ),
+                    ],
+                    ..LogRecord::default()
+                }],
+                ..ScopeLogs::default()
+            }],
+            ..ResourceLogs::default()
+        }],
+    }
+    .encode_to_vec()
+}
+
+fn post_logs(address: std::net::SocketAddr, gzip: bool, body: &[u8]) -> String {
+    let body = if gzip {
+        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(body).expect("the test setup");
+        encoder.finish().expect("the test setup")
+    } else {
+        body.to_vec()
+    };
+    let mut stream = TcpStream::connect(address).expect("the test setup");
+    write!(
+        stream,
+        "POST /v1/logs HTTP/1.1\r\nHost: {address}\r\nContent-Type: application/x-protobuf\r\n{}\
+         Content-Length: {}\r\nConnection: close\r\n\r\n",
+        if gzip {
+            "Content-Encoding: gzip\r\n"
+        } else {
+            ""
+        },
+        body.len()
+    )
+    .expect("the test setup");
+    stream.write_all(&body).expect("the test setup");
+    let mut answer = String::new();
+    stream.read_to_string(&mut answer).ok();
+    answer
+}
+
+#[tokio::test]
+async fn the_agents_port_takes_claude_code_s_requests_plain_or_gzipped_and_stays_one_s() {
+    let kept = Arc::new(Requests::default());
+    let receiver = timonier_otlp::AgentReceiver::start(kept.clone(), 0)
+        .await
+        .unwrap();
+    let address = receiver.http();
+    let answers = tokio::task::spawn_blocking(move || {
+        [
+            post_logs(address, false, &api_request("s-1", 12)),
+            post_logs(address, true, &api_request("s-2", 7)),
+        ]
+    })
+    .await
+    .unwrap();
+    for answer in answers {
+        assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
+    }
+    let requests = kept.0.lock().unwrap().clone();
+    let sessions: Vec<(&str, u64)> = requests
+        .iter()
+        .map(|(s, r)| (s.as_str(), r.input))
+        .collect();
+    assert_eq!(sessions, [("s-1", 12), ("s-2", 7)]);
+    // Taken: a second daemon of the machine does not get it, and takes no other port.
+    let second = timonier_otlp::AgentReceiver::start(kept.clone(), address.port()).await;
+    assert_eq!(
+        second.err().map(|e| e.kind()),
+        Some(std::io::ErrorKind::AddrInUse)
+    );
+    receiver.stop().await;
+}

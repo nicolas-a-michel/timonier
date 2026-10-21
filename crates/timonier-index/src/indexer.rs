@@ -102,10 +102,12 @@ pub struct Indexer {
 }
 
 /// The files a whole indexing reads, and those read so far; shared with whoever shows it.
+/// `cancelled`: whoever owns the indexer stops, and the files not read yet are not (T-119).
 #[derive(Debug, Default)]
 pub struct Progress {
     pub done: std::sync::atomic::AtomicU32,
     pub total: std::sync::atomic::AtomicU32,
+    pub cancelled: std::sync::atomic::AtomicBool,
 }
 
 impl Indexer {
@@ -191,6 +193,12 @@ impl Indexer {
             .sources
             .par_iter()
             .map_init(Parser::new, |parser, path| {
+                if progress
+                    .cancelled
+                    .load(std::sync::atomic::Ordering::Relaxed)
+                {
+                    return Err(Error::Cancelled);
+                }
                 progress
                     .done
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

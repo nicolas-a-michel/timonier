@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-31",
+  "agent": "claude-code",
+  "objective": "9.8 Ressources du démon : mesurer la référence (CPU au repos, mémoire, indexation à froid, I/O), réduire le régime permanent et le démarrage, re-mesurer, sans régression.",
+  "tasks": [
+    "T-119"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T18:37:42Z",
+  "ended_at": "2026-10-21T18:59:57Z",
+  "snapshots": {
+    "start": 89,
+    "end": 90
+  },
+  "summary": "T-119 done. Baseline then fixes: threads 71 → 19 (tokio 4 workers, rayon 8 parse threads), peak RSS 116 → 80 MB, cold indexing CPU 2.4 → 1.47 s (wall 0.44 → 0.49 s), rest unchanged, saves p95 14.9 ms. Found: the home folder had been set up as a project, and a daemon indexed all of ~ at 1.3 cores and took 71 s to stop; ~ and / are never a project now (Paths, root search), a whole indexing gives up at shutdown. With the human's agreement, the home's setup was taken back with uninit (the telemetry variables kept). 580 Rust tests, clippy clean; new binary installed.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Mesurer la référence : CPU au repos, RSS, threads, indexation à froid, I/O, taille du cache",
+      "task": "T-119",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Trouver les coûts du régime permanent et du démarrage, et les réduire",
+      "task": "T-119",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Re-mesurer, tests et clippy, consigner dans PLAN.md",
+      "task": "T-119",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 8,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 48,
+    "input": 98,
+    "output": 28623,
+    "cache_read": 19823961,
+    "cache_creation": 49704,
+    "cost_usd_micros": 4935278
+  }
+}

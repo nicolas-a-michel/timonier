@@ -497,6 +497,8 @@ impl Tracker {
             todo: Vec::new(),
             changes: None,
             budgets: Vec::new(),
+            agent_sessions: Vec::new(),
+            usage: None,
         };
         if let Some(task) = &input.task {
             plan.note_session(task, &session.id);
@@ -605,11 +607,16 @@ impl Tracker {
     /// Why an agent that wants to stop should be held once (ADR 0033, Q49): an open session whose
     /// todo is empty or not done, or code changed since the last session with none open.
     /// `changed` gives the files changed since a snapshot (the first when `None`) to the head.
+    /// Claude is not held over the session of another agent: it cannot end it.
     pub fn stop_reason(
         &self,
+        agent: Option<&str>,
         changed: &dyn Fn(Option<u64>) -> crate::Result<Vec<String>>,
     ) -> Outcome<Option<String>> {
         if let Some(session) = self.open_session()? {
+            if agent == Some("claude") && !session.agent.starts_with("claude") {
+                return Ok(None);
+            }
             let todo = self.todo()?;
             let open = todo
                 .items
@@ -649,6 +656,56 @@ impl Tracker {
                 String::new()
             }
         )))
+    }
+
+    /// What an agent's stop says of its own session (ADR 0058): `agent_session` (Claude Code's
+    /// `session.id`) worked in the sessions of a Claude agent open now, or ended since `since_ms`;
+    /// they record it. Then the tokens of the sessions open, or ended in the last hour, are summed
+    /// again from `requests` (an agent session's requests), and written when they changed.
+    /// Returns how many sessions were written.
+    pub fn agent_stopped(
+        &self,
+        agent_session: &str,
+        since_ms: i64,
+        now_ms: i64,
+        requests: &dyn Fn(&str) -> Vec<timonier_core::usage::AgentRequest>,
+    ) -> Outcome<usize> {
+        use timonier_core::usage::{TokenUsage, parse_utc, within};
+        let mut written = 0;
+        for mut session in self.sessions() {
+            let ended = session.ended_at.as_deref().and_then(parse_utc);
+            let open = session.status == SessionStatus::Open;
+            let mut changed = false;
+            let claude = session.agent.starts_with("claude");
+            if claude
+                && (open || ended.is_some_and(|e| e >= since_ms))
+                && !session.agent_sessions.iter().any(|a| a == agent_session)
+            {
+                session.agent_sessions.push(agent_session.to_owned());
+                changed = true;
+            }
+            let recent = open || ended.is_some_and(|e| e >= now_ms - 3_600_000);
+            if recent && !session.agent_sessions.is_empty() {
+                let from = parse_utc(&session.started_at).unwrap_or(i64::MAX);
+                // The journal's times are to the second, cut down: its last second is whole.
+                let to = ended.map_or(now_ms, |e| e + 999);
+                let mut usage: Option<TokenUsage> = None;
+                for agent in &session.agent_sessions {
+                    if let Some(part) = within(&requests(agent), from, to) {
+                        usage.get_or_insert_with(TokenUsage::default).add(&part);
+                    }
+                }
+                if usage != session.usage {
+                    session.usage = usage;
+                    changed = true;
+                }
+            }
+            if changed {
+                self.write_session(&session)?;
+                written += 1;
+            }
+        }
+        Ok(written)
     }
 
     /// The open session: the one the todo belongs to, if its file says it is open.

@@ -2238,6 +2238,7 @@ dependencies = [
  "cyclonedx-bom",
  "ignore",
  "notify-debouncer-full",
+ "rayon",
  "rusqlite",
  "serde",
  "serde_json",
@@ -2292,6 +2293,7 @@ name = "timonier-otlp"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "flate2",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-proto",

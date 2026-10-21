@@ -10,6 +10,9 @@ use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
+use opentelemetry_proto::tonic::collector::logs::v1::{
+    ExportLogsServiceRequest, ExportLogsServiceResponse,
+};
 use opentelemetry_proto::tonic::collector::metrics::v1::metrics_service_server::{
     MetricsService, MetricsServiceServer,
 };
@@ -24,6 +27,7 @@ use opentelemetry_proto::tonic::collector::trace::v1::{
 };
 use prost::Message;
 use timonier_core::perf::{ReceivedMetric, ReceivedSpan};
+use timonier_core::usage::AgentRequest;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
 use tokio::task::JoinSet;
@@ -37,6 +41,11 @@ pub trait Sink: Send + Sync + 'static {
     /// (audit of 2026-10-21, finding 2); the sink drops what no run's token covers.
     fn spans(&self, token: Option<&str>, spans: Vec<ReceivedSpan>);
     fn metrics(&self, token: Option<&str>, metrics: Vec<ReceivedMetric>);
+}
+
+/// Where the agents' requests go (ADR 0058), with the agent's session; called off the runtime.
+pub trait AgentSink: Send + Sync + 'static {
+    fn requests(&self, requests: Vec<(String, AgentRequest)>);
 }
 
 /// The header that carries a run's token, in gRPC metadata or HTTP (`OTEL_EXPORTER_OTLP_HEADERS`).
@@ -105,6 +114,101 @@ impl Receiver {
         let _ = self.stop.send(true);
         while self.tasks.join_next().await.is_some() {}
     }
+}
+
+/// The receiver of the agents' telemetry on the machine's port (ADR 0058): OTLP logs over HTTP
+/// only. A port taken stays taken: another daemon of the machine holds it.
+pub struct AgentReceiver {
+    http: SocketAddr,
+    stop: watch::Sender<bool>,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl AgentReceiver {
+    pub async fn start(sink: Arc<dyn AgentSink>, port: u16) -> std::io::Result<Self> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await?;
+        let http = listener.local_addr()?;
+        let (stop, mut stopped) = watch::channel(false);
+        let router = agent_router(sink);
+        let task = tokio::spawn(async move {
+            let serving = axum::serve(listener, router).with_graceful_shutdown(async move {
+                let _ = stopped.wait_for(|stop| *stop).await;
+            });
+            if let Err(error) = serving.await {
+                tracing::warn!(%error, "the agents' OTLP receiver stopped");
+            }
+        });
+        tracing::info!(%http, "agents' OTLP receiver listening");
+        Ok(Self { http, stop, task })
+    }
+
+    pub fn http(&self) -> SocketAddr {
+        self.http
+    }
+
+    pub async fn stop(self) {
+        let _ = self.stop.send(true);
+        let _ = self.task.await;
+    }
+}
+
+fn agent_router(sink: Arc<dyn AgentSink>) -> axum::Router {
+    axum::Router::new()
+        .route(
+            "/v1/logs",
+            post(move |headers: HeaderMap, body: Bytes| {
+                let sink = Arc::clone(&sink);
+                async move {
+                    let body = match gunzip(&headers, body) {
+                        Ok(body) => body,
+                        Err(refused) => return refused.into_response(),
+                    };
+                    let encoding = match encoding(&headers_without_gzip(&headers)) {
+                        Ok(encoding) => encoding,
+                        Err(refused) => return refused.into_response(),
+                    };
+                    match decode::<ExportLogsServiceRequest>(encoding, &body) {
+                        Ok(request) => {
+                            let requests = decode::agent_requests(&request);
+                            if !requests.is_empty() {
+                                let _ =
+                                    tokio::task::spawn_blocking(move || sink.requests(requests))
+                                        .await;
+                            }
+                            answer(encoding, &ExportLogsServiceResponse::default())
+                        }
+                        Err(refused) => refused.into_response(),
+                    }
+                }
+            }),
+        )
+        .layer(DefaultBodyLimit::max(MESSAGE_BYTES))
+}
+
+/// The body, inflated when it came gzipped; at most [`MESSAGE_BYTES`] once inflated.
+fn gunzip(headers: &HeaderMap, body: Bytes) -> Result<Bytes, Refused> {
+    if headers
+        .get(header::CONTENT_ENCODING)
+        .is_none_or(|e| e != "gzip")
+    {
+        return Ok(body);
+    }
+    use std::io::Read;
+    let mut inflated = Vec::new();
+    flate2::read::GzDecoder::new(body.as_ref())
+        .take(MESSAGE_BYTES as u64 + 1)
+        .read_to_end(&mut inflated)
+        .map_err(|error| (StatusCode::BAD_REQUEST, error.to_string()))?;
+    if inflated.len() > MESSAGE_BYTES {
+        return Err((StatusCode::PAYLOAD_TOO_LARGE, "message too big".to_owned()));
+    }
+    Ok(Bytes::from(inflated))
+}
+
+fn headers_without_gzip(headers: &HeaderMap) -> HeaderMap {
+    let mut headers = headers.clone();
+    headers.remove(header::CONTENT_ENCODING);
+    headers
 }
 
 async fn bind(port: u16) -> std::io::Result<TcpListener> {

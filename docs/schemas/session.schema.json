@@ -8,6 +8,13 @@
       "description": "The MCP client that opened it (`claude-code`…).",
       "type": "string"
     },
+    "agent_sessions": {
+      "description": "The agent's own sessions that worked in it (Claude Code's `session.id`), as its stop hook\nsays them (ADR 0058).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "budgets": {
       "description": "The whiteboard's budgets the last runs exceeded when it ended, in words (ADR 0052).",
       "type": "array",
@@ -68,6 +75,17 @@
       "items": {
         "$ref": "#/$defs/TodoItem"
       }
+    },
+    "usage": {
+      "description": "The tokens its agent spent while it was open; absent: not measured (ADR 0058).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TokenUsage"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "version": {
       "type": "integer",
@@ -241,6 +259,55 @@
       "enum": [
         "open",
         "done"
+      ]
+    },
+    "TokenUsage": {
+      "description": "The tokens of a session, or of a task (ADR 0058). Absent where nothing was received: the views\nsay « not measured », never an estimate.",
+      "type": "object",
+      "properties": {
+        "cache_creation": {
+          "description": "Written to the prompt cache.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cache_read": {
+          "description": "Read from the prompt cache.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cost_usd_micros": {
+          "description": "The agent's estimate, in millionths of a dollar: an indication.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "input": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "output": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "requests": {
+          "description": "Requests to the model.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "requests",
+        "input",
+        "output",
+        "cache_read",
+        "cache_creation",
+        "cost_usd_micros"
       ]
     }
   }

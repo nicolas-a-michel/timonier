@@ -1971,7 +1971,7 @@ fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
     std::fs::write(
         &gh,
         format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1 $2\" in\n  \"issue create\") echo https://github.com/me/demo/issues/42 ;;\n  \"pr create\") echo https://github.com/me/demo/pull/7 ;;\nesac\n",
+            "#!/bin/sh\n[ \"$1\" = --probe ] && exit 0\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1 $2\" in\n  \"issue create\") echo https://github.com/me/demo/issues/42 ;;\n  \"pr create\") echo https://github.com/me/demo/pull/7 ;;\nesac\n",
             calls.display()
         ),
     )
@@ -1979,6 +1979,18 @@ fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
     {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    // Another test's fork can hold the script open for writing until it execs (ETXTBSY).
+    for _ in 0..100 {
+        match std::process::Command::new(&gh).arg("--probe").status() {
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy => {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            other => {
+                assert!(other.unwrap().success());
+                break;
+            }
+        }
     }
     git(
         remote.path(),
@@ -2140,4 +2152,134 @@ fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
 
     let _ = client.request::<Value>(methods::SHUTDOWN, &Value::Null);
     let _ = thread.join();
+}
+
+/// One `claude_code.api_request` event of Claude Code's session `session`, made at `at_ms`, in
+/// OTLP/JSON, posted to the agents' port; `false` while nothing listens there.
+fn post_api_request(port: u16, session: &str, at_ms: i64, input: u64) -> bool {
+    use std::io::{Read, Write};
+    let body = json!({"resourceLogs": [{"scopeLogs": [{"logRecords": [{
+        "timeUnixNano": format!("{}", at_ms * 1_000_000),
+        "body": {"stringValue": "claude_code.api_request"},
+        "attributes": [
+            {"key": "session.id", "value": {"stringValue": session}},
+            {"key": "model", "value": {"stringValue": "claude-opus-5-5"}},
+            {"key": "input_tokens", "value": {"intValue": input.to_string()}},
+            {"key": "output_tokens", "value": {"intValue": "100"}},
+            {"key": "cost_usd", "value": {"doubleValue": 0.01}}
+        ]
+    }]}]}]})
+    .to_string();
+    let Ok(mut stream) = std::net::TcpStream::connect(("127.0.0.1", port)) else {
+        return false;
+    };
+    write!(
+        stream,
+        "POST /v1/logs HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\n\
+         Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    )
+    .expect("the test setup");
+    let mut answer = String::new();
+    stream.read_to_string(&mut answer).ok();
+    answer.starts_with("HTTP/1.1 200")
+}
+
+/// PLAN.md 9.3, ADR 0058, on a real daemon: Claude Code's requests reach the agents' port, its
+/// stop hook names its session, and the Timonier session it worked in gets its tokens; a request
+/// made before the session started does not count. Claude is not held over another agent's
+/// session.
+#[test]
+fn claude_code_s_requests_give_the_session_its_tokens() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let port = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let mut options = Options::new(root);
+    options.runtime = Some(run_dir(runtime.path()));
+    options.signals = false;
+    options.agents = Some(timonier_daemon::server::AgentsOptions {
+        data: data.path().to_path_buf(),
+        port,
+    });
+    let daemon = Daemon::bind(options).unwrap().unwrap();
+    let paths = daemon.paths().clone();
+    let running = Running {
+        paths,
+        thread: Some(std::thread::spawn(move || daemon.run())),
+    };
+    let now = || {
+        i64::try_from(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+        )
+        .unwrap()
+    };
+    let stop = |client: &mut Client, params: Value| -> Option<String> {
+        let stop: AgentStop = client.request(methods::AGENT_STOP, &params).unwrap();
+        stop.reason
+    };
+
+    // Another agent's session: Claude cannot end it, and is not held over it.
+    let mut other = running.client();
+    other.initialize("other-agent").unwrap();
+    tool(&mut other, "session_start", json!({"objective": "Theirs"}));
+    assert!(stop(&mut other, Value::Null).is_some());
+    assert_eq!(stop(&mut other, json!({"agent": "claude"})), None);
+    tool(&mut other, "session_end", json!({"summary": "Done."}));
+
+    let mut client = running.client();
+    client.initialize("claude-code").unwrap();
+    // Seconds: the journal's times are to the second.
+    let before = now() - 5_000;
+    std::thread::sleep(Duration::from_millis(1100));
+    let session = tool(&mut client, "session_start", json!({"objective": "Cost"}));
+    let id = session["result"]["id"].as_str().unwrap().to_owned();
+    std::thread::sleep(Duration::from_millis(1100));
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !post_api_request(port, "cc-1", now(), 1200) {
+        assert!(Instant::now() < deadline, "the agents' port never listens");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(post_api_request(port, "cc-1", now(), 300));
+    assert!(post_api_request(port, "cc-1", before, 99_999));
+    // Another Claude Code session, which this project's hook never names.
+    assert!(post_api_request(port, "cc-elsewhere", now(), 5));
+    tool(&mut client, "todo_add", json!({"text": "Measure"}));
+    tool(&mut client, "todo_complete", json!({"item_id": "D-1"}));
+    tool(&mut client, "session_end", json!({"summary": "Measured."}));
+
+    assert_eq!(
+        stop(
+            &mut client,
+            json!({"agent": "claude", "agentSession": "cc-1"})
+        ),
+        None
+    );
+    let journal: Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join(format!(".timonier/sessions/{id}.json"))).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(journal["agent_sessions"], json!(["cc-1"]), "{journal}");
+    assert_eq!(
+        journal["usage"],
+        json!({"requests": 2, "input": 1500, "output": 200, "cache_read": 0,
+               "cache_creation": 0, "cost_usd_micros": 20_000}),
+        "{journal}"
+    );
+    // The other agent's session, ended before, is no Claude's.
+    let theirs = std::fs::read_dir(root.join(".timonier/sessions"))
+        .unwrap()
+        .flatten()
+        .map(|e| std::fs::read_to_string(e.path()).unwrap())
+        .find(|t| t.contains("Theirs"))
+        .unwrap();
+    assert!(!theirs.contains("cc-1"), "{theirs}");
 }

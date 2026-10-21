@@ -135,6 +135,55 @@ describe("the sessions panel", () => {
   });
 });
 
+describe("the AI cost (ADR 0058)", () => {
+  it("gives a session its tokens first, the dollars as the agent's estimate, or says not measured", () => {
+    const html = render("sessions");
+    expect(html).toContain(
+      "18.4K tokens in · 9.3K out · 1.3M from the cache · 42 requests · ≈ $1.87 (the agent&#x27;s estimate)",
+    );
+    expect(html).toContain("Not measured: no token count was received from the agent.");
+    expect(render("sessions", SAMPLE_TRACKING, "fr")).toContain("tokens en entrée");
+  });
+
+  it("gives a task the sum of its sessions, and says when they served other tasks", () => {
+    const tracking: TrackingView = {
+      ...EMPTY,
+      milestones: [
+        {
+          id: "M-1",
+          title: "Cost",
+          done: 0,
+          of: 1,
+          tasks: [
+            {
+              id: "T-1",
+              title: "Measure",
+              criterion: null,
+              status: "inProgress",
+              sessions: ["S-1"],
+              notes: [],
+              usage: {
+                tokens: {
+                  requests: 1,
+                  input: 1200,
+                  output: 300,
+                  cache_read: 0,
+                  cache_creation: 0,
+                  cost_usd_micros: 20_000,
+                },
+                shared: true,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const html = render("plan", tracking);
+    expect(html).toContain("1.2K tokens in · 300 out · 0 from the cache · 1 request · ≈ $0.02");
+    expect(html).toContain("counted with the other tasks of its sessions");
+  });
+});
+
 describe("the whole view (ADR 0031)", () => {
   it("holds the plan and the todo in one column, the sessions in the other, each under its heading", () => {
     const html = render("all");
@@ -273,6 +322,7 @@ describe("the milestone where the work is (review n° 2 of Phase 6)", () => {
       status,
       sessions: [],
       notes: [],
+      usage: null,
     })),
   });
 

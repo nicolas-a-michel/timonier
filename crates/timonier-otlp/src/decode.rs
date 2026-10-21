@@ -1,12 +1,14 @@
 //! From OTLP messages to what Timonier keeps (ADR 0048): the spans and metric points of the
 //! runs, their `code.*` attributes and their test. Pure.
 
+use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use opentelemetry_proto::tonic::collector::metrics::v1::ExportMetricsServiceRequest;
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 use opentelemetry_proto::tonic::common::v1::{AnyValue, KeyValue, any_value};
 use opentelemetry_proto::tonic::metrics::v1::{metric, number_data_point};
 use serde_json::{Map, Value};
 use timonier_core::perf::{CodeLocation, MetricKind, ReceivedMetric, ReceivedSpan, SpanStatus};
+use timonier_core::usage::AgentRequest;
 
 /// The attributes kept besides those read into fields, at most this many bytes of JSON.
 const ATTRIBUTES_BYTES: usize = 4 << 10;
@@ -239,6 +241,86 @@ pub fn metrics(request: &ExportMetricsServiceRequest) -> Decoded<ReceivedMetric>
     decoded
 }
 
+/// Claude Code's requests to its model in a logs message (ADR 0058): its
+/// `claude_code.api_request` events, each with the agent's `session.id`. Other records go.
+pub fn agent_requests(request: &ExportLogsServiceRequest) -> Vec<(String, AgentRequest)> {
+    let mut requests = Vec::new();
+    for resource_logs in &request.resource_logs {
+        let resource = resource_logs
+            .resource
+            .as_ref()
+            .map(|r| object(&r.attributes))
+            .unwrap_or_default();
+        for record in resource_logs
+            .scope_logs
+            .iter()
+            .flat_map(|scope| &scope.log_records)
+        {
+            let attributes = object(&record.attributes);
+            let body = match record.body.as_ref().and_then(|b| b.value.as_ref()) {
+                Some(any_value::Value::StringValue(body)) => body.as_str(),
+                _ => "",
+            };
+            let name = text(&attributes, "event.name").unwrap_or_default();
+            let is_request = [record.event_name.as_str(), body, name.as_str()]
+                .iter()
+                .any(|n| *n == "claude_code.api_request" || *n == "api_request");
+            if !is_request {
+                continue;
+            }
+            let Some(session) =
+                text(&attributes, "session.id").or_else(|| text(&resource, "session.id"))
+            else {
+                continue;
+            };
+            let count = |key: &str| -> u64 {
+                match attributes.get(key) {
+                    Some(Value::Number(n)) => n
+                        .as_u64()
+                        .or_else(|| n.as_f64().map(|f| f.max(0.0) as u64))
+                        .unwrap_or(0),
+                    Some(Value::String(s)) => s
+                        .parse::<u64>()
+                        .ok()
+                        .or_else(|| s.parse::<f64>().ok().map(|f| f.max(0.0) as u64))
+                        .unwrap_or(0),
+                    _ => 0,
+                }
+            };
+            let cost_usd_micros = match attributes.get("cost_usd_micros") {
+                Some(_) => count("cost_usd_micros"),
+                None => {
+                    let dollars = match attributes.get("cost_usd") {
+                        Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0),
+                        Some(Value::String(s)) => s.parse().unwrap_or(0.0),
+                        _ => 0.0,
+                    };
+                    (dollars.max(0.0) * 1e6).round() as u64
+                }
+            };
+            let nanos = if record.time_unix_nano > 0 {
+                record.time_unix_nano
+            } else {
+                record.observed_time_unix_nano
+            };
+            requests.push((
+                session,
+                AgentRequest {
+                    at_ms: i64::try_from(nanos / 1_000_000).unwrap_or(i64::MAX),
+                    model: text(&attributes, "model").unwrap_or_default(),
+                    query_source: text(&attributes, "query_source"),
+                    input: count("input_tokens"),
+                    output: count("output_tokens"),
+                    cache_read: count("cache_read_tokens"),
+                    cache_creation: count("cache_creation_tokens"),
+                    cost_usd_micros,
+                },
+            ));
+        }
+    }
+    requests
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -346,6 +428,45 @@ mod tests {
                 decoded.kept[1].sum
             ),
             (MetricKind::Histogram, Some(3), Some(1.5))
+        );
+    }
+
+    /// Two of Claude Code's events as OTLP/JSON writes them: a request, and a prompt (dropped).
+    const LOGS: &str = r#"{"resourceLogs":[{
+        "resource":{"attributes":[{"key":"service.name","value":{"stringValue":"claude-code"}}]},
+        "scopeLogs":[{"scope":{"name":"com.anthropic.claude_code.events"},"logRecords":[
+            {"timeUnixNano":"1792606078123000000","body":{"stringValue":"claude_code.api_request"},
+             "attributes":[
+                {"key":"event.name","value":{"stringValue":"api_request"}},
+                {"key":"session.id","value":{"stringValue":"0b9c-claude"}},
+                {"key":"model","value":{"stringValue":"claude-opus-5-5"}},
+                {"key":"query_source","value":{"stringValue":"main"}},
+                {"key":"input_tokens","value":{"intValue":"12"}},
+                {"key":"output_tokens","value":{"stringValue":"340"}},
+                {"key":"cache_read_tokens","value":{"intValue":"45000"}},
+                {"key":"cache_creation_tokens","value":{"intValue":"800"}},
+                {"key":"cost_usd","value":{"doubleValue":0.0421}}]},
+            {"timeUnixNano":"1792606079000000000","body":{"stringValue":"claude_code.user_prompt"},
+             "attributes":[{"key":"session.id","value":{"stringValue":"0b9c-claude"}}]}]}]}]}"#;
+
+    #[test]
+    fn claude_code_s_requests_are_read_with_their_session() {
+        let request: ExportLogsServiceRequest = serde_json::from_str(LOGS).unwrap();
+        assert_eq!(
+            agent_requests(&request),
+            vec![(
+                "0b9c-claude".to_owned(),
+                AgentRequest {
+                    at_ms: 1_792_606_078_123,
+                    model: "claude-opus-5-5".into(),
+                    query_source: Some("main".into()),
+                    input: 12,
+                    output: 340,
+                    cache_read: 45_000,
+                    cache_creation: 800,
+                    cost_usd_micros: 42_100,
+                }
+            )]
         );
     }
 }

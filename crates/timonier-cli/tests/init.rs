@@ -427,6 +427,91 @@ fn uninit_gives_the_original_tree_back() {
     }
 }
 
+/// Claude Code's telemetry goes into the user's settings, outside the project, for the AI cost
+/// (ADR 0058, Q85); it stays out of `.timonier/init.json`, and `uninit` takes it back with the
+/// last project that measures it.
+#[test]
+fn init_turns_claude_code_s_telemetry_on_in_the_home_and_uninit_takes_it_back() {
+    let project = Fixture::new(RUST);
+    let settings = project.home.path().join(".claude/settings.json");
+    std::fs::create_dir_all(settings.parent().unwrap()).unwrap();
+    let original = "{\n  \"model\": \"opus\"\n}\n";
+    std::fs::write(&settings, original).unwrap();
+    let dry = stdout(&project.tim(&["init", "--dry-run", "--agents", "claude"]));
+    assert!(dry.contains("outside the project"), "{dry}");
+    assert!(
+        dry.contains("+    \"OTEL_LOGS_EXPORTER\": \"otlp\","),
+        "{dry}"
+    );
+    assert_eq!(std::fs::read_to_string(&settings).unwrap(), original);
+
+    let out = stdout(&project.tim(&["init", "--yes", "--agents", "claude"]));
+    assert!(out.contains("restart Claude Code"), "{out}");
+    let written: Value =
+        serde_json::from_str(&std::fs::read_to_string(&settings).unwrap()).unwrap();
+    assert_eq!(written["model"], "opus");
+    assert_eq!(written["env"]["CLAUDE_CODE_ENABLE_TELEMETRY"], "1");
+    assert_eq!(
+        written["env"]["OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"],
+        "http://127.0.0.1:4319/v1/logs"
+    );
+    let record = project.read(".timonier/init.json");
+    assert!(
+        !record.contains(&project.home.path().display().to_string()),
+        "{record}"
+    );
+    let projects = std::fs::read_to_string(
+        project
+            .home
+            .path()
+            .join(".local/share/timonier/agents/projects.json"),
+    )
+    .unwrap();
+    assert!(
+        projects.contains(&project.root().display().to_string()),
+        "{projects}"
+    );
+
+    let out = stdout(&project.tim(&["uninit"]));
+    assert!(out.contains("telemetry off"), "{out}");
+    let back: Value = serde_json::from_str(&std::fs::read_to_string(&settings).unwrap()).unwrap();
+    assert_eq!(back, serde_json::json!({"model": "opus"}));
+}
+
+/// A home folder is no project (T-119): `init` there refuses and writes nothing; under it, a
+/// folder outside any repository does not resolve to it, even with a `.timonier/` left in it.
+#[test]
+fn the_home_folder_is_no_project() {
+    let project = Fixture::new(RUST);
+    let home = project.home.path();
+    let refused = project
+        .command(assert_cmd::cargo::cargo_bin!("tim"))
+        .args(["init", "--yes", "--agents", "claude", "--root"])
+        .arg(home)
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    let said = String::from_utf8_lossy(&refused.stderr);
+    assert!(said.contains("your home folder"), "{said}");
+    assert!(!home.join(".timonier").exists());
+    assert!(!home.join("AGENTS.md").exists());
+    // A `.timonier/` left in the home: a folder under it is still not the home's project.
+    std::fs::create_dir_all(home.join(".timonier")).unwrap();
+    let below = home.join("notes");
+    std::fs::create_dir_all(&below).unwrap();
+    let status = project
+        .command(assert_cmd::cargo::cargo_bin!("tim"))
+        .current_dir(&below)
+        .args(["init", "--dry-run", "--agents", "claude"])
+        .output()
+        .unwrap();
+    let out = String::from_utf8_lossy(&status.stdout);
+    assert!(
+        out.contains(&format!("Timonier init in {}", below.display())),
+        "{out}"
+    );
+}
+
 /// What the developer added since `init` stays when `uninit` takes Timonier's part back.
 #[test]
 fn uninit_keeps_what_the_developer_added() {

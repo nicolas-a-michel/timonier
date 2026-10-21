@@ -350,7 +350,11 @@ export type NoteView = {
  */
 at: string, session: string, text: string, };
 
-export type TaskView = { id: string, title: string, criterion: string | null, status: TaskState, sessions: Array<string>, notes: Array<NoteView>, };
+export type TaskView = { id: string, title: string, criterion: string | null, status: TaskState, sessions: Array<string>, notes: Array<NoteView>, 
+/**
+ * The tokens of its sessions; `null`: not measured (ADR 0058).
+ */
+usage: TaskUsage | null, };
 
 export type MilestoneView = { id: string, title: string, 
 /**
@@ -377,7 +381,35 @@ changes: SessionChanges | null,
 /**
  * The budgets the last runs exceeded when it ended (ADR 0052).
  */
-budgets: Array<string>, };
+budgets: Array<string>, 
+/**
+ * The tokens its agent spent; `null`: not measured (ADR 0058).
+ */
+usage: TokenUsage | null, };
+
+export type TokenUsage = { 
+/**
+ * Requests to the model.
+ */
+requests: number, input: number, output: number, 
+/**
+ * Read from the prompt cache.
+ */
+cache_read: number, 
+/**
+ * Written to the prompt cache.
+ */
+cache_creation: number, 
+/**
+ * The agent's estimate, in millionths of a dollar: an indication.
+ */
+cost_usd_micros: number, };
+
+export type TaskUsage = { tokens: TokenUsage, 
+/**
+ * A session of it served other tasks too: their tokens are in each one's sum.
+ */
+shared: boolean, };
 
 export type TrackingProblem = { 
 /**

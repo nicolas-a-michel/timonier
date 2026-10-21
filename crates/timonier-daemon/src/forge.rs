@@ -148,7 +148,7 @@ mod tests {
     fn fake(dir: &Path, fails: bool) -> PathBuf {
         let program = dir.join("gh");
         let script = format!(
-            "#!/bin/sh\necho \"$@\" >> \"{}/calls\"\n{}case \"$1 $2\" in\n  \"issue create\") echo https://github.com/me/demo/issues/42 ;;\n  \"pr create\") echo https://github.com/me/demo/pull/7 ;;\nesac\n",
+            "#!/bin/sh\n[ \"$1\" = --probe ] && exit 0\necho \"$@\" >> \"{}/calls\"\n{}case \"$1 $2\" in\n  \"issue create\") echo https://github.com/me/demo/issues/42 ;;\n  \"pr create\") echo https://github.com/me/demo/pull/7 ;;\nesac\n",
             dir.display(),
             if fails {
                 "echo 'To get started with GitHub CLI, please run:  gh auth login' >&2; exit 4\n"
@@ -159,7 +159,25 @@ mod tests {
         std::fs::write(&program, script).unwrap();
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+        runnable(&program);
         program
+    }
+
+    /// Waits until `program` runs: a process another test forks while the script is open for
+    /// writing keeps it open until it execs, and Linux refuses to run it meanwhile (ETXTBSY).
+    fn runnable(program: &Path) {
+        for _ in 0..100 {
+            match Command::new(program).arg("--probe").status() {
+                Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                other => {
+                    assert!(other.unwrap().success());
+                    return;
+                }
+            }
+        }
+        panic!("{} stayed busy", program.display());
     }
 
     #[test]

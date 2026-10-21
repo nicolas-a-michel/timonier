@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use clap::{Subcommand, ValueEnum};
 use serde_json::{Value, json};
-use timonier_core::protocol::{ActualWritten, AgentStop, StatusResult, methods};
+use timonier_core::protocol::{ActualWritten, AgentStop, AgentStopParams, StatusResult, methods};
 
 use crate::daemon;
 
@@ -31,6 +31,17 @@ pub enum StopFormat {
     Codex,
 }
 
+impl StopFormat {
+    /// How the daemon hears it (`agent/stop`).
+    fn key(self) -> &'static str {
+        match self {
+            Self::Claude => "claude",
+            Self::Copilot => "copilot",
+            Self::Codex => "codex",
+        }
+    }
+}
+
 /// How a hook names itself to the daemon.
 const CLIENT: &str = "timonier-hook";
 
@@ -50,7 +61,11 @@ fn stop(format: StopFormat) {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).ok();
     let input: Value = serde_json::from_str(&input).unwrap_or(Value::Null);
-    if let Some(answer) = decide(&input, format, reason) {
+    let stop = AgentStopParams {
+        agent: Some(format.key().to_owned()),
+        agent_session: input["session_id"].as_str().map(str::to_owned),
+    };
+    if let Some(answer) = decide(&input, format, || reason(&stop)) {
         println!("{answer}");
     }
 }
@@ -74,10 +89,10 @@ fn decide(
     })
 }
 
-fn reason() -> Option<String> {
+fn reason(stop: &AgentStopParams) -> Option<String> {
     let paths = crate::init::here().ok()?;
     let mut client = daemon::connect_as(&paths, CLIENT)?;
-    let stop: AgentStop = client.request(methods::AGENT_STOP, &Value::Null).ok()?;
+    let stop: AgentStop = client.request(methods::AGENT_STOP, stop).ok()?;
     stop.reason
 }
 

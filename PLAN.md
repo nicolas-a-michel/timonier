@@ -243,6 +243,20 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q86 — Langages au-delà de Rust et TypeScript** — ✅ répondu le 2026-10-21 : l'humain
+demande Python, Go, C++, JavaScript et Java. **Dans une Phase 10, après le MVP**, et **complets,
+langage par langage** : chaque pack au niveau de Rust et TypeScript (carte, rôles, manifestes et
+inventaire, lanceur de tests en JUnit, SDK OpenTelemetry et conventions, test de fumée). Ordre :
+JavaScript, Python, Go, Java, C++.
+
+**Q85 — Brancher la télémétrie de Claude Code** (9.3) — ✅ répondu le 2026-10-21 : **`init`
+l'écrit dans les réglages utilisateur**. Claude Code n'active pas sa télémétrie depuis les réglages
+d'un projet (« A value in project or local settings doesn't turn it on, because a cloned repository
+can write them », code.claude.com, Monitoring, lu le 2026-10-21). Avec l'accord du développeur,
+`timonier init` ajoute à `~/.claude/settings.json` les seules variables de télémétrie (métriques et
+événements vers un port local fixe) ; `--dry-run` le montre, `uninit` l'enlève. Un hook du projet
+dit au démon quelle session Claude Code tourne chez lui ; le démon ignore les autres.
+
 **Q84 — Les commandes de `.timonier/tests.json`** (audit de sécurité du 2026-10-21, constat 1) —
 ✅ répondu le 2026-10-21 : **approuvées par poste**. Timonier garde hors du dépôt l'empreinte
 des commandes qu'il a écrites ou que le développeur a approuvées ; une commande inconnue n'est
@@ -3661,6 +3675,51 @@ Statut : à faire
   pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche.
   Sans source, la valeur est « non mesuré », jamais une estimation inventée — critère : une
   session réelle donne des tokens attribués.
+
+  Fait (2026-10-21), ADR 0058, Q85 :
+  - source : les événements `claude_code.api_request` de Claude Code, en logs OTLP/HTTP, sur le
+    port de la machine `127.0.0.1:4319` ; `timonier-otlp` les lit (`decode::agent_requests`,
+    `AgentReceiver`, gzip compris) ;
+  - `init` (Claude Code choisi) écrit quatre variables dans le bloc `env` de
+    `~/.claude/settings.json`, après accord au terminal, `--dry-run` le montre,
+    `--no-agent-telemetry` s'en passe, une variable déjà réglée autrement est laissée et dite ;
+    le projet entre dans `<données>/agents/projects.json` ; `uninit` retire les variables avec le
+    dernier projet ;
+  - démon (`agents.rs`) : le démon d'un projet inscrit tient le port, ou réessaie chaque minute ;
+    chaque requête va dans `<données>/agents/claude/<session>.jsonl`, effacé après 90 jours ;
+  - attribution : le hook d'arrêt passe son `session_id` (`agent/stop`) ; le démon l'inscrit dans
+    les sessions Timonier d'un agent Claude ouvertes ou fermées depuis, et leur écrit `usage` (les
+    requêtes faites pendant la session, à la seconde près) ; la tâche fait la somme de ses
+    sessions et dit quand elles en servaient d'autres ;
+  - le panneau dit « Coût de l'IA » de chaque session et tâche, les tokens d'abord, le coût en
+    dollars comme estimation de l'agent, « non mesuré » sans source ;
+  - en passant : le hook d'arrêt ne retient plus Claude sur la session d'un autre agent (vu avec
+    S-2026-10-21-27) ;
+  - tests : `claude_code_s_requests_give_the_session_its_tokens` (démon réel),
+    `the_agents_port_takes_claude_code_s_requests_plain_or_gzipped_and_stays_one_s`,
+    `init_turns_claude_code_s_telemetry_on_in_the_home_and_uninit_takes_it_back`, vitest du
+    panneau, `test:a11y` ;
+  - critère : attend une vraie session de Claude Code, relancé après `tim init` sur un projet.
+- 9.8 (T-119, ajoutée le 2026-10-21 par un agent, reprise à la demande de l'humain) Ressources du
+  démon — critère : le démon consomme moins en régime permanent et au démarrage qu'avant, tests et
+  clippy passent, aucune régression fonctionnelle.
+
+  Fait (2026-10-21) :
+  - trouvé : un `timonier init` lancé dans le dossier personnel (`~` pris pour un projet) avait
+    écrit les fichiers des agents dans les réglages globaux (`~/.claude/settings.json`,
+    `~/.codex/`, `~/.mcp.json`…), et le `.timonier/` laissé dans `~` attirait tout dossier hors
+    dépôt : un démon indexait tout `~`, 38,6 s de CPU par 30 s, 274 Mo, et mettait 71 s à
+    s'arrêter ; désormais `~` et `/` ne sont jamais un projet (`runtime::not_a_project`, dans
+    `Paths` et la recherche de la racine) ;
+  - l'indexation complète s'abandonne à l'arrêt du démon (`Progress::cancelled`) ;
+  - threads : 4 travailleurs tokio, 8 threads d'analyse rayon (`timonier-parse-*`), au lieu d'un
+    par cœur ;
+  - mesures sur le dépôt Timonier (Ryzen 9 5950X, 32 threads, release, base neuve, deux essais) :
+    threads 71 → 19 ; mémoire au pic 116 → 80 Mo ; CPU de l'indexation à froid 2,4 → 1,47 s ;
+    durée jusqu'à « indexé » 0,44 → 0,49 s ; au repos, 10 ms de CPU par 20 s avant comme après ;
+    sauvegardes (`index_bench`) p95 14,9 ms, sous les 100 ms de H2 ;
+  - tests : `the_home_folder_is_no_project`, `the_file_system_s_root_is_no_project`,
+    `a_whole_indexing_gives_up_when_cancelled`.
 - 9.4 Assistant « Nouveau projet piloté », selon Q8 (en Phase 9) — critère : depuis VSCode, un
   nouveau projet Rust ou TypeScript est créé par le générateur officiel, configuré par `init`,
   et `doctor` voit sa première trace rattachée au graphe.
@@ -3673,6 +3732,37 @@ Statut : à faire
   plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
   le dépôt public (Q2) ; l'éditeur `NicolasMichel` (Q12) — critère : l'extension installée depuis
   la Marketplace configure un projet et montre sa carte, sans rien installer à part.
+
+Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de l'IA).
+Écarts : —
+
+---
+
+## Phase 10 — Langages
+
+Statut : à faire (Q86 ; après la validation de la Phase 9)
+
+Chaque tâche ajoute un pack complet, au niveau de Rust et TypeScript (skill `language-pack`) :
+grammaire tree-sitter vérifiée ; définitions, imports et références ; noms qualifiés et corps
+normalisés (ADR à écrire pour chaque langage, comme l'ADR 0013) ; heuristiques de rôles et
+catégories des dépendances ; lecture des manifestes et des fichiers de verrouillage (carte et
+inventaire) ; relais LSP de l'extension ; lanceur de tests qui écrit du JUnit ; SDK OpenTelemetry,
+conventions d'instrumentation et test de fumée de `doctor` ; fixture et instantanés `insta`.
+Critère commun : sur un petit projet réel du langage, la carte montre ses composants par rôle,
+`init` puis `doctor` voient la première trace rattachée au graphe, et `timonier test` mesure ses
+tests.
+
+- 10.1 JavaScript (`.js`, `.mjs`, `.cjs`, `.jsx`) : grammaire `tree-sitter-javascript` 0.25.0
+  (MIT, vérifiée le 2026-10-21) ; npm comme TypeScript.
+- 10.2 Python : `tree-sitter-python` 0.25.0 (MIT) ; `pyproject.toml`, `uv.lock` ou
+  `requirements.txt` ; pytest (`--junitxml`).
+- 10.3 Go : `tree-sitter-go` 0.25.0 (MIT) ; `go.mod`, `go.sum` ; `go test` en JUnit (outil à
+  choisir).
+- 10.4 Java : `tree-sitter-java` 0.23.5 (MIT) ; Maven (`pom.xml`) et Gradle ; rapports JUnit de
+  Surefire ou de Gradle.
+- 10.5 C++ (a minima) : `tree-sitter-cpp` 0.23.4 (MIT) ; CMake ; pas de gestionnaire de paquets
+  standard : périmètre des manifestes et de l'inventaire à fixer (question à poser) ; CTest
+  (`--output-junit`).
 
 Décisions : —
 Écarts : —

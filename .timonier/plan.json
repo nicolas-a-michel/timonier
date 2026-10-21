@@ -1755,14 +1755,23 @@
           "id": "T-105",
           "title": "9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche. Sans source, la valeur es…",
           "criterion": "une session réelle donne des tokens attribués",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-28",
+            "S-2026-10-21-29"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T18:36:10Z",
+              "session": "S-2026-10-21-29",
+              "text": "Criterion verified on 2026-10-21 in a real Claude Code session restarted after tim init: its api_request events reached 127.0.0.1:4319, and session S-2026-10-21-29 got agent_sessions [aecaf227…] and usage (2 requests, 6 in, 455 out, 762k cache read, ≈ $0.18) at the stop hook. ADR 0058, Q85."
+            }
+          ]
         },
         {
           "id": "T-106",
@@ -1809,7 +1818,8 @@
           "criterion": "l'extension installée depuis la Marketplace configure un projet et montre sa carte, sans rien installer à part : un .vsix par plateforme qui embarque timonier, icône PNG, CHANGELOG, dépôt public (Q2), éditeur NicolasMichel (Q12)",
           "status": "todo",
           "sessions": [
-            "S-2026-10-20-4"
+            "S-2026-10-20-4",
+            "S-2026-10-21-30"
           ],
           "created": {
             "at": "2026-10-20T13:12:10Z",
@@ -1900,14 +1910,93 @@
           "id": "T-119",
           "title": "9.8 Optimiser la consommation de ressources du daemon (CPU idle, RSS, I/O sqlite, croissance du cache) : baseline mesurée, optimisations minimales, re-mesure",
           "criterion": "Le daemon consomme moins en régime permanent et au démarrage qu'avant, tests et clippy passent, aucune régression fonctionnelle",
-          "status": "in_progress",
+          "status": "done",
           "sessions": [
             "S-2026-10-21-26",
-            "S-2026-10-21-27"
+            "S-2026-10-21-27",
+            "S-2026-10-21-31"
           ],
           "created": {
             "at": "2026-10-21T17:43:31Z",
             "session": "S-2026-10-21-26"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T18:58:35Z",
+              "session": "S-2026-10-21-31",
+              "text": "Measured on this repository (release, fresh database): threads 71 → 19, peak RSS 116 → 80 MB, cold indexing CPU 2.4 → 1.47 s, wall 0.44 → 0.49 s, rest unchanged (10 ms per 20 s), saves p95 14.9 ms. Found and fixed: the home folder taken for a project (a daemon indexing all of ~ at 1.3 cores, 71 s to stop); ~ and / are never a project now, and a whole indexing gives up at shutdown. 580 Rust tests, clippy clean."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M-12",
+      "title": "Phase 10 — Langages",
+      "tasks": [
+        {
+          "id": "T-120",
+          "title": "10.1 Pack JavaScript (.js, .mjs, .cjs, .jsx)",
+          "criterion": "Sur un petit projet JavaScript réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-21-28"
+          ],
+          "created": {
+            "at": "2026-10-21T18:08:04Z",
+            "session": "S-2026-10-21-28"
+          }
+        },
+        {
+          "id": "T-121",
+          "title": "10.2 Pack Python",
+          "criterion": "Sur un petit projet Python réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests (pytest, JUnit).",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-21-28"
+          ],
+          "created": {
+            "at": "2026-10-21T18:08:13Z",
+            "session": "S-2026-10-21-28"
+          }
+        },
+        {
+          "id": "T-122",
+          "title": "10.3 Pack Go",
+          "criterion": "Sur un petit projet Go réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-21-28"
+          ],
+          "created": {
+            "at": "2026-10-21T18:08:13Z",
+            "session": "S-2026-10-21-28"
+          }
+        },
+        {
+          "id": "T-123",
+          "title": "10.4 Pack Java",
+          "criterion": "Sur un petit projet Java réel (Maven ou Gradle) : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-21-28"
+          ],
+          "created": {
+            "at": "2026-10-21T18:08:13Z",
+            "session": "S-2026-10-21-28"
+          }
+        },
+        {
+          "id": "T-124",
+          "title": "10.5 Pack C++",
+          "criterion": "Sur un petit projet C++ réel (CMake) : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests (CTest).",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-21-28"
+          ],
+          "created": {
+            "at": "2026-10-21T18:08:13Z",
+            "session": "S-2026-10-21-28"
           }
         }
       ]

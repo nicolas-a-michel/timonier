@@ -59,6 +59,12 @@ pub enum Error {
         #[source]
         source: serde_json::Error,
     },
+
+    /// A home folder or `/` is no project: its daemon would index everything under it (T-119).
+    #[error(
+        "`{0}` is your home folder or the file system's root, not a project: run Timonier inside the project's folder"
+    )]
+    NotAProject(std::path::PathBuf),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

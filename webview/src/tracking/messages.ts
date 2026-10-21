@@ -1,5 +1,5 @@
 import type { Locale } from "../i18n";
-import type { TaskState } from "../protocol";
+import type { TaskState, TokenUsage } from "../protocol";
 
 /** The words of the plan, todo and journal panels (PLAN.md 6.6, ADR 0031). */
 export interface TrackingMessages {
@@ -61,6 +61,12 @@ export interface TrackingMessages {
   /** The Tests part of a session: no budget exceeded at its end, or checked when it ends. */
   noTests: string;
   testsAtEnd: string;
+  /** The AI cost of a session or a task (ADR 0058): tokens first, the dollars an indication. */
+  aiCost: string;
+  tokens: (usage: TokenUsage) => string;
+  notMeasured: string;
+  /** A task whose sessions served other tasks too. */
+  sharedTokens: string;
   /** The bridge (ADR 0032). */
   bridgeLabel: string;
   planHeading: string;
@@ -127,6 +133,19 @@ export interface TrackingMessages {
   configureFailed: (detail: string | null) => string;
 }
 
+/** « 1.2M tokens in · 340 out · 45K from the cache · 12 requests · ≈ $0.04 (the agent's estimate) ». */
+export function tokenWords(usage: TokenUsage, locale: Locale): string {
+  const n = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 });
+  const dollars = new Intl.NumberFormat(locale, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+  const cache = usage.cache_read + usage.cache_creation;
+  const cost = dollars.format(usage.cost_usd_micros / 1e6);
+  return locale === "fr"
+    ? `${n.format(usage.input)} tokens en entrée · ${n.format(usage.output)} en sortie · ${n.format(cache)} du cache · ` +
+        `${usage.requests} requête${usage.requests > 1 ? "s" : ""} · ≈ ${cost} (estimation de l'agent)`
+    : `${n.format(usage.input)} tokens in · ${n.format(usage.output)} out · ${n.format(cache)} from the cache · ` +
+        `${usage.requests} request${usage.requests > 1 ? "s" : ""} · ≈ ${cost} (the agent's estimate)`;
+}
+
 export const trackingMessages: Record<Locale, TrackingMessages> = {
   en: {
     startingTitle: "Starting Timonier",
@@ -187,6 +206,10 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     tests: "Tests",
     noTests: "No budget of the whiteboard exceeded when it ended.",
     testsAtEnd: "The budgets of the whiteboard are checked on the last runs when it ends.",
+    aiCost: "AI cost",
+    tokens: (usage) => tokenWords(usage, "en"),
+    notMeasured: "Not measured: no token count was received from the agent.",
+    sharedTokens: "counted with the other tasks of its sessions",
     bridgeLabel: "Where things stand",
     planHeading: "Plan",
     underway: (inProgress, blocked) =>
@@ -317,6 +340,10 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     tests: "Tests",
     noTests: "Aucun budget du tableau blanc dépassé à sa fin.",
     testsAtEnd: "Les budgets du tableau blanc sont vérifiés sur les derniers runs à sa fin.",
+    aiCost: "Coût de l'IA",
+    tokens: (usage) => tokenWords(usage, "fr"),
+    notMeasured: "Non mesuré : aucun compte de tokens n'est venu de l'agent.",
+    sharedTokens: "comptés aussi pour les autres tâches de ses sessions",
     bridgeLabel: "Où en sont les choses",
     planHeading: "Plan",
     underway: (inProgress, blocked) =>

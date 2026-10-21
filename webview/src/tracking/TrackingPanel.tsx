@@ -214,7 +214,7 @@ function Progress({ done, of, label }: { done: number; of: number; label: string
 }
 
 function Task({ t, task }: { t: TrackingMessages; task: TaskView }) {
-  const detail = task.criterion !== null || task.notes.length > 0;
+  const detail = task.criterion !== null || task.notes.length > 0 || task.usage !== null;
   const head = (
     <>
       <StateIcon state={task.status} />
@@ -235,6 +235,12 @@ function Task({ t, task }: { t: TrackingMessages; task: TaskView }) {
             {task.criterion && (
               <p>
                 <span className="tim-tracking__term">{t.criterion}</span> {task.criterion}
+              </p>
+            )}
+            {task.usage && (
+              <p>
+                <span className="tim-tracking__term">{t.aiCost}</span> {t.tokens(task.usage.tokens)}
+                {task.usage.shared && <span className="tim-tracking__quiet"> · {t.sharedTokens}</span>}
               </p>
             )}
             {task.notes.length > 0 && (
@@ -453,6 +459,11 @@ function Session({
           ) : (
             <TodoList t={t} items={session.todo} titles={titles} empty={t.emptyTodo} />
           )}
+        </Part>
+        <Part title={t.aiCost}>
+          <p className={session.usage ? undefined : "tim-tracking__quiet"}>
+            {session.usage ? t.tokens(session.usage) : t.notMeasured}
+          </p>
         </Part>
         <Part title={t.tests}>
           {session.budgets.length > 0 ? (

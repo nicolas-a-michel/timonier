@@ -34,6 +34,10 @@ pub enum Error {
     #[error("`{path}`: no language pack reads this file")]
     NoPack { path: String },
 
+    /// The daemon stops: the whole indexing in progress was given up (T-119).
+    #[error("indexing given up: the daemon stops")]
+    Cancelled,
+
     #[error("`{path}` could not be parsed with the `{grammar}` grammar")]
     Parse { path: String, grammar: String },
 

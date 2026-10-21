@@ -2,6 +2,27 @@
   "version": 1,
   "boxes": [
     {
+      "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "kind": "component",
+      "name": "approval",
+      "role": "data_model",
+      "parent": "pkg:cargo/timonier-cli"
+    },
+    {
+      "id": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "kind": "component",
+      "name": "lib",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-cli"
+    },
+    {
+      "id": "component:cluster/crates/timonier-cli/src/check.rs",
+      "kind": "component",
+      "name": "daemon",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-cli"
+    },
+    {
       "id": "component:cluster/crates/timonier-core/src/actual.rs",
       "kind": "component",
       "name": "node",
@@ -37,10 +58,24 @@
       "parent": "pkg:cargo/timonier-daemon"
     },
     {
+      "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "kind": "component",
+      "name": "tracking",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
       "id": "component:cluster/crates/timonier-daemon/src/git.rs",
       "kind": "component",
       "name": "indexing",
       "role": "utility",
+      "parent": "pkg:cargo/timonier-daemon"
+    },
+    {
+      "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "kind": "component",
+      "name": "inventory",
+      "role": "data_model",
       "parent": "pkg:cargo/timonier-daemon"
     },
     {
@@ -68,7 +103,7 @@
       "id": "component:cluster/editors/vscode/src/daemon.ts",
       "kind": "component",
       "name": "generated",
-      "role": "utility",
+      "role": "background_task",
       "parent": "pkg:npm/timonier"
     },
     {
@@ -371,6 +406,13 @@
       "name": "cyclonedx-bom",
       "role": "external_libraries",
       "parent": "component:external/serialization"
+    },
+    {
+      "id": "pkg:cargo/flate2",
+      "kind": "package",
+      "name": "flate2",
+      "role": "external_libraries",
+      "parent": "component:external/other"
     },
     {
       "id": "pkg:cargo/globset",
@@ -718,6 +760,282 @@
   ],
   "dependencies": [
     {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-cli/src/check.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 45
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 11
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:dir/crates/timonier-cli/src/init",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "pkg:cargo/anyhow",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "pkg:cargo/clap",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "component:cluster/crates/timonier-cli/src/check.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 12
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 21
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "component:dir/crates/timonier-cli/src/init",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/anyhow",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/clap",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/nix",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/opentelemetry",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/opentelemetry_sdk",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/perf-event",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "to": "pkg:cargo/tracing-subscriber",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 23
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 24
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "pkg:cargo/anyhow",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "pkg:cargo/clap",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "pkg:cargo/timonier-mcp",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 2
+    },
+    {
       "from": "component:cluster/crates/timonier-core/src/actual.rs",
       "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
       "kinds": [
@@ -767,7 +1085,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 2
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
@@ -775,15 +1093,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 12
-    },
-    {
-      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
-      "to": "pkg:cargo/ts-rs",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 1
+      "weight": 10
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -803,7 +1113,7 @@
         "imports",
         "references"
       ],
-      "weight": 81
+      "weight": 68
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -811,7 +1121,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 9
+      "weight": 11
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -819,7 +1129,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 19
+      "weight": 23
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -835,7 +1145,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 7
+      "weight": 9
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -845,7 +1155,7 @@
         "imports",
         "references"
       ],
-      "weight": 132
+      "weight": 124
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -855,7 +1165,7 @@
         "imports",
         "references"
       ],
-      "weight": 126
+      "weight": 116
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -865,17 +1175,26 @@
         "imports",
         "references"
       ],
-      "weight": 207
+      "weight": 211
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
       "to": "component:cluster/crates/timonier-daemon/src/client.rs",
       "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 8
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 18
+      "weight": 8
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -907,12 +1226,22 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "to": "pkg:cargo/timonier-otlp",
+      "kinds": [
+        "calls",
+        "implements",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
       "to": "pkg:cargo/timonier-store",
       "kinds": [
         "imports",
         "references"
       ],
-      "weight": 12
+      "weight": 10
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -920,7 +1249,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 5
+      "weight": 6
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -930,7 +1259,7 @@
         "imports",
         "references"
       ],
-      "weight": 141
+      "weight": 70
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -940,7 +1269,7 @@
         "imports",
         "references"
       ],
-      "weight": 159
+      "weight": 15
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -950,7 +1279,7 @@
         "imports",
         "references"
       ],
-      "weight": 545
+      "weight": 260
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -960,7 +1289,16 @@
         "imports",
         "references"
       ],
-      "weight": 32
+      "weight": 34
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 13
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -970,25 +1308,25 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 27
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 4
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
       "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
       "kinds": [
-        "calls",
         "imports",
         "references"
       ],
-      "weight": 12
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
-      "to": "pkg:cargo/cyclonedx-bom",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 16
+      "weight": 5
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -996,7 +1334,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 8
+      "weight": 2
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1004,7 +1342,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 9
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1024,7 +1362,7 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 30
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1035,6 +1373,103 @@
       "weight": 10
     },
     {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 42
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 20
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 346
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "references"
+      ],
+      "weight": 19
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 6
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "to": "pkg:cargo/tiny-skia",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 11
+    },
+    {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "component:cluster/crates/timonier-core/src/actual.rs",
       "kinds": [
@@ -1042,7 +1477,7 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 66
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1052,17 +1487,16 @@
         "imports",
         "references"
       ],
-      "weight": 33
+      "weight": 47
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
-        "calls",
         "imports",
         "references"
       ],
-      "weight": 17
+      "weight": 7
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1071,7 +1505,7 @@
         "imports",
         "references"
       ],
-      "weight": 60
+      "weight": 58
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1095,11 +1529,35 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/cyclonedx-bom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "pkg:cargo/notify-debouncer-full",
       "kinds": [
         "imports"
       ],
       "weight": 10
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1120,12 +1578,81 @@
       "weight": 31
     },
     {
-      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
-      "to": "pkg:cargo/tiny-skia",
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 86
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
       "kinds": [
         "imports"
       ],
-      "weight": 11
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "references"
+      ],
+      "weight": 2
     },
     {
       "from": "component:cluster/crates/timonier-index/src/cluster.rs",
@@ -1623,6 +2150,33 @@
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-cli/src/check.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
         "calls",
@@ -1630,6 +2184,15 @@
         "references"
       ],
       "weight": 10
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/src/init",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls",
+        "references"
+      ],
+      "weight": 7
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
@@ -1682,16 +2245,6 @@
       "weight": 6
     },
     {
-      "from": "component:dir/crates/timonier-cli/src/init",
-      "to": "pkg:cargo/timonier-cli",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 23
-    },
-    {
       "from": "component:dir/crates/timonier-cli/tests",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
@@ -1707,7 +2260,15 @@
       "kinds": [
         "calls"
       ],
-      "weight": 4
+      "weight": 2
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/tests",
+      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 2
     },
     {
       "from": "component:dir/crates/timonier-cli/tests",
@@ -1782,7 +2343,15 @@
         "calls",
         "imports"
       ],
-      "weight": 6
+      "weight": 4
+    },
+    {
+      "from": "component:dir/crates/timonier-daemon/examples",
+      "to": "component:cluster/crates/timonier-daemon/src/debt.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
     },
     {
       "from": "component:dir/crates/timonier-daemon/examples",
@@ -1792,7 +2361,7 @@
         "imports",
         "references"
       ],
-      "weight": 14
+      "weight": 15
     },
     {
       "from": "component:dir/crates/timonier-daemon/examples",
@@ -1837,7 +2406,7 @@
         "imports",
         "references"
       ],
-      "weight": 50
+      "weight": 48
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1847,7 +2416,7 @@
         "imports",
         "references"
       ],
-      "weight": 152
+      "weight": 156
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1867,7 +2436,7 @@
         "imports",
         "references"
       ],
-      "weight": 45
+      "weight": 15
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1877,7 +2446,7 @@
         "imports",
         "references"
       ],
-      "weight": 155
+      "weight": 189
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -2011,7 +2580,7 @@
         "imports",
         "references"
       ],
-      "weight": 50
+      "weight": 55
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2021,7 +2590,7 @@
         "imports",
         "references"
       ],
-      "weight": 36
+      "weight": 31
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2248,7 +2817,7 @@
         "imports",
         "references"
       ],
-      "weight": 13
+      "weight": 14
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2258,7 +2827,7 @@
         "imports",
         "references"
       ],
-      "weight": 73
+      "weight": 76
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2452,59 +3021,11 @@
     },
     {
       "from": "pkg:cargo/timonier-cli",
-      "to": "component:cluster/crates/timonier-core/src/actual.rs",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
-    },
-    {
-      "from": "pkg:cargo/timonier-cli",
-      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
-      "kinds": [
-        "imports",
-        "references"
-      ],
-      "weight": 9
-    },
-    {
-      "from": "pkg:cargo/timonier-cli",
-      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 86
-    },
-    {
-      "from": "pkg:cargo/timonier-cli",
-      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 39
-    },
-    {
-      "from": "pkg:cargo/timonier-cli",
-      "to": "component:dir/crates/timonier-cli/src/init",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 11
-    },
-    {
-      "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/anyhow",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 13
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2518,10 +3039,9 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/clap",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 13
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2535,10 +3055,9 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/nix",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 4
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2547,7 +3066,7 @@
         "depends_on",
         "imports"
       ],
-      "weight": 7
+      "weight": 6
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2561,37 +3080,33 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/opentelemetry_sdk",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 2
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/perf-event",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/serde",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/serde_json",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 4
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2621,11 +3136,9 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/timonier-mcp",
       "kinds": [
-        "calls",
-        "depends_on",
-        "references"
+        "depends_on"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2663,10 +3176,9 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/tracing-subscriber",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 7
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-core",
@@ -2727,6 +3239,14 @@
     {
       "from": "pkg:cargo/timonier-daemon",
       "to": "pkg:cargo/notify-debouncer-full",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/rayon",
       "kinds": [
         "depends_on"
       ],
@@ -3009,7 +3529,7 @@
         "imports",
         "references"
       ],
-      "weight": 28
+      "weight": 35
     },
     {
       "from": "pkg:cargo/timonier-otlp",
@@ -3019,6 +3539,14 @@
         "imports"
       ],
       "weight": 9
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/flate2",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-otlp",
@@ -3043,7 +3571,7 @@
         "depends_on",
         "imports"
       ],
-      "weight": 24
+      "weight": 31
     },
     {
       "from": "pkg:cargo/timonier-otlp",

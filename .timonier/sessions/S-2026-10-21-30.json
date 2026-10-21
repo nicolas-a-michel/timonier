@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-30",
+  "agent": "claude-code",
+  "objective": "9.7 Publication de l'extension en préversion : un .vsix par plateforme qui embarque timonier, construit par la CI ; icône PNG, CHANGELOG, README en anglais ; le binaire trouvé par l'extension, les agents et les hooks (Q58).",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T18:37:32Z",
+  "ended_at": "2026-10-21T18:37:42Z",
+  "snapshots": {
+    "start": 87,
+    "end": 88
+  },
+  "summary": "Paused at the human's request before any change, to take T-119 first (its daemon optimisations ship in the pre-release). Read so far: the manifest, how the extension finds timonier (setting, then PATH), the 24 px icon. Left: all of 9.7.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 2,
+    "input": 8,
+    "output": 3115,
+    "cache_read": 772137,
+    "cache_creation": 5051,
+    "cost_usd_micros": 257167
+  }
+}

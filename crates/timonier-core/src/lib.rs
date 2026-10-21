@@ -28,6 +28,7 @@ pub mod tools;
 pub mod tracking;
 pub mod tree;
 mod update;
+pub mod usage;
 pub mod workflow;
 
 pub use aggregate::AggregatedEdge;

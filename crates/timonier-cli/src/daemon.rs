@@ -76,9 +76,12 @@ pub fn resolve(target: &Target) -> Result<Paths> {
     Paths::new(&root).with_context(|| format!("no project at `{}`", root.display()))
 }
 
-/// The nearest directory, from `here` up, that holds `.timonier/` or `.git`; else `here`.
+/// The nearest directory, from `here` up, that holds `.timonier/` or `.git`; else `here`. The
+/// home folder and `/` are never one: a `.timonier/` left there would take every folder under
+/// it (T-119).
 fn project_root(here: &Path) -> PathBuf {
     here.ancestors()
+        .filter(|dir| !timonier_daemon::runtime::not_a_project(dir))
         .find(|dir| dir.join(".timonier").is_dir() || dir.join(".git").exists())
         .unwrap_or(here)
         .to_path_buf()
@@ -247,9 +250,24 @@ fn status(paths: &Paths) -> Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// The agents' telemetry, for a project whose `init` turned it on (ADR 0058).
+/// `TIMONIER_AGENT_PORT` gives another port than the machine's, for tests.
+fn agents_options(root: &std::path::Path) -> Option<timonier_daemon::server::AgentsOptions> {
+    let data = timonier_daemon::agents::data_dir()?;
+    if !timonier_daemon::agents::registered(&data, root) {
+        return None;
+    }
+    let port = std::env::var("TIMONIER_AGENT_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(timonier_daemon::agents::PORT);
+    Some(timonier_daemon::server::AgentsOptions { data, port })
+}
+
 fn foreground(paths: &Paths) -> Result<ExitCode> {
     let mut options = Options::new(&paths.root);
     options.runtime = Some(paths.runtime.clone());
+    options.agents = agents_options(&paths.root);
     let Some(daemon) = Daemon::bind(options)? else {
         eprintln!(
             "A Timonier daemon already runs for {}.",

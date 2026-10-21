@@ -40,6 +40,9 @@ impl Paths {
             path: root.to_path_buf(),
             source,
         })?;
+        if not_a_project(&root) {
+            return Err(Error::NotAProject(root));
+        }
         // A short name: the 104 bytes of a Unix socket path on macOS (ADR 0019).
         let hash = blake3::hash(root.as_os_str().as_bytes()).to_hex();
         let name = &hash.as_str()[..16];
@@ -183,8 +186,25 @@ pub fn prepare_repository(paths: &Paths) -> Result<()> {
     }
 }
 
+/// The home folder and `/`: a daemon there would watch and index everything under it (T-119).
+pub fn not_a_project(root: &Path) -> bool {
+    let home = std::env::var_os("HOME")
+        .filter(|h| !h.is_empty())
+        .and_then(|h| Path::new(&h).canonicalize().ok());
+    root.parent().is_none() || home.as_deref() == Some(root)
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_file_system_s_root_is_no_project() {
+        assert!(matches!(
+            super::Paths::in_runtime(std::path::Path::new("/"), std::path::Path::new("/tmp")),
+            Err(crate::Error::NotAProject(_))
+        ));
+        assert!(!super::not_a_project(&std::env::temp_dir().join("x")));
+    }
+
     use super::*;
 
     #[test]

@@ -7,6 +7,7 @@ pub mod doctor;
 pub mod edits;
 pub mod ordered;
 pub mod plan;
+mod telemetry;
 pub mod uninit;
 
 use std::io::{BufRead, IsTerminal, Write};
@@ -43,6 +44,9 @@ pub struct InitArgs {
     /// machine, for the bridge's choice (T-118)
     #[arg(long, conflicts_with_all = ["dry_run", "yes", "agents"])]
     detect: bool,
+    /// Leave Claude Code's telemetry off: its tokens stay « not measured » (ADR 0058)
+    #[arg(long)]
+    no_agent_telemetry: bool,
 }
 
 /// `init --detect`: every agent, whether it was found, and why.
@@ -103,12 +107,17 @@ fn init(args: &InitArgs) -> Result<()> {
                 println!("  {step}");
             }
         }
+        if let Some((home, _, planned)) = agent_telemetry(args, &choices.agents, &environment) {
+            show_telemetry(&home, &planned);
+        }
         print_notes(&planned);
         if planned.changes.is_empty() && tracked {
             println!("\nNothing to change: Timonier is set up.");
         }
         return Ok(());
     }
+    let telemetry = agent_telemetry(args, &choices.agents, &environment)
+        .filter(|(home, _, planned)| agreed(args, home, planned));
     plan::apply(&root, &planned).context("cannot write the configuration")?;
     // What init wrote, this machine runs without asking (Q84).
     approve_written(&root);
@@ -123,6 +132,9 @@ fn init(args: &InitArgs) -> Result<()> {
     if !tracked {
         start_tracking(&paths)?;
         println!("  opened the plan, with the milestone « Initialisation » and a first session");
+    }
+    if let Some((home, data, planned)) = telemetry {
+        apply_telemetry(&root, &home, &data, planned)?;
     }
     print_notes(&planned);
     if planned.changes.is_empty() && tracked {
@@ -169,6 +181,95 @@ fn print_detection(root: &Path, detection: &Detection) {
     for (agent, why) in &detection.agents {
         println!("  agent: {} ({why})", agent.label());
     }
+}
+
+/// Claude Code's telemetry for the AI cost (ADR 0058, Q85): when Claude Code is configured, the
+/// user's settings as they would be, with the machine's data folder; `None` when it is not
+/// asked, or there is no home or data folder.
+fn agent_telemetry(
+    args: &InitArgs,
+    agents: &[Agent],
+    environment: &Environment,
+) -> Option<(PathBuf, PathBuf, telemetry::Planned)> {
+    if args.no_agent_telemetry || !agents.contains(&Agent::ClaudeCode) {
+        return None;
+    }
+    let home = environment.home.clone()?;
+    let data = timonier_daemon::agents::data_dir()?;
+    let planned = telemetry::plan(&home, timonier_daemon::agents::PORT);
+    Some((home, data, planned))
+}
+
+/// At the terminal, the developer says yes to a change of their settings (Q85); `--yes`, or no
+/// terminal (the bridge's « Set up »), is a yes.
+fn agreed(args: &InitArgs, home: &Path, planned: &telemetry::Planned) -> bool {
+    if !matches!(planned, telemetry::Planned::Write { .. })
+        || args.yes
+        || !std::io::stdin().is_terminal()
+    {
+        return true;
+    }
+    show_telemetry(home, planned);
+    print!("Change it? [Y/n] ");
+    std::io::stdout().flush().ok();
+    let mut answer = String::new();
+    std::io::stdin().lock().read_line(&mut answer).ok();
+    matches!(
+        answer.trim().to_lowercase().as_str(),
+        "" | "y" | "yes" | "o" | "oui"
+    )
+}
+
+fn show_telemetry(home: &Path, planned: &telemetry::Planned) {
+    let path = telemetry::settings(home);
+    match planned {
+        telemetry::Planned::Done => {}
+        telemetry::Planned::Write { before, after } => {
+            println!(
+                "\nOn this machine, outside the project: {} turns Claude Code's telemetry on, \
+                 for the AI cost (ADR 0058); `--no-agent-telemetry` leaves it off.",
+                path.display()
+            );
+            let shown = Planned {
+                changes: vec![plan::Change {
+                    path: path.clone(),
+                    before: before.clone(),
+                    after: Some(after.clone()),
+                    executable: false,
+                }],
+                notes: Vec::new(),
+                info: Vec::new(),
+            };
+            print!("{}", plan::diff(&shown));
+        }
+        telemetry::Planned::Left(why) => println!("\n{why}"),
+    }
+}
+
+fn apply_telemetry(
+    root: &Path,
+    home: &Path,
+    data: &Path,
+    planned: telemetry::Planned,
+) -> Result<()> {
+    match planned {
+        telemetry::Planned::Write { after, .. } => {
+            telemetry::write(home, &after)
+                .with_context(|| format!("cannot write {}", telemetry::settings(home).display()))?;
+            println!(
+                "  changed {}: Claude Code's telemetry, for the AI cost; restart Claude Code",
+                telemetry::settings(home).display()
+            );
+        }
+        telemetry::Planned::Done => {}
+        telemetry::Planned::Left(why) => {
+            println!("  {why}");
+            return Ok(());
+        }
+    }
+    timonier_daemon::agents::register(data, root)
+        .context("cannot note the project in the machine's data folder")?;
+    Ok(())
 }
 
 /// The agents to configure: those named, else those found, confirmed at the terminal (Q51).
@@ -398,6 +499,7 @@ pub fn run_uninit(args: &UninitArgs) -> ExitCode {
         if undone.remove_folder {
             println!("  removed .timonier/");
         }
+        take_telemetry_back(&paths.root);
         print_notes(&undone.planned);
         println!("\nTimonier is no longer set up here.");
         Ok(())
@@ -428,6 +530,38 @@ pub struct DoctorArgs {
     /// (Q84): a command this machine has not approved does not run
     #[arg(long)]
     approve: bool,
+}
+
+/// The project leaves the machine's list; with the last one, Claude Code's telemetry goes from
+/// the user's settings (ADR 0058).
+fn take_telemetry_back(root: &Path) {
+    let Some(data) = timonier_daemon::agents::data_dir() else {
+        return;
+    };
+    if !timonier_daemon::agents::registered(&data, root) {
+        return;
+    }
+    match timonier_daemon::agents::unregister(&data, root) {
+        Ok(0) => {
+            let Some(home) = Environment::from_process().home else {
+                return;
+            };
+            if let Some(text) = telemetry::without(&home, timonier_daemon::agents::PORT) {
+                match telemetry::write(&home, &text) {
+                    Ok(()) => println!(
+                        "  restored {}: Claude Code's telemetry off, no project measures it now",
+                        telemetry::settings(&home).display()
+                    ),
+                    Err(error) => eprintln!(
+                        "timonier: {} not restored: {error}",
+                        telemetry::settings(&home).display()
+                    ),
+                }
+            }
+        }
+        Ok(_) => println!("  Claude Code's telemetry stays on: other projects measure it"),
+        Err(error) => eprintln!("timonier: the machine's list of projects not updated: {error}"),
+    }
 }
 
 /// The commands of `.timonier/tests.json`, as init has just written them, approved (Q84).

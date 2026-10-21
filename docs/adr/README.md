@@ -62,3 +62,4 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0055 | [L'inventaire des technologies](0055-inventaire-des-technologies.md) | Proposé | 9 |
 | 0056 | [Le processus de développement : `workflow.json`, GitHub par `gh`, la CI](0056-processus-de-developpement.md) | Proposé | 9 |
 | 0057 | [Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier](0057-securite-locale.md) | Proposé | 9 |
+| 0058 | [Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine](0058-cout-de-l-ia.md) | Proposé | 9 |

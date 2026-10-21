@@ -124,6 +124,12 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 - When a session ends, its journal keeps what it changed in the code: the components it touched
   and the dependencies it added or removed, computed as the review diff between its two
   snapshots.
+- The AI cost of each session and task: the tokens Claude Code reports in its own OpenTelemetry
+  telemetry (input, output, prompt cache, requests), counted while the session was open; the
+  dollars are the agent's estimate. `timonier init` turns that telemetry on in
+  `~/.claude/settings.json` when you agree (Claude Code reads it only from there), and sends it
+  to `127.0.0.1:4319`. Without it, the session says « not measured ». Other agents are not
+  measured yet.
 
 ## VSCode extension
 
@@ -184,7 +190,7 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
   columns when it is wide enough), updated live as the agent calls
   its tools: milestones with their computed progress and tasks by state; the open session's
   todo; the journal of sessions with their objective, tasks, components touched (live while the
-  session is open), todo and summary. A file of `.timonier/` edited by hand shows too, and one
+  session is open), todo, AI cost and summary. A file of `.timonier/` edited by hand shows too, and one
   that no longer reads is named.
 - **The whiteboard** (« Timonier: Open the Whiteboard »), in its own editor tab: freehand
   drawing with the mouse or a pen and an eraser, and typed shapes that count as constraints: a

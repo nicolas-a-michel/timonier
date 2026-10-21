@@ -2,6 +2,7 @@
 //!
 //! One daemon per project; it wires the other crates together. See the `rust-daemon` skill.
 
+pub mod agents;
 mod attach;
 pub mod bridge;
 pub mod client;

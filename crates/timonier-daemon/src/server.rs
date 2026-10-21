@@ -16,9 +16,9 @@ use timonier_core::drift::DriftView;
 use timonier_core::intent::Intent;
 use timonier_core::perf::{PerfRunParams, RunFinish, RunStart};
 use timonier_core::protocol::{
-    FilesParams, InitializeParams, InitializeResult, IntentRead, IntentWriteParams, IntentWritten,
-    LookupCounts, PROTOCOL_VERSION, ReviewMark, StatusResult, SubscribeParams, SubscriptionParams,
-    ToolCallParams, errors, methods,
+    AgentStopParams, FilesParams, InitializeParams, InitializeResult, IntentRead,
+    IntentWriteParams, IntentWritten, LookupCounts, PROTOCOL_VERSION, ReviewMark, StatusResult,
+    SubscribeParams, SubscriptionParams, ToolCallParams, errors, methods,
 };
 use timonier_core::rpc::{Decoder, ErrorObject, Id, InvalidMessage, Message};
 use timonier_index::lsp::Priority;
@@ -43,6 +43,13 @@ const OUTBOX: usize = 1024;
 /// Commands waiting for the views thread.
 const VIEW_COMMANDS: usize = 256;
 
+/// The runtime's workers: the daemon waits more than it computes, and its heavy work goes to
+/// blocking threads (T-119).
+const RPC_THREADS: usize = 4;
+
+/// The threads that parse a whole indexing (T-119).
+const PARSE_THREADS: usize = 8;
+
 /// Bytes read from a socket at once.
 const READ_CHUNK: usize = 64 << 10;
 
@@ -59,6 +66,15 @@ pub struct Options {
     pub signals: bool,
     /// The GitHub CLI; `gh` on the PATH when `None` (ADR 0056). Tests give a fake one.
     pub gh: Option<std::path::PathBuf>,
+    /// The agents' telemetry (ADR 0058): the machine's data folder and the agents' port. `None`
+    /// in tests that do not ask: the machine's port is not theirs.
+    pub agents: Option<AgentsOptions>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AgentsOptions {
+    pub data: std::path::PathBuf,
+    pub port: u16,
 }
 
 impl Options {
@@ -70,6 +86,7 @@ impl Options {
             debounce: DEBOUNCE,
             signals: true,
             gh: None,
+            agents: None,
         }
     }
 }
@@ -131,7 +148,15 @@ impl Daemon {
     /// [`Daemon::serve`] on a runtime of its own, until the daemon stops: what
     /// `timonier daemon run` does.
     pub fn run(self) -> Result<()> {
+        let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+        // The parsing of a whole indexing: as fast with 8 threads, and no idle one per core
+        // (T-119). A process that already set the pool keeps it.
+        let _ = rayon::ThreadPoolBuilder::new()
+            .num_threads(cores.min(PARSE_THREADS))
+            .thread_name(|i| format!("timonier-parse-{i}"))
+            .build_global();
         let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(cores.min(RPC_THREADS))
             .enable_all()
             .thread_name("timonier-rpc")
             .build()
@@ -223,12 +248,24 @@ impl Daemon {
             tracking: Mutex::new(()),
             runs: Arc::new(crate::runs::Runs::new(&paths.root)),
             receiver: tokio::sync::OnceCell::new(),
+            spool: options
+                .agents
+                .as_ref()
+                .map(|agents| crate::agents::Spool::new(&agents.data)),
+            agent_stops: Mutex::new(std::collections::HashMap::new()),
         });
         let mut background = JoinSet::new();
         background.spawn(idle(Arc::clone(&shared), options.idle));
         background.spawn(watch_tracking(Arc::clone(&shared), watching));
         if options.signals {
             background.spawn(signals(Arc::clone(&shared)));
+        }
+        if let (Some(agents), Some(spool)) = (&options.agents, &shared.spool) {
+            background.spawn(crate::agents::hold(
+                spool.clone(),
+                agents.port,
+                shared.shutdown.subscribe(),
+            ));
         }
         let mut connections = JoinSet::new();
         let mut stop = shared.shutdown.subscribe();
@@ -246,6 +283,11 @@ impl Daemon {
         }
 
         tracing::info!("daemon stopping");
+        // A whole indexing in progress gives up its files left (T-119).
+        shared
+            .progress
+            .cancelled
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         drop(listener);
         let _ = std::fs::remove_file(&paths.socket);
         background.abort_all();
@@ -304,6 +346,10 @@ struct Shared {
     runs: Arc<crate::runs::Runs>,
     /// The OTLP receiver, started at the first run (ADR 0048); `None` if it cannot listen.
     receiver: tokio::sync::OnceCell<Option<timonier_otlp::Receiver>>,
+    /// Where the agents' requests are kept (ADR 0058); `None`: not measured.
+    spool: Option<crate::agents::Spool>,
+    /// When each agent session last stopped here, Unix milliseconds.
+    agent_stops: Mutex<std::collections::HashMap<String, i64>>,
 }
 
 impl Shared {
@@ -579,7 +625,10 @@ impl Session {
             methods::TOOLS_LIST => {
                 Ok(serde_json::json!({ "tools": timonier_core::tools::catalogue() }))
             }
-            methods::AGENT_STOP => self.agent_stop().await,
+            methods::AGENT_STOP => match parse::<AgentStopParams>(params) {
+                Ok(stop) => self.agent_stop(stop).await,
+                Err(error) => Err(error),
+            },
             methods::ACTUAL_WRITE => self.write_actual().await,
             methods::INTENT_READ => self.read_intent().await,
             methods::INTENT_DRIFT => self.intent_drift().await,
@@ -903,16 +952,36 @@ impl Session {
     /// `.timonier/`, and a session's start or end waits for a snapshot.
     /// Why the agent that wants to stop should be held once, if it should (ADR 0033, Q49). A
     /// tracking file that does not read holds nobody: the tools say what is wrong.
-    async fn agent_stop(&self) -> Result<Value, ErrorObject> {
+    /// The agent's own session first goes into the journal, with its tokens (ADR 0058).
+    async fn agent_stop(&self, stop: AgentStopParams) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
         let answered = tokio::task::spawn_blocking(move || {
             let tracker = crate::tracking::Tracker::new(&shared.root_path);
+            if let (Some(agent_session), Some(spool)) = (&stop.agent_session, &shared.spool) {
+                let now = now_ms();
+                let since = shared
+                    .agent_stops
+                    .lock()
+                    .ok()
+                    .and_then(|mut stops| stops.insert(agent_session.clone(), now))
+                    .unwrap_or(now - 3_600_000);
+                let written = shared.tracking.lock().map_err(|_| ()).and_then(|_writing| {
+                    tracker
+                        .agent_stopped(agent_session, since, now, &|s| spool.read(s))
+                        .map_err(|refusal| {
+                            tracing::warn!(message = %refusal.message, "the agent's tokens not written");
+                        })
+                });
+                if let Ok(written) = written {
+                    tracing::debug!(written, "agent stopped");
+                }
+            }
             let changed = |from: Option<u64>| -> Result<Vec<String>> {
                 let mut reader = shared.store.reader()?;
                 let head = reader.head()?.seq;
                 crate::tracking::changed_files(&mut reader, from, head)
             };
-            let reason = tracker.stop_reason(&changed).unwrap_or_else(|refusal| {
+            let reason = tracker.stop_reason(stop.agent.as_deref(), &changed).unwrap_or_else(|refusal| {
                 tracing::warn!(message = %refusal.message, "cannot tell whether to hold the agent");
                 None
             });

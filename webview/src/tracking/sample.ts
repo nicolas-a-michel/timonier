@@ -20,7 +20,7 @@ export const EMPTY_TRACKING: TrackingView = {
 };
 
 function task(id: string, title: string, status: TaskView["status"], extra: Partial<TaskView> = {}): TaskView {
-  return { id, title, criterion: null, status, sessions: [], notes: [], ...extra };
+  return { id, title, criterion: null, status, sessions: [], notes: [], usage: null, ...extra };
 }
 
 function reviewed(id: string, name: string, within: string | null = null): ReviewBox {
@@ -53,6 +53,7 @@ const open: SessionView = {
     unlinked: [],
   },
   budgets: [],
+  usage: null,
 };
 
 const ended: SessionView = {
@@ -82,6 +83,14 @@ const ended: SessionView = {
     unlinked: [],
   },
   budgets: ["N-2 on Store: p95 7.40 ms > 5 ms"],
+  usage: {
+    requests: 42,
+    input: 18_400,
+    output: 9_300,
+    cache_read: 1_250_000,
+    cache_creation: 64_000,
+    cost_usd_micros: 1_870_000,
+  },
 };
 
 const older: SessionView = {
@@ -94,6 +103,7 @@ const older: SessionView = {
   summary: "Untracked gaps are computed at each session start.",
   changes: null,
   budgets: [],
+  usage: null,
 };
 
 export const SAMPLE_TRACKING: TrackingView = {
