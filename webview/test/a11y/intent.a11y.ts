@@ -107,10 +107,16 @@ test("a link both forbidden and new since the review keeps both marks, and is no
   await expect(flag).toContainText("forbidden");
 
   // Thickness is the traffic's (ADR 0021): the forbidden line keeps the width of the others.
-  const widths = await page
-    .locator(".react-flow__edge-path.tim-edge")
-    .evaluateAll((paths) => [...new Set(paths.map((p) => getComputedStyle(p).strokeWidth))]);
-  expect(widths).toHaveLength(1);
+  // Measured once the map is drawn: a line being replaced has no computed width yet (CI, Ubuntu).
+  await expect
+    .poll(() =>
+      page
+        .locator(".react-flow__edge-path.tim-edge")
+        .evaluateAll((paths) => [
+          ...new Set(paths.filter((p) => p.isConnected).map((p) => getComputedStyle(p).strokeWidth)),
+        ]),
+    )
+    .toEqual(["1.5px"]);
 });
 
 /**

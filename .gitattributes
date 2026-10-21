@@ -1,0 +1,4 @@
+# LF everywhere, Windows included: Prettier, the snapshots and the packs' files expect it (T-125).
+* text=auto eol=lf
+*.png binary
+*.sqlite binary

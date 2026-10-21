@@ -100,16 +100,23 @@
       "parent": "pkg:npm/timonier"
     },
     {
+      "id": "component:cluster/editors/vscode/src/commandLine.ts",
+      "kind": "component",
+      "name": "extension",
+      "role": "interface",
+      "parent": "pkg:npm/timonier"
+    },
+    {
       "id": "component:cluster/editors/vscode/src/daemon.ts",
       "kind": "component",
       "name": "generated",
-      "role": "background_task",
+      "role": "interface",
       "parent": "pkg:npm/timonier"
     },
     {
       "id": "component:cluster/editors/vscode/src/extension.ts",
       "kind": "component",
-      "name": "mapPanel",
+      "name": "webviewHtml",
       "role": "interface",
       "parent": "pkg:npm/timonier"
     },
@@ -1249,7 +1256,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 9
+      "weight": 6
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1289,7 +1296,7 @@
         "imports",
         "references"
       ],
-      "weight": 39
+      "weight": 34
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1370,7 +1377,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 8
+      "weight": 11
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
@@ -1755,6 +1762,15 @@
     },
     {
       "from": "component:cluster/editors/vscode/src/code.ts",
+      "to": "component:cluster/editors/vscode/src/commandLine.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/code.ts",
       "to": "component:cluster/editors/vscode/src/daemon.ts",
       "kinds": [
         "imports",
@@ -1771,22 +1787,52 @@
       "weight": 3
     },
     {
+      "from": "component:cluster/editors/vscode/src/commandLine.ts",
+      "to": "component:cluster/editors/vscode/src/code.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 5
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/commandLine.ts",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 35
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/commandLine.ts",
+      "to": "component:cluster/editors/vscode/src/extension.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 13
+    },
+    {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
       "to": "component:cluster/editors/vscode/src/code.ts",
       "kinds": [
         "imports",
         "references"
       ],
-      "weight": 4
+      "weight": 8
     },
     {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
       "to": "component:cluster/editors/vscode/src/extension.ts",
       "kinds": [
+        "calls",
         "imports",
         "references"
       ],
-      "weight": 2
+      "weight": 8
     },
     {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
@@ -1794,17 +1840,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 1
-    },
-    {
-      "from": "component:cluster/editors/vscode/src/extension.ts",
-      "to": "component:cluster/editors/vscode/src/code.ts",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 12
+      "weight": 2
     },
     {
       "from": "component:cluster/editors/vscode/src/extension.ts",
@@ -1814,15 +1850,7 @@
         "imports",
         "references"
       ],
-      "weight": 84
-    },
-    {
-      "from": "component:cluster/editors/vscode/src/extension.ts",
-      "to": "pkg:npm/vscode-jsonrpc",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 1
+      "weight": 35
     },
     {
       "from": "component:cluster/editors/vscode/src/test/unit/driftFeed.test.ts",
@@ -2545,22 +2573,22 @@
     },
     {
       "from": "component:dir/editors/vscode/src/test/integration",
+      "to": "component:cluster/editors/vscode/src/commandLine.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/integration",
       "to": "component:cluster/editors/vscode/src/daemon.ts",
       "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 26
-    },
-    {
-      "from": "component:dir/editors/vscode/src/test/integration",
-      "to": "component:cluster/editors/vscode/src/extension.ts",
-      "kinds": [
-        "imports",
-        "references"
-      ],
-      "weight": 9
+      "weight": 28
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2570,7 +2598,16 @@
         "imports",
         "references"
       ],
-      "weight": 70
+      "weight": 57
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "component:cluster/editors/vscode/src/commandLine.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 33
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2580,17 +2617,16 @@
         "imports",
         "references"
       ],
-      "weight": 55
+      "weight": 64
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
       "to": "component:cluster/editors/vscode/src/extension.ts",
       "kinds": [
         "calls",
-        "imports",
-        "references"
+        "imports"
       ],
-      "weight": 46
+      "weight": 17
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",

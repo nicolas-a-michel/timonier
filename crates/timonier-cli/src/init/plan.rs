@@ -139,8 +139,17 @@ fn read(root: &Path, path: &Path) -> Option<String> {
     std::fs::read_to_string(root.join(path)).ok()
 }
 
+/// A path as `.timonier/init.json` and the diffs write it: relative ones with `/` on every system,
+/// since the record is versioned and shared (T-125); an absolute one, outside the project, as
+/// the system writes it.
 fn display(path: &Path) -> String {
-    path.display().to_string()
+    if path.is_absolute() {
+        return path.display().to_string();
+    }
+    path.components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 pub fn plan(root: &Path, choices: &Choices) -> Planned {
