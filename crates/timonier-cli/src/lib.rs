@@ -1,8 +1,11 @@
 //! The `timonier` command line, also installed as `tim`.
 
+mod approval;
+mod check;
 mod daemon;
 mod hook;
 mod init;
+mod inventory;
 mod mcp;
 mod measure;
 mod telemetry;
@@ -33,6 +36,12 @@ enum Command {
     Init(init::InitArgs),
     /// Run the tests and measure them: time, CPU, memory, I/O, and each test's duration
     Test(test::TestArgs),
+    /// The technology inventory: languages, dependencies, licences, duplicates, known
+    /// vulnerabilities; `--sbom` writes it as CycloneDX
+    Inventory(inventory::InventoryArgs),
+    /// Check the whiteboard's budgets on the last runs and its architecture rules; what the CI
+    /// replays after the tests (fails when one does not hold)
+    Check(check::CheckArgs),
     /// The measuring relay of `timonier test`
     #[command(name = "__measure", hide = true)]
     Measure(measure::MeasureArgs),
@@ -75,6 +84,8 @@ pub fn run() -> ExitCode {
         Some(Command::Mcp(target)) => mcp::run(&target),
         Some(Command::Init(args)) => init::run(&args),
         Some(Command::Test(args)) => test::run(&args),
+        Some(Command::Inventory(args)) => inventory::run(&args),
+        Some(Command::Check(args)) => check::run(&args),
         Some(Command::Measure(args)) => measure::run(&args),
         Some(Command::Uninit(args)) => init::run_uninit(&args),
         Some(Command::Doctor(args)) => init::run_doctor(&args),

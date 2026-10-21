@@ -178,6 +178,7 @@ mod tests {
                 session: "S-2026-10-20-1".into(),
             },
             notes: Vec::new(),
+            ticket: None,
         }
     }
 

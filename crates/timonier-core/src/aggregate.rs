@@ -19,7 +19,7 @@ pub struct AggregatedEdge {
     /// The most reliable provenance among them.
     pub best: Provenance,
     /// True when they all come from approximate sources (tree-sitter alone): the map draws such
-    /// edges differently (spec « Précision affichée »).
+    /// edges differently (spec « Displayed precision »).
     pub approximate_only: bool,
 }
 

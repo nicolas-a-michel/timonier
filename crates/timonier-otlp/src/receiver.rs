@@ -33,9 +33,14 @@ use crate::{GRPC_PORT, HTTP_PORT, decode};
 /// Where what the receiver takes goes: the daemon keeps it (ADR 0043). Called off the async
 /// runtime, on a blocking thread.
 pub trait Sink: Send + Sync + 'static {
-    fn spans(&self, spans: Vec<ReceivedSpan>);
-    fn metrics(&self, metrics: Vec<ReceivedMetric>);
+    /// `token`: the `x-timonier-token` header of the request, which says which run sends
+    /// (audit of 2026-10-21, finding 2); the sink drops what no run's token covers.
+    fn spans(&self, token: Option<&str>, spans: Vec<ReceivedSpan>);
+    fn metrics(&self, token: Option<&str>, metrics: Vec<ReceivedMetric>);
 }
+
+/// The header that carries a run's token, in gRPC metadata or HTTP (`OTEL_EXPORTER_OTLP_HEADERS`).
+pub const TOKEN_HEADER: &str = "x-timonier-token";
 
 /// One message at most this big, in either protocol.
 const MESSAGE_BYTES: usize = 16 << 20;
@@ -118,18 +123,19 @@ struct Service {
 }
 
 impl Service {
-    async fn traces(&self, request: &ExportTraceServiceRequest) {
+    async fn traces(&self, token: Option<String>, request: &ExportTraceServiceRequest) {
         let decoded = decode::traces(request);
         if decoded.without_run > 0 {
             tracing::debug!(spans = decoded.without_run, "spans of no run, dropped");
         }
         if !decoded.kept.is_empty() {
             let sink = Arc::clone(&self.sink);
-            let _ = tokio::task::spawn_blocking(move || sink.spans(decoded.kept)).await;
+            let _ = tokio::task::spawn_blocking(move || sink.spans(token.as_deref(), decoded.kept))
+                .await;
         }
     }
 
-    async fn metrics(&self, request: &ExportMetricsServiceRequest) {
+    async fn metrics(&self, token: Option<String>, request: &ExportMetricsServiceRequest) {
         let decoded = decode::metrics(request);
         if decoded.without_run > 0 {
             tracing::debug!(
@@ -139,7 +145,9 @@ impl Service {
         }
         if !decoded.kept.is_empty() {
             let sink = Arc::clone(&self.sink);
-            let _ = tokio::task::spawn_blocking(move || sink.metrics(decoded.kept)).await;
+            let _ =
+                tokio::task::spawn_blocking(move || sink.metrics(token.as_deref(), decoded.kept))
+                    .await;
         }
     }
 }
@@ -150,7 +158,8 @@ impl TraceService for Service {
         &self,
         request: tonic::Request<ExportTraceServiceRequest>,
     ) -> Result<tonic::Response<ExportTraceServiceResponse>, tonic::Status> {
-        self.traces(request.get_ref()).await;
+        let token = grpc_token(&request);
+        self.traces(token, request.get_ref()).await;
         Ok(tonic::Response::new(ExportTraceServiceResponse::default()))
     }
 }
@@ -161,9 +170,25 @@ impl MetricsService for Service {
         &self,
         request: tonic::Request<ExportMetricsServiceRequest>,
     ) -> Result<tonic::Response<ExportMetricsServiceResponse>, tonic::Status> {
-        self.metrics(request.get_ref()).await;
+        let token = grpc_token(&request);
+        self.metrics(token, request.get_ref()).await;
         Ok(tonic::Response::new(ExportMetricsServiceResponse::default()))
     }
+}
+
+fn grpc_token<T>(request: &tonic::Request<T>) -> Option<String> {
+    request
+        .metadata()
+        .get(TOKEN_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned)
+}
+
+fn http_token(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(TOKEN_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned)
 }
 
 /// How an HTTP request is encoded, from its `Content-Type` (OTLP/HTTP).
@@ -247,7 +272,7 @@ fn router(sink: Arc<dyn Sink>) -> axum::Router {
             };
             match decode::<ExportTraceServiceRequest>(encoding, &body) {
                 Ok(request) => {
-                    traces.traces(&request).await;
+                    traces.traces(http_token(&headers), &request).await;
                     answer(encoding, &ExportTraceServiceResponse::default())
                 }
                 Err(refused) => refused.into_response(),
@@ -263,7 +288,7 @@ fn router(sink: Arc<dyn Sink>) -> axum::Router {
             };
             match decode::<ExportMetricsServiceRequest>(encoding, &body) {
                 Ok(request) => {
-                    metrics.metrics(&request).await;
+                    metrics.metrics(http_token(&headers), &request).await;
                     answer(encoding, &ExportMetricsServiceResponse::default())
                 }
                 Err(refused) => refused.into_response(),

@@ -2,7 +2,16 @@
  * What the webview keeps of its view, and what it does with each host message (ADR 0019).
  * Pure: `main.tsx` feeds it the messages and posts the effects back to the host.
  */
-import type { DaemonState, EdgeRef, HostMessage, ReviewSummary, ViewEdge, ViewNode, WebviewMessage } from "./protocol";
+import type {
+  DaemonState,
+  EdgeRef,
+  HostMessage,
+  IndexProgress,
+  ReviewSummary,
+  ViewEdge,
+  ViewNode,
+  WebviewMessage,
+} from "./protocol";
 
 export interface ViewData {
   subscription: number;
@@ -14,7 +23,7 @@ export interface ViewData {
 }
 
 export interface ViewModel {
-  daemon: { state: DaemonState; detail: string | null };
+  daemon: { state: DaemonState; detail: string | null; progress?: IndexProgress };
   view: ViewData | undefined;
   /** A resync was asked and its snapshot has not arrived yet. */
   resyncing: boolean;
@@ -58,9 +67,15 @@ export function reduce(model: ViewModel, message: HostMessage): Reduced {
     case "perfRun":
     case "budgets":
     case "perfRegressions":
+    case "agents":
+    case "configured":
+    case "workflow":
       return { model, effects: [] };
     case "daemon":
-      return { model: { ...model, daemon: { state: message.state, detail: message.detail } }, effects: [] };
+      return {
+        model: { ...model, daemon: { state: message.state, detail: message.detail, progress: message.progress } },
+        effects: [],
+      };
     case "snapshot": {
       const { snapshot } = message;
       const view: ViewData = {

@@ -1800,3 +1800,344 @@ fn a_symbol_of_the_map_says_its_kind_and_signature() {
         .expect("the file");
     assert_eq!(file.signature, None);
 }
+
+/// PLAN.md 9.1, ADR 0055, on a real daemon: the inventory of a crate that declares two HTTP
+/// clients names the duplicate, its dependencies from the lockfile, and says the
+/// vulnerabilities unchecked when OSV is not asked (Q79); the SBOM is CycloneDX.
+#[test]
+fn the_inventory_finds_two_http_clients_and_gives_a_cyclonedx_sbom() {
+    let repo = tempfile::tempdir().unwrap();
+    let root = repo.path();
+    write(
+        root,
+        "Cargo.toml",
+        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nreqwest = \"0.12\"\nureq = \"3\"\n\n[dev-dependencies]\nattohttpc = \"0.28\"\n",
+    );
+    write(root, "src/lib.rs", "pub fn f() {}\n");
+    // A lockfile `cargo metadata --offline` cannot complete: the fallback reads it alone.
+    write(
+        root,
+        "Cargo.lock",
+        "version = 4\n\n[[package]]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[[package]]\nname = \"reqwest\"\nversion = \"0.12.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n\n[[package]]\nname = \"ureq\"\nversion = \"3.4.2\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n\n[[package]]\nname = \"attohttpc\"\nversion = \"0.28.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n",
+    );
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test-agent").unwrap();
+    indexed(&mut client, 1);
+    let inventory = tool(&mut client, "get_tech_inventory", json!({"cve": false}));
+    let result = &inventory["result"];
+    assert_eq!(result["total"], 3, "{inventory}");
+    assert_eq!(result["languages"][0]["language"], "rust");
+    // Two clients for the code that ships; the one of the tests is no duplicate.
+    assert_eq!(
+        result["duplicates"],
+        json!([{"ecosystem": "cargo", "function": "http-client", "packages": ["reqwest", "ureq"], "used_by": ["demo"]}]),
+        "{inventory}"
+    );
+    assert_eq!(result["cve"]["state"], "not_checked", "{inventory}");
+    assert!(
+        result["vulnerabilities"]
+            .as_array()
+            .is_some_and(Vec::is_empty)
+    );
+    let ureq = result["dependencies"]
+        .as_array()
+        .and_then(|d| d.iter().find(|d| d["name"] == "ureq").cloned())
+        .expect("ureq");
+    assert_eq!(ureq["version"], "3.4.2");
+    assert_eq!(ureq["direct"], true);
+    // Paged: one at a time, the next page after.
+    let page = tool(
+        &mut client,
+        "get_tech_inventory",
+        json!({"cve": false, "limit": 1}),
+    );
+    assert_eq!(
+        page["result"]["dependencies"].as_array().map(Vec::len),
+        Some(1)
+    );
+    assert_eq!(page["result"]["next_cursor"], "1");
+
+    let sbom: Value = client
+        .request(methods::INVENTORY_SBOM, &json!({"cve": false}))
+        .expect("the SBOM");
+    assert_eq!(sbom["bomFormat"], "CycloneDX");
+    assert_eq!(sbom["specVersion"], "1.5");
+    assert_eq!(
+        sbom["components"].as_array().map(Vec::len),
+        Some(4),
+        "{sbom}"
+    );
+}
+
+/// The audit of 2026-10-21, finding 2: the receiver takes a run's spans only with the run's
+/// token, which `run/start` gives to `timonier test`; any other local sender is dropped.
+#[test]
+fn the_receiver_takes_a_run_s_spans_with_its_token_only() {
+    use std::io::{Read, Write};
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("timonier-test").unwrap();
+    indexed(&mut client, 2);
+    let started: Value = client
+        .request(
+            methods::RUN_START,
+            &json!({"command": ["true"], "startedAtMs": 1}),
+        )
+        .expect("run/start");
+    let run = started["run"].as_str().unwrap().to_owned();
+    let token = started["token"].as_str().expect("a token").to_owned();
+    assert_eq!(token.len(), 32);
+    let endpoint = started["endpoint"].as_str().expect("an endpoint");
+    let address = endpoint.trim_start_matches("http://").to_owned();
+    let send = |name: &str, header: Option<&str>| {
+        let body = json!({"resourceSpans": [{
+            "resource": {"attributes": [{"key": "timonier.run_id", "value": {"stringValue": run}}]},
+            "scopeSpans": [{"spans": [{"traceId": "0af7651916cd43dd8448eb211c80319c",
+                "spanId": format!("{:0>16}", name.len()), "name": name,
+                "startTimeUnixNano": "1000", "endTimeUnixNano": "2000"}]}]
+        }]})
+        .to_string();
+        let mut stream = std::net::TcpStream::connect(&address).expect("the receiver");
+        let token = header
+            .map(|t| format!("x-timonier-token: {t}\r\n"))
+            .unwrap_or_default();
+        write!(
+            stream,
+            "POST /v1/traces HTTP/1.1\r\nHost: {address}\r\nContent-Type: application/json\r\n{token}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .unwrap();
+        let mut answer = String::new();
+        stream.read_to_string(&mut answer).ok();
+        assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
+    };
+    send("none", None);
+    send("wrong", Some("0123456789abcdef0123456789abcdef"));
+    send("its-own", Some(&token));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let view: Value = client
+            .request(methods::PERF_RUN, &json!({"run": run}))
+            .expect("perf/run");
+        let names: Vec<&str> = view["spans"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|s| s["name"].as_str())
+            .collect();
+        if !names.is_empty() {
+            assert_eq!(names, ["its-own"], "{view}");
+            break;
+        }
+        assert!(Instant::now() < deadline, "no span kept: {view}");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// The audit of 2026-10-21, finding 6: a view that opens more boxes than a map shows is refused.
+#[test]
+fn a_view_that_opens_too_many_boxes_is_refused() {
+    let repo = project();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(repo.path(), runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("vscode").unwrap();
+    let expanded: Vec<String> = (0..10_001).map(|n| format!("file:src/{n}.rs")).collect();
+    let refused = client
+        .request::<Value>(methods::SUBSCRIBE, &json!({"view": {"expanded": expanded}}))
+        .unwrap_err();
+    assert!(
+        format!("{refused:?}").contains("10000 boxes at most"),
+        "{refused:?}"
+    );
+}
+
+/// PLAN.md 9.2, ADR 0056, on a real daemon with a fake `gh` and a local remote: « Solo
+/// discipliné » end to end — the task's issue and branch, its pull request pushed and opened with
+/// a written description, GitHub's auto-merge asked, the issue closed with the task.
+#[test]
+fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
+    let repo = project();
+    let root = repo.path();
+    let remote = tempfile::tempdir().unwrap();
+    let tools = tempfile::tempdir().unwrap();
+    let calls = tools.path().join("calls");
+    let gh = tools.path().join("gh");
+    std::fs::write(
+        &gh,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1 $2\" in\n  \"issue create\") echo https://github.com/me/demo/issues/42 ;;\n  \"pr create\") echo https://github.com/me/demo/pull/7 ;;\nesac\n",
+            calls.display()
+        ),
+    )
+    .unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    git(
+        remote.path(),
+        &["init", "--quiet", "--bare", "--initial-branch=main"],
+    );
+    git(root, &["init", "--quiet", "--initial-branch=main"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "--quiet", "-m", "first"]);
+    git(
+        root,
+        &[
+            "remote",
+            "add",
+            "origin",
+            &remote.path().display().to_string(),
+        ],
+    );
+    git(
+        root,
+        &["push", "--quiet", "--set-upstream", "origin", "main"],
+    );
+
+    let runtime = tempfile::tempdir().unwrap();
+    let mut options = Options::new(root);
+    options.runtime = Some(run_dir(runtime.path()));
+    options.idle = Duration::from_secs(600);
+    options.debounce = Duration::from_millis(100);
+    options.signals = false;
+    options.gh = Some(gh.clone());
+    let daemon = Daemon::bind(options).unwrap().unwrap();
+    let paths = daemon.paths().clone();
+    let thread = std::thread::spawn(move || daemon.run());
+    let mut client = Client::connect(&paths.socket).unwrap();
+    client.set_timeout(Duration::from_secs(20));
+    client.initialize("test-agent").unwrap();
+    indexed(&mut client, 2);
+
+    // The panel chooses Solo discipliné: the file is the daemon's to write.
+    let mut workflow = serde_json::to_value(timonier_core::workflow::Workflow::preset(
+        timonier_core::workflow::Preset::SoloDisciplined,
+    ))
+    .unwrap();
+    let set: Value = client
+        .request(methods::WORKFLOW_SET, &workflow)
+        .expect("set");
+    assert_eq!(set["preset"], "solo_disciplined");
+    // Its CI: the tests, then the budgets and the rules.
+    let ci = std::fs::read_to_string(root.join(".github/workflows/timonier.yml")).expect("the CI");
+    assert!(ci.starts_with("# Written by Timonier"), "{ci}");
+    assert!(
+        ci.contains("run: timonier test --approve") && ci.contains("run: timonier check"),
+        "{ci}"
+    );
+    assert!(ci.contains("branches: [main]"), "{ci}");
+    workflow["merge"]["human_approval"] = json!(true);
+    assert!(
+        client
+            .request::<Value>(methods::WORKFLOW_SET, &workflow)
+            .is_err(),
+        "auto-merge and a review exclude each other"
+    );
+    let read = tool(&mut client, "get_workflow", json!({}));
+    assert!(
+        read["result"]["instructions"]
+            .as_str()
+            .unwrap()
+            .contains("task_start")
+    );
+
+    tool(&mut client, "session_start", json!({"objective": "Cache"}));
+    let added = tool(
+        &mut client,
+        "plan_add_task",
+        json!({"new_milestone": "Phase 1", "title": "Écrire le cache", "criterion": "a second indexing parses nothing"}),
+    );
+    let task = added["result"]["id"].as_str().unwrap().to_owned();
+    let started = tool(&mut client, "task_start", json!({"task_id": task}));
+    assert_eq!(started["result"]["ticket"], 42, "{started}");
+    assert_eq!(started["result"]["branch"], "tim/42-ecrire-le-cache");
+    assert_eq!(started["result"]["task"]["status"], "in_progress");
+    assert_eq!(started["result"]["task"]["ticket"], "github#42");
+    let branch = std::process::Command::new("git")
+        .args([
+            "-C",
+            &root.display().to_string(),
+            "symbolic-ref",
+            "--short",
+            "HEAD",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&branch.stdout).trim(),
+        "tim/42-ecrire-le-cache"
+    );
+
+    write(root, "src/cache.rs", "pub fn cache() {}\n");
+    git(root, &["add", "."]);
+    git(
+        root,
+        &["commit", "--quiet", "-m", "feat: the cache\n\nRefs #42"],
+    );
+    let opened = tool(&mut client, "open_pull_request", json!({}));
+    assert_eq!(
+        opened["result"]["url"], "https://github.com/me/demo/pull/7",
+        "{opened}"
+    );
+    // Pushed to the remote.
+    let pushed = std::process::Command::new("git")
+        .args([
+            "--git-dir",
+            &remote.path().display().to_string(),
+            "rev-parse",
+            "--verify",
+            "tim/42-ecrire-le-cache",
+        ])
+        .output()
+        .unwrap();
+    assert!(pushed.status.success(), "{pushed:?}");
+
+    let done = client
+        .request::<Value>(
+            methods::TOOLS_CALL,
+            &json!({"name": "plan_update_task", "arguments": {"task_id": task, "status": "done"}}),
+        )
+        .unwrap();
+    assert!(
+        done["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Issue #42 closed."),
+        "{done}"
+    );
+
+    let said = std::fs::read_to_string(&calls).unwrap();
+    let lines: Vec<&str> = said.lines().collect();
+    assert!(lines[0].starts_with("issue create --title T-1 — Écrire le cache --body Done when: a second indexing parses nothing"), "{said}");
+    let pr = lines
+        .iter()
+        .find(|l| l.starts_with("pr create"))
+        .expect("a pull request");
+    assert!(
+        pr.contains("--head tim/42-ecrire-le-cache --base main --title T-1 — Écrire le cache"),
+        "{pr}"
+    );
+    // The description, over several lines of the log.
+    let body = &said[said.find("pr create").unwrap()..];
+    assert!(
+        body.contains("Done when: a second indexing parses nothing"),
+        "{body}"
+    );
+    assert!(body.contains("## Changes"), "{body}");
+    assert!(body.contains("Closes #42"), "{body}");
+    assert!(
+        lines.contains(&"pr merge tim/42-ecrire-le-cache --auto --squash"),
+        "{said}"
+    );
+    assert!(lines.contains(&"issue close 42"), "{said}");
+
+    let _ = client.request::<Value>(methods::SHUTDOWN, &Value::Null);
+    let _ = thread.join();
+}

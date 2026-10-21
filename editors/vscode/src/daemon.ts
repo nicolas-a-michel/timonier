@@ -18,6 +18,8 @@ import {
   METHODS,
   PROTOCOL_VERSION,
   type DaemonState,
+  type IndexProgress,
+  type StatusResult,
   type DefinitionsParams,
   type InitializeResult,
   type OutgoingCallsParams,
@@ -32,7 +34,12 @@ const STABLE_MS = 30_000;
 export interface DaemonStatus {
   state: DaemonState;
   detail: string | null;
+  /** How far the first indexing is, while it runs (T-115). */
+  progress?: IndexProgress;
 }
+
+/** How often the start's progress is asked, while the first indexing runs. */
+const PROGRESS_MS = 300;
 
 /**
  * Launches the project's daemon, connects to it, and launches it again when it is lost. The
@@ -60,6 +67,7 @@ export class DaemonSupervisor implements vscode.Disposable {
   private retry: NodeJS.Timeout | undefined;
   private stable: NodeJS.Timeout | undefined;
   private daemonPid: number | undefined;
+  private progressTimer: NodeJS.Timeout | undefined;
   private disposed = false;
   private attempt = 0;
   /** The relay answers about saved content only (ADR 0022). */
@@ -117,6 +125,7 @@ export class DaemonSupervisor implements vscode.Disposable {
     this.disposed = true;
     clearTimeout(this.retry);
     clearTimeout(this.stable);
+    clearTimeout(this.progressTimer);
     this.drop();
     this.saved.dispose();
     this.stateEmitter.dispose();
@@ -134,8 +143,31 @@ export class DaemonSupervisor implements vscode.Disposable {
 
   private setState(state: DaemonState, detail: string | null = null): void {
     if (this.disposed) return;
+    clearTimeout(this.progressTimer);
     this.current = { state, detail };
     this.stateEmitter.fire(this.current);
+  }
+
+  /**
+   * Until the first indexing is done, its progress, a few times a second (T-115): the pages
+   * show a bar instead of an empty screen. Ends with the connection.
+   */
+  private followIndexing(connection: MessageConnection, attempt: number): void {
+    const ask = () => {
+      void connection
+        .sendRequest<StatusResult>(METHODS.STATUS)
+        .then((status) => {
+          if (attempt !== this.attempt || this.disposed || this.current.state !== "connected") return;
+          const progress = status.progress ?? undefined;
+          if (progress?.done !== this.current.progress?.done || progress?.total !== this.current.progress?.total) {
+            this.current = { ...this.current, progress };
+            this.stateEmitter.fire(this.current);
+          }
+          if (progress) this.progressTimer = setTimeout(ask, PROGRESS_MS);
+        })
+        .catch(() => undefined);
+    };
+    ask();
   }
 
   private launch(): void {
@@ -229,6 +261,7 @@ export class DaemonSupervisor implements vscode.Disposable {
           this.stable = setTimeout(() => (this.failures = 0), STABLE_MS);
           this.connectEmitter.fire(connection);
           this.announceEditors();
+          this.followIndexing(connection, attempt);
         })
         .catch((error: unknown) => this.lost(attempt, `the daemon refused the connection: ${message(error)}`));
     });

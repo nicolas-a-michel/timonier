@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-26",
+  "agent": "vibe-perf-audit",
+  "objective": "Optimiser la consommation de ressources du daemon (CPU, mémoire, I/O, disque) : baseline, réduction du régime permanent et du coût d'indexation, sans régression fonctionnelle",
+  "tasks": [
+    "T-119"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T17:43:31Z",
+  "ended_at": "2026-10-21T17:43:44Z",
+  "snapshots": {
+    "start": 77,
+    "end": 78
+  },
+  "summary": "Translated docs/spec.md into English, laid out in Markdown, as docs/spec.en.md (the French original stays authoritative; CLAUDE.md says so). Checked the versioned files of editors/vscode and .claude: none is useless. Fixed the stale « Configurer » passage of editors/vscode/README.md. Checked the remaining French files: all French by rule (spec, PLAN.md, ADRs, README.fr.md, user docs, i18n). Left to the human: the extension README in English at publication (T-109), the hook's French task states.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

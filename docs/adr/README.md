@@ -59,3 +59,6 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0052 | [Les budgets de performance vérifiés sur les runs](0052-budgets.md) | Accepté | 8 |
 | 0053 | [La détection des régressions de performances](0053-regressions.md) | Accepté | 8 |
 | 0054 | [Ce que la carte dit d'un symbole : sa sorte et sa signature](0054-symboles-de-la-carte.md) | Accepté | 8 |
+| 0055 | [L'inventaire des technologies](0055-inventaire-des-technologies.md) | Proposé | 9 |
+| 0056 | [Le processus de développement : `workflow.json`, GitHub par `gh`, la CI](0056-processus-de-developpement.md) | Proposé | 9 |
+| 0057 | [Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier](0057-securite-locale.md) | Proposé | 9 |

@@ -64,8 +64,24 @@ describe("teaching states", () => {
     expect(html).toContain("la carte revient d&#x27;elle-même");
   });
 
+  it("shows how far the first indexing is, in a bar and in words (T-115)", () => {
+    const indexing = {
+      ...withBoxes(0),
+      daemon: { state: "connected" as const, detail: null, progress: { done: 120, total: 247 } },
+    };
+    const html = renderToStaticMarkup(<App locale="en" model={indexing} />);
+    expect(html).toContain("Indexing the project");
+    expect(html).toContain(
+      '<progress class="tim-progress__bar" max="247" value="120" aria-label="Files read: 120 of 247">',
+    );
+    const writing = { ...indexing, daemon: { ...indexing.daemon, progress: { done: 247, total: 247 } } };
+    expect(renderToStaticMarkup(<App locale="fr" model={writing} />)).toContain("Tous les fichiers sont lus");
+    // Done: no bar, and an empty folder says what Timonier reads.
+    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).not.toContain("<progress");
+  });
+
   it("draws the map once the daemon has sent boxes, and says when it reconnects", () => {
-    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain("Nothing indexed yet");
+    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain("No Rust or TypeScript file here");
     const map = renderToStaticMarkup(<App locale="fr" model={withBoxes(5)} />);
     expect(map).toContain('aria-label="Carte d&#x27;architecture"');
     expect(map).not.toContain('role="status"');

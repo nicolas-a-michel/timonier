@@ -156,9 +156,18 @@ fn indexes_what_the_packs_read_and_the_gitignore_allows() {
 #[test]
 fn a_second_indexing_with_the_cache_parses_nothing() {
     let dir = repository();
-    let first = indexer(dir.path())
-        .index_all(&HashMap::new(), &[], None)
-        .unwrap();
+    let mut whole = indexer(dir.path());
+    let progress = whole.progress();
+    let first = whole.index_all(&HashMap::new(), &[], None).unwrap();
+    // T-115: every file read is counted, of all those found.
+    use std::sync::atomic::Ordering;
+    assert_eq!(
+        (
+            progress.done.load(Ordering::Relaxed),
+            progress.total.load(Ordering::Relaxed)
+        ),
+        (5, 5)
+    );
     let cache = cache_of(&first);
     let second = indexer(dir.path()).index_all(&cache, &[], None).unwrap();
     assert_eq!((second.stats.parsed, second.stats.cached), (0, 5));

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-27",
+  "agent": "vibe-perf-audit",
+  "objective": "Optimiser la consommation de ressources du daemon (CPU, mémoire, I/O, disque) : baseline, réduction du régime permanent et du coût d'indexation, sans régression fonctionnelle",
+  "tasks": [
+    "T-119"
+  ],
+  "status": "open",
+  "started_at": "2026-10-21T17:44:40Z",
+  "snapshots": {
+    "start": 79
+  }
+}

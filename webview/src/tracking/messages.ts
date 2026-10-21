@@ -80,6 +80,7 @@ export interface TrackingMessages {
   toRead: (files: number, untracked: number) => string;
   openMap: string;
   openPerformance: string;
+  openWhiteboard: string;
   budgetExceeded: string;
   markReviewed: string;
   lookHeading: string;
@@ -95,6 +96,35 @@ export interface TrackingMessages {
   notConfiguredTitle: string;
   notConfiguredText: string;
   configure: string;
+  /** The development process's settings (ADR 0056). */
+  workflowTitle: string;
+  workflowLoading: string;
+  workflowPreset: string;
+  presets: Record<"solo_fast" | "solo_disciplined" | "team", { name: string; text: string }> & {
+    custom: { text: string };
+  };
+  workflowSettings: string;
+  ticketsLabel: string;
+  none: string;
+  branchPerTask: string;
+  branchPattern: string;
+  commitConvention: string;
+  free: string;
+  referenceTicket: string;
+  prAtEnd: string;
+  prDraft: string;
+  humanApproval: string;
+  autoMerge: string;
+  strategy: string;
+  ciLabel: string;
+  workflowRefused: (problem: string) => string;
+  workflowAgent: string;
+  /** The agents to set up (T-118). */
+  agentsLegend: string;
+  agentNotFound: string;
+  configuring: string;
+  configureDone: string;
+  configureFailed: (detail: string | null) => string;
 }
 
 export const trackingMessages: Record<Locale, TrackingMessages> = {
@@ -178,6 +208,7 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
       `${files === 1 ? "1 file" : `${files} files`} to read again${untracked > 0 ? `, ${untracked} untracked` : ""}`,
     openMap: "Open Map",
     openPerformance: "Performances",
+    openWhiteboard: "Whiteboard",
     budgetExceeded: "Budget exceeded",
     markReviewed: "Mark as reviewed",
     lookHeading: "Where to look",
@@ -192,6 +223,40 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     notConfiguredText:
       "Timonier writes their instructions, declares its MCP server and their hooks, and opens the plan. A terminal shows each step, and asks what it cannot find out.",
     configure: "Set up",
+    workflowTitle: "Development process",
+    workflowLoading: "The process appears once the daemon answers.",
+    workflowPreset: "Preset",
+    presets: {
+      solo_fast: { name: "Solo, fast", text: "commits straight on the main branch: a prototype, an exploration" },
+      solo_disciplined: {
+        name: "Solo, disciplined",
+        text: "a branch and a pull request per task, merged when the tests, budgets and rules pass",
+      },
+      team: { name: "Team", text: "ticket, branch, pull request, a person's review, then merge; the CI blocks" },
+      custom: { text: "Custom: one setting differs from the presets." },
+    },
+    workflowSettings: "Settings",
+    ticketsLabel: "Tickets",
+    none: "None",
+    branchPerTask: "A branch per task",
+    branchPattern: "Branch name",
+    commitConvention: "Commit messages",
+    free: "Free",
+    referenceTicket: "The ticket in each commit",
+    prAtEnd: "A pull request at the end of each session",
+    prDraft: "As a draft",
+    humanApproval: "A person's approval before merging",
+    autoMerge: "GitHub merges once the checks pass",
+    strategy: "Merge strategy",
+    ciLabel: "CI",
+    workflowRefused: (problem) => `Not saved: ${problem}.`,
+    workflowAgent: "What the agents do",
+    agentsLegend: "Agents to set up",
+    agentNotFound: "not found here",
+    configuring: "Setting up…",
+    configureDone: "Set up: the agents read Timonier's instructions at their next session.",
+    configureFailed: (detail) =>
+      `The setup failed${detail ? `: ${detail}` : ""}. « Timonier: Show the Log » says more.`,
   },
   fr: {
     startingTitle: "Démarrage de Timonier",
@@ -273,6 +338,7 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
       `${files === 1 ? "1 fichier" : `${files} fichiers`} à relire${untracked > 0 ? `, dont ${untracked} non suivi${untracked > 1 ? "s" : ""}` : ""}`,
     openMap: "Ouvrir la carte",
     openPerformance: "Performances",
+    openWhiteboard: "Tableau blanc",
     budgetExceeded: "Budget dépassé",
     markReviewed: "Marquer comme revu",
     lookHeading: "Où regarder",
@@ -287,5 +353,39 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     notConfiguredText:
       "Timonier écrit leurs instructions, déclare son serveur MCP et leurs hooks, et ouvre le plan. Un terminal montre chaque étape, et demande ce qu'il ne peut pas trouver seul.",
     configure: "Configurer",
+    workflowTitle: "Processus de développement",
+    workflowLoading: "Le processus apparaît dès que le démon répond.",
+    workflowPreset: "Préréglage",
+    presets: {
+      solo_fast: { name: "Solo rapide", text: "commits directs sur la branche principale : prototype, exploration" },
+      solo_disciplined: {
+        name: "Solo discipliné",
+        text: "une branche et une pull request par tâche, fusionnée si tests, budgets et règles passent",
+      },
+      team: { name: "Équipe", text: "ticket, branche, pull request, revue humaine, puis fusion ; la CI bloque" },
+      custom: { text: "Personnalisé : un réglage diffère des préréglages." },
+    },
+    workflowSettings: "Réglages",
+    ticketsLabel: "Tickets",
+    none: "Aucun",
+    branchPerTask: "Une branche par tâche",
+    branchPattern: "Nom de branche",
+    commitConvention: "Messages de commit",
+    free: "Libres",
+    referenceTicket: "Le ticket dans chaque commit",
+    prAtEnd: "Une pull request à la fin de chaque session",
+    prDraft: "En brouillon",
+    humanApproval: "Une approbation humaine avant la fusion",
+    autoMerge: "GitHub fusionne quand les contrôles passent",
+    strategy: "Stratégie de fusion",
+    ciLabel: "CI",
+    workflowRefused: (problem) => `Non enregistré : ${problem}.`,
+    workflowAgent: "Ce que font les agents",
+    agentsLegend: "Agents à configurer",
+    agentNotFound: "non trouvé ici",
+    configuring: "Configuration…",
+    configureDone: "Configuré : les agents lisent les consignes de Timonier à leur prochaine session.",
+    configureFailed: (detail) =>
+      `La configuration a échoué${detail ? ` : ${detail}` : ""}. « Timonier : Afficher le journal » en dit plus.`,
   },
 };

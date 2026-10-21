@@ -5,7 +5,7 @@ description: Conventions for all Rust code in Timonier's Cargo workspace (crates
 
 # Rust daemon conventions
 
-Sources of truth: `docs/spec.md` (« Architecture technique », « Indexation et modèle de graphe »,
+Sources of truth: `docs/spec.md` (« Technical architecture », « Indexing and graph model »,
 « Décisions techniques ») and the ADRs in `docs/adr/`. This skill explains how to apply them.
 If it disagrees with an ADR, the ADR wins and this file must be fixed in the same change.
 

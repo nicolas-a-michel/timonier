@@ -1,4 +1,4 @@
-//! Edges of the graph, their provenance and confidence (spec « Schéma », ADR 0009).
+//! Edges of the graph, their provenance and confidence (spec « Schema », ADR 0009).
 
 use std::fmt;
 

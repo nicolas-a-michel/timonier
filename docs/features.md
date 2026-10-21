@@ -78,6 +78,22 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 
 ## MCP tools for agents
 
+- Development process (phase 9, under way): `.timonier/workflow.json` holds the process, from
+  three presets (solo fast, the default; solo disciplined; team) or set one by one in
+  « Timonier: Development Process ». With a branch per task, `task_start` opens the task's GitHub
+  issue and branch `tim/<ticket>-<slug>` through `gh`; `open_pull_request`, or `session_end`,
+  pushes the branch and opens its pull request with a written description (the task, the
+  session's structural changes, the last run, regressions, budgets and forbidden edges), and asks
+  GitHub's auto-merge when the process says so; the issue closes with the task. Choosing GitHub
+  Actions writes `.github/workflows/timonier.yml`, which runs `timonier test` then
+  `timonier check` (fails on an exceeded budget or a broken architecture rule).
+- Technology inventory (phase 9, under way): `timonier inventory` and the tool
+  `get_tech_inventory` list the languages, frameworks and dependencies with their resolved
+  versions and licences (`cargo metadata`, `Cargo.lock`, `package-lock.json`), the duplicates by
+  function (two HTTP clients), the dependencies added since the last review, and the known
+  vulnerabilities from OSV.dev, asked on demand only and kept a day. `--sbom FILE` writes a
+  CycloneDX 1.5 SBOM, which passes the official schema on Timonier.
+
 - `timonier mcp` (or `tim mcp`) is an MCP server on stdio for coding agents (Claude Code, Codex,
   Cursor…). It starts the project's daemon if needed and relays its tools; the daemon validates
   every call and is the only writer of `.timonier/`.

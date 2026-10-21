@@ -6,7 +6,7 @@ import { cloneElement, useId, useRef, useState, type KeyboardEvent, type ReactEl
 
 import { messages, type Locale } from "../i18n";
 import { performanceMessages } from "../performance/messages";
-import type { Role } from "../protocol";
+import type { IndexProgress, Role } from "../protocol";
 import { ChangeIcon, IntentIcon, RoleIcon, SymbolIcon, ToneIcon, type SymbolKind, type Tone } from "./icons";
 
 export interface ComponentBoxProps {
@@ -81,7 +81,7 @@ export function ComponentBox({
 export interface EdgeLineProps {
   /** An SVG path. */
   d: string;
-  /** Known from tree-sitter only (spec « Précision affichée »). */
+  /** Known from tree-sitter only (spec « Displayed precision »). */
   approximate: boolean;
   /** Its accessible name: what it links, and how sure it is. */
   label: string;
@@ -260,10 +260,39 @@ export interface EmptyStateProps {
   action?: { label: string; onSelect: () => void };
   /** Announced when it changes: a state that follows the daemon. */
   live?: boolean;
+  /** How far the start is (T-115): a bar under the text. */
+  progress?: IndexProgress;
+  locale?: Locale;
+}
+
+/**
+ * How far the first indexing is (T-115): the files read, of how many, in a bar and in words;
+ * once all are read, the graph is being written. No motion: the bar moves as files are read.
+ */
+export function ProgressBar({ progress, locale }: { progress: IndexProgress; locale: Locale }) {
+  const t = messages[locale];
+  const writing = progress.total > 0 && progress.done >= progress.total;
+  const words =
+    progress.total === 0
+      ? t.progressFinding
+      : writing
+        ? t.progressWriting
+        : t.progressReading(progress.done, progress.total);
+  return (
+    <div className="tim-progress">
+      <progress
+        className="tim-progress__bar"
+        max={Math.max(progress.total, 1)}
+        value={progress.total === 0 ? undefined : Math.min(progress.done, progress.total)}
+        aria-label={words}
+      />
+      <span className="tim-progress__words">{words}</span>
+    </div>
+  );
 }
 
 /** A teaching empty state: what is happening, and what to do next. */
-export function EmptyState({ title, text, detail, action, live }: EmptyStateProps) {
+export function EmptyState({ title, text, detail, action, live, progress, locale = "en" }: EmptyStateProps) {
   const id = useId();
   return (
     <section className="tim-empty" aria-labelledby={id}>
@@ -274,6 +303,7 @@ export function EmptyState({ title, text, detail, action, live }: EmptyStateProp
         <p className="tim-empty__text">{text}</p>
         {detail && <p className="tim-empty__detail">{detail}</p>}
       </div>
+      {progress && <ProgressBar progress={progress} locale={locale} />}
       {action && (
         <button type="button" className="tim-button" onClick={action.onSelect}>
           {action.label}

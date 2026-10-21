@@ -7,12 +7,17 @@ pub mod bridge;
 pub mod client;
 pub mod debt;
 mod error;
+pub mod forge;
 mod git;
 pub mod indexing;
+pub mod inventory;
 pub mod journal;
+pub mod osv;
+mod process;
 mod relay;
 pub mod runs;
 pub mod runtime;
+pub mod sbom;
 pub mod server;
 pub mod sketch;
 mod subscriptions;
@@ -31,6 +36,8 @@ pub use timonier_index::pack::{
     ConfigBlock, InstrumentationRules, RunnerRule, SdkDependency, SmokeRule, TemplateFile,
 };
 pub use timonier_index::{Pack, Packs};
+/// The header a run's senders carry its token in (audit of 2026-10-21, finding 2).
+pub use timonier_otlp::TOKEN_HEADER as OTLP_TOKEN_HEADER;
 pub use watch::{Event, PendingReview, Watch};
 
 #[cfg(test)]

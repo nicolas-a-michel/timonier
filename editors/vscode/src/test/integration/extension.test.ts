@@ -151,8 +151,12 @@ const body = { resourceSpans: [{
   resource: { attributes: [{ key: "timonier.run_id", value: { stringValue: run } }] },
   scopeSpans: [{ spans: [span] }],
 }] };
+// The run's token, as an SDK reads it: \`OTEL_EXPORTER_OTLP_HEADERS\` (audit, finding 2).
+const headers = Object.fromEntries(
+  (process.env.OTEL_EXPORTER_OTLP_HEADERS ?? "").split(",").filter(Boolean).map((pair) => pair.split("=")),
+);
 const answer = await fetch(process.env.OTEL_EXPORTER_OTLP_ENDPOINT + "/v1/traces", {
-  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
 });
 process.exit(answer.ok ? 0 : 1);
 `,
@@ -184,6 +188,20 @@ process.exit(answer.ok ? 0 : 1);
       else writeFileSync(intent, drawn);
       rmSync(emit, { force: true });
     }
+  });
+
+  it("opens the development process's settings, which the daemon gives (ADR 0056)", async () => {
+    const timonier = await api();
+    await vscode.commands.executeCommand("timonier.openWorkflow");
+    await waitFor(() => {
+      const sent = timonier.workflow();
+      return sent?.type === "workflow" && sent.view !== null;
+    }, 20_000);
+    const sent = timonier.workflow();
+    assert.ok(sent?.type === "workflow" && sent.view);
+    // A project that chose nothing is Solo rapide (Q83).
+    assert.equal(sent.view.workflow.preset, "solo_fast");
+    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
   });
 
   it("opens the whiteboard, whose production bundle runs under the strict CSP (ADR 0036)", async () => {

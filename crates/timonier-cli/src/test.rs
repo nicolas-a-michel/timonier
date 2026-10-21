@@ -32,6 +32,10 @@ pub struct TestArgs {
     /// to 15 when the runs are spread; what the regressions are judged on
     #[arg(long, default_value = "1", value_parser = parse_runs)]
     runs: Runs,
+    /// Approve the commands of `.timonier/tests.json` for this machine, after reading them
+    /// (Q84): a command this machine has not approved does not run
+    #[arg(long)]
+    approve: bool,
     #[command(flatten)]
     target: daemon::Target,
     /// The command that runs the tests; without one, those of `.timonier/tests.json`
@@ -43,7 +47,7 @@ pub struct TestArgs {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Runs {
     Exactly(usize),
-    /// 5, up to 15 while the runs are spread (spec « Seuil de régression »).
+    /// 5, up to 15 while the runs are spread (spec « Performance regression threshold »).
     Auto,
 }
 
@@ -66,9 +70,10 @@ const INDEXING: Duration = Duration::from_secs(30);
 /// Forces the measure without a systemd scope (`rusage`), for tests and odd machines.
 const MEASURE: &str = "TIMONIER_MEASURE";
 
-/// What the run sets for the OpenTelemetry SDK of the tests (spec « Branchement »).
+/// What the run sets for the OpenTelemetry SDK of the tests (spec « Wiring »).
 const ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
 const RESOURCE_ATTRIBUTES: &str = "OTEL_RESOURCE_ATTRIBUTES";
+const HEADERS: &str = "OTEL_EXPORTER_OTLP_HEADERS";
 const SDK_DISABLED: &str = "OTEL_SDK_DISABLED";
 
 /// One run to make: the command and where its JUnit XML lands.
@@ -88,10 +93,27 @@ pub fn run(args: &TestArgs) -> ExitCode {
         }
         Err(error) => {
             eprintln!("timonier: {error:#}");
-            ExitCode::FAILURE
+            // Commands not approved: 2, apart from the tests' own failures (Q84).
+            if error.is::<NotApproved>() {
+                ExitCode::from(2)
+            } else {
+                ExitCode::FAILURE
+            }
         }
     }
 }
+
+/// Commands of `.timonier/tests.json` this machine has not approved (Q84).
+#[derive(Debug)]
+struct NotApproved(String);
+
+impl std::fmt::Display for NotApproved {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for NotApproved {}
 
 fn plan(args: &TestArgs) -> Result<(Paths, Vec<Planned>)> {
     let paths = daemon::resolve(&args.target)?;
@@ -132,6 +154,27 @@ fn plan(args: &TestArgs) -> Result<(Paths, Vec<Planned>)> {
         "no command: give one after `--`, or run `timonier init` to record the test runners in \
          {TESTS}"
     );
+    // The file is the repository's: what this machine has not approved does not run (Q84).
+    let commands: Vec<&str> = runners
+        .iter()
+        .filter_map(|r| r.command.as_deref())
+        .collect();
+    if args.approve {
+        crate::approval::approve(&paths.root, commands.iter().copied())?;
+    } else {
+        let unknown: Vec<&str> = commands
+            .iter()
+            .copied()
+            .filter(|c| !crate::approval::approved(&paths.root, c))
+            .collect();
+        if !unknown.is_empty() {
+            return Err(NotApproved(crate::approval::refusal(
+                &unknown,
+                "timonier test --approve",
+            ))
+            .into());
+        }
+    }
     Ok((paths, planned))
 }
 
@@ -313,6 +356,16 @@ fn run_once(
         let existing = std::env::var(RESOURCE_ATTRIBUTES).ok();
         if let Some(endpoint) = &begun.endpoint {
             relay.env(ENDPOINT, endpoint);
+        }
+        // The run's token, which the receiver asks of its senders (audit, finding 2): after
+        // the headers already set, which keep theirs.
+        if let Some(token) = &begun.token {
+            let existing = std::env::var(HEADERS).ok().filter(|h| !h.trim().is_empty());
+            let ours = format!("{}={token}", timonier_daemon::OTLP_TOKEN_HEADER);
+            relay.env(
+                HEADERS,
+                existing.map_or_else(|| ours.clone(), |h| format!("{h},{ours}")),
+            );
         }
         if !traced {
             // OpenTelemetry's own switch: the SDK makes no span and sends nothing (ADR 0049).

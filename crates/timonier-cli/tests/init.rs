@@ -57,7 +57,12 @@ impl Fixture {
             .env("HOME", self.home.path())
             .env("PATH", self.path())
             .env_remove("CODEX_HOME")
-            .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"));
+            .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"))
+            // The approved commands (Q84), never in the developer's home.
+            .env(
+                "TIMONIER_DATA_DIR",
+                self.home.path().join(".local/share/timonier"),
+            );
         command
     }
 
@@ -189,6 +194,18 @@ fn init_configures_a_rust_project_once_and_shows_its_diff_first() {
         "{dry}"
     );
     assert_eq!(project.tree(), before, "a dry run writes nothing");
+    // --detect (T-118): every agent, as JSON, and nothing written either.
+    let detected: serde_json::Value =
+        serde_json::from_str(&stdout(&project.tim(&["init", "--detect"]))).expect("JSON");
+    let keys: Vec<&str> = detected["agents"]
+        .as_array()
+        .expect("agents")
+        .iter()
+        .filter_map(|a| a["key"].as_str())
+        .collect();
+    assert_eq!(keys, ["claude", "copilot", "cursor", "codex"]);
+    assert!(detected["agents"][0]["found"].is_boolean());
+    assert_eq!(project.tree(), before, "--detect writes nothing");
 
     let first = stdout(&project.tim(&["init", "--yes", "--agents", "claude,codex"]));
     assert!(first.contains("Timonier is set up."), "{first}");

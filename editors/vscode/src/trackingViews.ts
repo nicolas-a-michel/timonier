@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import * as vscode from "vscode";
 
 import { isWebviewMessage } from "./messages";
+import type { AgentChoice } from "./protocol/generated";
 import type { TrackingRelay } from "./trackingRelay";
 import { webviewEntry } from "./viteManifest";
 import { createNonce, renderWebviewHtml } from "./webviewHtml";
@@ -20,11 +21,17 @@ export type Panel = "all" | "bridge";
 export interface BridgeHost {
   reveal(target: string, path: string[]): unknown;
   openMap(): unknown;
+  /** The whiteboard (ADR 0037). */
+  openWhiteboard?(): unknown;
   /** The Performances panel (ADR 0051). */
   openPerformance?(): unknown;
   markReviewed(): unknown;
-  /** `timonier init` in a terminal (Q52, Q53). */
+  /** `timonier init` in a terminal (Q52, Q53): the palette's command. */
   configure(): unknown;
+  /** The agents init would configure (T-118). */
+  detectAgents?(): Promise<AgentChoice[]>;
+  /** `timonier init` for the agents chosen in the bridge, without a terminal (T-118). */
+  setUp?(agents: string[]): Promise<{ ok: boolean; detail: string | null }>;
 }
 
 /** The tracking: a webview view of the secondary side bar, fed by the relay. */
@@ -74,11 +81,23 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
         case "openPerformance":
           this.host?.openPerformance?.();
           return;
+        case "openWhiteboard":
+          this.host?.openWhiteboard?.();
+          return;
         case "markReviewed":
           this.host?.markReviewed();
           return;
         case "configure":
-          this.host?.configure();
+          if (message.agents && this.host?.setUp) {
+            void this.host
+              .setUp(message.agents)
+              .then((done) => webview.postMessage({ type: "configured", ok: done.ok, detail: done.detail }));
+          } else {
+            this.host?.configure();
+          }
+          return;
+        case "detectAgents":
+          void this.host?.detectAgents?.().then((agents) => webview.postMessage({ type: "agents", agents }));
           return;
         default:
           this.relay.receive(message);

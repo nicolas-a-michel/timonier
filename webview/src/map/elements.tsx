@@ -339,7 +339,7 @@ export type LineEdge = Edge<
 
 /**
  * An edge, a wire from the right of a box to the left of another: dashed and paler when
- * tree-sitter alone saw it (spec « Précision affichée »). The wires of the item pointed at or
+ * tree-sitter alone saw it (spec « Displayed precision »). The wires of the item pointed at or
  * focused take its colour. New since the last review, or in a cycle added, it takes the colour
  * of attention and a mark halfway (ADR 0024).
  */

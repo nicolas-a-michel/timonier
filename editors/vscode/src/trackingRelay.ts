@@ -136,7 +136,12 @@ function trackingMessage(snapshot: TrackingSnapshot): HostMessage {
 }
 
 function daemonMessage(status: DaemonStatus): HostMessage {
-  return { type: "daemon", state: status.state, detail: status.detail };
+  return {
+    type: "daemon",
+    state: status.state,
+    detail: status.detail,
+    ...(status.progress ? { progress: status.progress } : {}),
+  };
 }
 
 /** A message to a page; one that went away has nothing to say. */

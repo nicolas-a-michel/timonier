@@ -50,8 +50,13 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
     case "reveal":
       return typeof message.target === "string" && isStrings(message.path);
     case "openMap":
-    case "configure":
+    case "detectAgents":
+    case "askWorkflow":
       return true;
+    case "setWorkflow":
+      return typeof message.workflow === "object" && message.workflow !== null;
+    case "configure":
+      return message.agents === undefined || isStrings(message.agents);
     case "trackingShown":
       return PANELS.includes(message.panel as string) && isCount(message.revision);
     case "compareIntent":

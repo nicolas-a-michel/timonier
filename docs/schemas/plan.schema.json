@@ -125,6 +125,13 @@
         "status": {
           "$ref": "#/$defs/TaskStatus"
         },
+        "ticket": {
+          "description": "Its ticket at the forge, `github#12` (ADR 0056): made by `task_start`, or given by\n`link_ticket`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "type": "string"
         }

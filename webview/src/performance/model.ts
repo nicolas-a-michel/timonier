@@ -187,7 +187,7 @@ function median(values: number[]): number {
 }
 
 /**
- * The evolution (spec « Vues »): one point per commit, the median of its finished runs, from the
+ * The evolution (spec « Views »): one point per commit, the median of its finished runs, from the
  * oldest. Only the runs comparable with `of` count: the same command, machine and traces; a
  * modified tree is a point of its own (Q77).
  */

@@ -152,3 +152,21 @@ production = true
 [[instrumentation.dependencies]]
 name = "@opentelemetry/sdk-node"
 version = "0.223.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["react", "vue", "svelte", "@angular/core", "next", "nuxt", "express", "fastify", "koa", "@nestjs/core", "solid-js", "preact"]
+
+[inventory.functions]
+http-client = ["axios", "node-fetch", "got", "superagent", "ky", "undici"]
+http-server = ["express", "fastify", "koa", "hapi", "@nestjs/core"]
+ui = ["react", "vue", "svelte", "@angular/core", "solid-js", "preact"]
+date-time = ["moment", "dayjs", "date-fns", "luxon"]
+utilities = ["lodash", "underscore", "ramda", "lodash-es"]
+test-runner = ["vitest", "jest", "mocha", "ava", "jasmine"]
+bundler = ["vite", "webpack", "rollup", "parcel", "esbuild"]
+state = ["redux", "@reduxjs/toolkit", "mobx", "zustand", "jotai", "recoil"]
+validation = ["zod", "yup", "joi", "ajv", "valibot"]
+css-in-js = ["styled-components", "@emotion/react", "@emotion/styled"]
+logging = ["winston", "pino", "bunyan"]

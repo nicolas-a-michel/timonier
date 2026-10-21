@@ -29,7 +29,7 @@ export interface Stroke {
   pen?: boolean;
 }
 
-/** What an arrow says of the dependency it draws (spec « Tableau blanc »). */
+/** What an arrow says of the dependency it draws (spec « Whiteboard »). */
 export type Policy = "allowed" | "forbidden" | "required";
 export const POLICIES: readonly Policy[] = ["allowed", "forbidden", "required"];
 
@@ -65,7 +65,7 @@ export interface NoteShape extends XY {
   attachedTo: string | null;
 }
 
-/** The limits a budget note can set (spec « Budgets de performance »); none is required. */
+/** The limits a budget note can set (spec « Performance budgets »); none is required. */
 export interface Limits {
   /** Latency, in milliseconds. */
   p50Ms?: number;

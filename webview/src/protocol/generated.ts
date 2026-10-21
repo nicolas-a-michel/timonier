@@ -68,7 +68,69 @@ lookups: LookupCounts,
 /**
  * The last review mark; `null` before the first review (ADR 0024).
  */
-lastReview: ReviewMark | null, };
+lastReview: ReviewMark | null, 
+/**
+ * How far the first indexing is, until `indexed` (T-115): for the start's screens.
+ */
+progress: IndexProgress | null, };
+
+export type IndexProgress = { done: number, total: number, };
+
+export type AgentChoice = { key: string, label: string, found: boolean, why: string | null, };
+
+export type Preset = "solo_fast" | "solo_disciplined" | "team" | "custom";
+
+export type TicketProvider = "none" | "github" | "gitlab" | "jira" | "linear";
+
+export type CommitConvention = "conventional" | "free";
+
+export type MergeStrategy = "squash" | "merge" | "rebase";
+
+export type CiProvider = "none" | "github_actions" | "gitlab_ci";
+
+export type Tickets = { provider: TicketProvider, };
+
+export type Branches = { 
+/**
+ * A branch for each task, made by `task_start`.
+ */
+per_task: boolean, 
+/**
+ * `{ticket}` and `{slug}` are replaced; `{task}` is the task's number.
+ */
+pattern: string, };
+
+export type Commits = { convention: CommitConvention, 
+/**
+ * The ticket's reference in each commit message.
+ */
+reference_ticket: boolean, };
+
+export type PullRequests = { 
+/**
+ * `session_end` opens the pull request of the task's branch.
+ */
+open_at_session_end: boolean, draft: boolean, };
+
+export type Merge = { human_approval: boolean, 
+/**
+ * GitHub merges once the checks pass (Q82).
+ */
+auto: boolean, strategy: MergeStrategy, };
+
+export type Ci = { provider: CiProvider, };
+
+export type Workflow = { version: number, preset: Preset, tickets: Tickets, branches: Branches, commits: Commits, pull_requests: PullRequests, merge: Merge, ci: Ci, };
+
+export type WorkflowView = { workflow: Workflow, 
+/**
+ * What the process asks of the agent, in the managed block's words.
+ */
+instructions: string, 
+/**
+ * What does not hold together, or what the tools cannot do yet.
+ */
+problems: Array<string>, };
 
 export type ReviewMark = { seq: number, 
 /**
@@ -160,7 +222,7 @@ edges: number,
  */
 best: Provenance, 
 /**
- * Tree-sitter alone: drawn differently (spec « Précision affichée »).
+ * Tree-sitter alone: drawn differently (spec « Displayed precision »).
  */
 approximateOnly: boolean, 
 /**
@@ -747,13 +809,17 @@ export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "t
 /**
  * Why, for a person: the error, the program looked for.
  */
-detail: string | null, } | { "type": "command", command: MapCommand, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, } | { "type": "whiteboard", command: WhiteboardCommand, } | { "type": "intent", intent: Intent | null, 
+detail: string | null, 
+/**
+ * How far the start is (T-115): the files the first indexing read, of how many.
+ */
+progress?: IndexProgress, } | { "type": "command", command: MapCommand, } | { "type": "agents", agents: Array<AgentChoice>, } | { "type": "workflow", view: WorkflowView | null, problem: string | null, } | { "type": "configured", ok: boolean, detail: string | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "density", density: Density, } | { "type": "tracking", revision: number, tracking: TrackingView, } | { "type": "whiteboard", command: WhiteboardCommand, } | { "type": "intent", intent: Intent | null, 
 /**
  * Why the file does not read; the page then waits for the developer to start over.
  */
 problem: string | null, } | { "type": "intentSaved", saved: boolean, detail: string | null, } | { "type": "drift", drift: DriftView | null, } | { "type": "perfMap", perf: PerfMap | null, } | { "type": "perfRuns", runs: PerfRuns, } | { "type": "perfRun", run: PerfRun | null, } | { "type": "perfRegressions", report: RegressionReport | null, } | { "type": "budgets", budgets: BudgetsView | null, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "showPerformance", on: boolean, } | { "type": "openPerformance" } | { "type": "chooseRun", run: string, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure", agents?: Array<string>, } | { "type": "detectAgents" } | { "type": "askWorkflow" } | { "type": "setWorkflow", workflow: Workflow, } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "showPerformance", on: boolean, } | { "type": "openPerformance" } | { "type": "chooseRun", run: string, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -780,6 +846,10 @@ export const METHODS = {
   PERF_MAP: "perf/map",
   PERF_BUDGETS: "perf/budgets",
   PERF_REGRESSIONS: "perf/regressions",
+  INVENTORY: "inventory/get",
+  INVENTORY_SBOM: "inventory/sbom",
+  WORKFLOW_GET: "workflow/get",
+  WORKFLOW_SET: "workflow/set",
 } as const;
 
 export const ERRORS = {

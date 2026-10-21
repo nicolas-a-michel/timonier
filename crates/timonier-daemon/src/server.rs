@@ -57,6 +57,8 @@ pub struct Options {
     pub debounce: Duration,
     /// Stop on SIGTERM and SIGINT. Off in tests, which share one process.
     pub signals: bool,
+    /// The GitHub CLI; `gh` on the PATH when `None` (ADR 0056). Tests give a fake one.
+    pub gh: Option<std::path::PathBuf>,
 }
 
 impl Options {
@@ -67,6 +69,7 @@ impl Options {
             idle: IDLE,
             debounce: DEBOUNCE,
             signals: true,
+            gh: None,
         }
     }
 }
@@ -189,6 +192,7 @@ impl Daemon {
         };
         let debounce = options.debounce;
         let source_extensions = pipeline.indexer().packs().extensions();
+        let progress = pipeline.indexer().progress();
         // Refinement asks the client that relays its IDE's language servers (ADR 0014).
         let relay = Relay::default();
         let server = Box::new(relay.server());
@@ -207,6 +211,8 @@ impl Daemon {
             watch: Mutex::new(Some(watch)),
             files,
             indexed,
+            progress,
+            gh: options.gh.clone(),
             clients: AtomicUsize::new(0),
             idle_since: Mutex::new(Some(Instant::now())),
             shutdown,
@@ -278,6 +284,10 @@ struct Shared {
     files: Arc<AtomicUsize>,
     /// The first indexing is done.
     indexed: Arc<AtomicBool>,
+    /// How far the first indexing is (T-115).
+    progress: Arc<timonier_index::indexer::Progress>,
+    /// The GitHub CLI (ADR 0056).
+    gh: Option<std::path::PathBuf>,
     clients: AtomicUsize,
     /// Since when no client is connected.
     idle_since: Mutex<Option<Instant>>,
@@ -615,6 +625,82 @@ impl Session {
                     Err(error) => Err(error),
                 }
             }
+            methods::WORKFLOW_GET => {
+                let shared = Arc::clone(&self.shared);
+                match tokio::task::spawn_blocking(move || {
+                    crate::tracking::Tracker::new(&shared.root_path).workflow_view()
+                })
+                .await
+                {
+                    Ok(Ok(view)) => Ok(view),
+                    Ok(Err(refusal)) => {
+                        Err(ErrorObject::new(errors::INVALID_PARAMS, refusal.message))
+                    }
+                    Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+                }
+            }
+            methods::WORKFLOW_SET => match parse::<timonier_core::workflow::Workflow>(params) {
+                Ok(workflow) => {
+                    let shared = Arc::clone(&self.shared);
+                    let set = tokio::task::spawn_blocking(move || {
+                        let _writing = shared.tracking.lock().map_err(|_| Error::Poisoned)?;
+                        Ok::<_, Error>(
+                            crate::tracking::Tracker::new(&shared.root_path).set_workflow(workflow),
+                        )
+                    })
+                    .await;
+                    // The panels show the change (ADR 0031).
+                    let _ = self.shared.views.try_send(Command::Tracked);
+                    match set {
+                        Ok(Ok(Ok(workflow))) => Ok(json(&workflow)),
+                        Ok(Ok(Err(refusal))) => {
+                            Err(ErrorObject::new(errors::INVALID_PARAMS, refusal.message))
+                        }
+                        Ok(Err(error)) => {
+                            Err(ErrorObject::new(errors::INTERNAL, error.to_string()))
+                        }
+                        Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+                    }
+                }
+                Err(error) => Err(error),
+            },
+            methods::INVENTORY | methods::INVENTORY_SBOM => {
+                match parse::<timonier_core::inventory::GetTechInventory>(params) {
+                    Ok(input) => {
+                        let shared = Arc::clone(&self.shared);
+                        let sbom = method == methods::INVENTORY_SBOM;
+                        answer(
+                            tokio::task::spawn_blocking(move || -> Result<Value> {
+                                let gathered = crate::inventory::gather(
+                                    &shared.root_path,
+                                    &shared.store,
+                                    &input,
+                                    now_ms(),
+                                    &crate::osv::https,
+                                )?;
+                                if sbom {
+                                    crate::sbom::sbom(
+                                        &gathered.lockfiles.packages,
+                                        &gathered.lockfiles.dependencies,
+                                        &gathered.inventory.vulnerabilities,
+                                    )
+                                    .map_err(|why| {
+                                        crate::Error::Io {
+                                            path: shared.root_path.clone(),
+                                            source: std::io::Error::other(why),
+                                        }
+                                    })
+                                } else {
+                                    Ok(serde_json::to_value(gathered.inventory)
+                                        .unwrap_or(Value::Null))
+                                }
+                            })
+                            .await,
+                        )
+                    }
+                    Err(error) => Err(error),
+                }
+            }
             methods::PERF_BUDGETS => {
                 let shared = Arc::clone(&self.shared);
                 answer(
@@ -648,6 +734,12 @@ impl Session {
                 return;
             }
             methods::SUBSCRIBE => match parse::<SubscribeParams>(params) {
+                // A view opens a few hundred boxes; millions would hold the views' thread
+                // (audit of 2026-10-21, finding 6).
+                Ok(params) if params.view.expanded.len() > MAX_EXPANDED => Err(ErrorObject::new(
+                    errors::INVALID_PARAMS,
+                    format!("a view opens {MAX_EXPANDED} boxes at most"),
+                )),
                 Ok(params) => {
                     let command = Command::Subscribe {
                         connection,
@@ -761,6 +853,12 @@ impl Session {
                 daemon_version: timonier_core::VERSION.to_owned(),
                 files: count(shared.files.load(Ordering::SeqCst)),
                 indexed: shared.indexed.load(Ordering::SeqCst),
+                progress: (!shared.indexed.load(Ordering::SeqCst)).then(|| {
+                    timonier_core::protocol::IndexProgress {
+                        done: shared.progress.done.load(Ordering::Relaxed),
+                        total: shared.progress.total.load(Ordering::Relaxed),
+                    }
+                }),
                 head,
                 refinements_waiting: count(refinements),
                 refinements_held: count(held),
@@ -860,7 +958,7 @@ impl Session {
     /// Reads `.timonier/intent.json` (ADR 0039): none yet, the whiteboard, or why it does not read.
     async fn read_intent(&self) -> Result<Value, ErrorObject> {
         let path = self.shared.root_path.join(".timonier").join("intent.json");
-        let read = tokio::task::spawn_blocking(move || match std::fs::read_to_string(&path) {
+        let read = tokio::task::spawn_blocking(move || match crate::tracking::read_intent(&path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => IntentRead {
                 intent: None,
                 problem: None,
@@ -891,7 +989,7 @@ impl Session {
         let shared = Arc::clone(&self.shared);
         let shown = tokio::task::spawn_blocking(move || -> Result<DriftView> {
             let path = shared.root_path.join(".timonier").join("intent.json");
-            let text = match std::fs::read_to_string(&path) {
+            let text = match crate::tracking::read_intent(&path) {
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                     return Ok(DriftView::default());
                 }
@@ -1046,6 +1144,18 @@ impl Session {
                         shared.runs.component_perf(&shared.store, component, run)
                     },
                     regressions: &|batch| shared.runs.regressions(&shared.store, batch),
+                    forge: &crate::forge::Forge::new(&shared.root_path, shared.gh.as_deref()),
+                    last_run: &|| shared.runs.last_run_line(),
+                    inventory: &|input| {
+                        crate::inventory::gather(
+                            &shared.root_path,
+                            &shared.store,
+                            input,
+                            now_ms,
+                            &crate::osv::https,
+                        )
+                        .map(|gathered| gathered.inventory)
+                    },
                 },
             ))
         });
@@ -1113,6 +1223,9 @@ fn nudge(shared: &Arc<Shared>) {
     });
 }
 
+/// The boxes one view may open (audit of 2026-10-21, finding 6).
+const MAX_EXPANDED: usize = 10_000;
+
 fn parse<T: DeserializeOwned>(params: Value) -> Result<T, ErrorObject> {
     // No params at all reads as `{}`, for methods whose params are all optional.
     let params = if params.is_null() {
@@ -1143,6 +1256,13 @@ pub fn is_serving(paths: &Paths) -> bool {
 }
 
 /// The answer of a blocking task: its result, or an internal error.
+/// The wall clock, in milliseconds since the epoch.
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
+}
+
 fn answer<T: Serialize>(
     done: std::result::Result<Result<T>, tokio::task::JoinError>,
 ) -> Result<Value, ErrorObject> {

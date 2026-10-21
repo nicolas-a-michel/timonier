@@ -71,6 +71,10 @@ pub struct Task {
     pub created: Stamp,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notes: Vec<Note>,
+    /// Its ticket at the forge, `github#12` (ADR 0056): made by `task_start`, or given by
+    /// `link_ticket`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ticket: Option<String>,
 }
 
 /// The states of a task (ADR 0029).
@@ -343,6 +347,13 @@ impl Plan {
             .find(|t| t.id == id)
     }
 
+    /// Gives task `id` its ticket (ADR 0056); `None` when there is no such task.
+    pub fn set_ticket(&mut self, id: &str, ticket: &str) -> Option<Task> {
+        let task = self.task_mut(id)?;
+        task.ticket = Some(ticket.to_owned());
+        Some(task.clone())
+    }
+
     fn task_mut(&mut self, id: &str) -> Option<&mut Task> {
         self.milestones
             .iter_mut()
@@ -445,6 +456,7 @@ impl Plan {
             sessions: vec![stamp.session.clone()],
             created: stamp,
             notes: Vec::new(),
+            ticket: None,
         };
         self.milestones[index].tasks.push(task.clone());
         Ok(task)

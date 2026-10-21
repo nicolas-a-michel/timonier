@@ -3,6 +3,12 @@ import * as vscode from "vscode";
 import { revealCode } from "./code";
 import { DaemonSupervisor, type DaemonStatus } from "./daemon";
 import { daemonProgram, initCommand } from "./launch";
+import { detectAgents, setUp } from "./setup";
+
+/** The program `timonier init` runs as: the daemon's, as the settings give it. */
+function initProgram(): string {
+  return daemonProgram(process.env, vscode.workspace.getConfiguration("timonier").get<string>("daemon.path"));
+}
 
 /** The terminal where `timonier init` runs (Q53). */
 export const INIT_TERMINAL = "Timonier init";
@@ -16,6 +22,7 @@ import {
   type TrackingSnapshot,
   type DriftView,
   type BudgetsView,
+  type HostMessage,
   type PerfMap,
   type WhiteboardCommand,
 } from "./protocol/generated";
@@ -23,6 +30,7 @@ import { TrackingRelay, type TrackingSource } from "./trackingRelay";
 import { registerTrackingViews } from "./trackingViews";
 import type { DaemonSource, Rendered } from "./viewRelay";
 import { PerformancePanel } from "./performancePanel";
+import { WorkflowPanel } from "./workflowPanel";
 import { WhiteboardPanel } from "./whiteboardPanel";
 
 /** What `activate` exports. Only the integration tests use it for now. */
@@ -59,6 +67,8 @@ export interface TimonierApi {
   mapPerformance(): PerfMap | null | undefined;
   /** The whiteboard's budgets the open map was last given (ADR 0052): for the tests. */
   mapBudgets(): BudgetsView | null | undefined;
+  /** What the open process panel was last given (ADR 0056): for the tests. */
+  workflow(): HostMessage | undefined;
 }
 
 /** Where the workspace state keeps the boxes moved by hand on the map (ADR 0021). */
@@ -106,9 +116,19 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
           await MapPanel.command({ name: "reveal", target, path });
         },
         openMap: () => vscode.commands.executeCommand("timonier.openMap"),
+        openWhiteboard: () => vscode.commands.executeCommand("timonier.openWhiteboard"),
         openPerformance: () => vscode.commands.executeCommand("timonier.openPerformance"),
         markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
         configure: () => vscode.commands.executeCommand("timonier.configure"),
+        detectAgents: () => (root ? detectAgents(initProgram(), root) : Promise.resolve([])),
+        setUp: async (agents) => {
+          if (!root) return { ok: false, detail: vscode.l10n.t("Open a folder: Timonier maps the project it holds.") };
+          const done = await setUp(initProgram(), root, agents, log);
+          if (done.ok) {
+            void vscode.window.showInformationMessage(vscode.l10n.t("Timonier set the project up for its agents."));
+          }
+          return done;
+        },
       },
       (value) => (bridgeBadge = value),
     ),
@@ -254,6 +274,15 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the performances: {0}", reason));
       }
     }),
+    // The development process's settings (ADR 0056).
+    vscode.commands.registerCommand("timonier.openWorkflow", () => {
+      try {
+        WorkflowPanel.show(context.extensionUri, daemon, log);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the process: {0}", reason));
+      }
+    }),
     // The whiteboard (ADR 0036, 0037): one palette command for each of its actions.
     vscode.commands.registerCommand("timonier.openWhiteboard", () => {
       try {
@@ -309,6 +338,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     whenPerformanceReady: () => PerformancePanel.whenReady(),
     mapPerformance: () => MapPanel.performance(),
     mapBudgets: () => MapPanel.budgets(),
+    workflow: () => WorkflowPanel.last(),
     daemonRequest: async <T>(method: string, params: unknown) => {
       const client = daemon.client;
       if (!client) throw new Error("not connected to the daemon");

@@ -10,5 +10,7 @@ This project is steered with Timonier. Its MCP server, `timonier`, holds the pro
 - Before changing the structure of the code, read the architecture the developer wants with `get_intended_architecture` (their whiteboard, with an image of the sketch); after, check `get_drift`: forbidden edges crossed, required edges and drawn components missing.
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and `intent.json`, the whiteboard, belongs to the developer.
 - Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
+- After adding or changing a dependency, read `get_tech_inventory`: duplicates by function, licences, known vulnerabilities.
+- Before starting a task of the plan, read `get_workflow`: the project's process (tickets, a branch per task, pull requests); start the task with `task_start`, which follows it.
 - Every tool result starts with a mailbox header: read the messages it announces.
 <!-- timonier:end -->

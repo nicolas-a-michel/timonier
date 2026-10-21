@@ -1,10 +1,8 @@
-import path from "node:path";
-
 import * as vscode from "vscode";
 import { ResponseError, type CancellationToken } from "vscode-jsonrpc/node";
 
 import { askAgain, inParallel } from "./parallel";
-import { relativeInside, utf16ToUtf8, utf8ToUtf16 } from "./positions";
+import { relativeInside, resolveInside, utf16ToUtf8, utf8ToUtf16 } from "./positions";
 import {
   ERRORS,
   type DefinitionQuestion,
@@ -35,7 +33,11 @@ const SETTLE_MS = [1000, 2000, 4000];
  * The document goes into `documents`, which the answer must match on disk (ADR 0022).
  */
 async function at(root: string, file: string, position: { line: number; column: number }, documents: Documents) {
-  const uri = vscode.Uri.file(path.join(root, ...file.split("/")));
+  // A path of the daemon's index; one that leaves the root is refused all the same (audit of
+  // 2026-10-21, finding 5).
+  const inside = resolveInside(root, file);
+  if (inside === null) throw new Error(`${file} is not inside ${root}`);
+  const uri = vscode.Uri.file(inside);
   let opened = documents.get(file);
   if (!opened) {
     opened = vscode.workspace.openTextDocument(uri);

@@ -11,7 +11,8 @@ vivante, tableau blanc d'intention, performances mesurées pendant les tests, pl
   Son journal est dans le canal de sortie « Timonier ».
 - L'icône Timonier (une barre à roue) de la barre d'activité ouvre la vue d'ensemble, le
   pont. Dans un projet pas encore configuré pour vos agents, il le dit en haut, avec le bouton
-  « Configurer » qui lance `timonier init` dans un terminal (l'icône porte alors un badge). Il
+  « Configurer » et la liste des agents à configurer, cochés d'après ceux qui sont installés ;
+  le bouton lance `timonier init` pour eux (l'icône porte un badge tant que ce n'est pas fait). Il
   répond en quelques secondes à trois questions :
   - où en est le plan : le jalon en cours, son avancement, la session d'agent ouverte ;
   - que s'est-il passé depuis votre dernière revue : boîtes nouvelles, modifiées, supprimées,

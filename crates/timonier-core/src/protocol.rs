@@ -74,6 +74,14 @@ pub mod methods {
     pub const PERF_BUDGETS: &str = "perf/budgets";
     /// A batch of runs against the main branch (ADR 0053).
     pub const PERF_REGRESSIONS: &str = "perf/regressions";
+    /// The technology inventory (ADR 0055): `get_tech_inventory`'s answer.
+    pub const INVENTORY: &str = "inventory/get";
+    /// The inventory as a CycloneDX 1.5 SBOM, validated (ADR 0055).
+    pub const INVENTORY_SBOM: &str = "inventory/sbom";
+    /// The development process (ADR 0056): `.timonier/workflow.json`, Solo rapide without one.
+    pub const WORKFLOW_GET: &str = "workflow/get";
+    /// Its settings, from the panel; checked, the daemon writes the file.
+    pub const WORKFLOW_SET: &str = "workflow/set";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -150,6 +158,25 @@ pub struct StatusResult {
     pub lookups: LookupCounts,
     /// The last review mark; `null` before the first review (ADR 0024).
     pub last_review: Option<ReviewMark>,
+    /// How far the first indexing is, until `indexed` (T-115): for the start's screens.
+    pub progress: Option<IndexProgress>,
+}
+
+/// An agent `timonier init` configures, as `init --detect` says it (T-118).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+pub struct AgentChoice {
+    pub key: String,
+    pub label: String,
+    pub found: bool,
+    pub why: Option<String>,
+}
+
+/// The files the first indexing reads, and those read so far (T-115).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexProgress {
+    pub done: u32,
+    pub total: u32,
 }
 
 /// A review mark: the snapshot the review diff starts from (ADR 0024).
@@ -368,7 +395,7 @@ pub struct ViewEdge {
     /// The most reliable provenance among them.
     #[ts(type = "Provenance")]
     pub best: Provenance,
-    /// Tree-sitter alone: drawn differently (spec « Précision affichée »).
+    /// Tree-sitter alone: drawn differently (spec « Displayed precision »).
     pub approximate_only: bool,
     /// What changed since the last review; `null` without change (ADR 0024).
     pub review: Option<EdgeReview>,
@@ -879,17 +906,36 @@ pub enum HostMessage {
         state: DaemonState,
         /// Why, for a person: the error, the program looked for.
         detail: Option<String>,
+        /// How far the start is (T-115): the files the first indexing read, of how many.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        progress: Option<IndexProgress>,
     },
     /// A command of the palette, for the map (PLAN.md 4.9).
     Command {
         command: MapCommand,
+    },
+    /// The agents `timonier init` configures, and those found on this machine (T-118).
+    Agents {
+        agents: Vec<AgentChoice>,
+    },
+    /// The development process, for its settings panel (ADR 0056); `problem` when the daemon
+    /// refused a setting or cannot answer.
+    Workflow {
+        view: Option<crate::workflow::WorkflowView>,
+        problem: Option<String>,
+    },
+    /// How `timonier init` went, from the bridge (T-118): `ok`, else the end of what it said.
+    Configured {
+        ok: bool,
+        detail: Option<String>,
     },
     /// The boxes moved by hand, as the host kept them (ADR 0021, « Boîtes déplacées »).
     Pins {
         #[ts(type = "Record<string, Pin>")]
         pins: BTreeMap<String, Pin>,
     },
-    /// How dense the map is drawn, from the settings (spec « Densité réglable », Q32).
+    /// How dense the map is drawn, from the settings (spec « Adjustable density », Q32).
     Density {
         density: Density,
     },
@@ -1095,8 +1141,19 @@ pub enum WebviewMessage {
     Reveal { target: String, path: Vec<String> },
     /// The bridge's « Open Map » button.
     OpenMap,
-    /// The bridge's « Set up » button: `timonier init` in a terminal (Q52, Q53).
-    Configure,
+    /// The bridge's « Set up » button: `timonier init` for the agents chosen, without a terminal
+    /// (T-118, in place of Q53); the palette's command gives none, and init finds them.
+    Configure {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        agents: Option<Vec<String>>,
+    },
+    /// The bridge, not set up: which agents `timonier init` would configure (T-118).
+    DetectAgents,
+    /// The settings panel asks for the process (ADR 0056).
+    AskWorkflow,
+    /// A setting changed in the panel: the whole process, for the daemon to check and write.
+    SetWorkflow { workflow: crate::workflow::Workflow },
     /// A panel of the tracking shows this revision now (ADR 0031).
     TrackingShown {
         panel: String,
@@ -1149,6 +1206,21 @@ pub fn typescript() -> String {
         InitializeParams::decl(&cfg),
         InitializeResult::decl(&cfg),
         StatusResult::decl(&cfg),
+        IndexProgress::decl(&cfg),
+        AgentChoice::decl(&cfg),
+        crate::workflow::Preset::decl(&cfg),
+        crate::workflow::TicketProvider::decl(&cfg),
+        crate::workflow::CommitConvention::decl(&cfg),
+        crate::workflow::MergeStrategy::decl(&cfg),
+        crate::workflow::CiProvider::decl(&cfg),
+        crate::workflow::Tickets::decl(&cfg),
+        crate::workflow::Branches::decl(&cfg),
+        crate::workflow::Commits::decl(&cfg),
+        crate::workflow::PullRequests::decl(&cfg),
+        crate::workflow::Merge::decl(&cfg),
+        crate::workflow::Ci::decl(&cfg),
+        crate::workflow::Workflow::decl(&cfg),
+        crate::workflow::WorkflowView::decl(&cfg),
         ReviewMark::decl(&cfg),
         ReviewChange::decl(&cfg),
         FanJump::decl(&cfg),
@@ -1273,6 +1345,10 @@ pub fn typescript() -> String {
         ("PERF_MAP", methods::PERF_MAP),
         ("PERF_BUDGETS", methods::PERF_BUDGETS),
         ("PERF_REGRESSIONS", methods::PERF_REGRESSIONS),
+        ("INVENTORY", methods::INVENTORY),
+        ("INVENTORY_SBOM", methods::INVENTORY_SBOM),
+        ("WORKFLOW_GET", methods::WORKFLOW_GET),
+        ("WORKFLOW_SET", methods::WORKFLOW_SET),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -1338,6 +1414,7 @@ mod tests {
                 session: "S-2026-10-20-1".into(),
             },
             notes: Vec::new(),
+            ticket: None,
         }
     }
 
@@ -1539,6 +1616,7 @@ mod tests {
         let state = HostMessage::Daemon {
             state: DaemonState::Restarting,
             detail: None,
+            progress: None,
         };
         let json = serde_json::to_value(&state).unwrap();
         assert_eq!(json["type"], "daemon");

@@ -1,4 +1,4 @@
-//! Speeds 1 and 2 (spec « Décisions techniques »). Changes on disk are debounced (~300 ms),
+//! Speeds 1 and 2 (spec « Technical decisions »). Changes on disk are debounced (~300 ms),
 //! then the pipeline brings the graph up to date. When nothing else waits, the pipeline refines
 //! one file with the language server (ADR 0014), and gives way as soon as a change arrives. A
 //! dedicated thread runs the pipeline; the watcher only forwards paths.
@@ -24,7 +24,7 @@ use timonier_index::lsp::{LanguageServer, Priority};
 use crate::indexing::{Consolidated, Pipeline, Refinement, Report};
 use crate::{Error, Result, git};
 
-/// The debounce of the spec (« anti-rebond ~300 ms »).
+/// The debounce of the spec (« debounce ~300 ms »).
 pub const DEBOUNCE: Duration = Duration::from_millis(300);
 
 /// Commands waiting for the pipeline. A burst beyond this blocks the sender until the pipeline

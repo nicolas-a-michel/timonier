@@ -1,4 +1,4 @@
-//! What the code does against what the developer drew (spec « Comparer à l'intention », ADR
+//! What the code does against what the developer drew (spec « Compare with the intent », ADR
 //! 0041): each drawn component anchored to a real box by its name and its place (Q68), the
 //! drawn components the code lacks, the forbidden edges the code crosses and the required ones
 //! it lacks. Computed from `intent.json` and the actual architecture, never written: the

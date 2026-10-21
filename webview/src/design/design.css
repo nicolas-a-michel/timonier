@@ -164,7 +164,7 @@ body.vscode-high-contrast .tim-box__header {
   font-size: var(--tim-font-size-small);
 }
 
-/* Edges: dashes for tree-sitter alone, a solid line once confirmed (spec « Précision affichée »). */
+/* Edges: dashes for tree-sitter alone, a solid line once confirmed (spec « Displayed precision »). */
 .tim-edge {
   fill: none;
   stroke-width: var(--tim-edge-width);
@@ -401,4 +401,40 @@ body.vscode-high-contrast .tim-box__header {
   font-size: var(--tim-font-size-small);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The first indexing's progress (T-115): a thin native bar in the link colour, its words under
+   it. No animation: it moves as files are read. */
+.tim-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  width: min(100%, 24rem);
+}
+
+.tim-progress__bar {
+  width: 100%;
+  height: var(--tim-space-2);
+  appearance: none;
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  overflow: hidden;
+}
+
+.tim-progress__bar::-webkit-progress-bar {
+  background: var(--tim-color-surface);
+}
+
+.tim-progress__bar::-webkit-progress-value {
+  background: var(--tim-color-info);
+}
+
+.tim-progress__bar::-moz-progress-bar {
+  background: var(--tim-color-info);
+}
+
+.tim-progress__words {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
 }

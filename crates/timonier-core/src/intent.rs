@@ -1,4 +1,4 @@
-//! `.timonier/intent.json`, the whiteboard (spec « Tableau blanc », ADR 0039): what the developer
+//! `.timonier/intent.json`, the whiteboard (spec « Whiteboard », ADR 0039): what the developer
 //! wants, written by the whiteboard after each of their gestures (Q66) and read by the agent.
 //! The semantics (layers, components, edges, notes, budgets) are apart from the geometry
 //! (`sketch`), which only serves to draw it again. Ids are local and stable: `L-`, `C-`, `E-`,
@@ -20,6 +20,10 @@ pub const INTENT_VERSION: u32 = 1;
 pub const MAX_SHAPES: usize = 2_000;
 pub const MAX_STROKES: usize = 10_000;
 pub const MAX_POINTS: usize = 5_000;
+/// The points of all strokes together (audit of 2026-10-21, finding 3): a few megabytes.
+pub const MAX_TOTAL_POINTS: usize = 200_000;
+/// The file's size, refused before it is read (finding 3).
+pub const MAX_FILE_BYTES: u64 = 16 << 20;
 pub const MAX_NAME: usize = 200;
 pub const MAX_TEXT: usize = 2_000;
 
@@ -120,7 +124,7 @@ pub struct IntentNote {
     pub attached_to: Option<String>,
 }
 
-/// A measurable limit on a component or a path (spec « Budgets de performance »); every limit
+/// A measurable limit on a component or a path (spec « Performance budgets »); every limit
 /// is optional.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(deny_unknown_fields)]
@@ -286,6 +290,12 @@ impl Intent {
             + self.budgets.len();
         if shapes > MAX_SHAPES || self.sketch.strokes.len() > MAX_STROKES {
             return Err(invalid("more elements than a whiteboard holds".into()));
+        }
+        let points: usize = self.sketch.strokes.iter().map(|s| s.points.len()).sum();
+        if points > MAX_TOTAL_POINTS {
+            return Err(invalid(format!(
+                "{points} points of ink: a whiteboard holds {MAX_TOTAL_POINTS} at most"
+            )));
         }
         let mut seen = HashSet::new();
         let mut id = |prefix: &str, id: &str| -> Outcome<()> {
@@ -875,6 +885,30 @@ mod tests {
                 .unwrap_err()
                 .message
                 .contains("unknown field")
+        );
+    }
+
+    /// The audit of 2026-10-21, finding 3: ink is bounded as a whole, not by stroke only.
+    #[test]
+    fn too_much_ink_is_refused() {
+        let mut intent = sample();
+        let points = vec![[0.0, 0.0, 0.5]; MAX_POINTS];
+        let stroke = |n: usize| SketchStroke {
+            id: format!("S-{n}"),
+            x: 0.0,
+            y: 0.0,
+            points: points.clone(),
+            pen: None,
+        };
+        let within = MAX_TOTAL_POINTS / MAX_POINTS;
+        intent.sketch.strokes = (1..=within).map(stroke).collect();
+        assert!(intent.check().is_ok(), "{:?}", intent.check());
+        intent.sketch.strokes.push(stroke(within + 1));
+        let refused = intent.check().unwrap_err();
+        assert!(
+            refused.message.contains("points of ink"),
+            "{}",
+            refused.message
         );
     }
 

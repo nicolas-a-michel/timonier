@@ -5,7 +5,7 @@ description: Designing and implementing a Timonier MCP tool in timonier-mcp (a t
 
 # MCP tools
 
-## Principles (spec, « Interface MCP », « Pilotage », « Collaboration entre modèles »)
+## Principles (spec, « MCP interface », « Steering », « Collaboration between models »)
 
 - The agent and the human use the same project model. The agent reads the intent and the
   rules before coding, and reads its own results afterwards.

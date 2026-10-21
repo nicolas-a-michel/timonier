@@ -336,7 +336,7 @@ impl Reader {
     }
 
     /// Edge kinds `source` analysed completely in `scope`, at its current content hash: the
-    /// spec's « vérifié par LSP au hash X ».
+    /// spec's « verified by LSP at hash X ».
     pub fn verified(&self, scope: &ScopeKey, source: Provenance) -> Result<Vec<EdgeKind>> {
         let mut statement = self.connection.prepare_cached(
             "SELECT kind FROM verification WHERE scope = ?1 AND source = ?2 ORDER BY kind",

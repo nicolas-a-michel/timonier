@@ -112,11 +112,16 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
             "get_plan",
             "get_regressions",
             "get_session",
+            "get_tech_inventory",
             "get_todo",
+            "get_workflow",
+            "link_ticket",
+            "open_pull_request",
             "plan_add_task",
             "plan_update_task",
             "session_end",
             "session_start",
+            "task_start",
             "todo_add",
             "todo_complete"
         ]

@@ -56,6 +56,21 @@ pub struct Manifest {
     pub instrumentation: Option<InstrumentationRules>,
     #[serde(default)]
     pub security: Option<toml::Table>,
+    /// What the technology inventory needs of the ecosystem (ADR 0055).
+    #[serde(default)]
+    pub inventory: InventoryRules,
+}
+
+/// `[inventory]`: the frameworks among the dependencies, and the precise function of known
+/// packages, by which two dependencies are duplicates (ADR 0055).
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InventoryRules {
+    #[serde(default)]
+    pub frameworks: Vec<String>,
+    /// Function (`http-client`, `async-runtime`…) → packages that serve it.
+    #[serde(default)]
+    pub functions: BTreeMap<String, Vec<String>>,
 }
 
 /// The test runners of a language, tried in order: the first that fits is the project's

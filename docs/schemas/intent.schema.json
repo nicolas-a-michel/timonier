@@ -61,7 +61,7 @@
   ],
   "$defs": {
     "IntentBudget": {
-      "description": "A measurable limit on a component or a path (spec « Budgets de performance »); every limit\nis optional.",
+      "description": "A measurable limit on a component or a path (spec « Performance budgets »); every limit\nis optional.",
       "type": "object",
       "properties": {
         "allocations": {

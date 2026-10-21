@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-24",
+  "agent": "claude-code",
+  "objective": "9.2: the development process — workflow.json and its presets, GitHub through gh (ticket, branch, PR, auto-merge), the generated CI and timonier check, the MCP tools, the settings panel",
+  "tasks": [
+    "T-104",
+    "T-115",
+    "T-116",
+    "T-117",
+    "T-118"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T16:41:23Z",
+  "ended_at": "2026-10-21T17:18:07Z",
+  "snapshots": {
+    "start": 72,
+    "end": 73
+  },
+  "summary": "9.2 started: ADR 0056 and the core of workflow.json (presets, managed block lines, branch names, PR description), Q80 to Q83. Done meanwhile at the human's requests: T-115 loading bar, T-116 security audit fixes (ADR 0057, Q84), T-117 whiteboard button, T-118 set up from the bridge with agent boxes. Left for 9.2: the forge (gh, git), task tickets in plan.json, the tools get_workflow, task_start, open_pull_request, link_ticket, timonier check and the CI workflow, the settings panel, tests with a fake gh.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Core: workflow.json format, presets, the managed block's lines, branch names, PR description",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Daemon: forge (gh, git) with a settable program; task tickets in plan.json",
+      "task": "T-104",
+      "status": "open"
+    },
+    {
+      "id": "D-3",
+      "text": "MCP tools get_workflow, task_start, open_pull_request, link_ticket; session_end opens the PR",
+      "task": "T-104",
+      "status": "open"
+    },
+    {
+      "id": "D-4",
+      "text": "timonier check, and the generated GitHub Actions workflow; init writes workflow.json",
+      "task": "T-104",
+      "status": "open"
+    },
+    {
+      "id": "D-5",
+      "text": "Settings panel in VSCode (workflow/set), a11y",
+      "task": "T-104",
+      "status": "open"
+    },
+    {
+      "id": "D-6",
+      "text": "Tests with a fake gh, PLAN.md, docs",
+      "task": "T-104",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 48,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/test/a11y",
+        "name": "a11y",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/code.ts",
+        "name": "lspRelay",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

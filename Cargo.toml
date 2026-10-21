@@ -12,6 +12,9 @@ repository = "https://github.com/nicolas-a-michel/timonier"
 publish = false
 
 [workspace.dependencies]
+# The inventory (ADR 0055): known vulnerabilities from OSV, on demand; the CycloneDX SBOM.
+ureq = { version = "3.4.2" }
+cyclonedx-bom = { version = "0.8.1" }
 # Internal crates. Dependency direction: docs/adr/0003-decoupage-des-crates.md
 timonier-core = { path = "crates/timonier-core" }
 timonier-store = { path = "crates/timonier-store" }

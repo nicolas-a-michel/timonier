@@ -1712,27 +1712,44 @@
           "id": "T-103",
           "title": "9.1 Inventaire des technologies, exposé par l'outil MCP `get_tech_inventory`",
           "criterion": "sur Timonier, un SBOM valide ; les doublons d'une fixture sont détectés",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-23"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T16:38:52Z",
+              "session": "S-2026-10-21-23",
+              "text": "Inventory (ADR 0055, Q79): cargo metadata / Cargo.lock / package-lock.json, languages, frameworks, duplicates by function, added since review, OSV on demand with a day's cache, CycloneDX 1.5 SBOM. On Timonier: 840 dependencies, SBOM valid against the official 1.5 schema; fixture duplicate test."
+            }
+          ]
         },
         {
           "id": "T-104",
           "title": "9.2 Processus de développement",
           "criterion": "le scénario « Solo discipliné » fonctionne de bout en bout sur un dépôt de test",
-          "status": "todo",
+          "status": "blocked",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-24",
+            "S-2026-10-21-25"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T17:38:55Z",
+              "session": "S-2026-10-21-25",
+              "text": "Built and tested (ADR 0056): workflow.json and presets, gh and git, task_start, open_pull_request, link_ticket, session_end's PR, timonier check, the GitHub Actions workflow, the settings panel. Solo disciplined passes end to end with a fake gh and a local remote. Waiting: the real scenario on a GitHub test repository, set aside by the human (Q80)."
+            }
+          ]
         },
         {
           "id": "T-105",
@@ -1797,6 +1814,100 @@
           "created": {
             "at": "2026-10-20T13:12:10Z",
             "session": "S-2026-10-20-4"
+          }
+        },
+        {
+          "id": "T-115",
+          "title": "Une barre de chargement au démarrage",
+          "criterion": "While the first indexing runs, the map and the panels show the files read of how many, in a bar and in words; tests and a11y.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-24"
+          ],
+          "created": {
+            "at": "2026-10-21T16:46:27Z",
+            "session": "S-2026-10-21-24"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T16:49:46Z",
+              "session": "S-2026-10-21-24",
+              "text": "Indexer counts files read; status.progress; extension polls it after connecting; the map and the panels show a native bar with words. Tests and a11y green."
+            }
+          ]
+        },
+        {
+          "id": "T-116",
+          "title": "Corrections de l'audit de sécurité",
+          "criterion": "Findings 1 to 3, 5 and 6 fixed and tested; 4, 7, 8, 10 recorded in an ADR; 9 left to the human.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-24"
+          ],
+          "created": {
+            "at": "2026-10-21T17:07:39Z",
+            "session": "S-2026-10-21-24"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T17:07:48Z",
+              "session": "S-2026-10-21-24",
+              "text": "ADR 0057, Q84: approved commands per machine, a token per run for the OTLP receiver, bounded ink and whiteboard size, LSP paths confined, 10,000 boxes per view. Tests green."
+            }
+          ]
+        },
+        {
+          "id": "T-117",
+          "title": "Un bouton pour ouvrir le tableau blanc",
+          "criterion": "The bridge has a Whiteboard button and the Overview's title bar its icon; tested.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-24"
+          ],
+          "created": {
+            "at": "2026-10-21T17:07:39Z",
+            "session": "S-2026-10-21-24"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T17:07:48Z",
+              "session": "S-2026-10-21-24",
+              "text": "Whiteboard button in the bridge and icon in the Overview's title bar."
+            }
+          ]
+        },
+        {
+          "id": "T-118",
+          "title": "Configurer depuis le pont, sans console, en choisissant les agents",
+          "criterion": "Next to Set up, a box per agent (the found ones ticked); Set up runs timonier init for them without a terminal and says how it went; tested.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-24"
+          ],
+          "created": {
+            "at": "2026-10-21T17:15:13Z",
+            "session": "S-2026-10-21-24"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T17:17:54Z",
+              "session": "S-2026-10-21-24",
+              "text": "init --detect; the bridge offers a box per agent, the found ones ticked; Set up runs init --yes --agents in the background and says how it went. Tests and a11y green."
+            }
+          ]
+        },
+        {
+          "id": "T-119",
+          "title": "9.8 Optimiser la consommation de ressources du daemon (CPU idle, RSS, I/O sqlite, croissance du cache) : baseline mesurée, optimisations minimales, re-mesure",
+          "criterion": "Le daemon consomme moins en régime permanent et au démarrage qu'avant, tests et clippy passent, aucune régression fonctionnelle",
+          "status": "in_progress",
+          "sessions": [
+            "S-2026-10-21-26",
+            "S-2026-10-21-27"
+          ],
+          "created": {
+            "at": "2026-10-21T17:43:31Z",
+            "session": "S-2026-10-21-26"
           }
         }
       ]

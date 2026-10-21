@@ -89,6 +89,8 @@ impl Project {
             .args(args)
             .current_dir(self.repo.path())
             .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"))
+            // The approved commands (Q84), never in the developer's home.
+            .env("TIMONIER_DATA_DIR", self.runtime.path().join("data"))
             // The project's own attributes, which the run's go after.
             .env("OTEL_RESOURCE_ATTRIBUTES", "service.name=demo")
             .env_remove("OTEL_EXPORTER_OTLP_ENDPOINT");
@@ -261,8 +263,21 @@ fn a_run_of_the_fixture_is_measured_and_kept() {
 #[test]
 fn without_a_command_the_recorded_runners_run_and_rusage_measures_alone() {
     let project = Project::new();
-    let output = project.tim(&["test"], true);
+    // The repository's commands: not run until this machine approves them (Q84).
+    let refused = project.tim(&["test"], true);
+    assert_eq!(refused.status.code(), Some(2), "{refused:?}");
+    let said = stderr(&refused);
+    assert!(said.contains("not approved:\n  sh run-tests.sh"), "{said}");
+    assert!(said.contains("timonier test --approve"), "{said}");
+    assert!(
+        !project.root().join(".timonier/perf").exists(),
+        "no run was made"
+    );
+    let output = project.tim(&["test", "--approve"], true);
     assert_eq!(output.status.code(), Some(1), "{output:?}");
+    // Approved once: the next run asks nothing.
+    let again = project.tim(&["test"], true);
+    assert_eq!(again.status.code(), Some(1), "{again:?}");
     let record = project.record(1);
     assert_eq!(record.command, ["sh", "-c", "sh run-tests.sh"]);
     assert_eq!(record.measured.accounting, Accounting::Rusage);
@@ -642,6 +657,14 @@ fn a_budget_exceeded_on_purpose_shows_on_the_map_through_mcp_and_in_the_journal(
     assert!(opened["result"]["id"].is_string(), "{opened}");
     let output = project.tim(&["test", "--", "sh", "run-tests.sh"], true);
     assert_eq!(output.status.code(), Some(0), "{output:?}");
+    // What the CI replays: `timonier check` fails on it (ADR 0056).
+    let checked = project.tim(&["check"], true);
+    assert_eq!(checked.status.code(), Some(1), "{checked:?}");
+    assert!(
+        stderr(&checked).contains("timonier: budget N-1 exceeded on demo: p95_ms "),
+        "{}",
+        stderr(&checked)
+    );
     // Said at the end of the run too (relecture n° 1, m10).
     let said = stderr(&output);
     assert!(

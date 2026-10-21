@@ -10,7 +10,7 @@ Performance graphs fill themselves during tests through explicit OpenTelemetry i
 proprietary library, so it stays valid if Timonier disappears. Timonier instruments itself with
 the same rules.
 
-## The rules (spec, « Conventions imposées à l'IA »)
+## The rules (spec, « Conventions imposed on the AI »)
 
 1. **One span per component boundary**: each public function of a module.
 2. **Mandatory attributes** on these spans: `code.function.name`, `code.file.path`,

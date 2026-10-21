@@ -1,6 +1,6 @@
 ---
 name: phase-reviewer
-description: Independent reviewer of a finished Timonier phase. Use when every task of a phase is done (its milestone in .timonier/plan.json), before asking the human for the go-ahead, or when asked to review the MVP against the « Découpage » section of the spec. It did not write the code; it checks the work against docs/spec.md, the phase's acceptance criteria in PLAN.md and docs/adr/, runs the project checks and reports gaps. It never modifies files.
+description: Independent reviewer of a finished Timonier phase. Use when every task of a phase is done (its milestone in .timonier/plan.json), before asking the human for the go-ahead, or when asked to review the MVP against the « MVP / v2 / v3 scope » section of the spec. It did not write the code; it checks the work against docs/spec.md, the phase's acceptance criteria in PLAN.md and docs/adr/, runs the project checks and reports gaps. It never modifies files.
 tools: Read, Grep, Glob, Bash
 model: inherit
 color: purple

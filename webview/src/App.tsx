@@ -123,10 +123,14 @@ export function App({
   let title: string;
   let text: string;
   let detail: string | null = null;
+  // The first indexing runs: its bar, whether or not a first view came (T-115).
+  const progress = daemon.state === "connected" ? daemon.progress : undefined;
   if (daemon.state === "unavailable") {
     [title, text, detail] = [t.unavailableTitle, t.unavailableText, daemon.detail];
   } else if (daemon.state === "restarting") {
     [title, text, detail] = [t.restartingTitle, t.restartingText, daemon.detail];
+  } else if (progress) {
+    [title, text] = [t.progressTitle, t.progressText];
   } else if (!view) {
     [title, text] = [t.startingTitle, t.startingText];
   } else {
@@ -134,7 +138,7 @@ export function App({
   }
   return (
     <main className="tim-app">
-      <EmptyState title={title} text={text} detail={detail} live />
+      <EmptyState title={title} text={text} detail={detail} live progress={progress} locale={locale} />
     </main>
   );
 }

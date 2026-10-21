@@ -27,7 +27,7 @@ function, method, field, constant. Each node has a name, a language, a span and 
 - `Intended` comes only from the whiteboard (`.timonier/intent.json`). It is never merged into
   the actual graph. The intent ↔ actual comparison is computed and never written back.
 
-## Granularity of `Calls` edges (spec, « Décisions techniques »)
+## Granularity of `Calls` edges (spec, « Technical decisions »)
 
 - Function → function edges are stored **only** when they come from `Lsp` or `Scip`.
 - Otherwise the graph stores weighted file → file edges.

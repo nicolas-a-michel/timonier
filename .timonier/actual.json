@@ -68,15 +68,22 @@
       "id": "component:cluster/editors/vscode/src/daemon.ts",
       "kind": "component",
       "name": "generated",
-      "role": "interface",
+      "role": "utility",
       "parent": "pkg:npm/timonier"
     },
     {
       "id": "component:cluster/editors/vscode/src/extension.ts",
       "kind": "component",
-      "name": "extension",
+      "name": "mapPanel",
       "role": "interface",
       "parent": "pkg:npm/timonier"
+    },
+    {
+      "id": "component:cluster/editors/vscode/src/test/unit/driftFeed.test.ts",
+      "kind": "component",
+      "name": "driftFeed",
+      "role": "utility",
+      "parent": "component:dir/editors/vscode/src/test/unit"
     },
     {
       "id": "component:cluster/webview/src/App.test.tsx",
@@ -208,6 +215,13 @@
       "id": "component:dir/webview/src/map",
       "kind": "component",
       "name": "map",
+      "role": "utility",
+      "parent": "pkg:npm/@timonier/webview"
+    },
+    {
+      "id": "component:dir/webview/src/performance",
+      "kind": "component",
+      "name": "performance",
       "role": "utility",
       "parent": "pkg:npm/@timonier/webview"
     },
@@ -350,6 +364,13 @@
       "name": "clap",
       "role": "external_libraries",
       "parent": "component:external/cli"
+    },
+    {
+      "id": "pkg:cargo/cyclonedx-bom",
+      "kind": "package",
+      "name": "cyclonedx-bom",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
     },
     {
       "id": "pkg:cargo/globset",
@@ -618,6 +639,13 @@
       "parent": "component:external/other"
     },
     {
+      "id": "pkg:cargo/ureq",
+      "kind": "package",
+      "name": "ureq",
+      "role": "external_libraries",
+      "parent": "component:external/network"
+    },
+    {
       "id": "pkg:npm/@timonier/webview",
       "kind": "package",
       "name": "@timonier/webview",
@@ -735,11 +763,27 @@
     },
     {
       "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "to": "pkg:cargo/schemars",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
       "to": "pkg:cargo/serde",
       "kinds": [
         "imports"
       ],
-      "weight": 8
+      "weight": 12
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "to": "pkg:cargo/ts-rs",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -759,7 +803,7 @@
         "imports",
         "references"
       ],
-      "weight": 66
+      "weight": 81
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -831,7 +875,7 @@
         "imports",
         "references"
       ],
-      "weight": 27
+      "weight": 18
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -886,7 +930,7 @@
         "imports",
         "references"
       ],
-      "weight": 130
+      "weight": 141
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -896,7 +940,7 @@
         "imports",
         "references"
       ],
-      "weight": 21
+      "weight": 159
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -906,7 +950,7 @@
         "imports",
         "references"
       ],
-      "weight": 486
+      "weight": 545
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -916,7 +960,7 @@
         "imports",
         "references"
       ],
-      "weight": 30
+      "weight": 32
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -926,16 +970,25 @@
         "imports",
         "references"
       ],
-      "weight": 28
+      "weight": 34
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
       "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
       "kinds": [
+        "calls",
         "imports",
         "references"
       ],
-      "weight": 4
+      "weight": 12
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/cyclonedx-bom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 16
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -943,7 +996,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 6
+      "weight": 8
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -951,7 +1004,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 4
+      "weight": 9
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -971,7 +1024,7 @@
         "imports",
         "references"
       ],
-      "weight": 32
+      "weight": 34
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1013,14 +1066,6 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "component:cluster/crates/timonier-daemon/src/client.rs",
       "kinds": [
         "imports",
@@ -1055,6 +1100,14 @@
         "imports"
       ],
       "weight": 10
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/timonier-otlp",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1180,7 +1233,7 @@
         "imports",
         "references"
       ],
-      "weight": 16
+      "weight": 27
     },
     {
       "from": "component:cluster/editors/vscode/src/code.ts",
@@ -1188,26 +1241,25 @@
       "kinds": [
         "imports"
       ],
-      "weight": 2
+      "weight": 3
     },
     {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
       "to": "component:cluster/editors/vscode/src/code.ts",
       "kinds": [
-        "calls",
         "imports",
         "references"
       ],
-      "weight": 8
+      "weight": 4
     },
     {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
       "to": "component:cluster/editors/vscode/src/extension.ts",
       "kinds": [
-        "calls",
-        "imports"
+        "imports",
+        "references"
       ],
-      "weight": 3
+      "weight": 2
     },
     {
       "from": "component:cluster/editors/vscode/src/daemon.ts",
@@ -1215,16 +1267,17 @@
       "kinds": [
         "imports"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "component:cluster/editors/vscode/src/extension.ts",
       "to": "component:cluster/editors/vscode/src/code.ts",
       "kinds": [
         "calls",
-        "imports"
+        "imports",
+        "references"
       ],
-      "weight": 2
+      "weight": 14
     },
     {
       "from": "component:cluster/editors/vscode/src/extension.ts",
@@ -1234,17 +1287,25 @@
         "imports",
         "references"
       ],
-      "weight": 73
+      "weight": 84
     },
     {
       "from": "component:cluster/editors/vscode/src/extension.ts",
-      "to": "pkg:npm/timonier",
+      "to": "pkg:npm/vscode-jsonrpc",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/test/unit/driftFeed.test.ts",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
       "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 7
+      "weight": 39
     },
     {
       "from": "component:cluster/webview/src/App.test.tsx",
@@ -1394,11 +1455,10 @@
       "from": "component:cluster/webview/src/map/MapView.test.ts",
       "to": "component:cluster/webview/src/density.test.ts",
       "kinds": [
-        "calls",
         "imports",
         "references"
       ],
-      "weight": 62
+      "weight": 52
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1426,7 +1486,7 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 30
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1440,7 +1500,7 @@
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
-      "to": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/src/performance",
       "kinds": [
         "calls",
         "imports"
@@ -1516,7 +1576,7 @@
         "imports",
         "references"
       ],
-      "weight": 62
+      "weight": 72
     },
     {
       "from": "component:cluster/webview/src/map/mapModel.test.ts",
@@ -1525,7 +1585,7 @@
         "calls",
         "imports"
       ],
-      "weight": 13
+      "weight": 15
     },
     {
       "from": "component:cluster/webview/src/map/mapModel.test.ts",
@@ -1629,7 +1689,7 @@
         "imports",
         "references"
       ],
-      "weight": 19
+      "weight": 23
     },
     {
       "from": "component:dir/crates/timonier-cli/tests",
@@ -1777,7 +1837,7 @@
         "imports",
         "references"
       ],
-      "weight": 48
+      "weight": 50
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1787,7 +1847,7 @@
         "imports",
         "references"
       ],
-      "weight": 145
+      "weight": 152
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1807,7 +1867,7 @@
         "imports",
         "references"
       ],
-      "weight": 42
+      "weight": 45
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1908,13 +1968,21 @@
     },
     {
       "from": "component:dir/editors/vscode/src/test/integration",
+      "to": "component:cluster/editors/vscode/src/code.ts",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 14
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/integration",
       "to": "component:cluster/editors/vscode/src/daemon.ts",
       "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 42
+      "weight": 26
     },
     {
       "from": "component:dir/editors/vscode/src/test/integration",
@@ -1923,7 +1991,7 @@
         "imports",
         "references"
       ],
-      "weight": 7
+      "weight": 9
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -1933,7 +2001,7 @@
         "imports",
         "references"
       ],
-      "weight": 51
+      "weight": 68
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -1943,7 +2011,7 @@
         "imports",
         "references"
       ],
-      "weight": 70
+      "weight": 50
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -1953,15 +2021,7 @@
         "imports",
         "references"
       ],
-      "weight": 39
-    },
-    {
-      "from": "component:dir/editors/vscode/src/test/unit",
-      "to": "pkg:npm/timonier",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
+      "weight": 36
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2026,7 +2086,15 @@
         "imports",
         "references"
       ],
-      "weight": 20
+      "weight": 21
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "component:dir/webview/src/performance",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -2034,15 +2102,7 @@
       "kinds": [
         "calls"
       ],
-      "weight": 2
-    },
-    {
-      "from": "component:dir/webview/src/demo",
-      "to": "pkg:npm/@timonier/webview",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
+      "weight": 3
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -2067,7 +2127,7 @@
         "imports",
         "references"
       ],
-      "weight": 3
+      "weight": 5
     },
     {
       "from": "component:dir/webview/src/design",
@@ -2076,7 +2136,7 @@
         "imports",
         "references"
       ],
-      "weight": 5
+      "weight": 7
     },
     {
       "from": "component:dir/webview/src/design",
@@ -2088,7 +2148,7 @@
     },
     {
       "from": "component:dir/webview/src/design",
-      "to": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/src/performance",
       "kinds": [
         "imports"
       ],
@@ -2111,6 +2171,76 @@
       "weight": 1
     },
     {
+      "from": "component:dir/webview/src/performance",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 17
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 48
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "component:dir/webview/src/whiteboard",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "pkg:npm/react",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "pkg:npm/react-dom",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/performance",
+      "to": "pkg:npm/uplot",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
       "from": "component:dir/webview/src/tracking",
       "to": "component:cluster/webview/src/App.test.tsx",
       "kinds": [
@@ -2118,7 +2248,7 @@
         "imports",
         "references"
       ],
-      "weight": 12
+      "weight": 13
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2128,7 +2258,7 @@
         "imports",
         "references"
       ],
-      "weight": 51
+      "weight": 73
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2154,7 +2284,7 @@
         "calls",
         "imports"
       ],
-      "weight": 16
+      "weight": 18
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2162,7 +2292,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 2
+      "weight": 3
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -2170,7 +2300,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 2
+      "weight": 3
     },
     {
       "from": "component:dir/webview/src/whiteboard",
@@ -2267,6 +2397,15 @@
       "weight": 1
     },
     {
+      "from": "component:dir/webview/test",
+      "to": "component:dir/webview/test/production",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
       "from": "component:dir/webview/test/a11y",
       "to": "component:cluster/webview/src/map/MapView.test.ts",
       "kinds": [
@@ -2321,13 +2460,22 @@
     },
     {
       "from": "pkg:cargo/timonier-cli",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 70
+      "weight": 86
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2356,7 +2504,15 @@
         "depends_on",
         "imports"
       ],
-      "weight": 7
+      "weight": 13
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/blake3",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2365,7 +2521,7 @@
         "depends_on",
         "imports"
       ],
-      "weight": 11
+      "weight": 13
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2423,9 +2579,10 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/serde",
       "kinds": [
-        "depends_on"
+        "depends_on",
+        "imports"
       ],
-      "weight": 1
+      "weight": 3
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2561,6 +2718,14 @@
     },
     {
       "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/cyclonedx-bom",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
       "to": "pkg:cargo/notify-debouncer-full",
       "kinds": [
         "depends_on"
@@ -2641,7 +2806,23 @@
     },
     {
       "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/toml",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
       "to": "pkg:cargo/tracing",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/ureq",
       "kinds": [
         "depends_on"
       ],
@@ -3014,70 +3195,6 @@
     },
     {
       "from": "pkg:npm/@timonier/webview",
-      "to": "component:cluster/webview/src/App.test.tsx",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 17
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:cluster/webview/src/density.test.ts",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 48
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:cluster/webview/src/host.ts",
-      "kinds": [
-        "calls",
-        "imports"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:dir/webview/src/design",
-      "kinds": [
-        "calls",
-        "imports"
-      ],
-      "weight": 7
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:dir/webview/src/whiteboard",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 7
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:dir/webview/test/a11y",
-      "kinds": [
-        "calls",
-        "imports"
-      ],
-      "weight": 9
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
-      "to": "component:dir/webview/test/production",
-      "kinds": [
-        "calls",
-        "imports"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/@xyflow/react",
       "kinds": [
         "depends_on"
@@ -3104,45 +3221,25 @@
       "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/react",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 4
+      "weight": 1
     },
     {
       "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/react-dom",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/uplot",
       "kinds": [
-        "depends_on",
-        "imports"
+        "depends_on"
       ],
-      "weight": 3
-    },
-    {
-      "from": "pkg:npm/timonier",
-      "to": "component:cluster/editors/vscode/src/daemon.ts",
-      "kinds": [
-        "imports",
-        "references"
-      ],
-      "weight": 38
-    },
-    {
-      "from": "pkg:npm/timonier",
-      "to": "component:dir/editors/vscode/src/test/unit",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 5
+      "weight": 1
     },
     {
       "from": "pkg:npm/timonier",

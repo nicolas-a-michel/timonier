@@ -75,11 +75,17 @@
       {
         "command": "timonier.openWhiteboard",
         "title": "%command.openWhiteboard.title%",
-        "category": "Timonier"
+        "category": "Timonier",
+        "icon": "$(edit)"
       },
       {
         "command": "timonier.openPerformance",
         "title": "%command.openPerformance.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.openWorkflow",
+        "title": "%command.openWorkflow.title%",
         "category": "Timonier"
       },
       {
@@ -247,6 +253,11 @@
       "view/title": [
         {
           "command": "timonier.openMap",
+          "when": "view == timonier.home",
+          "group": "navigation"
+        },
+        {
+          "command": "timonier.openWhiteboard",
           "when": "view == timonier.home",
           "group": "navigation"
         }

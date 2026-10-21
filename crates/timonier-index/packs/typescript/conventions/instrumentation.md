@@ -27,8 +27,9 @@ pack (`typescript`); `timonier init` copies them here, and `timonier doctor` kee
   exporters.
   The module `timonier.otel.ts`, written by `init`, starts it: call `startTelemetry()` where the
   tests set up (a vitest `setupFiles` entry, say) and await what it returns when they end. It
-  reads `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_RESOURCE_ATTRIBUTES`, which `timonier test` sets,
-  and stays off with `OTEL_SDK_DISABLED=true`.
+  reads `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_EXPORTER_OTLP_HEADERS`
+  (the run's token, without which Timonier drops the spans), which `timonier test` sets, and
+  stays off with `OTEL_SDK_DISABLED=true`.
 - Name the test of a span: `timonier.test.name` (and `timonier.test.classname`), as the JUnit
   XML names it, on the span or on the resource. Nothing sets it for you in TypeScript: a span
   without it sits under its run, not under its test.

@@ -1,286 +1,556 @@
-Timonier — spec du plugin de pilotage du développement par IA
-14 oct. 2026 · @Nicolas
-Vision et problème
-Le plugin rend le développeur capable de piloter un agent IA sans lire tout le code qu'il produit. Quand l'IA écrit le code, le goulot n'est plus la production mais la compréhension : le code évolue plus vite que le modèle mental du développeur, qui accumule une dette de compréhension.
-Le développeur devient architecte et relecteur. Il lui faut en permanence quatre réponses :
-• Ce que je veux : l'architecture voulue, dessinée librement.
-• Ce qui existe : l'architecture réelle, les technologies, la santé du code.
-• Comment ça se comporte : temps d'exécution et ressources, mesurés pendant les tests.
-• Ce qui se passe : le plan, la todo en direct, ce que l'agent a fait et où regarder.
-Cible : n'importe quel langage, usage solo d'abord, équipe ensuite.
-Nom : Timonier. Le timonier tient la barre et garde le cap pendant que l'équipage, ici les agents, fait avancer le navire. Commande CLI timonier, alias court tim.
-Disponibilité vérifiée le 14 octobre 2026 :
-• crate timonier sur crates.io et paquet timonier sur npm : libres, à réserver ;
-• marketplace VSCode : aucune extension trouvée, à confirmer ;
-• organisation GitHub timonier : prise (images Docker inactives depuis plus de cinq ans), prévoir timonier-dev ou équivalent ;
-• homonyme mineur : un paquet Emacs de gestion Kubernetes ;
-• domaines (.dev, .io, .fr) : à vérifier chez un registrar.
-Architecture technique
-Un démon Rust local, un par projet, porte tout le modèle ; les front-ends restent fins et interchangeables.
-Le graphe unifié est la seule source de vérité : l'IDE et l'agent lisent le même modèle, l'un par JSON-RPC, l'autre par MCP.
-• VSCode : front-end principal du MVP, grâce à l'API webview (carte, tableau blanc tldraw, plan, timelines).
-• Zed : hors périmètre pour l'instant, à reconsidérer plus tard.
-• Agent IA : n'importe quel agent compatible MCP, configuré par timonier init.
-Indexation et modèle de graphe
-Aucun analyseur n'est écrit par langage : trois sources génériques sont fusionnées dans un graphe unifié, avec une provenance et une confiance par arête.
-Source
-Apport
-Limite
-Tree-sitter
-Symboles, imports, définitions, ~200 langages
-Résolution des appels approximative
-LSP (déjà lancé par l'IDE)
-Définitions, références, call hierarchy précises
-Interrogation au fil de l'eau, coûteuse en masse
-SCIP/LSIF si disponible
-Graphe complet et précis
-Batch, pas pour tous les langages
-Schéma.
-• Nœuds : Repo, Component, Package, File, Symbol (module, type, trait, fonction, méthode, champ, constante), avec nom, langage, span et parent.
-• Arêtes : Imports, Calls, References, Implements, Inherits, DependsOn, avec provenance (TreeSitter, Lsp, Scip, Manifest, Inferred, Intended), confidence et weight.
-• La hiérarchie (parent) est un arbre strict ; les relations forment un graphe libre. Les arêtes entre composants sont agrégées depuis les arêtes de symboles, jamais stockées à la main.
-Identité stable. Format de symbole SCIP quand il existe, sinon lang:qualified_name. Les déplacements sont détectés au diff par similarité (signature + hash du corps normalisé), pour qu'un refactoring ne devienne pas « tout supprimé, tout recréé ».
-Fusion. Une arête vue par plusieurs sources garde la provenance la plus fiable ; une arête tree-sitter contredite par le LSP est supprimée.
-Composants. Agrégation par structure (crates, packages, dossiers), puis clustering du graphe (Louvain/Leiden). Le LLM nomme et résume les clusters, il ne les calcule pas. Chaque composant reçoit un rôle architectural (serveur ou point d'entrée, modèle de données, persistance, interface, tâche de fond, groupe de bibliothèques externes, utilitaire), déduit des frameworks et API utilisés (un TcpListener, un routeur HTTP, un ORM, des types sérialisés) puis confirmé par le LLM. Les dépendances externes sont regroupées par usage (réseau, sérialisation, base de données, async). La carte s'ouvre ainsi sur une vue très haut niveau, à la manière du modèle C4 : quelques boîtes nommées par leur rôle et reliées entre elles. Cliquer ou zoomer sur une boîte ouvre son contenu, lui-même fait de boîtes, et ainsi de suite jusqu'aux fichiers et symboles.
-Stockage. SQLite mis à jour en continu. Chaque nœud et arête porte un intervalle valid_from/valid_to de snapshots ; une table snapshot(seq, commit_sha, timestamp, kind) avec kind ∈ {commit, review_mark, working_tree}. Le diff entre deux snapshots est une requête. .timonier/actual.json est régénéré au commit par un hook.
-Tableau blanc
-Le tableau blanc est à sens unique : le développeur dessine, l'IA lit. Rien ne revient dessus, ni fantômes, ni propositions, ni statuts calculés. Le travail de l'IA se voit dans la visualisation d'architecture.
-Mode mixte. Dessin libre partout, interprété par un modèle vision et par le texte. Une forme peut être typée quand elle doit compter comme contrainte :
-• boîte → composant voulu (nom, rôle) ;
-• flèche → arête avec une politique allowed, forbidden ou required ;
-• zone → couche ou frontière (domaine, infra, UI) ; une arête entre couches s'applique à tout leur contenu ;
-• note → contrainte en texte, attachée à un élément.
-Budgets de performance. Une note typée budget fixe une limite mesurable sur un composant ou un chemin : latence (p50, p95), mémoire max, allocations, nombre d'appels. Exemple : « Parser : p95 < 5 ms, < 50 Mo ». L'agent la lit comme une contrainte, le démon la vérifie à chaque run de tests.
-Fichier .timonier/intent.json. Un seul auteur, le développeur. Sémantique et géométrie séparées (shape ne sert qu'au rendu), IDs locaux stables (C-…, E-…, L-…, N-…), versionné dans le repo.
+# Timonier — specification of the plugin for steering AI-driven development
+
+*14 Oct 2026 · @Nicolas*
+
+## Contents
+
+1. [Vision and problem](#vision-and-problem)
+2. [Technical architecture](#technical-architecture)
+3. [Indexing and graph model](#indexing-and-graph-model)
+4. [Whiteboard](#whiteboard)
+5. [Architecture visualisation](#architecture-visualisation)
+6. [Performance](#performance)
+7. [Steering](#steering)
+8. [Collaboration between models](#collaboration-between-models)
+9. [Development process](#development-process)
+10. [Technology inventory and component health](#technology-inventory-and-component-health)
+11. [Public surface and security surface](#public-surface-and-security-surface)
+12. [Initialisation and AI configuration](#initialisation-and-ai-configuration)
+13. [Experience and design](#experience-and-design)
+14. [MCP interface](#mcp-interface)
+15. [MVP / v2 / v3 scope](#mvp--v2--v3-scope)
+16. [Technical decisions](#technical-decisions)
+
+## Vision and problem
+
+The plugin lets the developer steer an AI agent without reading all the code it produces. When
+the AI writes the code, the bottleneck is no longer production but understanding: the code
+changes faster than the developer's mental model of it, and the developer builds up a
+comprehension debt.
+
+The developer becomes architect and reviewer. They need four answers at all times:
+
+- **What I want**: the intended architecture, drawn freely.
+- **What exists**: the real architecture, the technologies, the health of the code.
+- **How it behaves**: execution time and resources, measured during the tests.
+- **What is happening**: the plan, the live todo, what the agent did and where to look.
+
+**Target**: any language, solo use first, then teams.
+
+**Name**: Timonier. The *timonier* (helmsman) holds the wheel and keeps the course while the crew,
+here the agents, moves the ship. CLI command `timonier`, short alias `tim`.
+
+Availability checked on 14 October 2026:
+
+- crate `timonier` on crates.io and package `timonier` on npm: free, to be reserved;
+- VSCode Marketplace: no extension found, to be confirmed;
+- GitHub organisation `timonier`: taken (Docker images inactive for more than five years), plan
+  for `timonier-dev` or similar;
+- minor namesake: an Emacs package for managing Kubernetes;
+- domains (.dev, .io, .fr): to be checked with a registrar.
+
+## Technical architecture
+
+A local Rust daemon, one per project, holds the whole model; the front-ends stay thin and
+interchangeable.
+
+The unified graph is the single source of truth: the IDE and the agent read the same model, the
+first through JSON-RPC, the second through MCP.
+
+- **VSCode**: main front-end of the MVP, thanks to the webview API (map, tldraw whiteboard, plan,
+  timelines).
+- **Zed**: out of scope for now, to be reconsidered later.
+- **AI agent**: any MCP-compatible agent, configured by `timonier init`.
+
+## Indexing and graph model
+
+No analyser is written per language: three generic sources are merged into a unified graph, with a
+provenance and a confidence per edge.
+
+| Source | Contribution | Limit |
+| --- | --- | --- |
+| Tree-sitter | Symbols, imports, definitions, ~200 languages | Approximate call resolution |
+| LSP (already launched by the IDE) | Precise definitions, references, call hierarchy | Queried on the fly, costly in bulk |
+| SCIP/LSIF when available | Complete and precise graph | Batch, not for every language |
+
+**Schema.**
+
+- **Nodes**: Repo, Component, Package, File, Symbol (module, type, trait, function, method, field,
+  constant), with a name, a language, a span and a parent.
+- **Edges**: Imports, Calls, References, Implements, Inherits, DependsOn, with a provenance
+  (TreeSitter, Lsp, Scip, Manifest, Inferred, Intended), a confidence and a weight.
+- The hierarchy (parent) is a strict tree; the relations form a free graph. Edges between
+  components are aggregated from symbol edges, never stored by hand.
+
+**Stable identity.** The SCIP symbol format when it exists, otherwise `lang:qualified_name`. Moves
+are detected at diff time by similarity (signature + hash of the normalised body), so that a
+refactoring does not turn into « everything deleted, everything recreated ».
+
+**Fusion.** An edge seen by several sources keeps the most reliable provenance; a tree-sitter edge
+contradicted by the LSP is removed.
+
+**Components.** Aggregation by structure (crates, packages, folders), then graph clustering
+(Louvain/Leiden). The LLM names and summarises the clusters; it does not compute them. Each
+component gets an architectural role (server or entry point, data model, persistence, interface,
+background task, group of external libraries, utility), deduced from the frameworks and APIs used
+(a `TcpListener`, an HTTP router, an ORM, serialised types) and then confirmed by the LLM.
+External dependencies are grouped by use (network, serialisation, database, async). The map thus
+opens on a very high-level view, in the manner of the C4 model: a few boxes named by their role and
+linked together. Clicking or zooming on a box opens its contents, themselves made of boxes, and so
+on down to files and symbols.
+
+**Storage.** SQLite, updated continuously. Each node and edge carries a `valid_from`/`valid_to`
+interval of snapshots; a table `snapshot(seq, commit_sha, timestamp, kind)` with
+`kind ∈ {commit, review_mark, working_tree}`. The diff between two snapshots is a query.
+`.timonier/actual.json` is regenerated at each commit by a hook.
+
+## Whiteboard
+
+The whiteboard is one-way: the developer draws, the AI reads. Nothing comes back onto it: no
+ghosts, no proposals, no computed statuses. The AI's work shows in the architecture visualisation.
+
+**Mixed mode.** Free drawing everywhere, interpreted by a vision model and by the text. A shape can
+be typed when it must count as a constraint:
+
+- box → intended component (name, role);
+- arrow → edge with a policy `allowed`, `forbidden` or `required`;
+- zone → layer or boundary (domain, infra, UI); an edge between layers applies to all their
+  contents;
+- note → constraint in text, attached to an element.
+
+**Performance budgets.** A note typed *budget* sets a measurable limit on a component or a path:
+latency (p50, p95), maximum memory, allocations, number of calls. Example: « Parser: p95 < 5 ms,
+< 50 MB ». The agent reads it as a constraint; the daemon checks it at each run of the tests.
+
+**File `.timonier/intent.json`.** A single author, the developer. Semantics and geometry kept apart
+(`shape` only serves the rendering), stable local IDs (`C-…`, `E-…`, `L-…`, `N-…`), versioned in
+the repository.
+
+```json
 {
   "version": 1,
-  "layers": [{ "id": "L-domain", "name": "Domaine" }],
+  "layers": [{ "id": "L-domain", "name": "Domain" }],
   "components": [{ "id": "C-parser", "name": "Parser", "layer": "L-domain",
-                    "role": "Transforme les tokens en AST" }],
+                    "role": "Turns the tokens into an AST" }],
   "edges": [{ "id": "E-2", "src": "L-domain", "dst": "L-infra",
                "kind": "depends_on", "policy": "forbidden" }],
-  "notes": [{ "id": "N-1", "text": "Aucune allocation dans la boucle chaude",
+  "notes": [{ "id": "N-1", "text": "No allocation in the hot loop",
                "attached_to": "C-parser" }],
   "sketch": { }
 }
-Implémentation. tldraw dans la webview (formes custom, export JSON propre), plutôt qu'Excalidraw, moins adapté aux formes typées.
-Visualisation d'architecture
-La visualisation est générée uniquement depuis le code réel : c'est là que se voit le travail de l'IA.
-• Carte des composants avec zoom composant → fichiers → symboles, et clic vers le code. Les arêtes sont épaissies selon le trafic mesuré.
-• Diff depuis ma dernière revue : composants, dépendances et cycles ajoutés, composants dont le fan-in/fan-out a bondi, badge « modifié » sur les boîtes touchées par un refactoring interne. Un bouton « marquer comme revu » crée un snapshot review_mark.
-• Comparer à l'intention (option d'affichage) : composants dessinés mis en évidence, composants manquants listés, arêtes interdites franchies signalées. L'ancrage boîte dessinée ↔ composant réel est calculé ici, par nom et emplacement, sans écrire dans le fichier d'intention.
-• Voyage dans le temps : curseur sur les snapshots pour rejouer l'évolution.
-• Calques activables sur la carte : performances, couverture de tests, dette de revue, santé, coût de l'IA.
-Précision affichée : une arête issue de tree-sitter seul est rendue différemment d'une arête confirmée par LSP ou SCIP.
-Animation des flux de données. Des particules circulent le long des arêtes de la carte pour montrer comment les données traversent le logiciel.
-• Source réelle : les traces OpenTelemetry des tests. Le flux animé est ce qui s'est vraiment passé, pas une hypothèse.
-• Encodage : densité et vitesse des particules selon le débit d'appels, taille selon le volume transporté, teinte selon le type de donnée (issu des signatures LSP). Les attributs timonier.payload.bytes et timonier.payload.type s'ajoutent aux conventions d'instrumentation pour les appels internes.
-• Deux modes : vue agrégée (le trafic d'ensemble d'un run de tests) et rejeu d'une trace unique (le chemin d'une requête ou d'un test, étape par étape).
-• Contrôles : lecture, pause, vitesse, curseur temporel synchronisé avec la timeline des performances ; clic sur une particule pour ouvrir le span et le code correspondants.
-• Repères : goulots d'étranglement visibles comme des accumulations de particules, erreurs signalées par un éclat bref sur le nœud concerné.
-Fidèle aux principes de design : mouvement lent et doux, couleurs sourdes, animation désactivée par défaut pour les utilisateurs qui ont activé la réduction des mouvements, avec une vue statique équivalente (arêtes épaissies, chiffres de débit).
-Performances
-Les graphes de performances se remplissent automatiquement pendant les tests, avec une instrumentation OpenTelemetry explicite (niveau 3) dès le MVP. Pas de lib propriétaire : si le plugin disparaît, l'instrumentation reste valable.
-Niveau
-Mécanisme
-Coopération de l'IA
-1
-timonier test enveloppe le runner : durée, CPU, mémoire max, I/O via cgroups v2 / procfs ; durée par test via JUnit XML
-Aucune
-2
-Profilage par échantillonnage (perf/eBPF, py-spy, async-profiler), symboles rattachés au graphe
-Aucune
-3
-Récepteur OTLP local (gRPC 4317 / HTTP 4318), spans et métriques via le SDK OTel du langage
-Obligatoire
-Le niveau 1 tourne toujours en fond comme référence ; le niveau 2 sert de repli pour un langage sans SDK OTel mature.
-Branchement. timonier test injecte OTEL_EXPORTER_OTLP_ENDPOINT et OTEL_RESOURCE_ATTRIBUTES=timonier.run_id=…,timonier.snapshot=…. Chaque test devient un span racine.
-Conventions imposées à l'IA.
-• Un span par frontière de composant (fonction publique d'un module).
-• Attributs obligatoires code.function.name, code.file.path, code.line.number, pour le rattachement au graphe.
-• Pas de span dans les boucles chaudes : histogrammes et compteurs à la place.
-• Instrumentation désactivable à la compilation ou par configuration (en Rust : tracing + tracing-opentelemetry derrière une feature).
-Vérification après chaque run. Fonctions publiques jamais vues dans les traces, spans sans attributs code.*, surcoût estimé contre le niveau 1. Les écarts sont signalés et lisibles par l'agent via MCP.
-Budgets. Chaque note budget du tableau blanc est comparée aux mesures du run (médiane sur plusieurs runs). Un dépassement apparaît en rouge sur la carte et dans le journal de la session, et l'agent le récupère via get_budget_violations.
-Vues. Timeline par test (spans emboités, ressources du processus dessous), carte annotée (temps cumulé, nombre d'appels), évolution par commit (médiane sur plusieurs runs, régression au-delà d'un seuil).
-Pilotage
-Le plan et la todo sont le fil conducteur : visibles en permanence, ils relient chaque tâche au code, aux tests et aux performances qu'elle a produits.
-• Plan : jalons → tâches, chaque tâche rattachée à des composants du tableau blanc. Panneau latéral permanent, avancement calculé.
-• Todo : tâches de la session en cours, qui se remplissent quand l'agent découpe le travail et se vident au fil de l'exécution, en direct.
-• Journal des sessions : pour chaque session d'agent, objectif, tâches, composants touchés, diff structurel, tests et effet sur les performances. Répond à « pourquoi ce module existe ? » des semaines plus tard.
-• Dette de revue : chaleur par composant selon la quantité de code écrit par l'IA et jamais relu. Les changements faits hors session sont marqués « non suivis ».
-• Couverture de tests par composant, en calque sur la carte.
-• Analyse d'impact : sélection d'un composant → tout ce qui en dépend, pour cadrer un prompt avant de lancer l'agent.
-• Coût de l'IA : tokens et argent par session et par composant, pour repérer où l'agent tourne en rond.
-L'agent ne modifie jamais plan.json, todo.json ou le journal à la main : il passe par les outils MCP, qui valident chaque écriture.
-Multi-agents. Plusieurs agents peuvent travailler en parallèle sur le même projet.
-• Une voie par agent dans le plan et la todo, chaque session identifiée par son agent.
-• Réservation de composants : un agent réserve ceux qu'il va modifier (claim_components) ; un recouvrement est refusé ou signalé avant qu'il code.
-• Isolation par worktree git par agent, fusion contrôlée en fin de session.
-• Détection des conflits structurels : deux agents qui modifient la même surface publique ou créent des arêtes contradictoires.
-• Vue d'ensemble en temps réel sur la carte : quel agent travaille sur quel composant.
-Collaboration entre modèles
-Plusieurs modèles, éventuellement de fournisseurs différents, travaillent en parallèle selon un protocole fixé d'avance par le plugin : ils se répartissent les tâches, s'entraident et se contrôlent. Le développeur voit en permanence qui fait quoi et ce qu'ils se disent.
-Topologies prédéfinies.
-Topologie
-Rôles
-Usage
-Binôme
-Un implémenteur, un relecteur qui valide chaque tâche
-Contrôle qualité continu
-Orchestrateur
-Un planificateur découpe et assigne, des exécutants livrent
-Gros jalons parallélisables
-Essaim
-Agents égaux qui prennent les tâches libres avec réservation de composants
-Débit maximal sur tâches indépendantes
-Contre-expertise
-Deux modèles implémentent la même tâche, un troisième arbitre
-Décisions critiques, choix d'algorithme
-Les rôles (planificateur, implémenteur, relecteur, testeur, arbitre) sont attribués par modèle dans .timonier/team.json, en quelques clics depuis un préréglage.
-Protocole. Les échanges sont des messages typés, jamais du texte libre seul : task_assign, question, answer, review_request, review_result, handoff, blocker, status, escalate. Chaque tâche suit une machine à états (assignée, en cours, en revue, acceptée, rejetée, escaladée) que le démon fait respecter : un implémenteur ne peut pas accepter sa propre tâche, une revue rejetée renvoie la tâche avec ses motifs.
-Canaux. Un canal par tâche, un par composant, un canal général et des messages directs. Ils sont stockés par le démon en journal append-only, liés aux sessions, aux commits et aux PR.
-Notifications sans veille active. Un modèle ne peut pas être interrompu en pleine génération ; le plugin garantit en revanche qu'il apprend l'arrivée d'un message au plus tôt, sans dépenser de tokens à surveiller :
-1. En-tête de boîte aux lettres : chaque réponse d'un outil MCP Timonier porte le nombre de messages non lus et leur priorité. Tout agent compatible MCP le voit dès son prochain appel d'outil.
-2. Hooks quand l'agent en propose : injection des messages après chaque appel d'outil, et refus de terminer une session tant qu'un message bloquant est en attente.
-3. Réveil sur message : un agent inactif est relancé par le démon en mode non interactif, avec sa session reprise et le message en entrée.
-Supervision.
-• Vue des canaux, façon messagerie d'équipe, avec filtres par modèle, tâche et type de message.
-• Lignes de nage par modèle dans le temps : tâche en cours, attente, revue, blocage.
-• Tableau de répartition : quel modèle tient quelles tâches et quels composants, avec la charge et le coût de chacun.
-• Intervention humaine : poster dans n'importe quel canal, mettre un modèle en pause, réassigner une tâche, trancher une escalade.
-Garde-fous. Détection des boucles (ping-pong de revues), budget de messages et de tokens par tâche, escalade automatique vers l'humain après un nombre fixé de désaccords.
-Processus de développement
-Le développeur choisit en quelques clics comment l'agent travaille, comme on règle le processus d'une équipe : branches, pull requests, tickets, revue, intégration continue.
-Préréglage
-Fonctionnement
-Pour qui
-Solo rapide
-Commits directs sur la branche principale, une session = une série de commits
-Prototype, exploration
-Solo discipliné
-Une branche et une PR par tâche, fusion automatique si tests, budgets et règles passent
-Développeur seul sur un projet durable
-Équipe
-Ticket → branche → PR → revue humaine obligatoire → fusion, CI bloquante
-Projet partagé, code en production
-Chaque préréglage est un point de départ : tout réglage reste modifiable individuellement dans un panneau de paramètres.
-Réglages disponibles.
-• Tickets : création automatique d'un ticket par tâche du plan, synchronisation de l'état (ouvert, en cours, en revue, fermé) ; GitHub Issues, GitLab, Jira, Linear.
-• Branches : convention de nommage (tim/<ticket>-<slug>), un worktree par agent en multi-agents.
-• Commits : convention (Conventional Commits ou libre), référence au ticket, granularité.
-• Pull requests : ouverture automatique en fin de session, description générée avec la tâche, le diff structurel, les tests, l'effet sur les performances et les violations éventuelles ; brouillon ou prête à relire.
-• Revue et fusion : approbation humaine requise ou non, fusion automatique sous conditions, stratégie (squash, merge, rebase).
-• CI : génération du workflow (GitHub Actions, GitLab CI) qui rejoue tests, budgets et règles d'architecture.
-Fichier .timonier/workflow.json. Versionné dans le repo, il décrit le processus choisi. Le bloc géré des instructions de l'agent en est dérivé, et les outils MCP l'appliquent : task_start crée le ticket et la branche, session_end ouvre la PR. L'agent n'a pas à connaître le processus, il le suit par construction.
-L'accès aux forges passe par leurs CLI (gh, glab) ou leurs API, avec les jetons stockés dans le trousseau de l'IDE.
-Inventaire des technologies et santé des composants
-Inventaire. Construit depuis les manifestes (Cargo.toml, package.json, pyproject.toml, go.mod…) en SBOM CycloneDX : langages, frameworks, dépendances avec versions, licences, CVE connues. Il signale en priorité les doublons fonctionnels (deux libs pour la même chose) et les dépendances ajoutées par l'agent depuis la dernière revue.
-Santé par composant.
-• churn (fréquence de modification) ;
-• complexité ;
-• duplication, travers fréquent du code généré ;
-• code mort et symboles orphelins.
-Ces indicateurs alimentent un calque de la carte et sont exposés à l'agent.
-Surface publique et surface de sécurité
-Deux vues dérivées du graphe rendent visibles des changements que l'IA introduit souvent sans le dire.
-Surface publique. Pour chaque composant, les symboles exportés (fonctions, types, endpoints, schémas, commandes CLI) et leurs signatures, via LSP/SCIP et les fichiers OpenAPI, protobuf ou GraphQL quand ils existent. Le diff depuis la dernière revue classe chaque changement : ajout, modification compatible, rupture. Les ruptures sont signalées sur la carte et dans le journal de la session.
-Surface de sécurité. Carte des points où le code touche l'extérieur :
-• points d'entrée (endpoints HTTP, CLI, handlers de messages) ;
-• entrées non fiables et leur propagation jusqu'aux puits sensibles (SQL, shell, système de fichiers, désérialisation) ;
-• accès réseau sortants, fichiers, processus lancés ;
-• usage de secrets et de variables d'environnement ;
-• dépendances avec CVE connues, depuis l'inventaire.
-Toute nouvelle entrée de surface ajoutée par l'agent est signalée, même sans violation. L'analyse de flux commence par des heuristiques par langage (requêtes tree-sitter), puis s'appuie sur Semgrep ou CodeQL quand ils sont disponibles.
-Initialisation et configuration de l'IA
-timonier init formalise les fichiers de suivi dès la création du projet (ou à l'adoption d'un projet existant) et configure l'agent.
+```
+
+
+**Implementation.** tldraw in the webview (custom shapes, clean JSON export), rather than
+Excalidraw, which suits typed shapes less well.
+
+## Architecture visualisation
+
+The visualisation is generated from the real code only: that is where the AI's work shows.
+
+- **Component map** with zoom component → files → symbols, and a click through to the code. Edges
+  are drawn thicker according to the measured traffic.
+- **Diff since my last review**: components, dependencies and cycles added, components whose
+  fan-in/fan-out jumped, a « modified » badge on the boxes an internal refactoring touched. A
+  « mark as reviewed » button creates a `review_mark` snapshot.
+- **Compare with the intent** (display option): drawn components highlighted, missing components
+  listed, forbidden edges crossed flagged. The anchoring drawn box ↔ real component is computed
+  here, by name and place, without writing to the intent file.
+- **Time travel**: a slider over the snapshots to replay the evolution.
+- **Layers** to switch on over the map: performance, test coverage, review debt, health, AI cost.
+
+**Displayed precision**: an edge from tree-sitter alone is drawn differently from an edge confirmed
+by LSP or SCIP.
+
+**Data-flow animation.** Particles move along the map's edges to show how data travels through the
+software.
+
+- **Real source**: the OpenTelemetry traces of the tests. The animated flow is what really
+  happened, not a hypothesis.
+- **Encoding**: density and speed of the particles by call throughput, size by the volume carried,
+  hue by the type of data (from the LSP signatures). The attributes `timonier.payload.bytes` and
+  `timonier.payload.type` join the instrumentation conventions for internal calls.
+- **Two modes**: aggregated view (the overall traffic of a test run) and replay of a single trace
+  (the path of one request or test, step by step).
+- **Controls**: play, pause, speed, a time slider synchronised with the performance timeline; a
+  click on a particle opens the matching span and code.
+- **Landmarks**: bottlenecks visible as piles of particles, errors flagged by a brief flash on the
+  node concerned.
+
+True to the design principles: slow and soft motion, muted colours, animation off by default for
+users who turned on reduced motion, with an equivalent static view (thicker edges, throughput
+figures).
+
+## Performance
+
+The performance graphs fill in by themselves during the tests, with explicit OpenTelemetry
+instrumentation (level 3) from the MVP on. No proprietary library: if the plugin disappears, the
+instrumentation stays valid.
+
+| Level | Mechanism | AI cooperation |
+| --- | --- | --- |
+| 1 | `timonier test` wraps the runner: duration, CPU, maximum memory, I/O through cgroups v2 / procfs; duration per test through JUnit XML | None |
+| 2 | Sampling profiling (perf/eBPF, py-spy, async-profiler), symbols attached to the graph | None |
+| 3 | Local OTLP receiver (gRPC 4317 / HTTP 4318), spans and metrics through the language's OTel SDK | Required |
+
+Level 1 always runs in the background as the reference; level 2 is the fallback for a language
+without a mature OTel SDK.
+
+**Wiring.** `timonier test` injects `OTEL_EXPORTER_OTLP_ENDPOINT` and
+`OTEL_RESOURCE_ATTRIBUTES=timonier.run_id=…,timonier.snapshot=…`. Each test becomes a root span.
+
+**Conventions imposed on the AI.**
+
+- One span per component boundary (public function of a module).
+- Required attributes `code.function.name`, `code.file.path`, `code.line.number`, to attach the
+  span to the graph.
+- No spans in hot loops: histograms and counters instead.
+- Instrumentation that can be switched off at compile time or by configuration (in Rust: `tracing`
+  + `tracing-opentelemetry` behind a feature).
+
+**Check after each run.** Public functions never seen in the traces, spans without `code.*`
+attributes, overhead estimated against level 1. The gaps are reported and readable by the agent
+through MCP.
+
+**Budgets.** Each budget note of the whiteboard is compared with the run's measurements (median
+over several runs). Exceeding one shows in red on the map and in the session's journal, and the
+agent gets it through `get_budget_violations`.
+
+**Views.** Timeline per test (nested spans, the process's resources below), annotated map
+(cumulative time, number of calls), evolution by commit (median over several runs, a regression
+beyond a threshold).
+
+## Steering
+
+The plan and the todo are the common thread: always visible, they link each task to the code, the
+tests and the performance it produced.
+
+- **Plan**: milestones → tasks, each task attached to components of the whiteboard. A permanent
+  side panel, progress computed.
+- **Todo**: the tasks of the session in progress, which fill in when the agent splits the work and
+  empty as it runs, live.
+- **Session journal**: for each agent session, the objective, the tasks, the components touched,
+  the structural diff, the tests and the effect on performance. It answers « why does this module
+  exist? » weeks later.
+- **Review debt**: heat per component according to the amount of code the AI wrote and nobody
+  read again. Changes made outside a session are marked « untracked ».
+- **Test coverage** per component, as a layer over the map.
+- **Impact analysis**: select a component → everything that depends on it, to frame a prompt
+  before launching the agent.
+- **AI cost**: tokens and money per session and per component, to spot where the agent goes round
+  in circles.
+
+The agent never edits `plan.json`, `todo.json` or the journal by hand: it goes through the MCP
+tools, which validate every write.
+
+**Multi-agent.** Several agents can work in parallel on the same project.
+
+- One lane per agent in the plan and the todo, each session identified by its agent.
+- Component reservation: an agent reserves those it will change (`claim_components`); an overlap is
+  refused or flagged before it codes.
+- Isolation by a git worktree per agent, controlled merge at the end of the session.
+- Detection of structural conflicts: two agents changing the same public surface or creating
+  contradictory edges.
+- A real-time overview on the map: which agent works on which component.
+
+## Collaboration between models
+
+Several models, possibly from different vendors, work in parallel following a protocol the plugin
+sets in advance: they share out the tasks, help and check each other. The developer sees at all
+times who does what and what they tell each other.
+
+**Predefined topologies.**
+
+| Topology | Roles | Use |
+| --- | --- | --- |
+| Pair | One implementer, one reviewer who validates each task | Continuous quality control |
+| Orchestrator | A planner splits and assigns, workers deliver | Large parallelisable milestones |
+| Swarm | Equal agents who take free tasks, with component reservation | Maximum throughput on independent tasks |
+| Second opinion | Two models implement the same task, a third arbitrates | Critical decisions, choice of algorithm |
+
+The roles (planner, implementer, reviewer, tester, arbiter) are given per model in
+`.timonier/team.json`, in a few clicks from a preset.
+
+**Protocol.** Exchanges are typed messages, never free text alone: `task_assign`, `question`,
+`answer`, `review_request`, `review_result`, `handoff`, `blocker`, `status`, `escalate`. Each task
+follows a state machine (assigned, in progress, in review, accepted, rejected, escalated) that the
+daemon enforces: an implementer cannot accept their own task, a rejected review sends the task back
+with its reasons.
+
+**Channels.** One channel per task, one per component, a general channel and direct messages. The
+daemon stores them as an append-only journal, linked to the sessions, the commits and the pull
+requests.
+
+**Notifications without active watching.** A model cannot be interrupted in the middle of a
+generation; the plugin does guarantee that it learns of a message's arrival as early as possible,
+without spending tokens on watching:
+
+1. **Mailbox header**: every response of a Timonier MCP tool carries the number of unread
+   messages and their priority. Any MCP-compatible agent sees it at its next tool call.
+2. **Hooks**, when the agent offers them: messages injected after each tool call, and a refusal to
+   end a session while a blocking message is waiting.
+3. **Wake on message**: an idle agent is relaunched by the daemon in non-interactive mode, its
+   session resumed and the message as input.
+
+**Supervision.**
+
+- A view of the channels, like a team messenger, with filters by model, task and message type.
+- Swimlanes per model over time: task in progress, waiting, review, blocked.
+- A distribution board: which model holds which tasks and which components, with each one's load
+  and cost.
+- Human intervention: post in any channel, pause a model, reassign a task, settle an escalation.
+
+**Safeguards.** Loop detection (review ping-pong), a message and token budget per task, automatic
+escalation to the human after a set number of disagreements.
+
+## Development process
+
+The developer chooses in a few clicks how the agent works, as one sets a team's process: branches,
+pull requests, tickets, review, continuous integration.
+
+| Preset | How it works | For whom |
+| --- | --- | --- |
+| Solo, fast | Direct commits on the main branch, one session = a series of commits | Prototype, exploration |
+| Solo, disciplined | A branch and a PR per task, merged automatically if tests, budgets and rules pass | A developer alone on a lasting project |
+| Team | Ticket → branch → PR → required human review → merge, blocking CI | Shared project, code in production |
+
+Each preset is a starting point: every setting stays changeable on its own in a settings panel.
+
+**Available settings.**
+
+- **Tickets**: a ticket created automatically for each task of the plan, its state kept in sync
+  (open, in progress, in review, closed); GitHub Issues, GitLab, Jira, Linear.
+- **Branches**: naming convention (`tim/<ticket>-<slug>`), one worktree per agent with several
+  agents.
+- **Commits**: convention (Conventional Commits or free), reference to the ticket, granularity.
+- **Pull requests**: opened automatically at the end of the session, with a description generated
+  from the task, the structural diff, the tests, the effect on performance and any violations;
+  draft or ready for review.
+- **Review and merge**: human approval required or not, automatic merge under conditions, strategy
+  (squash, merge, rebase).
+- **CI**: generation of the workflow (GitHub Actions, GitLab CI) that replays the tests, the budgets
+  and the architecture rules.
+
+**File `.timonier/workflow.json`.** Versioned in the repository, it describes the chosen process.
+The managed block of the agent's instructions derives from it, and the MCP tools apply it:
+`task_start` creates the ticket and the branch, `session_end` opens the PR. The agent does not need
+to know the process; it follows it by construction.
+
+Access to the forges goes through their CLIs (`gh`, `glab`) or their APIs, with the tokens stored
+in the IDE's keychain.
+
+## Technology inventory and component health
+
+**Inventory.** Built from the manifests (`Cargo.toml`, `package.json`, `pyproject.toml`,
+`go.mod`…) as a CycloneDX SBOM: languages, frameworks, dependencies with versions, licences, known
+CVEs. It flags first the functional duplicates (two libraries for the same thing) and the
+dependencies the agent added since the last review.
+
+**Health per component.**
+
+- churn (frequency of change);
+- complexity;
+- duplication, a frequent flaw of generated code;
+- dead code and orphan symbols.
+
+These indicators feed a layer of the map and are exposed to the agent.
+
+## Public surface and security surface
+
+Two views derived from the graph make visible changes that the AI often brings in without saying
+so.
+
+**Public surface.** For each component, the exported symbols (functions, types, endpoints,
+schemas, CLI commands) and their signatures, through LSP/SCIP and the OpenAPI, protobuf or GraphQL
+files when they exist. The diff since the last review classifies each change: addition, compatible
+change, break. Breaks are flagged on the map and in the session's journal.
+
+**Security surface.** A map of the points where the code touches the outside:
+
+- entry points (HTTP endpoints, CLI, message handlers);
+- untrusted inputs and their propagation down to sensitive sinks (SQL, shell, file system,
+  deserialisation);
+- outgoing network access, files, processes launched;
+- use of secrets and environment variables;
+- dependencies with known CVEs, from the inventory.
+
+Any new surface entry the agent adds is flagged, even without a violation. The flow analysis starts
+with heuristics per language (tree-sitter queries), then relies on Semgrep or CodeQL when they are
+available.
+
+## Initialisation and AI configuration
+
+`timonier init` sets up the tracking files as soon as the project is created (or when an existing
+project is adopted) and configures the agent.
+
+```text
 .timonier/
-  intent.json           # tableau blanc (auteur : le développeur)
-  plan.json             # jalons et tâches
-  todo.json             # tâches actives
-  sessions/             # journal, un fichier par session d'agent
-  conventions/          # instrumentation et règles, par langage
-  actual.json           # état réel, régénéré au commit
-AGENTS.md               # bloc géré par le plugin
-.mcp.json, .vscode/mcp.json   # serveur MCP déclaré
-Configuration automatique. Deux points d'entrée : l'assistant « Nouveau projet piloté » dans VSCode, et la détection à l'ouverture d'un repo non configuré, qui propose timonier init. Le développeur ne répond qu'aux questions que la détection ne tranche pas.
-1. Détection : langages, gestionnaire de paquets, runner de tests, agents installés (Claude Code, Copilot, Cursor, Codex…), état git.
-2. Squelette (nouveau projet) : le plugin appelle le générateur officiel de la stack choisie (cargo new, npm create, uv init…) plutôt que des templates maison.
-3. Instrumentation : ajout du SDK OpenTelemetry du langage, module d'initialisation derrière une feature ou une variable de configuration, runner de tests configuré pour produire du JUnit XML.
-4. Agents : bloc géré dans le fichier d'instructions de chaque agent détecté, déclaration du serveur MCP dans leur format, hooks quand ils existent.
-5. Git : hook de commit qui régénère actual.json, base SQLite ignorée, fichiers .timonier/ versionnés.
-6. Suivi : tableau blanc vide, plan avec un jalon « Initialisation », première session enregistrée.
-7. Preuve de bout en bout : timonier doctor puis un test de fumée instrumenté qui doit produire une première trace rattachée au graphe. La chaîne est validée avant la première tâche.
-Packs de langage. Tout ce qui dépend du langage (conventions d'instrumentation, ajout du SDK, configuration du runner, requêtes de surface de sécurité) vit dans un pack versionné et extensible. Ajouter un langage revient à écrire un pack, pas à modifier le démon.
-Sûreté. timonier init --dry-run affiche le diff de tous les fichiers touchés ; l'opération est idempotente, et timonier uninit retire tout ce que le plugin a ajouté.
-Le bloc géré d'AGENTS.md (et ses équivalents CLAUDE.md, règles Cursor, instructions Copilot selon les agents détectés) est délimité par des marqueurs : le plugin le réécrit, le reste du fichier appartient au développeur.
-Faire respecter le protocole. Un agent ne peut pas être contraint à 100 % ; on rend l'écart visible et coûteux :
-1. Instructions : ouvrir une session, découper en todo, instrumenter selon les conventions.
-2. Hooks quand l'agent en propose : refus de clore une session si la todo n'est pas à jour ou si le journal est vide.
-3. Détection par le démon : tout changement de code hors session est marqué « non suivi » et compte dans la dette de revue.
-4. timonier doctor : vérifie et répare la configuration (MCP déclaré, bloc géré à jour, conventions présentes).
-Expérience et design
-Timonier doit être reposant à regarder pendant des heures et compris en un coup d'œil. Ces principes s'appliquent dès le MVP, à toutes les vues.
-Calme par défaut.
-• Palette désaturée, fonds neutres ; la couleur vive est réservée au sens (rouge = violation, orange = attention, vert = conforme) et n'apparaît que lorsqu'il y a quelque chose à dire.
-• Intégration au thème de l'IDE via ses variables CSS, clair comme sombre, pour que Timonier semble natif.
-• Animations courtes et douces, uniquement pour expliquer un changement (un composant qui apparaît, une arête qui s'épaissit), jamais décoratives.
-• Notifications discrètes : badges et résumés plutôt qu'une pluie de pop-ups ; seules les alertes bloquantes interrompent.
-Clair avant d'être complet.
-• Une vue d'accueil, le pont, qui répond en quelques secondes à trois questions : où en est le plan, que s'est-il passé depuis ma dernière revue, où dois-je regarder.
-• Divulgation progressive : vue d'ensemble d'abord, détail au survol, profondeur au clic.
-• Zoom sémantique sur la carte : plus on zoome, plus le niveau de détail change (composants → fichiers → symboles) au lieu d'afficher tout en petit.
-• Mise en page stable : la carte garde la position des éléments d'une mise à jour à l'autre (layout incrémental contraint), pour que l'œil retrouve ses repères.
-• Un seul langage visuel partagé par toutes les vues : mêmes formes, couleurs et icônes pour un composant, un agent, une violation.
-Accessible et fluide.
-• Contrastes WCAG AA au minimum, palette sûre pour les daltoniens, et jamais la couleur seule pour porter une information (icône ou motif en plus).
-• Navigation complète au clavier, palette de commandes pour chaque action.
-• Fluidité sur de gros graphes : rendu par niveaux de détail, agrégation automatique au-delà d'un seuil de nœuds.
-• Densité réglable (confortable ou compacte), états vides pédagogiques qui disent quoi faire ensuite.
-Méthode. Un petit système de design défini avant la première vue (tokens de couleur, typographie, espacements, composants), des maquettes testées auprès de quelques développeurs, et un test simple pour chaque écran : un utilisateur qui le découvre comprend-il en cinq secondes ce qu'il montre ?
-Interface MCP
-Le même modèle du projet sert l'humain et l'agent : l'agent consulte l'intention et les règles avant de coder, et lit ses propres résultats après.
-Domaine
-Outils
-Intention
-get_intended_architecture, get_drift, get_budgets
-Graphe
-query_graph, get_component, get_impact
-Surfaces
-get_public_api_diff, get_security_surface
-Performances
-get_instrumentation_conventions(lang), get_perf(component), get_instrumentation_gaps, get_budget_violations
-Suivi
-session_start, session_end, plan_add_task, plan_update_task, todo_add, todo_complete
-Processus
-get_workflow, task_start, open_pull_request, link_ticket
-Multi-agents
-claim_components, release_components, list_active_agents
-Communication
-post_message, read_inbox, ack_message, request_review, submit_review, handoff_task, escalate
-Qualité
-get_tech_inventory, get_component_health, get_coverage
-Les noms sont provisoires ; les outils d'écriture n'acceptent que des opérations structurées et validées.
-Découpage MVP / v2 / v3
-Le MVP vise la boucle complète pour un développeur seul sous VSCode : je dessine, l'agent produit en suivant le protocole, je vois le résultat, ses performances et où regarder.
-Phase
-Contenu
-Critère de sortie
-MVP (solo, VSCode)
-Démon Rust, indexation tree-sitter + LSP, composants, carte et diff de revue, tableau blanc mixte et comparaison à l'intention, performances niveaux 1 et 3, budgets de performance, timonier init / timonier doctor, plan, todo et journal via MCP, processus de développement (préréglages, GitHub), dette de revue, inventaire des technologies
-Un projet réel piloté de bout en bout sans lire le code ligne à ligne
-v2 (profondeur)
-SCIP, profilage niveau 2, surface publique, surface de sécurité, multi-agents (voies, réservation, worktrees), collaboration entre modèles (topologies, protocole, canaux, notifications, supervision), couverture par composant, santé, analyse d'impact, voyage dans le temps, animation des flux de données, coût de l'IA, GitLab, Jira et Linear
-Toutes les vues de pilotage disponibles sur deux langages au moins, deux agents en parallèle sans conflit
-v3 (équipe)
-Snapshot et diff structurel calculés en CI par PR, commentaire automatique de PR, règles et intention relues en PR, journal et dette de revue partagés
-Une équipe de 3 à 5 personnes l'utilise sur un même repo
-Le MVP reste ambitieux ; si un découpage plus serré est nécessaire, l'inventaire des technologies et la comparaison à l'intention sont les premiers candidats au report.
-Décisions techniques
-[ ] Granularité par défaut des arêtes Calls sur un gros repo : fonction → fonction, ou tronquée au fichier pour les langages sans LSP fiable ? → Décidé : arêtes fonction → fonction stockées seulement si elles viennent du LSP ou de SCIP, sinon fichier → fichier pondérées ; affichage toujours agrégé au niveau du zoom, en partant de la vue haut niveau par rôles ; affinage LSP paresseux quand on ouvre un fichier ; compaction au-delà d'environ 50 000 arêtes de symboles.
-[ ] Stratégie d'indexation incrémentale : invalidation, ordre de fusion des sources, coût des requêtes LSP en masse. → Décidé : trois vitesses. Immédiat à la sauvegarde (anti-rebond ~300 ms, hash du fichier, reparse tree-sitter incrémental, mise à jour du graphe par différence) ; arrière-plan (fichiers dépendants marqués si la signature publique change, affinage LSP en file basse priorité en commençant par ce qui est affiché) ; au commit (SCIP si disponible, re-clustering complet initialisé par la partition précédente, snapshot figé). La source la plus fiable gagne, chaque fichier mémorise « vérifié par LSP au hash X ». Un seul écrivain SQLite en WAL, indexation initiale parallélisée, cache persistant.
-[ ] Bibliothèque de graphe pour la webview (Cytoscape + ELK, ou autre) et tenue à l'échelle sur plusieurs milliers de nœuds. → Décidé : React dans la webview (cohérent avec tldraw), React Flow (xyflow) pour la carte, elkjs pour la mise en page hiérarchique avec les positions précédentes en contraintes, calque canvas/WebGL (PixiJS) pour l'animation des flux, uPlot pour les timelines et courbes de performances. Le zoom sémantique limite l'affichage à quelques centaines de nœuds.
-[ ] Protocole entre le démon et la webview (JSON-RPC sur socket local, ou réutilisation du serveur MCP). → Décidé : JSON-RPC 2.0 sur socket local (Unix ou named pipe) entre démon et extension, relais postMessage vers la webview ; abonnements par vue avec deltas versionnés et snapshot complet en cas de désynchronisation ; MCP séparé, mince proxy vers le même démon ; JSON d'abord, MessagePack en réserve pour les traces ; même protocole sur WebSocket local avec jeton pour Zed ou une app standalone.
-[ ] Seuil de régression de performances et nombre de runs nécessaires pour qu'il soit fiable. → Décidé : détection d'abord sur le nombre d'instructions CPU (compteurs matériels) quand disponible, temps réel affiché ; 5 exécutions, jusqu'à 15 si la variance est forte, médiane et MAD ; référence = médiane des 5 derniers snapshots de la branche principale ; régression signalée si Mann-Whitney p < 0,01 et écart ≥ max(5 %, 3 × MAD) ; « probable » puis « confirmée » après re-run ; référence réinitialisée si l'empreinte machine change.
-[ ] Capacités réelles des extensions Zed (panneaux UI) au moment du développement. → Décidé : Zed hors périmètre pour l'instant, à reconsidérer plus tard.
-[ ] Mesure du coût de l'IA : quels agents exposent leur consommation de tokens, et comment la récupérer. → Décidé : 1) télémétrie OpenTelemetry native quand l'agent l'exporte (Claude Code : tokens par type et coût estimé), pointée vers le récepteur OTLP du démon par timonier init ; 2) proxy local de comptage pour les agents utilisant une clé d'API ; 3) sinon « non mesuré », jamais d'estimation inventée. Attribution exacte par session et par tâche, estimée par composant au prorata des modifications. Les tokens sont la mesure de référence, le coût en dollars une indication.
+  intent.json           # whiteboard (author: the developer)
+  plan.json             # milestones and tasks
+  todo.json             # active tasks
+  sessions/             # journal, one file per agent session
+  conventions/          # instrumentation and rules, per language
+  actual.json           # real state, regenerated at each commit
+AGENTS.md               # block managed by the plugin
+.mcp.json, .vscode/mcp.json   # MCP server declared
+```
+
+**Automatic configuration.** Two entry points: the « New steered project » wizard in VSCode, and
+the detection, when a repository that is not configured is opened, which offers `timonier init`.
+The developer only answers the questions the detection cannot settle.
+
+1. **Detection**: languages, package manager, test runner, agents installed (Claude Code, Copilot,
+   Cursor, Codex…), git state.
+2. **Skeleton** (new project): the plugin calls the official generator of the chosen stack
+   (`cargo new`, `npm create`, `uv init`…) rather than home-made templates.
+3. **Instrumentation**: the language's OpenTelemetry SDK added, an initialisation module behind a
+   feature or a configuration variable, the test runner set to produce JUnit XML.
+4. **Agents**: a managed block in the instruction file of each agent detected, the MCP server
+   declared in their format, hooks when they exist.
+5. **Git**: a commit hook that regenerates `actual.json`, the SQLite database ignored, the
+   `.timonier/` files versioned.
+6. **Tracking**: an empty whiteboard, a plan with an « Initialisation » milestone, a first session
+   recorded.
+7. **End-to-end proof**: `timonier doctor`, then an instrumented smoke test that must produce a
+   first trace attached to the graph. The chain is validated before the first task.
+
+**Language packs.** Everything that depends on the language (instrumentation conventions, adding
+the SDK, configuring the runner, security-surface queries) lives in a versioned, extensible pack.
+Adding a language means writing a pack, not changing the daemon.
+
+**Safety.** `timonier init --dry-run` shows the diff of every file touched; the operation is
+idempotent, and `timonier uninit` removes everything the plugin added.
+
+The managed block of `AGENTS.md` (and its equivalents `CLAUDE.md`, Cursor rules, Copilot
+instructions, depending on the agents detected) is delimited by markers: the plugin rewrites it,
+the rest of the file belongs to the developer.
+
+**Enforcing the protocol.** An agent cannot be constrained 100 %; the gap is made visible and
+costly:
+
+1. **Instructions**: open a session, split into a todo, instrument according to the conventions.
+2. **Hooks**, when the agent offers them: refusal to close a session if the todo is not up to date
+   or the journal is empty.
+3. **Detection by the daemon**: any change of code outside a session is marked « untracked » and
+   counts in the review debt.
+4. **`timonier doctor`**: checks and repairs the configuration (MCP declared, managed block up to
+   date, conventions present).
+
+## Experience and design
+
+Timonier must be restful to look at for hours and understood at a glance. These principles apply
+from the MVP on, to every view.
+
+**Calm by default.**
+
+- A desaturated palette, neutral backgrounds; vivid colour is reserved for meaning (red =
+  violation, orange = attention, green = conforming) and only appears when there is something to
+  say.
+- Integration with the IDE's theme through its CSS variables, light as well as dark, so that
+  Timonier feels native.
+- Short, soft animations, only to explain a change (a component appearing, an edge getting
+  thicker), never decorative.
+- Discreet notifications: badges and summaries rather than a shower of pop-ups; only blocking
+  alerts interrupt.
+
+**Clear before complete.**
+
+- A home view, the bridge, which answers three questions in a few seconds: where the plan stands,
+  what happened since my last review, where I should look.
+- Progressive disclosure: overview first, detail on hover, depth on click.
+- Semantic zoom on the map: zooming changes the level of detail (components → files → symbols)
+  instead of drawing everything smaller.
+- Stable layout: the map keeps the elements' positions from one update to the next (incremental,
+  constrained layout), so that the eye keeps its landmarks.
+- A single visual language shared by all views: the same shapes, colours and icons for a
+  component, an agent, a violation.
+
+**Accessible and fluid.**
+
+- WCAG AA contrast at least, a colour-blind-safe palette, and never colour alone to carry
+  information (an icon or a pattern as well).
+- Full keyboard navigation, a command palette entry for each action.
+- Fluid on large graphs: level-of-detail rendering, automatic aggregation beyond a threshold of
+  nodes.
+- Adjustable density (comfortable or compact), teaching empty states that say what to do next.
+
+**Method.** A small design system defined before the first view (colour tokens, typography,
+spacing, components), mock-ups tested with a few developers, and a simple test for each screen:
+does a user who discovers it understand in five seconds what it shows?
+
+## MCP interface
+
+The same model of the project serves the human and the agent: the agent consults the intent and
+the rules before coding, and reads its own results afterwards.
+
+| Domain | Tools |
+| --- | --- |
+| Intent | `get_intended_architecture`, `get_drift`, `get_budgets` |
+| Graph | `query_graph`, `get_component`, `get_impact` |
+| Surfaces | `get_public_api_diff`, `get_security_surface` |
+| Performance | `get_instrumentation_conventions(lang)`, `get_perf(component)`, `get_instrumentation_gaps`, `get_budget_violations` |
+| Tracking | `session_start`, `session_end`, `plan_add_task`, `plan_update_task`, `todo_add`, `todo_complete` |
+| Process | `get_workflow`, `task_start`, `open_pull_request`, `link_ticket` |
+| Multi-agent | `claim_components`, `release_components`, `list_active_agents` |
+| Communication | `post_message`, `read_inbox`, `ack_message`, `request_review`, `submit_review`, `handoff_task`, `escalate` |
+| Quality | `get_tech_inventory`, `get_component_health`, `get_coverage` |
+
+The names are provisional; the write tools only accept structured, validated operations.
+
+## MVP / v2 / v3 scope
+
+The MVP aims at the complete loop for a developer alone in VSCode: I draw, the agent produces
+following the protocol, I see the result, its performance and where to look.
+
+| Phase | Content | Exit criterion |
+| --- | --- | --- |
+| MVP (solo, VSCode) | Rust daemon, tree-sitter + LSP indexing, components, map and review diff, mixed whiteboard and comparison with the intent, performance levels 1 and 3, performance budgets, `timonier init` / `timonier doctor`, plan, todo and journal through MCP, development process (presets, GitHub), review debt, technology inventory | A real project steered end to end without reading the code line by line |
+| v2 (depth) | SCIP, level 2 profiling, public surface, security surface, multi-agent (lanes, reservation, worktrees), collaboration between models (topologies, protocol, channels, notifications, supervision), coverage per component, health, impact analysis, time travel, data-flow animation, AI cost, GitLab, Jira and Linear | All steering views available on at least two languages, two agents in parallel without conflict |
+| v3 (team) | Snapshot and structural diff computed in CI per PR, automatic PR comment, rules and intent reviewed in PR, shared journal and review debt | A team of 3 to 5 people uses it on one repository |
+
+The MVP stays ambitious; if a tighter scope is needed, the technology inventory and the comparison
+with the intent are the first candidates to be postponed.
+
+## Technical decisions
+
+- **Default granularity of Calls edges on a large repository**: function → function, or cut down
+  to the file for languages without a reliable LSP?
+  **Decided**: function → function edges stored only when they come from the LSP or SCIP,
+  otherwise weighted file → file edges; display always aggregated at the zoom level, starting from
+  the high-level view by roles; lazy LSP refinement when a file is opened; compaction beyond about
+  50,000 symbol edges.
+- **Incremental indexing strategy**: invalidation, order of merging the sources, cost of LSP
+  queries in bulk.
+  **Decided**: three speeds. Immediate on save (debounce ~300 ms, file hash, incremental
+  tree-sitter reparse, graph update by difference); background (dependent files marked if the
+  public signature changes, LSP refinement in a low-priority queue starting with what is
+  displayed); at commit (SCIP when available, full re-clustering seeded by the previous partition,
+  frozen snapshot). The most reliable source wins, each file remembers « verified by LSP at hash
+  X ». A single SQLite writer in WAL mode, parallel initial indexing, persistent cache.
+- **Graph library for the webview** (Cytoscape + ELK, or another) and how it scales to several
+  thousand nodes.
+  **Decided**: React in the webview (consistent with tldraw), React Flow (xyflow) for the map,
+  elkjs for the hierarchical layout with the previous positions as constraints, a canvas/WebGL
+  layer (PixiJS) for the flow animation, uPlot for the timelines and performance curves. Semantic
+  zoom keeps the display to a few hundred nodes.
+- **Protocol between the daemon and the webview** (JSON-RPC over a local socket, or reusing the MCP
+  server).
+  **Decided**: JSON-RPC 2.0 over a local socket (Unix or named pipe) between the daemon and the
+  extension, relayed by `postMessage` to the webview; subscriptions per view with versioned deltas
+  and a full snapshot on desynchronisation; MCP apart, a thin proxy to the same daemon; JSON first,
+  MessagePack in reserve for the traces; the same protocol over a local WebSocket with a token for
+  Zed or a standalone app.
+- **Performance regression threshold**, and the number of runs needed for it to be reliable.
+  **Decided**: detection first on the number of CPU instructions (hardware counters) when
+  available, wall time displayed; 5 executions, up to 15 if the variance is high, median and MAD;
+  reference = median of the last 5 snapshots of the main branch; regression flagged if
+  Mann-Whitney p < 0.01 and the gap ≥ max(5 %, 3 × MAD); « probable », then « confirmed » after a
+  re-run; reference reset if the machine's fingerprint changes.
+- **Real capabilities of Zed extensions** (UI panels) at the time of development.
+  **Decided**: Zed out of scope for now, to be reconsidered later.
+- **Measuring the AI's cost**: which agents expose their token consumption, and how to get it.
+  **Decided**: 1) native OpenTelemetry telemetry when the agent exports it (Claude Code: tokens by
+  type and estimated cost), pointed at the daemon's OTLP receiver by `timonier init`; 2) a local
+  counting proxy for the agents using an API key; 3) otherwise « not measured », never an invented
+  estimate. Exact attribution per session and per task, estimated per component in proportion to
+  the changes. Tokens are the reference measure, the cost in dollars an indication.

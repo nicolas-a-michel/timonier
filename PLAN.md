@@ -243,6 +243,29 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q84 — Les commandes de `.timonier/tests.json`** (audit de sécurité du 2026-10-21, constat 1) —
+✅ répondu le 2026-10-21 : **approuvées par poste**. Timonier garde hors du dépôt l'empreinte
+des commandes qu'il a écrites ou que le développeur a approuvées ; une commande inconnue n'est
+pas lancée : il la montre et demande `--approve` une fois ; `init` approuve ce qu'il écrit.
+
+**Q83 — Le préréglage par défaut** (9.2) — ✅ répondu le 2026-10-21 : **Solo rapide**. Commits
+directs sur la branche principale ; Solo discipliné et Équipe se choisissent dans les réglages.
+
+**Q82 — La fusion automatique de Solo discipliné** (9.2) — ✅ répondu le 2026-10-21 :
+**l'auto-merge de GitHub** (`gh pr merge --auto --squash`) ; GitHub fusionne quand la CI générée
+passe ; Timonier propose d'activer « Allow auto-merge » et la protection de branche.
+
+**Q81 — L'accès à GitHub** (9.2) — ✅ répondu le 2026-10-21 : **la connexion de `gh`**. Timonier
+ne stocke aucun jeton ; sans connexion, il propose `gh auth login`.
+
+**Q80 — Le dépôt de test du critère de 9.2** — ⏸ mis de côté le 2026-10-21 (« laisse ça de côté
+pour le moment ») : les tests passent par un faux `gh` ; le scénario réel sur GitHub attend.
+
+**Q79 — Les CVE de l'inventaire** (9.1) — ✅ répondu le 2026-10-21 : **OSV.dev à la demande**.
+Le démon interroge OSV seulement quand l'agent ou le développeur demande l'inventaire, jamais en
+tâche de fond ; un réglage le coupe ; les réponses sont gardées 24 h et le rapport dit leur date.
+Interroger OSV lui envoie les noms et versions des dépendances.
+
 **Q78 — Où `timonier init` met `@opentelemetry/api`** (8.6, relecture n° 1, m6) — ✅ répondu le
 2026-10-21 : **en `dependencies`**. Le module de production l'importe ; le SDK et l'exporteur
 restent en `devDependencies` (complète Q72).
@@ -355,6 +378,9 @@ terminal. L'arbre identique reste vrai quand rien n'a été suivi après `init`.
 **Q53 — Comment VSCode lance `init`** (Phase 6, 6.12) — ✅ répondu le 2026-10-20 : **dans un
 terminal VSCode**. Le bouton « Configurer » ouvre un terminal intégré qui lance
 `timonier init` : la détection, les questions (Q51) et ce qui est fait sont visibles.
+Révisé le 2026-10-21 par toi (T-118) : le bouton du pont ne passe plus par un terminal ; à côté
+de « Configurer », une case par agent (ceux trouvés cochés) et `timonier init --yes --agents …`
+en arrière-plan, sa sortie dans le journal de Timonier. La commande de palette garde le terminal.
 
 **Q52 — Proposer de configurer un dépôt** (Phase 6, 6.12) — ✅ répondu le 2026-10-20 : **dans le
 pont, avec un badge**. Pas de pop-up : le pont dit en haut « Ce projet n'est pas configuré pour
@@ -3558,6 +3584,52 @@ Statut : à faire
     licences ;
   - CVE connues (source fixée par ADR, accès réseau) ;
   - doublons fonctionnels, et dépendances ajoutées depuis la dernière revue.
+
+  Fait (2026-10-21), ADR 0055 et Q79 :
+  - `[inventory]` des packs : frameworks, et fonctions précises (`http-client`, `async-runtime`,
+    `cli-parser`, `date-time`…) qui font les doublons ;
+  - démon (`inventory.rs`) : `cargo metadata --offline`, sinon `Cargo.lock` seul (licences
+    inconnues), `package-lock.json` v2 et v3 avec les dépendances de chaque workspace ; langages
+    du graphe ; ajoutées depuis la revue par les arêtes `DependsOn` du diff ;
+  - CVE (`osv.rs`) : OSV.dev à la demande, 24 h de cache dans `.timonier/cache/` (hors de git),
+    « non vérifiées » sans réponse, `cve: false` et `TIMONIER_OFFLINE=1` ;
+  - SBOM (`sbom.rs`) : CycloneDX 1.5 par `cyclonedx-bom`, validé avant d'être rendu ;
+    `inventory/get`, `inventory/sbom`, outil `get_tech_inventory`, `timonier inventory [--sbom
+    FICHIER] [--no-cve]`, ligne du bloc géré ;
+  - critère : sur Timonier, 840 dépendances (318 cargo, 522 npm), le SBOM (828 composants, 3
+    vulnérabilités d'outils de développement npm : `diff` 7.0.0, `serialize-javascript` 6.0.2)
+    passe le schéma officiel CycloneDX 1.5 sans erreur (jsonschema, hors du projet) ; doublon de
+    la fixture : `the_inventory_finds_two_http_clients_and_gives_a_cyclonedx_sbom`.
+- T-115 (ajoutée le 2026-10-21, à la demande de l'humain) : une barre de chargement au
+  démarrage. L'indexeur compte les fichiers lus d'une indexation complète ; `status` les donne
+  (`progress`) jusqu'à `indexed` ; l'extension les demande toutes les 300 ms après la connexion
+  et les passe aux pages dans le message `daemon` ; la carte et les panneaux montrent « Fichiers
+  lus : 120 sur 247 » dans une barre native, sans animation, puis « écriture du graphe ». Tests :
+  vitest (carte), test de l'indexeur, galerie du système de conception (`test:a11y`).
+- T-116 (ajoutée le 2026-10-21) : l'audit de sécurité que l'humain a fourni (rapport hors du
+  dépôt, non versionné ; aucun constat critique ni élevé), ADR 0057 :
+  - constat 1 (Q84) : les commandes de `tests.json` ne partent que si ce poste les a approuvées
+    (`approval.rs`, `--approve`, sortie 2) ; `init` approuve ce qu'il écrit ;
+  - constat 2 : un jeton par run, donné aux tests dans `OTEL_EXPORTER_OTLP_HEADERS`, exigé par le
+    récepteur ;
+  - constat 3 : 200 000 points d'encre au plus, et `intent.json` de plus de 16 Mio refusé sans être
+    lu ;
+  - constat 5 : le relais LSP refuse un chemin hors de la racine ; constat 6 : 10 000 boîtes au plus
+    par vue ;
+  - constats 4, 7, 8, 10 : gardés et dits dans l'ADR ; constat 9 (permissions locales de Claude
+    Code de l'humain) : à l'humain.
+  Tests : `a_command_is_approved_for_its_project_only`, le refus dans
+  `without_a_command_the_recorded_runners_run_and_rusage_measures_alone`,
+  `the_receiver_takes_a_run_s_spans_with_its_token_only`, `too_much_ink_is_refused`,
+  `a_view_that_opens_too_many_boxes_is_refused`.
+- T-117 (ajoutée le 2026-10-21, à la demande de l'humain) : un bouton « Tableau blanc » dans le
+  pont, et l'icône du tableau blanc dans la barre de titre de la vue « Overview ».
+- T-118 (ajoutée le 2026-10-21, à la demande de l'humain, révise Q53) : configurer depuis le pont
+  sans console. `timonier init --detect` dit en JSON les quatre agents et ceux trouvés ; le pont
+  les montre en cases à cocher (cibles de 24 px, WCAG 2.5.8), et « Configurer » lance `init --yes
+  --agents …` en arrière-plan (`setup.ts`), dit l'issue dans le pont et une notification. Tests :
+  `init --detect` (CLI), `setup.test.ts` (faux `timonier`), vitest du pont, `test:a11y` de l'offre
+  au clavier.
 - 9.2 Processus de développement — critère : le scénario « Solo discipliné » fonctionne de
   bout en bout sur un dépôt de test. Contenu :
   - préréglages Solo rapide, Solo discipliné et Équipe ; `.timonier/workflow.json` ;
@@ -3567,6 +3639,24 @@ Statut : à faire
   - génération du workflow de CI ;
   - outils MCP `get_workflow`, `task_start`, `open_pull_request` et `link_ticket` ;
   - jetons dans le trousseau de l'IDE.
+
+  Fait (2026-10-21), ADR 0056, Q80 à Q83 :
+  - `timonier-core::workflow` : `.timonier/workflow.json` (schéma dans `docs/schemas/`), les trois
+    préréglages, `custom` dès qu'un réglage s'en écarte, ce qui ne tient pas ensemble, les
+    consignes de l'agent, le nom de branche `tim/{ticket}-{slug}`, la description de la PR ;
+  - démon : `forge.rs` (`gh` et `git`, le programme réglable : `Options::gh`), `process.rs`
+    (`workflow/get`, `workflow/set`), le champ `ticket` d'une tâche, la PR à la fin de session,
+    l'issue fermée avec sa tâche ; `.github/workflows/timonier.yml` écrit quand la CI est GitHub
+    Actions (jamais par-dessus un fichier changé à la main) ;
+  - outils `get_workflow`, `task_start`, `open_pull_request`, `link_ticket` ; une ligne fixe du
+    bloc géré renvoie à `get_workflow` ;
+  - `timonier check` : échoue sur un budget dépassé ou une règle d'architecture enfreinte ;
+  - VSCode : « Processus de développement » (préréglages et réglages, page `workflow` du build du
+    suivi), `test:a11y` dans six thèmes et au clavier, test d'intégration ;
+  - jetons : la connexion de `gh` (Q81), aucun jeton gardé ;
+  - critère : « Solo discipliné » de bout en bout sur un démon réel, un faux `gh` et un dépôt
+    distant local (`solo_disciplined_opens_the_issue_the_branch_and_the_pull_request`) ; le
+    scénario sur un vrai dépôt GitHub attend ton feu vert (Q80).
 - 9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est
   pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche.
   Sans source, la valeur est « non mesuré », jamais une estimation inventée — critère : une
@@ -3625,6 +3715,9 @@ avant ajout si plus d'un mois s'est écoulé.
 | libproc | 0.14.11 | MIT | 2026-10-21 : macOS, `pidrusage::<RUsageInfoV4>` (instructions et cycles d'un processus, sans ses enfants) ; non essayé sur un Mac |
 | tonic / opentelemetry-proto / axum | 0.14.6 / 0.33.1 / 0.8.9 | MIT / Apache-2.0 / MIT | 2026-10-21 : récepteur (ADR 0048) ; un `Routes` de tonic dans un routeur axum sert gRPC et HTTP sur un port |
 | opentelemetry, _sdk, -otlp | 0.33.1 | Apache-2.0 | 2026-10-21 : `-otlp` sans ses features par défaut, avec `grpc-tonic` ; en test seulement pour l'instant (8.6 : la feature `otel`) |
+| cyclonedx-bom | 0.8.1 | Apache-2.0 | 2026-10-21 : SBOM CycloneDX 1.5 de l'inventaire (ADR 0055) ; `Bom`, `Component::new`, `Purl::new`, `SpdxExpression::parse_lax`, `Validate`, `output_as_json` lus dans ses sources |
+| ureq | 3.4.2 | MIT OR Apache-2.0 | 2026-10-21 : client HTTPS bloquant pour OSV.dev, à la demande (Q79, ADR 0055) ; rustls par défaut |
+| OSV.dev (API v1) | — | données CC-BY 4.0 | 2026-10-21 : `POST /v1/querybatch`, `GET /v1/vulns/{id}` essayés (crates.io et npm) |
 | @opentelemetry/sdk-node / api | 0.223.0 / 1.9.1 | Apache-2.0 | 2026-10-21 : ajoutés par `init` (ADR 0050) ; sdk-node apporte les exporteurs OTLP et lit `OTEL_SDK_DISABLED` ; la ligne 0.300 (SDK 3.0, 2026-10-20) attend |
 | tracing-opentelemetry | 0.34.0 | MIT | 2026-10-21 : feature `otel` du CLI (ADR 0044), sans features par défaut |
 | statrs | 0.19.1 | MIT | 2026-10-21 : son Mann-Whitney exact est faux (queues inversées, essayé) ; à écrire nous-mêmes |
@@ -3940,3 +4033,7 @@ capture des thèmes.
 - 2026-10-21 — Phase 8 validée par toi (« oui je valide ») : ADR 0043 à 0054 acceptées ; 8.7 et
   T-113 closes sur ta validation, après tes propres essais des vues (les réponses du test des
   cinq secondes ne sont pas consignées). Pas encore de commit.
+- 2026-10-21 — Trouvé par l'humain, sur un dossier sans Rust ni TypeScript (un jeu, un seul
+  fichier Lua) : la carte disait « aucun fichier source qu'il sait lire pour l'instant », comme
+  s'il fallait attendre. Elle dit désormais quels langages Timonier lit, et que la carte
+  apparaît dès qu'il en trouve.

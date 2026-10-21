@@ -16,6 +16,7 @@ pub mod gaps;
 pub mod graph;
 mod id;
 pub mod intent;
+pub mod inventory;
 mod node;
 pub mod perf;
 pub mod protocol;
@@ -27,6 +28,7 @@ pub mod tools;
 pub mod tracking;
 pub mod tree;
 mod update;
+pub mod workflow;
 
 pub use aggregate::AggregatedEdge;
 pub use diff::{EdgeChange, GraphDiff, MoveEvidence, NodeChange};

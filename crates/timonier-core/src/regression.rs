@@ -1,4 +1,4 @@
-//! Performance regressions, as the spec decides them (« Seuil de régression », ADR 0053): a
+//! Performance regressions, as the spec decides them (« Performance regression threshold », ADR 0053): a
 //! candidate's runs against a reference of the main branch; a regression when the one-sided
 //! Mann-Whitney test gives p < 0.01 and the medians differ by at least max(5 %, 3 × MAD of the
 //! reference). Pure.

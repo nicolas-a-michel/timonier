@@ -518,3 +518,97 @@ details[open] > summary > .tim-chevron {
   align-items: baseline;
   gap: var(--tim-space-2);
 }
+
+/* The agents to set up (T-118): a plain list of boxes to tick, the native control. */
+.tim-bridge__agents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: var(--tim-space-2) 0 0;
+  padding: 0;
+  border: none;
+}
+
+.tim-bridge__agents-legend {
+  margin-bottom: var(--tim-space-1);
+  padding: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+/* Each row a 24 px target at least (WCAG 2.5.8), the box and its words. */
+.tim-bridge__agent {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-2);
+  min-height: var(--tim-space-6);
+}
+
+.tim-bridge__agent input {
+  width: var(--tim-space-4);
+  height: var(--tim-space-4);
+  margin: 0;
+  accent-color: var(--tim-color-info);
+}
+
+/* The development process's settings (ADR 0056): native controls in groups, 24 px targets. */
+.tim-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-3);
+  max-width: 40rem;
+  padding: var(--tim-space-3);
+}
+
+.tim-workflow fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: 0;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  border: 1px solid var(--tim-color-divider);
+  border-radius: var(--tim-radius);
+}
+
+.tim-workflow legend {
+  padding: 0 var(--tim-space-1);
+  color: var(--tim-color-muted);
+}
+
+.tim-workflow__preset,
+.tim-workflow__setting {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-2);
+  min-height: var(--tim-space-6);
+}
+
+.tim-workflow__setting select,
+.tim-workflow__setting input[type="text"] {
+  margin-left: auto;
+  padding: var(--tim-space-1) var(--tim-space-2);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  background: var(--tim-color-surface);
+  color: var(--tim-color-fg);
+  font: inherit;
+}
+
+.tim-workflow input[type="checkbox"],
+.tim-workflow input[type="radio"] {
+  width: var(--tim-space-4);
+  height: var(--tim-space-4);
+  margin: 0;
+  accent-color: var(--tim-color-info);
+}
+
+.tim-workflow__problem {
+  margin: 0;
+}
+
+/* The design system's focus ring on the native controls, whose own is too pale on some themes. */
+.tim-workflow :is(input, select):focus-visible,
+.tim-bridge__agent input:focus-visible {
+  outline: var(--tim-focus-width) solid var(--tim-color-focus);
+  outline-offset: 2px;
+}

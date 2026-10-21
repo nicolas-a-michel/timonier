@@ -97,9 +97,23 @@ pub struct Indexer {
     /// Manifests the packages were discovered from. Any walk that finds others changes the
     /// packages: a new directory that brings one, a crate created next to a new file.
     manifests: BTreeSet<String>,
+    /// How far a whole indexing is: what the start's screens show (T-115).
+    progress: std::sync::Arc<Progress>,
+}
+
+/// The files a whole indexing reads, and those read so far; shared with whoever shows it.
+#[derive(Debug, Default)]
+pub struct Progress {
+    pub done: std::sync::atomic::AtomicU32,
+    pub total: std::sync::atomic::AtomicU32,
 }
 
 impl Indexer {
+    /// How far the whole indexing in progress is.
+    pub fn progress(&self) -> std::sync::Arc<Progress> {
+        std::sync::Arc::clone(&self.progress)
+    }
+
     pub fn new(root: impl Into<PathBuf>, packs: Packs) -> Result<Self> {
         let root = root.into();
         let canonical = root.canonicalize().map_err(|source| Error::Io {
@@ -125,6 +139,7 @@ impl Indexer {
             parser: Parser::new(),
             walked: BTreeSet::new(),
             manifests: BTreeSet::new(),
+            progress: std::sync::Arc::default(),
         })
     }
 
@@ -166,10 +181,19 @@ impl Indexer {
         self.trees = Trees::default();
         let packs = &self.packs;
         let root = &self.root;
+        let progress = &self.progress;
+        progress.done.store(0, std::sync::atomic::Ordering::Relaxed);
+        progress.total.store(
+            u32::try_from(walk.sources.len()).unwrap_or(u32::MAX),
+            std::sync::atomic::Ordering::Relaxed,
+        );
         let read: Vec<Result<Option<Read>>> = walk
             .sources
             .par_iter()
             .map_init(Parser::new, |parser, path| {
+                progress
+                    .done
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let Source::Bytes(bytes) = read_source(root, path) else {
                     return Ok(None);
                 };

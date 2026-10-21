@@ -26,7 +26,7 @@ pub type Measured = std::result::Result<timonier_core::budgets::ComponentPerf, S
 
 /// Where the tracking lives: `.timonier/` at the root of the project.
 pub struct Tracker {
-    dir: PathBuf,
+    pub(crate) dir: PathBuf,
 }
 
 /// What a call needs from the daemon: who calls, the time, and a frozen snapshot.
@@ -55,6 +55,14 @@ pub struct Context<'a> {
     /// A batch of runs against the main branch (ADR 0053).
     pub regressions:
         &'a dyn Fn(Option<&str>) -> crate::Result<timonier_core::perf::RegressionReport>,
+    /// GitHub and the branches (ADR 0056).
+    pub forge: &'a crate::forge::Forge,
+    /// The last run of the tests, in a line, for a pull request's description.
+    pub last_run: &'a dyn Fn() -> Option<String>,
+    /// The technology inventory (ADR 0055); it may ask OSV (Q79).
+    pub inventory: &'a dyn Fn(
+        &timonier_core::inventory::GetTechInventory,
+    ) -> crate::Result<timonier_core::inventory::Inventory>,
 }
 
 impl Tracker {
@@ -113,8 +121,14 @@ impl Tracker {
                 self.write("plan.json", &plan)?;
                 remember(&mut session, &task.id);
                 self.write_session(&session)?;
+                // Its ticket follows it (ADR 0056).
+                let closed = if input.status.is_some() {
+                    self.close_ticket(&task, context).unwrap_or_default()
+                } else {
+                    String::new()
+                };
                 Ok((
-                    format!("Task {} is {}.", task.id, task.status.as_str()),
+                    format!("Task {} is {}.{closed}", task.id, task.status.as_str()),
                     json(&task),
                 ))
             }
@@ -150,6 +164,42 @@ impl Tracker {
             tools::GET_INSTRUMENTATION_CONVENTIONS => {
                 let input: GetInstrumentationConventions = tools::arguments(arguments)?;
                 self.conventions(&input.language)
+            }
+            tools::GET_WORKFLOW => {
+                let _: NoArguments = tools::arguments(arguments)?;
+                self.get_workflow()
+            }
+            tools::TASK_START => {
+                let input: timonier_core::workflow::TaskStart = tools::arguments(arguments)?;
+                self.task_start(&input, context)
+            }
+            tools::LINK_TICKET => {
+                let input: timonier_core::workflow::LinkTicket = tools::arguments(arguments)?;
+                self.link_ticket(&input, context)
+            }
+            tools::OPEN_PULL_REQUEST => {
+                let input: timonier_core::workflow::OpenPullRequest = tools::arguments(arguments)?;
+                let session = self.open_session()?.ok_or_else(no_open_session)?;
+                self.pull_request(&session, input.draft, context)
+            }
+            tools::GET_TECH_INVENTORY => {
+                let input: timonier_core::inventory::GetTechInventory =
+                    tools::arguments(arguments)?;
+                if input.limit.is_some_and(|l| l == 0 || l > 500) {
+                    return Err(Refusal::new("invalid_argument", "limit is 1 to 500"));
+                }
+                if input
+                    .cursor
+                    .as_ref()
+                    .is_some_and(|c| c.is_empty() || c.len() > 32 || c.parse::<u32>().is_err())
+                {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "cursor is the next_cursor a previous page gave",
+                    ));
+                }
+                let inventory = (context.inventory)(&input).map_err(|e| internal(e.to_string()))?;
+                Ok((crate::inventory::summary(&inventory), json(&inventory)))
             }
             tools::GET_BUDGETS | tools::GET_BUDGET_VIOLATIONS => {
                 let _: NoArguments = tools::arguments(arguments)?;
@@ -522,14 +572,28 @@ impl Tracker {
             .iter()
             .filter(|i| i.status == timonier_core::tracking::TodoStatus::Open)
             .count();
+        // The process opens the task's pull request at the end of a session (ADR 0056); a
+        // failure says why, and the session is ended all the same.
+        let opened = match self.workflow() {
+            Ok(w) if w.pull_requests.open_at_session_end && w.branches.per_task => {
+                match self.pull_request(&session, None, context) {
+                    Ok((said, _)) => format!(" {said}"),
+                    Err(refusal) => format!(" No pull request: {}.", refusal.message),
+                }
+            }
+            _ => String::new(),
+        };
         Ok((
-            format!("Session {} ended, {left} todo items left open.", session.id),
+            format!(
+                "Session {} ended, {left} todo items left open.{opened}",
+                session.id
+            ),
             json(&session),
         ))
     }
 
     /// A write needs an open session: it is attributed to it.
-    fn writing(&self, context: &Context) -> Outcome<(Session, Stamp)> {
+    pub(crate) fn writing(&self, context: &Context) -> Outcome<(Session, Stamp)> {
         let session = self.open_session()?.ok_or_else(no_open_session)?;
         let stamp = Stamp {
             at: utc(context.now_ms),
@@ -714,8 +778,8 @@ impl Tracker {
     }
 
     /// The whiteboard, `None` before anything is drawn; refused when the file does not read.
-    fn intent(&self) -> Outcome<Option<Intent>> {
-        match std::fs::read_to_string(self.dir.join("intent.json")) {
+    pub(crate) fn intent(&self) -> Outcome<Option<Intent>> {
+        match read_intent(&self.dir.join("intent.json")) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(error) => Err(io_refusal(&self.dir.join("intent.json"), &error)),
             Ok(text) => timonier_core::intent::parse(&text).map(|i| Some(i.normalized())),
@@ -755,6 +819,17 @@ impl Tracker {
             "image": image.is_some(),
         });
         Ok((intended_summary(&intent, image.is_some()), result, image))
+    }
+
+    /// The repository: the folder `.timonier/` is in.
+    pub(crate) fn root(&self) -> &Path {
+        self.dir.parent().unwrap_or(&self.dir)
+    }
+
+    /// The session worked on task `id`: kept in its journal.
+    pub(crate) fn remember_task(&self, mut session: Session, id: &str) -> Outcome<()> {
+        remember(&mut session, id);
+        self.write_session(&session)
     }
 
     fn write_session(&self, session: &Session) -> Outcome<()> {
@@ -906,12 +981,12 @@ fn is_session_id(id: &str) -> bool {
         && id_number(&id[..12], id).is_some()
 }
 
-fn read<T: DeserializeOwned>(path: &Path) -> Outcome<T> {
+pub(crate) fn read<T: DeserializeOwned>(path: &Path) -> Outcome<T> {
     let text = std::fs::read_to_string(path).map_err(|e| io_refusal(path, &e))?;
     serde_json::from_str(&text).map_err(|e| invalid_file(path, &e.to_string()))
 }
 
-fn json<T: Serialize>(value: &T) -> Value {
+pub(crate) fn json<T: Serialize>(value: &T) -> Value {
     serde_json::to_value(value).unwrap_or(Value::Null)
 }
 
@@ -922,7 +997,7 @@ fn no_open_session() -> Refusal {
     )
 }
 
-fn invalid_file(path: &Path, why: &str) -> Refusal {
+pub(crate) fn invalid_file(path: &Path, why: &str) -> Refusal {
     Refusal::new(
         "invalid_file",
         format!(
@@ -936,7 +1011,7 @@ fn io_refusal(path: &Path, error: &std::io::Error) -> Refusal {
     Refusal::new("io_error", format!("{}: {error}", path.display()))
 }
 
-fn internal(error: impl ToString) -> Refusal {
+pub(crate) fn internal(error: impl ToString) -> Refusal {
     Refusal::new("internal", error.to_string())
 }
 
@@ -980,7 +1055,7 @@ fn intended_summary(intent: &Intent, image: bool) -> String {
 }
 
 /// « N-1 on Parser: p95 7.20 ms > 5 ms ».
-fn budget_words(check: &timonier_core::budgets::BudgetCheck) -> String {
+pub(crate) fn budget_words(check: &timonier_core::budgets::BudgetCheck) -> String {
     use timonier_core::budgets::LimitKind;
     let over: Vec<String> = check
         .limits
@@ -1062,6 +1137,22 @@ fn drift_summary(intent: &Intent, drift: &Drift) -> String {
     said.join(" ")
 }
 
+/// `.timonier/intent.json`, refused unread beyond its size bound: it is versioned, a cloned
+/// repository chooses it (audit of 2026-10-21, finding 3).
+pub(crate) fn read_intent(path: &Path) -> std::io::Result<String> {
+    let size = std::fs::metadata(path)?.len();
+    if size > timonier_core::intent::MAX_FILE_BYTES {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "{size} bytes: a whiteboard is {} at most",
+                timonier_core::intent::MAX_FILE_BYTES
+            ),
+        ));
+    }
+    std::fs::read_to_string(path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1095,6 +1186,18 @@ mod tests {
             budgets: &|| Ok(None),
             component_perf: &|_, _| Ok(Err("no run".to_owned())),
             regressions: &|_| Ok(timonier_core::perf::RegressionReport::default()),
+            // No forge in these tests: a `gh` that is not there.
+            forge: Box::leak(Box::new(crate::forge::Forge::new(
+                Path::new("."),
+                Some(Path::new("/nowhere/gh")),
+            ))),
+            last_run: &|| None,
+            inventory: &|_| {
+                Err(crate::Error::Io {
+                    path: std::path::PathBuf::new(),
+                    source: std::io::Error::other("no inventory in this test"),
+                })
+            },
         }
     }
 

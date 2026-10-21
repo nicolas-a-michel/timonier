@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-25",
+  "agent": "claude-code",
+  "objective": "9.2, continued: workflow.json read and written by the daemon, task tickets, gh and git, the tools get_workflow, task_start, open_pull_request, link_ticket, session_end opening the PR",
+  "tasks": [
+    "T-104"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T17:21:16Z",
+  "ended_at": "2026-10-21T17:38:55Z",
+  "snapshots": {
+    "start": 74,
+    "end": 76
+  },
+  "summary": "9.2 built: the development process end to end with a fake gh (issue, branch, pushed PR with its description, auto-merge, issue closed), timonier check, the generated CI, the settings panel in VSCode, a11y and integration tests. All checks green. Blocked on Q80: the scenario on a real GitHub repository.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Daemon: workflow.json (workflow/get, workflow/set), the ticket of a task in plan.json",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Forge: gh and git with a settable program; tests with a fake gh",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Tools get_workflow, task_start, open_pull_request, link_ticket; session_end opens the PR",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "timonier check, the GitHub Actions workflow, the managed block from workflow.json",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "Settings panel in VSCode, a11y",
+      "task": "T-104",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "PLAN.md, docs, all checks",
+      "task": "T-104",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 33,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/test/a11y",
+        "name": "a11y",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

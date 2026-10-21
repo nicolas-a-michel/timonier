@@ -36,7 +36,7 @@
   --tim-color-focus: var(--vscode-focusBorder, #005fb8);
 
   /*
-   * Edges (spec « Précision affichée »): one known only from tree-sitter looks different from
+   * Edges (spec « Displayed precision »): one known only from tree-sitter looks different from
    * one confirmed by LSP or SCIP, by its dashes and not by its colour alone.
    */
   --tim-edge-confirmed: color-mix(in srgb, var(--tim-color-fg) 80%, var(--tim-color-bg));

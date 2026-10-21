@@ -27,7 +27,9 @@ pack (`rust`); `timonier init` copies them here, and `timonier doctor` keeps the
   `let _otel = timonier_otel::init();` alive at the start of `main` (or of a test). It exports
   when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as `timonier test` sets it, and reads
   `OTEL_SDK_DISABLED` itself: the Rust SDK does not. Under cargo-nextest, it names each span's
-  test from `NEXTEST_TEST_NAME` and `NEXTEST_BINARY_ID`.
+  test from `NEXTEST_TEST_NAME` and `NEXTEST_BINARY_ID`. Keep the exporter's reading of
+  `OTEL_EXPORTER_OTLP_HEADERS`: it carries the run's token, without which Timonier drops the
+  spans.
 - `tracing` gives `code.file.path` and `code.line.number`; Timonier derives `code.function.name`
   from the module and the span's name: do not rename the span of a boundary function.
 - `tests/timonier_smoke.rs` is Timonier's smoke test, which `timonier doctor` runs.

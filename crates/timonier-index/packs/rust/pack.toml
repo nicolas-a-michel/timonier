@@ -164,3 +164,23 @@ features = ["trace", "grpc-tonic"]
 name = "tokio"
 version = "1.53.3"
 features = ["rt-multi-thread"]
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["axum", "actix-web", "rocket", "warp", "tokio", "tonic", "tauri", "bevy", "leptos", "dioxus"]
+
+[inventory.functions]
+http-client = ["reqwest", "ureq", "isahc", "surf", "attohttpc", "minreq"]
+http-server = ["axum", "actix-web", "rocket", "warp", "poem", "tide"]
+async-runtime = ["tokio", "async-std", "smol"]
+cli-parser = ["clap", "argh", "pico-args", "structopt", "gumdrop"]
+logging = ["log", "tracing", "slog"]
+error-handling = ["anyhow", "eyre", "color-eyre"]
+date-time = ["chrono", "time", "jiff"]
+json = ["serde_json", "simd-json", "json"]
+sqlite = ["rusqlite", "sqlite", "sqlx"]
+regex = ["regex", "fancy-regex", "onig"]
+random = ["rand", "fastrand", "oorandom"]
+hashing = ["blake3", "sha2", "md-5", "xxhash-rust", "twox-hash"]
+temp-files = ["tempfile", "tempdir"]

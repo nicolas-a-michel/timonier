@@ -21,13 +21,19 @@ use timonier_otlp::{Receiver, Sink};
 struct Kept {
     spans: Mutex<Vec<ReceivedSpan>>,
     metrics: Mutex<Vec<ReceivedMetric>>,
+    /// The token each request carried (audit of 2026-10-21, finding 2).
+    tokens: Mutex<Vec<Option<String>>>,
 }
 
 impl Sink for Kept {
-    fn spans(&self, spans: Vec<ReceivedSpan>) {
+    fn spans(&self, token: Option<&str>, spans: Vec<ReceivedSpan>) {
+        self.tokens
+            .lock()
+            .expect("not poisoned")
+            .push(token.map(str::to_owned));
         self.spans.lock().expect("not poisoned").extend(spans);
     }
-    fn metrics(&self, metrics: Vec<ReceivedMetric>) {
+    fn metrics(&self, _token: Option<&str>, metrics: Vec<ReceivedMetric>) {
         self.metrics.lock().expect("not poisoned").extend(metrics);
     }
 }
@@ -129,7 +135,7 @@ fn post(address: std::net::SocketAddr, kind: &str, body: &[u8]) -> String {
     write!(
         stream,
         "POST /v1/traces HTTP/1.1\r\nHost: {address}\r\nContent-Type: {kind}\r\n\
-         Content-Length: {}\r\nConnection: close\r\n\r\n",
+         x-timonier-token: t-http\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     )
     .expect("the test setup");
@@ -194,6 +200,14 @@ fn otlp_over_http_reads_protobuf_and_json_and_refuses_the_rest() {
     let spans = kept.wait_for(2);
     let runs: Vec<_> = spans.iter().map(|s| s.run.as_str()).collect();
     assert_eq!(runs, ["R-1", "R-2"]);
+    // The run's token comes with each request, for the sink to check.
+    assert!(
+        kept.tokens
+            .lock()
+            .expect("not poisoned")
+            .iter()
+            .all(|t| t.as_deref() == Some("t-http"))
+    );
     assert_eq!(spans[0].trace_id, "01".repeat(16));
     assert_eq!(spans[0].span_id, "02".repeat(8));
 

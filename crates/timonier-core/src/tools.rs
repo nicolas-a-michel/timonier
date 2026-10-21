@@ -30,6 +30,11 @@ pub const GET_BUDGETS: &str = "get_budgets";
 pub const GET_BUDGET_VIOLATIONS: &str = "get_budget_violations";
 pub const GET_PERF: &str = "get_perf";
 pub const GET_REGRESSIONS: &str = "get_regressions";
+pub const GET_TECH_INVENTORY: &str = "get_tech_inventory";
+pub const GET_WORKFLOW: &str = "get_workflow";
+pub const TASK_START: &str = "task_start";
+pub const OPEN_PULL_REQUEST: &str = "open_pull_request";
+pub const LINK_TICKET: &str = "link_ticket";
 
 /// `get_intended_architecture` (ADR 0041): the image of the sketch comes unless declined.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize, JsonSchema)]
@@ -174,6 +179,43 @@ pub fn catalogue() -> Vec<Value> {
              auto`) against the main branch: each measure (the run's CPU work, a test's duration, \
              a function's own time) slower beyond doubt (Mann-Whitney p < 0.01) and by at least \
              max(5 %, 3 MAD), probable when seen once, confirmed when the next batch sees it too.",
+            true,
+        ),
+        tool::<NoArguments>(
+            GET_WORKFLOW,
+            "Read the project's development process (.timonier/workflow.json): tickets, a branch \
+             per task, commit convention, pull requests, merge and CI, and what it asks of you, in \
+             words. Read it before starting a task.",
+            true,
+        ),
+        tool::<crate::workflow::TaskStart>(
+            TASK_START,
+            "Start a task of the plan as the process says: the task goes in progress, its GitHub \
+             issue is opened and its branch `tim/<ticket>-<slug>` is made and checked out when the \
+             process asks for them. Returns the task, its ticket and its branch.",
+            false,
+        ),
+        tool::<crate::workflow::OpenPullRequest>(
+            OPEN_PULL_REQUEST,
+            "Push the task's branch and open its pull request, with a description Timonier writes \
+             (the task, the session's structural changes, the tests, performance, violations); \
+             GitHub merges it once the checks pass when the process says so. `session_end` does it \
+             by itself when the process opens pull requests at the end of a session.",
+            false,
+        ),
+        tool::<crate::workflow::LinkTicket>(
+            LINK_TICKET,
+            "Link a task of the plan to a GitHub issue that already exists (`github#12` or `12`); \
+             the issue is closed with the task.",
+            false,
+        ),
+        tool::<crate::inventory::GetTechInventory>(
+            GET_TECH_INVENTORY,
+            "Read the project's technology inventory: its languages and frameworks, its \
+             dependencies with their resolved versions and licences (paged), the duplicates by \
+             function (two libraries for the same thing), the dependencies added since the last \
+             review, and the known vulnerabilities from OSV.dev, asked on demand and kept a day \
+             (`cve: false` reads the cache only). Check it after adding a dependency.",
             true,
         ),
         tool::<GetPerf>(

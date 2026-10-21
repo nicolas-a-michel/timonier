@@ -1,4 +1,4 @@
-//! Nodes of the graph: kinds, positions, fingerprints (spec « Schéma », ADR 0008).
+//! Nodes of the graph: kinds, positions, fingerprints (spec « Schema », ADR 0008).
 
 use std::fmt;
 
@@ -216,7 +216,7 @@ impl From<ContentHash> for String {
     }
 }
 
-/// Architectural roles of the spec (« Composants »), on packages and components (ADR 0017).
+/// Architectural roles of the spec (« Components »), on packages and components (ADR 0017).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "&'static str")]
 pub enum Role {

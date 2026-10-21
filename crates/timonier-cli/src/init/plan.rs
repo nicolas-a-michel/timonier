@@ -11,7 +11,7 @@ use super::detect::{Agent, Git, Runner};
 use super::edits::{self, HASH_BEGIN, HASH_END, HookShape, MD_BEGIN, MD_END};
 use super::ordered::Json;
 
-/// What the agents read, in `AGENTS.md` (spec « Faire respecter le protocole »).
+/// What the agents read, in `AGENTS.md` (spec « Enforcing the protocol »).
 pub const INSTRUCTIONS: &str = "\
 ## Timonier
 
@@ -32,6 +32,8 @@ blocked, done or dropped.
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and \
 `intent.json`, the whiteboard, belongs to the developer.
 - Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
+- After adding or changing a dependency, read `get_tech_inventory`: duplicates by function, licences, known vulnerabilities.
+- Before starting a task of the plan, read `get_workflow`: the project's process (tickets, a branch per task, pull requests); start the task with `task_start`, which follows it.
 - Every tool result starts with a mailbox header: read the messages it announces.";
 
 /// What `CLAUDE.md` holds when it exists: Claude Code then reads it instead of `AGENTS.md`.

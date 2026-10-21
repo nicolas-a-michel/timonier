@@ -100,6 +100,9 @@ void applyTheme(theme).then(async (names) => {
     const { SAMPLE_TRACKING, EMPTY_TRACKING } = await import("../tracking/sample");
     const { TrackingPanel } = await import("../tracking/TrackingPanel");
     const { panelOf } = await import("../tracking/panel");
+    const { preset } = await import("../tracking/WorkflowSettings");
+    // `tracking=workflow`: the development process's settings (ADR 0056), Solo discipliné.
+    const disciplined = preset("solo_disciplined");
     const tracking = params.get("empty") === "1" ? { ...EMPTY_TRACKING } : SAMPLE_TRACKING;
     const problems =
       params.get("problem") === "1" ? [{ file: "plan.json", message: "expected value at line 1 column 3" }] : [];
@@ -113,6 +116,26 @@ void applyTheme(theme).then(async (names) => {
             panel={panelOf(panel)}
             tracking={{ ...tracking, problems, ...(params.get("unset") === "1" ? { configured: false } : {}) }}
             daemon={{ state: "connected", detail: null }}
+            workflow={{
+              view: {
+                workflow: disciplined,
+                instructions:
+                  "- Start each task with `task_start`: it opens its ticket and its branch; work and commit on that branch only.\n- Commit messages follow Conventional Commits and end with the task's ticket (`Refs #12`).\n- `session_end` opens the task's pull request; GitHub merges it once the checks pass.",
+                problems: [],
+              },
+              problem: null,
+              onSet: () => undefined,
+            }}
+            agents={
+              params.get("unset") === "1"
+                ? [
+                    { key: "claude", label: "Claude Code", found: true, why: "~/.claude exists" },
+                    { key: "copilot", label: "GitHub Copilot (VSCode)", found: true, why: "a .vscode folder" },
+                    { key: "cursor", label: "Cursor", found: false, why: null },
+                    { key: "codex", label: "Codex", found: false, why: null },
+                  ]
+                : undefined
+            }
             actions={{
               onReveal: () => undefined,
               onOpenMap: () => undefined,

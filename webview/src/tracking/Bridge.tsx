@@ -1,11 +1,13 @@
 /**
- * The bridge (spec « Expérience et design », ADR 0032): the home view. It answers three
+ * The bridge (spec « Experience and design », ADR 0032): the home view. It answers three
  * questions in a few seconds: where the plan stands, what happened since my last review, where
  * I should look.
  */
+import { useState } from "react";
+
 import { ChangeIcon, ToneIcon } from "../design/icons";
 import type { Locale } from "../i18n";
-import type { LookItem, MilestoneView, ReviewBox, TrackingView } from "../protocol";
+import type { AgentChoice, LookItem, MilestoneView, ReviewBox, TrackingView } from "../protocol";
 import type { TrackingMessages } from "./messages";
 import { when } from "./TrackingPanel";
 
@@ -13,11 +15,20 @@ export interface BridgeActions {
   /** Show a box on the map (Q46): what leads to it, from the top. */
   onReveal: (target: string, path: string[]) => void;
   onOpenMap: () => void;
+  /** The whiteboard (ADR 0037), where the developer draws the architecture they want. */
+  onOpenWhiteboard?: () => void;
   /** The Performances panel (ADR 0051). */
   onOpenPerformance?: () => void;
   onMarkReviewed: () => void;
-  /** `timonier init`, in a terminal (Q52, Q53). */
-  onConfigure: () => void;
+  /** `timonier init` for the agents chosen, without a terminal (T-118). */
+  onConfigure: (agents?: string[]) => void;
+}
+
+/** How the setup from the bridge goes (T-118). */
+export interface Setup {
+  state: "idle" | "running" | "done" | "failed";
+  /** What init said last, when it failed. */
+  detail: string | null;
 }
 
 interface BridgeProps {
@@ -25,28 +36,74 @@ interface BridgeProps {
   locale: Locale;
   tracking: TrackingView;
   actions: BridgeActions | undefined;
+  agents?: AgentChoice[];
+  setup?: Setup;
 }
 
-export function Bridge({ t, locale, tracking, actions }: BridgeProps) {
+export function Bridge({ t, locale, tracking, actions, agents, setup }: BridgeProps) {
   return (
     <section aria-label={t.bridgeLabel} className="tim-bridge">
       {!tracking.configured && (
         <div className="tim-bridge__setup" role="note">
           <p className="tim-bridge__setup-title">{t.notConfiguredTitle}</p>
           <p className="tim-tracking__quiet">{t.notConfiguredText}</p>
-          {actions && (
-            <div className="tim-bridge__actions">
-              <button type="button" className="tim-button tim-button--primary" onClick={actions.onConfigure}>
-                {t.configure}
-              </button>
-            </div>
-          )}
+          {actions && <SetUp t={t} agents={agents} setup={setup} onConfigure={actions.onConfigure} />}
         </div>
       )}
       <PlanStatus t={t} tracking={tracking} />
       <SinceReview t={t} locale={locale} tracking={tracking} actions={actions} />
       <WhereToLook t={t} items={tracking.look} actions={actions} />
     </section>
+  );
+}
+
+/**
+ * The agents to set the project up for (T-118): each one a box to tick, those found on this
+ * machine ticked; « Set up » runs `timonier init` for them, and says how it went.
+ */
+function SetUp({
+  t,
+  agents,
+  setup = { state: "idle", detail: null },
+  onConfigure,
+}: {
+  t: TrackingMessages;
+  agents: AgentChoice[] | undefined;
+  setup?: Setup;
+  onConfigure: (agents?: string[]) => void;
+}) {
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const ticked = chosen ?? (agents ?? []).filter((a) => a.found).map((a) => a.key);
+  const running = setup.state === "running";
+  const toggle = (key: string) => setChosen(ticked.includes(key) ? ticked.filter((k) => k !== key) : [...ticked, key]);
+  return (
+    <>
+      {agents && (
+        <fieldset className="tim-bridge__agents" disabled={running}>
+          <legend className="tim-bridge__agents-legend">{t.agentsLegend}</legend>
+          {agents.map((agent) => (
+            <label key={agent.key} className="tim-bridge__agent">
+              <input type="checkbox" checked={ticked.includes(agent.key)} onChange={() => toggle(agent.key)} />
+              <span>{agent.label}</span>
+              {!agent.found && <span className="tim-tracking__quiet"> · {t.agentNotFound}</span>}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      <div className="tim-bridge__actions">
+        <button
+          type="button"
+          className="tim-button tim-button--primary"
+          disabled={running || (agents !== undefined && ticked.length === 0)}
+          onClick={() => onConfigure(agents ? ticked : undefined)}
+        >
+          {running ? t.configuring : t.configure}
+        </button>
+      </div>
+      <p className="tim-tracking__quiet" role="status">
+        {setup.state === "failed" ? t.configureFailed(setup.detail) : setup.state === "done" ? t.configureDone : ""}
+      </p>
+    </>
   );
 }
 
@@ -164,6 +221,11 @@ function SinceReview({
           <button type="button" className="tim-button tim-button--primary" onClick={actions.onOpenMap}>
             {t.openMap}
           </button>
+          {actions.onOpenWhiteboard && (
+            <button type="button" className="tim-button" onClick={actions.onOpenWhiteboard}>
+              {t.openWhiteboard}
+            </button>
+          )}
           <button type="button" className="tim-button" onClick={actions.onMarkReviewed}>
             {t.markReviewed}
           </button>

@@ -36,7 +36,7 @@ pub enum Error {
 
     #[error(
         "{provenance} reports a call between {src} and {dst}: function → function calls come only from \
-         the LSP or SCIP; other sources report calls between files (spec « Décisions techniques »)"
+         the LSP or SCIP; other sources report calls between files (spec « Technical decisions »)"
     )]
     ApproximateSymbolCall {
         src: NodeId,

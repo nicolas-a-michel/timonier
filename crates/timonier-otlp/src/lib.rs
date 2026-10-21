@@ -5,9 +5,9 @@
 pub mod decode;
 mod receiver;
 
-pub use receiver::{Receiver, Sink};
+pub use receiver::{Receiver, Sink, TOKEN_HEADER};
 
-/// OTLP's default HTTP port (spec « Performances »).
+/// OTLP's default HTTP port (spec « Performance »).
 pub const HTTP_PORT: u16 = 4318;
 /// OTLP's default gRPC port.
 pub const GRPC_PORT: u16 = 4317;

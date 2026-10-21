@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 
-import { Badge, ComponentBox, EdgeLegend, EdgeLine, EmptyState, Toolbar, Tooltip } from "../design/components";
+import {
+  Badge,
+  ComponentBox,
+  EdgeLegend,
+  EdgeLine,
+  EmptyState,
+  ProgressBar,
+  Toolbar,
+  Tooltip,
+} from "../design/components";
 import { messages, type Locale } from "../i18n";
 import type { SymbolKind } from "../design/icons";
 import type { Role } from "../protocol";
@@ -100,6 +109,11 @@ export function Demo({ locale, theme, themes, onRendered }: DemoProps) {
           />
           <ComponentBox name="dimmed" role="utility" items={2} locale={locale} dimmed />
         </div>
+      </section>
+
+      <section className="tim-demo__section" aria-labelledby="demo-progress">
+        <h2 id="demo-progress">Progress</h2>
+        <ProgressBar progress={{ done: 120, total: 247 }} locale={locale} />
       </section>
 
       <section className="tim-demo__section" aria-labelledby="demo-symbols">

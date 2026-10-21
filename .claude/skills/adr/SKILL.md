@@ -10,7 +10,7 @@ Project rule 3: every technical decision not covered by `docs/spec.md` gets a sh
 
 ## When not to write one
 
-- The spec already decides the point, for example in « Décisions techniques ». Cite the spec
+- The spec already decides the point, for example in « Technical decisions ». Cite the spec
   section in the code or in `PLAN.md` instead.
 - The decision **changes product behaviour**, or contradicts or completes the spec. Do not
   decide it in an ADR: stop and ask the human (rule « ne rien inventer »). Once the human has

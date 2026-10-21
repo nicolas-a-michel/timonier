@@ -182,7 +182,12 @@ export class ViewRelay implements vscode.Disposable {
   }
 
   private tell(status: DaemonStatus): void {
-    void this.send({ type: "daemon", state: status.state, detail: status.detail });
+    void this.send({
+      type: "daemon",
+      state: status.state,
+      detail: status.detail,
+      ...(status.progress ? { progress: status.progress } : {}),
+    });
   }
 
   /** Subscribes to the webview's view on `connection`, in place of the previous subscription. */

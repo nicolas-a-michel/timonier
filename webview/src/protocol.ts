@@ -59,12 +59,15 @@ export function isPerformanceMessage(data: unknown): data is PerformanceHostMess
 }
 
 /** The host's messages to a panel of the tracking (ADR 0031): the state, and the daemon's. */
-export type TrackingHostMessage = Extract<HostMessage, { type: "tracking" | "daemon" }>;
+export type TrackingHostMessage = Extract<
+  HostMessage,
+  { type: "tracking" | "daemon" | "agents" | "configured" | "workflow" }
+>;
 
 export function isTrackingMessage(data: unknown): data is TrackingHostMessage {
   if (typeof data !== "object" || data === null) return false;
   const { type } = data as { type?: unknown };
-  return type === "tracking" || type === "daemon";
+  return type === "tracking" || type === "daemon" || type === "agents" || type === "configured" || type === "workflow";
 }
 
 /** The host's messages to the whiteboard (ADR 0037, 0039): a command of the palette, the board, whether it is saved. */

@@ -11,6 +11,12 @@ export interface Messages {
   restartingText: string;
   unavailableTitle: string;
   unavailableText: string;
+  /** The first indexing, with its bar (T-115). */
+  progressTitle: string;
+  progressText: string;
+  progressFinding: string;
+  progressReading: (done: number, total: number) => string;
+  progressWriting: string;
   indexingTitle: string;
   indexingText: string;
   /** Architectural roles (ADR 0017). */
@@ -160,8 +166,14 @@ export const messages: Record<Locale, Messages> = {
     restartingText: "The daemon stopped. Timonier launches it again and the map comes back by itself.",
     unavailableTitle: "Timonier cannot start",
     unavailableText: "Run « Timonier: Show the Log » from the command palette for the details.",
-    indexingTitle: "Nothing indexed yet",
-    indexingText: "Timonier found no source file it reads in this folder yet.",
+    progressTitle: "Indexing the project",
+    progressText: "Timonier reads the code once, then follows each change. The map appears when it is done.",
+    progressFinding: "Finding the source files…",
+    progressReading: (done, total) => `Files read: ${done} of ${total}`,
+    progressWriting: "All files read; writing the graph…",
+    indexingTitle: "No Rust or TypeScript file here",
+    indexingText:
+      "Timonier reads Rust and TypeScript today. When this folder has some, the map appears as soon as they are indexed; other languages will come with their packs.",
     roles: {
       entry_point: "Entry point",
       data_model: "Data model",
@@ -296,8 +308,14 @@ export const messages: Record<Locale, Messages> = {
     restartingText: "Le démon s'est arrêté. Timonier le relance, et la carte revient d'elle-même.",
     unavailableTitle: "Timonier ne peut pas démarrer",
     unavailableText: "Lancez « Timonier : Afficher le journal » depuis la palette de commandes pour les détails.",
-    indexingTitle: "Rien d'indexé pour l'instant",
-    indexingText: "Timonier n'a encore trouvé dans ce dossier aucun fichier source qu'il sait lire.",
+    progressTitle: "Indexation du projet",
+    progressText: "Timonier lit le code une fois, puis suit chaque changement. La carte apparaît quand il a fini.",
+    progressFinding: "Recherche des fichiers source…",
+    progressReading: (done, total) => `Fichiers lus : ${done} sur ${total}`,
+    progressWriting: "Tous les fichiers sont lus ; écriture du graphe…",
+    indexingTitle: "Aucun fichier Rust ou TypeScript ici",
+    indexingText:
+      "Timonier lit aujourd'hui le Rust et le TypeScript. Quand ce dossier en contient, la carte apparaît dès qu'ils sont indexés ; les autres langages viendront avec leurs packs.",
     roles: {
       entry_point: "Point d'entrée",
       data_model: "Modèle de données",

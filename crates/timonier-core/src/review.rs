@@ -305,7 +305,7 @@ fn changed_files(
         .collect()
 }
 
-/// What the review had under another id (spec « Identité stable »). A file gone from one path
+/// What the review had under another id (spec « Stable identity »). A file gone from one path
 /// and found at one other with the same content is moved, and so are its symbols. Then a box of
 /// the review gone from the head and a new box of the same kind are one, renamed or moved, when
 /// each holds the majority of the other's files; each box once, the largest overlap first.
@@ -508,7 +508,7 @@ impl<'a> Edges<'a> {
             .filter(|(from, to)| moved.contains(*from) && folder(from) != folder(to))
             .map(|(_, to)| to.clone())
             .collect();
-        // A package its manifest renamed is the same box (spec « Identité stable »): neither it
+        // A package its manifest renamed is the same box (spec « Stable identity »): neither it
         // nor its files move.
         let renamed_package = |p: &NodeId| renamed.contains_key(p) || was.contains_key(p);
         for package in manifest.iter().filter(|p| !renamed_package(p)) {
@@ -2397,7 +2397,7 @@ mod tests {
     }
 
     /// Review n° 6 of Phase 5, I-1: a crate renamed in its manifest while the packages are
-    /// clustered again is the same box (spec « Identité stable »); the clusters' new shares
+    /// clustered again is the same box (spec « Stable identity »); the clusters' new shares
     /// change no dependency (Q36).
     #[test]
     fn a_crate_renamed_while_the_packages_regroup_changes_no_dependency() {

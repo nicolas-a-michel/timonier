@@ -105,9 +105,14 @@ pub fn only_init_tracking(root: &Path) -> bool {
     let todo_empty = json(dir.join("todo.json"))
         .is_none_or(|todo| todo["items"].as_array().is_none_or(Vec::is_empty));
     // The empty whiteboard `init` wrote is init's; one drawn on is the developer's.
-    let no_intent = std::fs::read_to_string(dir.join("intent.json")).map_or(true, |text| {
-        text == timonier_core::intent::Intent::empty().to_text()
-    });
+    // Larger than the empty one, it was drawn on: not read (the audit's finding 3).
+    let empty = timonier_core::intent::Intent::empty().to_text();
+    let path = dir.join("intent.json");
+    let no_intent = match std::fs::metadata(&path) {
+        Err(_) => true,
+        Ok(meta) if meta.len() > empty.len() as u64 => false,
+        Ok(_) => std::fs::read_to_string(&path).is_ok_and(|text| text == empty),
+    };
     sessions_by_init && plan_by_init && todo_empty && no_intent
 }
 

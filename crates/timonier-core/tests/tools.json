@@ -222,12 +222,115 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
+    "description": "Read the project's technology inventory: its languages and frameworks, its dependencies with their resolved versions and licences (paged), the duplicates by function (two libraries for the same thing), the dependencies added since the last review, and the known vulnerabilities from OSV.dev, asked on demand and kept a day (`cve: false` reads the cache only). Check it after adding a dependency.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "description": "Where the previous page ended.",
+          "maxLength": 32,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cve": {
+          "description": "`false`: no query to OSV for known vulnerabilities (Q79); the cache is still read.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "How many dependencies the page lists (100 by default).",
+          "format": "uint32",
+          "maximum": 500,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_tech_inventory"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
     "description": "Read the todo of the open session.",
     "inputSchema": {
       "additionalProperties": false,
       "type": "object"
     },
     "name": "get_todo"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read the project's development process (.timonier/workflow.json): tickets, a branch per task, commit convention, pull requests, merge and CI, and what it asks of you, in words. Read it before starting a task.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "get_workflow"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Link a task of the plan to a GitHub issue that already exists (`github#12` or `12`); the issue is closed with the task.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "pattern": "^T-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "ticket": {
+          "pattern": "^(github#)?[1-9][0-9]{0,9}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "ticket"
+      ],
+      "type": "object"
+    },
+    "name": "link_ticket"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Push the task's branch and open its pull request, with a description Timonier writes (the task, the session's structural changes, the tests, performance, violations); GitHub merges it once the checks pass when the process says so. `session_end` does it by itself when the process opens pull requests at the end of a session.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "description": "A draft, whatever the process says.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "open_pull_request"
   },
   {
     "annotations": {
@@ -395,6 +498,28 @@
       "type": "object"
     },
     "name": "session_start"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Start a task of the plan as the process says: the task goes in progress, its GitHub issue is opened and its branch `tim/<ticket>-<slug>` is made and checked out when the process asks for them. Returns the task, its ticket and its branch.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "pattern": "^T-[1-9][0-9]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "type": "object"
+    },
+    "name": "task_start"
   },
   {
     "annotations": {

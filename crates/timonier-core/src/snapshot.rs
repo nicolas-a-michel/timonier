@@ -1,4 +1,4 @@
-//! Snapshots (spec « Stockage », ADR 0010).
+//! Snapshots (spec « Storage », ADR 0010).
 
 use std::fmt;
 

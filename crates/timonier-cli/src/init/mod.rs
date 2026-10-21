@@ -39,6 +39,31 @@ pub struct InitArgs {
     /// The agents to configure, in place of those found: claude, copilot, cursor, codex
     #[arg(long, value_delimiter = ',', value_name = "AGENTS")]
     agents: Option<Vec<String>>,
+    /// Change nothing: print, as JSON, the agents init configures and those found on this
+    /// machine, for the bridge's choice (T-118)
+    #[arg(long, conflicts_with_all = ["dry_run", "yes", "agents"])]
+    detect: bool,
+}
+
+/// `init --detect`: every agent, whether it was found, and why.
+fn detected_json(detection: &detect::Detection) -> serde_json::Value {
+    let agents: Vec<serde_json::Value> = Agent::ALL
+        .into_iter()
+        .map(|agent| {
+            let why = detection
+                .agents
+                .iter()
+                .find(|(a, _)| *a == agent)
+                .map(|(_, why)| why.clone());
+            serde_json::json!({
+                "key": agent.key(),
+                "label": agent.label(),
+                "found": why.is_some(),
+                "why": why,
+            })
+        })
+        .collect();
+    serde_json::json!({ "agents": agents })
 }
 
 pub fn run(args: &InitArgs) -> ExitCode {
@@ -56,6 +81,10 @@ fn init(args: &InitArgs) -> Result<()> {
     let root = paths.root.clone();
     let environment = Environment::from_process();
     let detection = detect::detect(&root, &environment);
+    if args.detect {
+        println!("{}", detected_json(&detection));
+        return Ok(());
+    }
     print_detection(&root, &detection);
     let agents = choose(args, &detection)?;
     let choices = Choices {
@@ -81,6 +110,8 @@ fn init(args: &InitArgs) -> Result<()> {
         return Ok(());
     }
     plan::apply(&root, &planned).context("cannot write the configuration")?;
+    // What init wrote, this machine runs without asking (Q84).
+    approve_written(&root);
     for change in &planned.changes {
         let verb = if change.before.is_some() {
             "changed"
@@ -393,6 +424,28 @@ pub struct DoctorArgs {
     /// Skip the smoke test, which builds and runs the instrumented test of each language
     #[arg(long)]
     no_smoke: bool,
+    /// Approve the smoke tests of `.timonier/tests.json` for this machine, after reading them
+    /// (Q84): a command this machine has not approved does not run
+    #[arg(long)]
+    approve: bool,
+}
+
+/// The commands of `.timonier/tests.json`, as init has just written them, approved (Q84).
+fn approve_written(root: &Path) {
+    let Some(tests) = std::fs::read_to_string(root.join(plan::TESTS))
+        .ok()
+        .and_then(|text| serde_json::from_str::<plan::Tests>(&text).ok())
+    else {
+        return;
+    };
+    let commands = tests
+        .runners
+        .iter()
+        .flat_map(|r| [r.command.as_deref(), r.smoke.as_deref()])
+        .flatten();
+    if let Err(error) = crate::approval::approve(root, commands) {
+        eprintln!("timonier: the test commands are not approved for this machine: {error:#}");
+    }
 }
 
 /// `timonier doctor` (PLAN.md 6.10): the setup checked, and repaired once asked.
@@ -409,7 +462,7 @@ pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
         // The chain, end to end (spec « Initialisation », 7): a trace attached to the graph.
         let mut smoked = Vec::new();
         if !args.no_smoke && root.join(plan::RECORD).is_file() {
-            let (findings, said) = smoke(&paths);
+            let (findings, said) = smoke(&paths, args.approve);
             checked.findings.extend(findings);
             smoked = said;
         }
@@ -479,7 +532,7 @@ pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
 /// Runs the smoke test of each language `timonier init` instrumented (ADR 0050): what is wrong,
 /// and what went well.
 #[tracing::instrument(skip_all)]
-fn smoke(paths: &Paths) -> (Vec<doctor::Finding>, Vec<String>) {
+fn smoke(paths: &Paths, approve: bool) -> (Vec<doctor::Finding>, Vec<String>) {
     let by_hand = |what: String| doctor::Finding {
         what,
         repairable: false,
@@ -496,6 +549,19 @@ fn smoke(paths: &Paths) -> (Vec<doctor::Finding>, Vec<String>) {
             continue;
         };
         let language = &runner.language;
+        // A command of the repository, which this machine has not approved: not run (Q84).
+        if approve {
+            if let Err(error) = crate::approval::approve(&paths.root, [command.as_str()]) {
+                findings.push(by_hand(format!("cannot approve the smoke test: {error:#}")));
+                continue;
+            }
+        } else if !crate::approval::approved(&paths.root, command) {
+            findings.push(by_hand(crate::approval::refusal(
+                &[command.as_str()],
+                "timonier doctor --approve",
+            )));
+            continue;
+        }
         eprintln!("timonier: the smoke test ({language}): {command}");
         let outcome = crate::test::smoke(paths, command);
         let Some(run) = outcome.run else {

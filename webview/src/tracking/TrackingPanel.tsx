@@ -10,7 +10,11 @@ import type { Locale } from "../i18n";
 import type {
   ChangedBox,
   ChangedLink,
+  AgentChoice,
   DaemonState,
+  Workflow,
+  WorkflowView,
+  IndexProgress,
   MilestoneView,
   SessionChanges,
   SessionView,
@@ -19,30 +23,55 @@ import type {
   TodoItemView,
   TrackingView,
 } from "../protocol";
-import { Bridge, type BridgeActions } from "./Bridge";
+import { Bridge, type BridgeActions, type Setup } from "./Bridge";
+import { WorkflowSettings } from "./WorkflowSettings";
 import { trackingMessages, type TrackingMessages } from "./messages";
 
 /** One part, or `all`: the view of the side bar, the plan and the todo beside the sessions. */
-export type PanelKind = "plan" | "todo" | "sessions" | "all" | "bridge";
+export type PanelKind = "plan" | "todo" | "sessions" | "all" | "bridge" | "workflow";
 
 export interface DaemonInfo {
   state: DaemonState;
   detail: string | null;
+  /** How far the first indexing is (T-115). */
+  progress?: IndexProgress;
 }
 
 export interface TrackingPanelProps {
   locale: Locale;
+  /** The bridge, not set up: the agents to choose from, and how the setup goes (T-118). */
+  agents?: AgentChoice[];
+  setup?: Setup;
   panel: PanelKind;
   /** `undefined` until the daemon answered. */
   tracking: TrackingView | undefined;
   daemon: DaemonInfo | undefined;
   /** What the bridge's buttons and boxes do (ADR 0032). */
   actions?: BridgeActions;
+  /** The development process, on its settings page (ADR 0056). */
+  workflow?: { view: WorkflowView | undefined; problem: string | null; onSet?: (workflow: Workflow) => void };
 }
 
-export function TrackingPanel({ locale, panel, tracking, daemon, actions }: TrackingPanelProps) {
+export function TrackingPanel({
+  locale,
+  panel,
+  tracking,
+  daemon,
+  actions,
+  agents,
+  setup,
+  workflow,
+}: TrackingPanelProps) {
   const t = trackingMessages[locale];
-  if (!tracking) return <Waiting t={t} daemon={daemon} />;
+  // Its own page: the process, not the tracking (ADR 0056).
+  if (panel === "workflow") {
+    return (
+      <main className="tim-tracking" data-panel={panel}>
+        <WorkflowSettings t={t} view={workflow?.view} problem={workflow?.problem ?? null} onSet={workflow?.onSet} />
+      </main>
+    );
+  }
+  if (!tracking) return <Waiting t={t} daemon={daemon} locale={locale} />;
   const titles = new Map(tracking.milestones.flatMap((m) => m.tasks.map((task) => [task.id, task.title] as const)));
   return (
     <main className="tim-tracking" data-panel={panel}>
@@ -58,7 +87,9 @@ export function TrackingPanel({ locale, panel, tracking, daemon, actions }: Trac
       {panel === "plan" && <Plan t={t} milestones={tracking.milestones} />}
       {panel === "todo" && <Todo t={t} tracking={tracking} titles={titles} locale={locale} />}
       {panel === "sessions" && <Sessions t={t} tracking={tracking} titles={titles} locale={locale} />}
-      {panel === "bridge" && <Bridge t={t} locale={locale} tracking={tracking} actions={actions} />}
+      {panel === "bridge" && (
+        <Bridge t={t} locale={locale} tracking={tracking} actions={actions} agents={agents} setup={setup} />
+      )}
       {panel === "all" && (
         // Two columns side by side when the side bar is wide enough, one under the other
         // otherwise (tracking.css).
@@ -92,14 +123,23 @@ function Heading({ text, children }: { text: string; children: ReactNode }) {
   );
 }
 
-function Waiting({ t, daemon }: { t: TrackingMessages; daemon: DaemonInfo | undefined }) {
+function Waiting({ t, daemon, locale }: { t: TrackingMessages; daemon: DaemonInfo | undefined; locale: Locale }) {
   if (daemon?.state === "unavailable") {
     return <EmptyState title={t.unavailableTitle} text={daemon.detail ?? ""} live />;
   }
   if (daemon?.state === "restarting") {
     return <EmptyState title={t.restartingTitle} text={t.restartingText} detail={daemon.detail} live />;
   }
-  return <EmptyState title={t.startingTitle} text={t.startingText} live />;
+  // The daemon answers once it has read the code; meanwhile, how far it is (T-115).
+  return (
+    <EmptyState
+      title={t.startingTitle}
+      text={t.startingText}
+      live
+      progress={daemon?.state === "connected" ? daemon.progress : undefined}
+      locale={locale}
+    />
+  );
 }
 
 // The plan --------------------------------------------------------------------------------------

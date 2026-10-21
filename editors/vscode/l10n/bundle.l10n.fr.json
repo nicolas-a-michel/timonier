@@ -25,5 +25,8 @@
   "Open the whiteboard first: « Timonier: Open the Whiteboard ».": "Ouvrez d'abord le tableau blanc : « Timonier : Ouvrir le tableau blanc ».",
   "the daemon is not running": "le démon ne tourne pas",
   "Timonier performances": "Performances de Timonier",
-  "Timonier could not open the performances: {0}": "Timonier n'a pas pu ouvrir les performances : {0}"
+  "Timonier could not open the performances: {0}": "Timonier n'a pas pu ouvrir les performances : {0}",
+  "Timonier set the project up for its agents.": "Timonier a configuré le projet pour ses agents.",
+  "Development process": "Processus de développement",
+  "Timonier could not open the process: {0}": "Timonier n'a pas pu ouvrir le processus : {0}"
 }

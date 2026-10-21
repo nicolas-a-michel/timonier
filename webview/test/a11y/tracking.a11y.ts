@@ -86,11 +86,17 @@ for (const theme of themes) {
   test(`${theme}: the offer to set the project up at WCAG AA, first under the keyboard`, async ({ page }) => {
     await open(page, "bridge", { theme, extra: "&unset=1" });
     await expect(page.getByRole("note")).toContainText("This project is not set up for your agents");
+    // The agents to set up first, those found ticked (T-118), then the button.
     await page.keyboard.press("Tab");
+    const claude = page.getByRole("checkbox", { name: "Claude Code" });
+    await expect(claude).toBeFocused();
+    await expect(claude).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: /Cursor/ })).not.toBeChecked();
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Set up" })).toBeFocused();
     await settled(page);
     expect((await axeFindings(page)).violations).toEqual([]);
-    const text = await textSamples(page, ".tim-bridge__setup :is(p, button)");
+    const text = await textSamples(page, ".tim-bridge__setup :is(p, button, legend, label span)");
     expect(weak(text, 4.5)).toEqual([]);
     expect(weak(await samples(page))).toEqual([]);
   });
@@ -102,3 +108,20 @@ test("each panel teaches what fills it, in French too", async ({ page }) => {
   const findings = await axeFindings(page);
   expect(findings.violations).toEqual([]);
 });
+
+/** ADR 0056: the development process's settings, in every theme, by the keyboard. */
+for (const theme of themes) {
+  test(`${theme}: the development process's settings at WCAG AA, by the keyboard`, async ({ page }) => {
+    await open(page, "workflow", { theme, width: 640 });
+    await expect(page.getByRole("radio", { name: /Solo, disciplined/ })).toBeChecked();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("radio", { name: /Solo, disciplined/ })).toBeFocused();
+    await expect(page.getByRole("checkbox", { name: "A branch per task" })).toBeChecked();
+    await expect(page.getByRole("combobox", { name: "CI" })).toHaveValue("github_actions");
+    await settled(page);
+    expect((await axeFindings(page)).violations).toEqual([]);
+    const text = await textSamples(page, ".tim-workflow :is(h1, h2, legend, label span, li)");
+    expect(weak(text, 4.5)).toEqual([]);
+    expect(weak(await samples(page))).toEqual([]);
+  });
+}

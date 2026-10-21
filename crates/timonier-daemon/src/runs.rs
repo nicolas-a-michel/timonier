@@ -23,6 +23,18 @@ pub const DATABASE: &str = "perf.sqlite";
 pub(crate) struct Runs {
     root: PathBuf,
     store: Mutex<Option<PerfStore>>,
+    /// Each run's token, which its senders must give (audit of 2026-10-21, finding 2).
+    tokens: Mutex<std::collections::HashMap<u64, String>>,
+}
+
+/// 16 bytes of the system's randomness, in hexadecimal; `None` when it cannot be read.
+fn random_token() -> Option<String> {
+    use std::io::Read;
+    let mut bytes = [0_u8; 16];
+    std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| f.read_exact(&mut bytes))
+        .ok()?;
+    Some(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 
 impl Runs {
@@ -30,6 +42,7 @@ impl Runs {
         Self {
             root: root.to_path_buf(),
             store: Mutex::new(None),
+            tokens: Mutex::new(std::collections::HashMap::new()),
         }
     }
 
@@ -57,6 +70,31 @@ impl Runs {
         Ok(opened)
     }
 
+    /// The last finished run but the smoke tests, in a line: for a pull request (ADR 0056).
+    pub(crate) fn last_run_line(&self) -> Option<String> {
+        if !self.root.join(FOLDER).join(DATABASE).exists() {
+            return None;
+        }
+        let run = self
+            .store()
+            .ok()?
+            .summaries(LISTED_RUNS)
+            .ok()?
+            .into_iter()
+            .find(|r| r.finished && !r.smoke)?;
+        #[allow(clippy::cast_precision_loss)]
+        let seconds = run.wall_us.unwrap_or_default() as f64 / 1e6;
+        Some(format!(
+            "{}: {} tests, {} failed, {seconds:.1} s{}",
+            run.run,
+            run.tests,
+            run.failed,
+            run.commit
+                .as_deref()
+                .map_or_else(String::new, |c| format!(", at {}", &c[..c.len().min(7)]))
+        ))
+    }
+
     /// A run begins at the graph's head snapshot, with git's view of it (ADR 0047).
     #[tracing::instrument(skip_all)]
     pub(crate) fn start(
@@ -73,12 +111,20 @@ impl Runs {
         };
         let id = self.store()?.start(start, place.clone())?;
         tracing::info!(run = id, snapshot = place.snapshot, "run started");
+        let token = random_token();
+        if let Some(token) = &token {
+            self.tokens
+                .lock()
+                .map_err(|_| Error::Poisoned)?
+                .insert(id, token.clone());
+        }
         Ok(RunStarted {
             run: format!("R-{id}"),
             snapshot: place.snapshot,
             commit: place.commit,
             branch: place.branch,
             endpoint,
+            token,
         })
     }
 
@@ -296,10 +342,11 @@ impl Runs {
     /// `None` when the whiteboard has no budget (or does not read).
     #[tracing::instrument(skip_all)]
     pub(crate) fn budgets(&self, graph: &Store) -> Result<Option<BudgetsView>> {
-        let text = match std::fs::read_to_string(self.root.join(".timonier").join("intent.json")) {
-            Ok(text) => text,
-            Err(_) => return Ok(None),
-        };
+        let text =
+            match crate::tracking::read_intent(&self.root.join(".timonier").join("intent.json")) {
+                Ok(text) => text,
+                Err(_) => return Ok(None),
+            };
         let Ok(intent) = timonier_core::intent::parse(&text) else {
             return Ok(None);
         };
@@ -402,7 +449,7 @@ impl Runs {
         let mut reader = graph.reader()?;
         let loaded = crate::view::load(&mut reader)?;
         let actual = timonier_core::actual::actual(&loaded);
-        let intent = std::fs::read_to_string(self.root.join(".timonier").join("intent.json"))
+        let intent = crate::tracking::read_intent(&self.root.join(".timonier").join("intent.json"))
             .ok()
             .and_then(|text| timonier_core::intent::parse(&text).ok())
             .map(|i| i.normalized());
@@ -871,17 +918,29 @@ fn by_run<T>(items: Vec<T>, run: impl Fn(&T) -> &str) -> BTreeMap<u64, Vec<T>> {
 
 impl RunSink {
     /// The store, if run `id` takes what comes now.
-    fn taking(&self, id: u64) -> Option<PerfStore> {
+    /// The store, when run `id` takes spans now and `token` is its own.
+    fn taking(&self, id: u64, token: Option<&str>) -> Option<PerfStore> {
+        let own = self
+            .runs
+            .tokens
+            .lock()
+            .ok()?
+            .get(&id)
+            .is_some_and(|t| Some(t.as_str()) == token);
+        if !own {
+            tracing::debug!(run = id, "spans without the run's token, dropped");
+            return None;
+        }
         let store = self.runs.store().ok()?;
         store.accepts(id).ok()?.then_some(store)
     }
 }
 
 impl timonier_otlp::Sink for RunSink {
-    fn spans(&self, spans: Vec<ReceivedSpan>) {
+    fn spans(&self, token: Option<&str>, spans: Vec<ReceivedSpan>) {
         let reader = self.graph.reader().ok();
         for (id, spans) in by_run(spans, |s| s.run.as_str()) {
-            let Some(store) = self.taking(id) else {
+            let Some(store) = self.taking(id, token) else {
                 tracing::debug!(
                     run = id,
                     spans = spans.len(),
@@ -916,9 +975,9 @@ impl timonier_otlp::Sink for RunSink {
         }
     }
 
-    fn metrics(&self, metrics: Vec<ReceivedMetric>) {
+    fn metrics(&self, token: Option<&str>, metrics: Vec<ReceivedMetric>) {
         for (id, points) in by_run(metrics, |m| m.run.as_str()) {
-            let Some(store) = self.taking(id) else {
+            let Some(store) = self.taking(id, token) else {
                 continue;
             };
             if let Err(error) = store.add_metrics(id, points) {

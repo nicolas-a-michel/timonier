@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-23",
+  "agent": "claude-code",
+  "objective": "9.1: the technology inventory from manifests and lockfiles, a CycloneDX SBOM, known CVEs from OSV on demand, functional duplicates and dependencies added since the review, through get_tech_inventory",
+  "tasks": [
+    "T-103"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T16:22:12Z",
+  "ended_at": "2026-10-21T16:38:52Z",
+  "snapshots": {
+    "start": 70,
+    "end": 71
+  },
+  "summary": "9.1 done: get_tech_inventory and `timonier inventory [--sbom]`. On Timonier the SBOM (828 components) passes the official CycloneDX 1.5 schema; OSV finds 3 vulnerabilities in npm dev tools (diff 7.0.0, serialize-javascript 6.0.2). All checks green. Next: 9.2, the development process.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "ADR 0055 and dependencies (cyclonedx-bom 0.8.1, ureq 3.4.2)",
+      "task": "T-103",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Core: inventory types, duplicates by function from the packs",
+      "task": "T-103",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Daemon: read cargo metadata / Cargo.lock and package-lock.json, languages, frameworks, added since review",
+      "task": "T-103",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "OSV on demand with a 24 h cache",
+      "task": "T-103",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "CycloneDX SBOM, validated; `timonier inventory --sbom`",
+      "task": "T-103",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "MCP tool get_tech_inventory, tests, PLAN.md",
+      "task": "T-103",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 18,
+    "added": [
+      {
+        "id": "pkg:cargo/cyclonedx-bom",
+        "name": "cyclonedx-bom",
+        "within": "serialization"
+      },
+      {
+        "id": "pkg:cargo/ureq",
+        "name": "ureq",
+        "within": "network"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/network",
+        "name": "network",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:external/serialization",
+        "name": "serialization",
+        "within": "external"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

@@ -5,7 +5,7 @@ description: Building Timonier's VSCode extension and React webview — the stac
 
 # VSCode extension and webview UI
 
-## Design principles (spec, « Expérience et design »). They apply to every view, from the MVP on.
+## Design principles (spec, « Experience and design »). They apply to every view, from the MVP on.
 
 **Calm by default**
 

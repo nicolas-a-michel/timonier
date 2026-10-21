@@ -174,10 +174,14 @@ pub struct RunStarted {
     pub branch: Option<String>,
     /// For `OTEL_EXPORTER_OTLP_ENDPOINT`; `None` when the receiver could not listen.
     pub endpoint: Option<String>,
+    /// What the run's senders put in the `x-timonier-token` header (`OTEL_EXPORTER_OTLP_HEADERS`):
+    /// the receiver takes a run's spans with it only (audit of 2026-10-21, finding 2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 impl RunStarted {
-    /// What the run adds to `OTEL_RESOURCE_ATTRIBUTES` (spec « Branchement »).
+    /// What the run adds to `OTEL_RESOURCE_ATTRIBUTES` (spec « Wiring »).
     pub fn resource_attributes(&self) -> [(&'static str, String); 2] {
         [
             ("timonier.run_id", self.run.clone()),
@@ -722,6 +726,7 @@ mod tests {
             commit: None,
             branch: None,
             endpoint: Some("http://127.0.0.1:4318".to_owned()),
+            token: None,
         };
         let added = started.resource_attributes();
         assert_eq!(
