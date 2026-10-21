@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-33",
+  "agent": "claude-code",
+  "objective": "9.7 Publication en préversion : binaire embarqué par plateforme et trouvé par l'extension, les agents et les hooks ; CI de publication ; icône PNG, CHANGELOG, README de l'extension.",
+  "tasks": [
+    "T-109",
+    "T-125"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T19:10:05Z",
+  "ended_at": "2026-10-21T19:44:59Z",
+  "snapshots": {
+    "start": 95,
+    "end": 96
+  },
+  "summary": "9.7 prepared (ADR 0059): the shipped timonier found by the extension and put on the agents' PATH (commandLine.ts, a palette command, before « Set up »), release workflow for six platforms publishing a pre-release with VSCE_PAT, PNG icon, CHANGELOG, English README. 9.9 Windows ported (ADR 0060): named pipe transport in the daemon, Rust client, MCP proxy and extension; LOCALAPPDATA runtime; wall-time measure; cmd /C; whole workspace passes cargo check and clippy for x86_64-pc-windows-gnu; windows-latest added to CI. Linux: 580 Rust tests, 162 vitest, 98+27 node:test, 28 integration green. Left (D-3): run the CI on Windows, which needs a push; then the win32 .vsix on a real machine, the tag and the Marketplace criterion.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Publication : binaire embarqué, ligne de commande, CI release, icône, CHANGELOG, README (fait)",
+      "task": "T-109",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Windows : named pipe, mesure, commandes, CI ; vérifié par cargo check/clippy Windows (fait)",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Faire passer la CI sous Windows (pousser pour la lancer)",
+      "task": "T-125",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 28,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+        "name": "lib",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/code.ts",
+        "name": "lspRelay",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "mapPanel",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/webview/src/performance",
+        "name": "performance",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-mcp",
+        "name": "timonier-mcp",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 103,
+    "input": 16694,
+    "output": 88324,
+    "cache_read": 54341221,
+    "cache_creation": 141032,
+    "cost_usd_micros": 13735530
+  }
+}

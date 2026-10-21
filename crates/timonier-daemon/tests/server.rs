@@ -1961,6 +1961,8 @@ fn a_view_that_opens_too_many_boxes_is_refused() {
 /// discipliné » end to end — the task's issue and branch, its pull request pushed and opened with
 /// a written description, GitHub's auto-merge asked, the issue closed with the task.
 #[test]
+// The fake `gh` is a shell script.
+#[cfg(unix)]
 fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
     let repo = project();
     let root = repo.path();

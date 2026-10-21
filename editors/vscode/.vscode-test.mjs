@@ -10,7 +10,9 @@ const repoRoot = path.resolve(here, "..", "..");
 
 // The daemon the extension launches, built by `cargo build -p timonier-cli`
 // (the root `npm run test:integration` does it first).
-const daemon = process.env.TIMONIER_DAEMON_PATH ?? path.join(repoRoot, "target", "debug", "timonier");
+const daemon =
+  process.env.TIMONIER_DAEMON_PATH ??
+  path.join(repoRoot, "target", "debug", process.platform === "win32" ? "timonier.exe" : "timonier");
 if (!existsSync(daemon)) {
   throw new Error(`No daemon at ${daemon}: run \`cargo build -p timonier-cli\` first.`);
 }

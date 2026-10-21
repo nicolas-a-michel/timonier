@@ -1816,11 +1816,12 @@
           "id": "T-109",
           "title": "9.7 Publication de l'extension (Q58, Q59), avant la relecture 9.5",
           "criterion": "l'extension installée depuis la Marketplace configure un projet et montre sa carte, sans rien installer à part : un .vsix par plateforme qui embarque timonier, icône PNG, CHANGELOG, dépôt public (Q2), éditeur NicolasMichel (Q12)",
-          "status": "todo",
+          "status": "in_progress",
           "sessions": [
             "S-2026-10-20-4",
             "S-2026-10-21-30",
-            "S-2026-10-21-32"
+            "S-2026-10-21-32",
+            "S-2026-10-21-33"
           ],
           "created": {
             "at": "2026-10-20T13:12:10Z",
@@ -1928,6 +1929,19 @@
               "text": "Measured on this repository (release, fresh database): threads 71 → 19, peak RSS 116 → 80 MB, cold indexing CPU 2.4 → 1.47 s, wall 0.44 → 0.49 s, rest unchanged (10 ms per 20 s), saves p95 14.9 ms. Found and fixed: the home folder taken for a project (a daemon indexing all of ~ at 1.3 cores, 71 s to stop); ~ and / are never a project now, and a whole indexing gives up at shutdown. 580 Rust tests, clippy clean."
             }
           ]
+        },
+        {
+          "id": "T-125",
+          "title": "9.9 Windows (Q87), avant la publication 9.7",
+          "criterion": "Sur un runner Windows de la CI, les tests Rust et les tests d'intégration de l'extension passent, et un .vsix win32-x64 configure un projet et montre sa carte.",
+          "status": "in_progress",
+          "sessions": [
+            "S-2026-10-21-33"
+          ],
+          "created": {
+            "at": "2026-10-21T19:20:55Z",
+            "session": "S-2026-10-21-33"
+          }
         }
       ]
     },

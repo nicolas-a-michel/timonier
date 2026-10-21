@@ -19,10 +19,39 @@ use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
 use serde_json::{Value, json};
 use timonier_core::protocol::{PROTOCOL_VERSION, methods};
 use timonier_core::rpc::{Decoder, ErrorObject, Id, Message};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::UnixStream;
-use tokio::net::unix::OwnedWriteHalf;
+use tokio::io::{AsyncReadExt, AsyncWriteExt, WriteHalf};
 use tokio::sync::{Mutex, oneshot};
+
+/// The connection to the daemon: a Unix socket, or a named pipe on Windows (T-125).
+#[cfg(unix)]
+type Stream = tokio::net::UnixStream;
+#[cfg(windows)]
+type Stream = tokio::net::windows::named_pipe::NamedPipeClient;
+
+#[cfg(unix)]
+async fn open(socket: &Path) -> std::io::Result<Stream> {
+    tokio::net::UnixStream::connect(socket).await
+}
+
+/// A pipe busy for a moment, or not made yet by a daemon that just announced itself, is waited
+/// for.
+#[cfg(windows)]
+async fn open(socket: &Path) -> std::io::Result<Stream> {
+    const PIPE_BUSY: i32 = 231;
+    const NOT_YET: i32 = 2;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        match tokio::net::windows::named_pipe::ClientOptions::new().open(socket) {
+            Err(e)
+                if matches!(e.raw_os_error(), Some(PIPE_BUSY | NOT_YET))
+                    && std::time::Instant::now() < deadline =>
+            {
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+            opened => return opened,
+        }
+    }
+}
 
 /// What the server tells the agent once, at the start.
 const INSTRUCTIONS: &str = "Timonier keeps this project's plan, todo and session journal. Open a \
@@ -201,7 +230,7 @@ type Waiting = HashMap<i64, oneshot::Sender<Result<Value, ErrorObject>>>;
 /// A connection to the daemon that several requests share: each answer goes to its request.
 #[derive(Clone)]
 pub struct Link {
-    writer: Arc<Mutex<OwnedWriteHalf>>,
+    writer: Arc<Mutex<WriteHalf<Stream>>>,
     waiting: Arc<std::sync::Mutex<Waiting>>,
     next: Arc<AtomicI64>,
     /// Until the daemon closes the connection.
@@ -210,13 +239,11 @@ pub struct Link {
 
 impl Link {
     pub async fn connect(socket: &Path) -> Result<Self, Error> {
-        let stream = UnixStream::connect(socket)
-            .await
-            .map_err(|source| Error::Connect {
-                path: socket.to_path_buf(),
-                source,
-            })?;
-        let (mut reader, writer) = stream.into_split();
+        let stream = open(socket).await.map_err(|source| Error::Connect {
+            path: socket.to_path_buf(),
+            source,
+        })?;
+        let (mut reader, writer) = tokio::io::split(stream);
         let link = Self {
             writer: Arc::new(Mutex::new(writer)),
             waiting: Arc::default(),

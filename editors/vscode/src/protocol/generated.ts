@@ -648,7 +648,7 @@ names: Record<string, string>,
  */
 ancestors: Record<string, Array<string>>, };
 
-export type CpuSource = "instructions" | "cpu_time";
+export type CpuSource = "instructions" | "cpu_time" | "wall_time";
 
 export type TestStatus = "passed" | "failed" | "error" | "skipped";
 

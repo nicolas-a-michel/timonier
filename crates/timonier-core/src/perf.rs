@@ -14,6 +14,9 @@ use ts_rs::TS;
 pub enum CpuSource {
     Instructions,
     CpuTime,
+    /// No CPU time where the system gives none without privileges (Windows, T-125): the wall
+    /// time stands for it.
+    WallTime,
 }
 
 /// Where the memory and CPU of the whole tree come from (ADR 0045).
@@ -24,6 +27,8 @@ pub enum Accounting {
     SystemdScope,
     /// `getrusage` of the relay's children only: the memory is that of the largest process.
     Rusage,
+    /// The wall time only: CPU and memory not measured (Windows, T-125).
+    WallTime,
 }
 
 /// One sample of the scope's resources, every 100 ms, for the curve under the timeline.
@@ -79,8 +84,20 @@ impl Measured {
     pub fn cpu_source(&self) -> CpuSource {
         if self.instructions.is_some() {
             CpuSource::Instructions
+        } else if self.accounting == Accounting::WallTime {
+            CpuSource::WallTime
         } else {
             CpuSource::CpuTime
+        }
+    }
+
+    /// What the run cost in its CPU source: instructions, CPU or wall microseconds.
+    #[allow(clippy::cast_precision_loss)]
+    pub fn cost(&self) -> f64 {
+        match self.cpu_source() {
+            CpuSource::Instructions => self.instructions.unwrap_or(0) as f64,
+            CpuSource::CpuTime => (self.user_cpu_us + self.system_cpu_us) as f64,
+            CpuSource::WallTime => self.wall_us as f64,
         }
     }
 }
@@ -126,6 +143,7 @@ impl Machine {
         let source = match source {
             CpuSource::Instructions => "instructions",
             CpuSource::CpuTime => "cpu_time",
+            CpuSource::WallTime => "wall_time",
         };
         let text = format!(
             "{}\n{}\n{}\n{}\n{}\n{source}",

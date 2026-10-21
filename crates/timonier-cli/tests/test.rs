@@ -2,6 +2,9 @@
 //! that works, allocates, writes a JUnit XML and fails; the run is measured and kept by a real
 //! daemon.
 
+// Their fake programs are shell scripts, on a `:`-separated PATH (T-125).
+#![cfg(unix)]
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 

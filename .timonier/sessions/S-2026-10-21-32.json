@@ -40,5 +40,16 @@
     "removed": [],
     "linked": [],
     "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 35,
+    "input": 72,
+    "output": 15156,
+    "cache_read": 15732544,
+    "cache_creation": 21343,
+    "cost_usd_micros": 3620659
   }
 }

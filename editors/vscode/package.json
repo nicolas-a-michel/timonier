@@ -5,6 +5,12 @@
   "version": "0.1.0",
   "publisher": "NicolasMichel",
   "license": "MIT",
+  "icon": "media/icon.png",
+  "preview": true,
+  "homepage": "https://github.com/nicolas-a-michel/timonier#readme",
+  "bugs": {
+    "url": "https://github.com/nicolas-a-michel/timonier/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/nicolas-a-michel/timonier.git",
@@ -22,6 +28,15 @@
   "categories": [
     "Visualization",
     "AI"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "architecture",
+    "mcp",
+    "claude",
+    "code map",
+    "opentelemetry"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -166,6 +181,11 @@
       {
         "command": "timonier.showLog",
         "title": "%command.showLog.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.installCommandLine",
+        "title": "%command.installCommandLine.title%",
         "category": "Timonier"
       },
       {

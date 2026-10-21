@@ -63,3 +63,5 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0056 | [Le processus de développement : `workflow.json`, GitHub par `gh`, la CI](0056-processus-de-developpement.md) | Proposé | 9 |
 | 0057 | [Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier](0057-securite-locale.md) | Proposé | 9 |
 | 0058 | [Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine](0058-cout-de-l-ia.md) | Proposé | 9 |
+| 0059 | [Le programme `timonier` livré dans l'extension, et dans le PATH](0059-binaire-embarque.md) | Proposé | 9 |
+| 0060 | [Timonier sous Windows](0060-windows.md) | Proposé | 9 |

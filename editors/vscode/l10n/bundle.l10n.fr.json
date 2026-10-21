@@ -28,5 +28,11 @@
   "Timonier could not open the performances: {0}": "Timonier n'a pas pu ouvrir les performances : {0}",
   "Timonier set the project up for its agents.": "Timonier a configuré le projet pour ses agents.",
   "Development process": "Processus de développement",
-  "Timonier could not open the process: {0}": "Timonier n'a pas pu ouvrir le processus : {0}"
+  "Timonier could not open the process: {0}": "Timonier n'a pas pu ouvrir le processus : {0}",
+  "This Timonier package ships no program for this system: install timonier and set timonier.daemon.path.": "Ce paquet de Timonier n'embarque pas de programme pour ce système : installez timonier et réglez timonier.daemon.path.",
+  "Timonier left {0}: it holds another program.": "Timonier a laissé {0} : il contient un autre programme.",
+  "Timonier added its folder to your PATH: restart VSCode and your agents so that they find it.": "Timonier a ajouté son dossier à votre PATH : redémarrez VSCode et vos agents pour qu'ils le trouvent.",
+  "Timonier could not install its command line: {0}": "Timonier n'a pas pu installer sa ligne de commande : {0}",
+  "The timonier command is installed for your agents.": "La commande timonier est installée pour vos agents.",
+  "~/.local/bin is not on your PATH: add it in your shell's profile, then restart VSCode.": "~/.local/bin n'est pas dans votre PATH : ajoutez-le dans le profil de votre shell, puis redémarrez VSCode."
 }

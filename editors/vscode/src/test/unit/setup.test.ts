@@ -26,7 +26,8 @@ exit ${initExit}
   return program;
 }
 
-describe("the bridge's setup, without a terminal (T-118)", () => {
+// The fake timonier is a shell script (T-125).
+describe("the bridge's setup, without a terminal (T-118)", { skip: process.platform === "win32" }, () => {
   const dir = mkdtempSync(path.join(tmpdir(), "timonier-setup-"));
   after(() => rmSync(dir, { recursive: true, force: true }));
   const lines: string[] = [];

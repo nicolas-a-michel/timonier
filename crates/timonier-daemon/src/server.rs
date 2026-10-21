@@ -24,7 +24,7 @@ use timonier_core::rpc::{Decoder, ErrorObject, Id, InvalidMessage, Message};
 use timonier_index::lsp::Priority;
 use timonier_store::Store;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{UnixListener, UnixStream};
+
 use tokio::sync::{Notify, mpsc, watch};
 use tokio::task::JoinSet;
 
@@ -95,7 +95,7 @@ impl Options {
 pub struct Daemon {
     options: Options,
     paths: Paths,
-    listener: std::os::unix::net::UnixListener,
+    listener: crate::transport::Bound,
     pipeline: Pipeline,
     store: Store,
     // Dropped last: held as long as the socket is served.
@@ -111,23 +111,11 @@ impl Daemon {
         let Some(lock) = Lock::acquire(&paths)? else {
             return Ok(None);
         };
-        // The lock is ours: a socket left there belongs to a daemon that died.
-        match std::fs::remove_file(&paths.socket) {
-            Ok(()) => tracing::info!(socket = %paths.socket.display(), "stale socket replaced"),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(source) => {
-                return Err(Error::Io {
-                    path: paths.socket.clone(),
-                    source,
-                });
-            }
-        }
-        let io = |source| Error::Io {
-            path: paths.socket.clone(),
-            source,
-        };
-        let listener = std::os::unix::net::UnixListener::bind(&paths.socket).map_err(io)?;
-        listener.set_nonblocking(true).map_err(io)?;
+        let listener =
+            crate::transport::Bound::bind(&paths.socket).map_err(|source| Error::Io {
+                path: paths.socket.clone(),
+                source,
+            })?;
         runtime::prepare_repository(&paths)?;
         let store = Store::open(&paths.database)?;
         let pipeline = Pipeline::new(&paths.root, store.clone())?;
@@ -179,7 +167,7 @@ impl Daemon {
             path: paths.socket.clone(),
             source,
         };
-        let listener = UnixListener::from_std(listener).map_err(socket_error)?;
+        let mut listener = listener.listen().map_err(socket_error)?;
         let (shutdown, _) = watch::channel(false);
         let changed = Arc::new(AtomicBool::new(false));
         let (views, commands) = mpsc::channel(VIEW_COMMANDS);
@@ -272,7 +260,7 @@ impl Daemon {
         loop {
             tokio::select! {
                 accepted = listener.accept() => match accepted {
-                    Ok((stream, _)) => {
+                    Ok(stream) => {
                         connections.spawn(connection(Arc::clone(&shared), stream));
                     }
                     Err(error) => tracing::warn!(%error, "cannot accept a client"),
@@ -289,7 +277,7 @@ impl Daemon {
             .cancelled
             .store(true, std::sync::atomic::Ordering::Relaxed);
         drop(listener);
-        let _ = std::fs::remove_file(&paths.socket);
+        crate::transport::remove(&paths.socket);
         background.abort_all();
         // Clients see the shutdown and finish writing what they were sent.
         let drained = tokio::time::timeout(Duration::from_secs(2), async {
@@ -460,6 +448,15 @@ fn tracking_files(dir: &std::path::Path) -> Vec<(std::path::PathBuf, u64, Option
     files
 }
 
+#[cfg(windows)]
+async fn signals(shared: Arc<Shared>) {
+    if tokio::signal::ctrl_c().await.is_ok() {
+        tracing::info!("signal received: stopping");
+        shared.stop();
+    }
+}
+
+#[cfg(unix)]
 async fn signals(shared: Arc<Shared>) {
     use tokio::signal::unix::{SignalKind, signal};
     let (Ok(mut terminate), Ok(mut interrupt)) = (
@@ -478,11 +475,11 @@ async fn signals(shared: Arc<Shared>) {
 }
 
 /// One client, from its connection to its end.
-async fn connection(shared: Arc<Shared>, stream: UnixStream) {
+async fn connection(shared: Arc<Shared>, stream: crate::transport::Connection) {
     let id = shared.next_connection.fetch_add(1, Ordering::SeqCst);
     shared.joined();
     tracing::debug!(connection = id, "client connected");
-    let (mut read, mut write) = stream.into_split();
+    let (mut read, mut write) = tokio::io::split(stream);
     let (outbox, mut queue) = mpsc::channel::<Vec<u8>>(OUTBOX);
     // Set by the views thread when a delta did not fit: once the queue drains, it hears so.
     let congested = Arc::new(AtomicBool::new(false));
@@ -1321,7 +1318,7 @@ fn shutting_down() -> ErrorObject {
 
 /// Whether a daemon answers on the project's socket.
 pub fn is_serving(paths: &Paths) -> bool {
-    std::os::unix::net::UnixStream::connect(&paths.socket).is_ok()
+    crate::transport::answers(&paths.socket)
 }
 
 /// The answer of a blocking task: its result, or an internal error.

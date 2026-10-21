@@ -443,7 +443,7 @@ impl PerfStore {
         };
         let source: CpuSource = parse("run.cpu_source", &format!("\"{source}\""), "a CPU source")?;
         let mut statement = connection.prepare(
-            "SELECT o.id, o.traced, o.instructions, o.user_cpu_us + o.system_cpu_us
+            "SELECT o.id, o.traced, o.instructions, o.user_cpu_us + o.system_cpu_us, o.wall_us
              FROM run r JOIN run o
                ON o.commit_sha IS r.commit_sha AND o.command = r.command
               AND o.fingerprint = r.fingerprint AND o.finished = 1
@@ -455,15 +455,17 @@ impl PerfStore {
                 r.get::<_, bool>(1)?,
                 r.get::<_, Option<u64>>(2)?,
                 r.get::<_, u64>(3)?,
+                r.get::<_, u64>(4)?,
             ))
         })?;
         let mut costs = Vec::new();
         for row in rows {
-            let (other, traced, instructions, cpu_us) = row?;
+            let (other, traced, instructions, cpu_us, wall_us) = row?;
             #[allow(clippy::cast_precision_loss)]
             let cost = match source {
                 CpuSource::Instructions => instructions.unwrap_or(0) as f64,
                 CpuSource::CpuTime => cpu_us as f64,
+                CpuSource::WallTime => wall_us as f64,
             };
             costs.push(RunCost {
                 run: format!("R-{other}"),

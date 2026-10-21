@@ -140,7 +140,9 @@ impl Forge {
     }
 }
 
+// The fake `gh` is a shell script.
 #[cfg(test)]
+#[cfg(unix)]
 mod tests {
     use super::*;
 

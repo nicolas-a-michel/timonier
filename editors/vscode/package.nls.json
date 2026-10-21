@@ -4,6 +4,7 @@
   "view.home.name": "Overview",
   "command.restartDaemon.title": "Restart the Daemon",
   "command.showLog.title": "Show the Log",
+  "command.installCommandLine.title": "Install the Command Line for the Agents",
   "capabilities.untrustedWorkspaces": "Timonier runs a program on the project and indexes its code: it waits until the folder is trusted.",
   "config.daemon.path": "Path to the `timonier` program that runs the project's daemon. Empty: `timonier` on the `PATH`.",
   "config.map.density": "How dense the architecture map is drawn: the size of its boxes and the room between them.",

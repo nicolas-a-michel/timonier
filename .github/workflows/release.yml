@@ -1,0 +1,101 @@
+name: Release
+
+# One .vsix per platform, each with its own `timonier` built here (ADR 0059, Q58), then the
+# pre-release on the Marketplace and on GitHub. A tag `v*` publishes; a manual run only packages
+# unless asked to publish.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the packages (Marketplace and GitHub release)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu 22.04: its glibc 2.35 runs on more distributions than 24.04's.
+          - { target: linux-x64, os: ubuntu-22.04 }
+          - { target: linux-arm64, os: ubuntu-22.04-arm }
+          - { target: darwin-x64, os: macos-15-intel }
+          - { target: darwin-arm64, os: macos-15 }
+          - { target: win32-x64, os: windows-2022 }
+          - { target: win32-arm64, os: windows-11-arm }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install the toolchain of rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: release-${{ matrix.target }}
+      - run: npm ci
+      - name: Build timonier
+        run: cargo build --release --locked -p timonier-cli
+      - name: Put it in the package
+        shell: bash
+        run: |
+          mkdir -p editors/vscode/bin
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp target/release/timonier.exe editors/vscode/bin/
+          else
+            cp target/release/timonier editors/vscode/bin/
+            chmod 755 editors/vscode/bin/timonier
+          fi
+          editors/vscode/bin/timonier* --version
+      - name: Package for ${{ matrix.target }}
+        shell: bash
+        run: |
+          npm run build
+          cd editors/vscode
+          npx vsce package --no-dependencies --pre-release --target ${{ matrix.target }} \
+            --out ../../timonier-${{ matrix.target }}.vsix
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vsix-${{ matrix.target }}
+          path: timonier-${{ matrix.target }}.vsix
+          if-no-files-found: error
+
+  publish:
+    name: Publish the pre-release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: vsix-*
+          merge-multiple: true
+      - name: Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          for package in timonier-*.vsix; do
+            npx vsce publish --pre-release --packagePath "$package"
+          done
+      - name: GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" timonier-*.vsix --prerelease --generate-notes --title "Timonier $GITHUB_REF_NAME"

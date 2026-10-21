@@ -916,7 +916,7 @@ mod tests {
         assert!(with("format = 1", "format = 1\ncolour = \"red\"").contains("colour"));
         assert!(with("format = 1", "format = 2").contains("format 2"));
         assert!(with("language = \"rust\"", "language = \"file\"").contains("reserved"));
-        assert!(with("version = \"1.1.0\"", "version = \"1.0\"").contains("major.minor.patch"));
+        assert!(with("version = \"1.1.1\"", "version = \"1.0\"").contains("major.minor.patch"));
         assert!(with("[lsp]", "[lsp]\nserver = \"rust-analyzer\"").contains("server"));
         assert!(with("ecosystem = \"cargo\"", "ecosystem = \"maven\"").contains("maven"));
         assert!(with("name = \"rust\"", "name = \"cobol\"").contains("not compiled"));

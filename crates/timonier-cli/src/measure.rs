@@ -9,8 +9,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use nix::sys::resource::{UsageWho, getrusage};
-use nix::sys::time::TimeValLike;
 use timonier_core::perf::{Accounting, Measured, Sample};
 
 #[derive(Debug, Args)]
@@ -61,10 +59,8 @@ pub fn run(args: &MeasureArgs) -> ExitCode {
         },
         Err(why) => (None, Some(why.clone())),
     };
-    let usage = getrusage(UsageWho::RUSAGE_CHILDREN).ok();
+    let usage = children_usage();
     let scope_cpu = cgroup.as_deref().and_then(scope_cpu_us);
-    let micros = |t: nix::sys::time::TimeVal| u64::try_from(t.num_microseconds()).unwrap_or(0);
-    let count = |v: nix::libc::c_long| u64::try_from(v).unwrap_or(0);
     let exit_code = status.as_ref().ok().and_then(ExitStatus::code);
     let (io_read_bytes, io_write_bytes) = cgroup.as_deref().map_or((None, None), io_bytes);
     let measured = Measured {
@@ -72,23 +68,25 @@ pub fn run(args: &MeasureArgs) -> ExitCode {
         exit_code,
         accounting: if cgroup.is_some() {
             Accounting::SystemdScope
-        } else {
+        } else if usage.is_some() {
             Accounting::Rusage
+        } else {
+            Accounting::WallTime
         },
         user_cpu_us: scope_cpu
             .map(|(user, _)| user)
-            .or_else(|| usage.map(|u| micros(u.user_time())))
+            .or_else(|| usage.map(|u| u.user_us))
             .unwrap_or(0),
         system_cpu_us: scope_cpu
             .map(|(_, system)| system)
-            .or_else(|| usage.map(|u| micros(u.system_time())))
+            .or_else(|| usage.map(|u| u.system_us))
             .unwrap_or(0),
-        largest_process_bytes: usage.map_or(0, |u| max_rss_bytes(count(u.max_rss()))),
+        largest_process_bytes: usage.map_or(0, |u| u.max_rss_bytes),
         tree_peak_bytes: cgroup
             .as_deref()
             .and_then(|c| number(&c.join("memory.peak"))),
-        block_reads: usage.map_or(0, |u| count(u.block_reads())),
-        block_writes: usage.map_or(0, |u| count(u.block_writes())),
+        block_reads: usage.map_or(0, |u| u.block_reads),
+        block_writes: usage.map_or(0, |u| u.block_writes),
         io_read_bytes,
         io_write_bytes,
         instructions,
@@ -106,7 +104,41 @@ pub fn run(args: &MeasureArgs) -> ExitCode {
     }
 }
 
+/// What the waited-for children used, as `getrusage` counts it.
+#[derive(Clone, Copy)]
+struct Usage {
+    user_us: u64,
+    system_us: u64,
+    max_rss_bytes: u64,
+    block_reads: u64,
+    block_writes: u64,
+}
+
+#[cfg(unix)]
+fn children_usage() -> Option<Usage> {
+    use nix::sys::resource::{UsageWho, getrusage};
+    use nix::sys::time::TimeValLike;
+    let usage = getrusage(UsageWho::RUSAGE_CHILDREN).ok()?;
+    let micros = |t: nix::sys::time::TimeVal| u64::try_from(t.num_microseconds()).unwrap_or(0);
+    let count = |v: nix::libc::c_long| u64::try_from(v).unwrap_or(0);
+    Some(Usage {
+        user_us: micros(usage.user_time()),
+        system_us: micros(usage.system_time()),
+        max_rss_bytes: max_rss_bytes(count(usage.max_rss())),
+        block_reads: count(usage.block_reads()),
+        block_writes: count(usage.block_writes()),
+    })
+}
+
+/// Windows gives the CPU and memory of a tree only through calls the workspace does not make
+/// (no `unsafe`): the run says « not measured » (T-125).
+#[cfg(not(unix))]
+fn children_usage() -> Option<Usage> {
+    None
+}
+
 /// `ru_maxrss` is in kibibytes on Linux, in bytes on macOS.
+#[cfg(unix)]
 fn max_rss_bytes(value: u64) -> u64 {
     if cfg!(target_os = "macos") {
         value
@@ -116,6 +148,14 @@ fn max_rss_bytes(value: u64) -> u64 {
 }
 
 /// The exit status the relay gives back: the command's, or 128 + its signal, as a shell does.
+#[cfg(not(unix))]
+fn exit_byte(status: &ExitStatus) -> u8 {
+    status
+        .code()
+        .map_or(1, |code| u8::try_from(code & 0xff).unwrap_or(1))
+}
+
+#[cfg(unix)]
 fn exit_byte(status: &ExitStatus) -> u8 {
     use std::os::unix::process::ExitStatusExt;
     match (status.code(), status.signal()) {
@@ -262,6 +302,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn a_signal_gives_128_and_its_number() {
         use std::os::unix::process::ExitStatusExt;
         assert_eq!(exit_byte(&ExitStatus::from_raw(3 << 8)), 3);

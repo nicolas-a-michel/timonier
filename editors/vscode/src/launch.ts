@@ -8,12 +8,15 @@ export function backoff(failures: number): number {
   return Math.min(30_000, 1_000 * 2 ** Math.max(0, failures - 1));
 }
 
-/** The program to launch: the environment, then the setting, then `timonier` on the PATH. */
-export function daemonProgram(env: NodeJS.ProcessEnv, setting: string | undefined): string {
+/**
+ * The program to launch: the environment, then the setting, then the one this package ships
+ * (ADR 0059), then `timonier` on the PATH.
+ */
+export function daemonProgram(env: NodeJS.ProcessEnv, setting: string | undefined, bundled?: string): string {
   const fromEnv = env[DAEMON_PATH_VARIABLE];
   if (fromEnv) return fromEnv;
   if (setting && setting.trim() !== "") return setting.trim();
-  return "timonier";
+  return bundled ?? "timonier";
 }
 
 /** The line `timonier daemon run` writes once its socket listens (ADR 0019). */

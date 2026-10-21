@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "rust"
-version = "1.1.0"
+version = "1.1.1"
 ecosystem = "cargo"
 
 [[grammars]]
@@ -65,7 +65,7 @@ role = "entry_point"
 libraries = ["clap", "axum", "actix-web", "warp", "hyper", "tonic", "jsonrpsee", "rmcp"]
 paths = [
   "std::net::TcpListener", "tokio::net::TcpListener", "tokio::net::UnixListener",
-  "std::os::unix::net::UnixListener",
+  "std::os::unix::net::UnixListener", "tokio::net::windows::named_pipe::ServerOptions",
 ]
 confidence = 0.8
 

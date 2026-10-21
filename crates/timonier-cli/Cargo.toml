@@ -29,7 +29,6 @@ timonier-mcp = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 junit-parser = { workspace = true }
-nix = { workspace = true }
 serde = { workspace = true }
 blake3 = { workspace = true }
 serde_json = { workspace = true }
@@ -69,6 +68,10 @@ timonier-store = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true }
 opentelemetry-otlp = { workspace = true }
+
+# getrusage, for the measuring relay (ADR 0045); Unix only (T-125).
+[target.'cfg(unix)'.dependencies]
+nix = { workspace = true }
 
 [lints]
 workspace = true

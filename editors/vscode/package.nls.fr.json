@@ -4,6 +4,7 @@
   "view.home.name": "Vue d'ensemble",
   "command.restartDaemon.title": "Relancer le démon",
   "command.showLog.title": "Afficher le journal",
+  "command.installCommandLine.title": "Installer la ligne de commande pour les agents",
   "capabilities.untrustedWorkspaces": "Timonier lance un programme sur le projet et indexe son code : il attend que le dossier soit approuvé.",
   "config.daemon.path": "Chemin du programme `timonier` qui fait tourner le démon du projet. Vide : `timonier` dans le `PATH`.",
   "config.map.density": "Densité de la carte d'architecture : la taille de ses boîtes et l'espace entre elles.",

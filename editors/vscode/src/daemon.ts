@@ -46,6 +46,9 @@ const PROGRESS_MS = 300;
  * daemon outlives the window: other clients (the CLI, an agent's MCP proxy) may use it, and it
  * stops alone once nobody is connected (ADR 0019).
  */
+/** How long the extension waits for the named pipe of a daemon that announced itself (T-125). */
+const PIPE_WAIT_MS = 5_000;
+
 export class DaemonSupervisor implements vscode.Disposable {
   private readonly stateEmitter = new vscode.EventEmitter<DaemonStatus>();
   private readonly connectEmitter = new vscode.EventEmitter<MessageConnection>();
@@ -222,10 +225,18 @@ export class DaemonSupervisor implements vscode.Disposable {
     });
   }
 
-  private connect(attempt: number, path: string): void {
+  private connect(attempt: number, path: string, since = Date.now()): void {
     const socket = createConnection(path);
     this.socket = socket;
-    socket.once("error", (error) => this.lost(attempt, `cannot reach the daemon: ${message(error)}`));
+    socket.once("error", (error) => {
+      // Windows: the daemon makes its named pipe right after it announces itself (T-125).
+      const notYet = (error as NodeJS.ErrnoException).code === "ENOENT" && process.platform === "win32";
+      if (notYet && Date.now() - since < PIPE_WAIT_MS && attempt === this.attempt) {
+        setTimeout(() => this.connect(attempt, path, since), 50);
+        return;
+      }
+      this.lost(attempt, `cannot reach the daemon: ${message(error)}`);
+    });
     socket.once("connect", () => {
       const connection = createMessageConnection(new SocketMessageReader(socket), new SocketMessageWriter(socket));
       this.connection = connection;

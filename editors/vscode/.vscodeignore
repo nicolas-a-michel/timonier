@@ -20,4 +20,7 @@
 !package.nls.json
 !package.nls.fr.json
 !README.md
+!CHANGELOG.md
+# The platform's timonier, put there by the publishing CI (ADR 0059).
+!bin/**
 !LICENSE

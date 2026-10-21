@@ -2,6 +2,9 @@
 //! repository in a temporary directory, with the daemon's runtime and the home directory there
 //! too: the developer's machine is never touched.
 
+// Their fake programs are shell scripts, on a `:`-separated PATH (T-125).
+#![cfg(unix)]
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 

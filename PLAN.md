@@ -243,6 +243,11 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q87 — Windows** (9.7) — ✅ répondu le 2026-10-21 : **avant de publier**. La préversion attend
+que Timonier marche sous Windows : le démon et ses clients sur un named pipe (que la spec
+prévoit : « socket local, Unix ou named pipe »), la mesure des tests, les commandes de test, le
+programme dans le PATH, un runner Windows en CI, et les paquets win32-x64 et win32-arm64.
+
 **Q86 — Langages au-delà de Rust et TypeScript** — ✅ répondu le 2026-10-21 : l'humain
 demande Python, Go, C++, JavaScript et Java. **Dans une Phase 10, après le MVP**, et **complets,
 langage par langage** : chaque pack au niveau de Rust et TypeScript (carte, rôles, manifestes et
@@ -3728,10 +3733,36 @@ Statut : à faire
 - 9.6 Critère de sortie du MVP selon la spec : un projet réel, nouveau (Q9), créé par
   l'assistant de 9.4 et piloté de bout en bout
   sans lire le code ligne à ligne — critère : constaté avec toi.
+- 9.9 Windows, selon Q87, avant la publication 9.7 — critère : sur un runner Windows de la CI,
+  les tests Rust et les tests d'intégration de l'extension passent, et un `.vsix` win32-x64
+  configure un projet et montre sa carte.
+
+  En cours (2026-10-21), ADR 0060 :
+  - named pipe `\\.\pipe\timonier-<hash>` (`transport.rs` du démon, le client Rust, le proxy MCP,
+    l'extension), réessayé 5 s le temps que le démon le crée ; `%LOCALAPPDATA%\timonier\run` ;
+    `%USERPROFILE%` n'est pas un projet ; lancement détaché sans console ; Ctrl-C ;
+  - mesure : durée réelle seulement (`Accounting::WallTime`, `CpuSource::WallTime`), « CPU et
+    mémoire non mesurés » ; `cmd /C` pour les commandes de test ;
+  - `cargo check` et `clippy -D warnings` du workspace pour `x86_64-pc-windows-gnu` propres sur
+    Linux ; la CI ajoute `windows-latest` aux jobs Rust et extension ;
+  - reste : faire passer la CI sous Windows, puis le `.vsix` win32-x64 sur une vraie machine.
 - 9.7 Publication de l'extension, selon Q58 et Q59, avant la relecture 9.5 : un `.vsix` par
   plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
   le dépôt public (Q2) ; l'éditeur `NicolasMichel` (Q12) — critère : l'extension installée depuis
   la Marketplace configure un projet et montre sa carte, sans rien installer à part.
+
+  En cours (2026-10-21), ADR 0059, préversion (réponse du 2026-10-21) :
+  - `bin/timonier` dans chaque paquet ; l'extension le lance après `TIMONIER_DAEMON_PATH` et le
+    réglage ; la commande « Installer la ligne de commande pour les agents », et « Configurer »
+    quand `timonier` manque au PATH, en font une copie dans le dossier de données et la mettent
+    dans le PATH (`~/.local/bin`, ou le PATH de l'utilisateur sous Windows) ; la copie suit les
+    mises à jour (`commandLine.ts`, tests unitaires) ;
+  - `.github/workflows/release.yml` : six paquets sur des runners natifs, publication en
+    préversion sur la Marketplace (`VSCE_PAT`, secret posé par l'humain) et release GitHub, au tag
+    `v*` ;
+  - icône PNG 256 px (`media/icon.svg`, `scripts/icon.mjs`), `CHANGELOG.md`, README de
+    l'extension en anglais, `preview` ;
+  - reste : Windows (9.9), puis le tag et le critère.
 
 Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de l'IA).
 Écarts : —

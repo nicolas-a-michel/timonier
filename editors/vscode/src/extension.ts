@@ -1,13 +1,85 @@
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
+
 import * as vscode from "vscode";
 
 import { revealCode } from "./code";
 import { DaemonSupervisor, type DaemonStatus } from "./daemon";
+import {
+  bundledProgram,
+  dataDir,
+  installCommandLine,
+  onPath,
+  programName,
+  refreshCopy,
+  type Machine,
+} from "./commandLine";
 import { daemonProgram, initCommand } from "./launch";
 import { detectAgents, setUp } from "./setup";
 
-/** The program `timonier init` runs as: the daemon's, as the settings give it. */
+/** The program this package ships (ADR 0059), found at activation. */
+let shipped: string | undefined;
+
+/** The program the daemon and `timonier init` run as: the settings', else the shipped one. */
 function initProgram(): string {
-  return daemonProgram(process.env, vscode.workspace.getConfiguration("timonier").get<string>("daemon.path"));
+  return daemonProgram(process.env, vscode.workspace.getConfiguration("timonier").get<string>("daemon.path"), shipped);
+}
+
+/** What runs the copy for the agents, on this machine (ADR 0059). */
+function machine(): Machine {
+  return {
+    env: process.env,
+    home: homedir(),
+    platform: process.platform,
+    addToUserPath: (dir) =>
+      new Promise((resolve, reject) => {
+        // The user's PATH for the next processes; PowerShell tells the running ones it changed.
+        const script =
+          "$p = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
+          `[Environment]::SetEnvironmentVariable('Path', (($p, '${dir.replace(/'/g, "''")}') -ne '' -join ';'), 'User')`;
+        execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], (error) => {
+          if (error) reject(new Error(error.message));
+          else resolve();
+        });
+      }),
+  };
+}
+
+/** Puts the shipped program on the agents' PATH, and says what was done (ADR 0059). */
+async function installCommandLineNow(log: vscode.LogOutputChannel): Promise<boolean> {
+  if (!shipped) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t(
+        "This Timonier package ships no program for this system: install timonier and set timonier.daemon.path.",
+      ),
+    );
+    return false;
+  }
+  try {
+    const installed = await installCommandLine(shipped, machine());
+    log.info(`command line: ${installed.linked.join(", ")}; left: ${installed.left.join(", ") || "none"}`);
+    if (installed.left.length > 0) {
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t("Timonier left {0}: it holds another program.", installed.left.join(", ")),
+      );
+    }
+    if (installed.notOnPath) {
+      void vscode.window.showInformationMessage(
+        process.platform === "win32"
+          ? vscode.l10n.t(
+              "Timonier added its folder to your PATH: restart VSCode and your agents so that they find it.",
+            )
+          : vscode.l10n.t("~/.local/bin is not on your PATH: add it in your shell's profile, then restart VSCode."),
+      );
+    }
+    return installed.left.length < 2;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not install its command line: {0}", reason));
+    return false;
+  }
 }
 
 /** The terminal where `timonier init` runs (Q53). */
@@ -82,12 +154,18 @@ function projectRoot(): string | undefined {
 export function activate(context: vscode.ExtensionContext): TimonierApi {
   const log = vscode.window.createOutputChannel("Timonier", { log: true });
   context.subscriptions.push(log);
+  shipped = bundledProgram(context.extensionPath);
+  // A copy installed for the agents follows the extension's updates (ADR 0059).
+  const copyDir = dataDir(process.env, homedir());
+  if (shipped && existsSync(path.join(copyDir, "bin", programName(process.platform)))) {
+    const from = shipped;
+    void refreshCopy(from, copyDir).catch((error: unknown) => log.warn(`command line not updated: ${String(error)}`));
+  }
   const root = projectRoot();
   let daemon: DaemonSource;
   let tracked: TrackingSource;
   if (root) {
-    const setting = vscode.workspace.getConfiguration("timonier").get<string>("daemon.path");
-    const supervisor = new DaemonSupervisor(daemonProgram(process.env, setting), root, log);
+    const supervisor = new DaemonSupervisor(initProgram(), root, log);
     context.subscriptions.push(supervisor);
     supervisor.start();
     daemon = supervisor;
@@ -123,6 +201,10 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         detectAgents: () => (root ? detectAgents(initProgram(), root) : Promise.resolve([])),
         setUp: async (agents) => {
           if (!root) return { ok: false, detail: vscode.l10n.t("Open a folder: Timonier maps the project it holds.") };
+          // The agents call `timonier` by its name: it must be on their PATH first (ADR 0059).
+          if (shipped && !(await onPath("timonier", process.env.PATH ?? process.env.Path))) {
+            await installCommandLineNow(log);
+          }
           const done = await setUp(initProgram(), root, agents, log);
           if (done.ok) {
             void vscode.window.showInformationMessage(vscode.l10n.t("Timonier set the project up for its agents."));
@@ -159,15 +241,19 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
       }
     }),
     vscode.commands.registerCommand("timonier.showLog", () => log.show()),
+    vscode.commands.registerCommand("timonier.installCommandLine", async () => {
+      if (await installCommandLineNow(log)) {
+        void vscode.window.showInformationMessage(vscode.l10n.t("The timonier command is installed for your agents."));
+      }
+    }),
     // `timonier init` in a terminal, where its questions and what it does show (Q53).
     vscode.commands.registerCommand("timonier.configure", () => {
       if (!root) {
         void vscode.window.showInformationMessage(vscode.l10n.t("Open a folder: Timonier maps the project it holds."));
         return;
       }
-      const setting = vscode.workspace.getConfiguration("timonier").get<string>("daemon.path");
       const terminal = vscode.window.createTerminal({ name: INIT_TERMINAL, cwd: root });
-      terminal.sendText(initCommand(daemonProgram(process.env, setting)));
+      terminal.sendText(initCommand(initProgram()));
       terminal.show();
     }),
     // The bridge's « Where to look », from the palette (ADR 0032): a box, then the map on it.

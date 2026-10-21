@@ -67,6 +67,15 @@ const CLIENT: &str = "timonier-test";
 /// How long a run waits for a daemon it started to index the project.
 const INDEXING: Duration = Duration::from_secs(30);
 
+/// A command line run by the system's shell: `sh -c`, or `cmd /C` on Windows (T-125).
+fn shell(command: String) -> Vec<String> {
+    if cfg!(windows) {
+        vec!["cmd".to_owned(), "/C".to_owned(), command]
+    } else {
+        vec!["sh".to_owned(), "-c".to_owned(), command]
+    }
+}
+
 /// Forces the measure without a systemd scope (`rusage`), for tests and odd machines.
 const MEASURE: &str = "TIMONIER_MEASURE";
 
@@ -144,7 +153,7 @@ fn plan(args: &TestArgs) -> Result<(Paths, Vec<Planned>)> {
         .iter()
         .filter_map(|r| {
             Some(Planned {
-                command: vec!["sh".to_owned(), "-c".to_owned(), r.command.clone()?],
+                command: shell(r.command.clone()?),
                 junit: junit(r.junit.as_ref()),
             })
         })
@@ -304,7 +313,7 @@ pub struct Outcome {
 /// Timonier's smoke test (ADR 0050): `command`, run by the shell under a run with traces.
 pub fn smoke(paths: &Paths, command: &str) -> Outcome {
     let planned = Planned {
-        command: vec!["sh".to_owned(), "-c".to_owned(), command.to_owned()],
+        command: shell(command.to_owned()),
         junit: None,
     };
     run_once(paths, &planned, true, None, true)
@@ -412,11 +421,7 @@ fn run_once(
         },
         None => (Vec::new(), None),
     };
-    #[allow(clippy::cast_precision_loss)]
-    let cost = measured
-        .instructions
-        .map(|i| i as f64)
-        .unwrap_or((measured.user_cpu_us + measured.system_cpu_us) as f64);
+    let cost = measured.cost();
     let record = RunRecord {
         command: planned.command.clone(),
         started_at_ms: millis(started),
@@ -687,19 +692,23 @@ fn summary(record: &RunRecord) -> String {
     let m = &record.measured;
     let seconds = |us: u64| format!("{:.2} s", us as f64 / 1e6);
     let mut parts = vec![seconds(m.wall_us)];
-    match m.instructions {
-        Some(count) => parts.push(format!(
-            "{:.2} G instructions, CPU {}",
-            count as f64 / 1e9,
-            seconds(m.user_cpu_us + m.system_cpu_us)
-        )),
-        None => parts.push(format!("CPU {}", seconds(m.user_cpu_us + m.system_cpu_us))),
+    if m.accounting == Accounting::WallTime {
+        parts.push("CPU and memory not measured on this system".to_owned());
+    } else {
+        match m.instructions {
+            Some(count) => parts.push(format!(
+                "{:.2} G instructions, CPU {}",
+                count as f64 / 1e9,
+                seconds(m.user_cpu_us + m.system_cpu_us)
+            )),
+            None => parts.push(format!("CPU {}", seconds(m.user_cpu_us + m.system_cpu_us))),
+        }
+        let (bytes, whose) = match (m.accounting, m.tree_peak_bytes) {
+            (Accounting::SystemdScope, Some(peak)) => (peak, "all processes"),
+            _ => (m.largest_process_bytes, "largest process"),
+        };
+        parts.push(format!("memory {:.0} MB ({whose})", bytes as f64 / 1e6));
     }
-    let (bytes, whose) = match (m.accounting, m.tree_peak_bytes) {
-        (Accounting::SystemdScope, Some(peak)) => (peak, "all processes"),
-        _ => (m.largest_process_bytes, "largest process"),
-    };
-    parts.push(format!("memory {:.0} MB ({whose})", bytes as f64 / 1e6));
     if !record.tests.is_empty() {
         let failed = record
             .tests

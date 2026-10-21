@@ -18,6 +18,9 @@ describe("daemon launch", () => {
     assert.equal(daemonProgram({}, " /setting/timonier "), "/setting/timonier");
     assert.equal(daemonProgram({}, "  "), "timonier");
     assert.equal(daemonProgram({}, undefined), "timonier");
+    // The program a platform's package ships comes after the setting (ADR 0059).
+    assert.equal(daemonProgram({}, undefined, "/ext/bin/timonier"), "/ext/bin/timonier");
+    assert.equal(daemonProgram({}, "/setting/timonier", "/ext/bin/timonier"), "/setting/timonier");
   });
 
   it("reads the line of `timonier daemon run`", () => {

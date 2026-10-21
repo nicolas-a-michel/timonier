@@ -1,73 +1,67 @@
-# Timonier pour VSCode
+# Timonier
 
-Timonier permet de piloter des agents IA sans lire tout le code qu'ils produisent : architecture
-vivante, tableau blanc d'intention, performances mesurées pendant les tests, plan et todo en direct.
+Steer AI coding agents without reading every line they write. Timonier keeps a live map of your
+code's architecture, compares it with the architecture you drew, shows what changed since your
+last review, and gives your agents the same plan, todo and constraints you see.
 
-**État : développement (version 0.1.0), non publiée.** Linux et macOS.
+**Pre-release.** Linux, macOS and Windows. Rust and TypeScript projects for now; more languages
+are planned. Source, issues and the full feature list:
+[github.com/nicolas-a-michel/timonier](https://github.com/nicolas-a-michel/timonier).
 
-## Ce qui marche
+![The architecture map: six boxes named by role, with their packages and the dependencies between them](https://raw.githubusercontent.com/nicolas-a-michel/timonier/main/docs/images/map.png)
 
-- L'extension lance le démon du projet (le programme `timonier`), et le relance s'il s'arrête.
-  Son journal est dans le canal de sortie « Timonier ».
-- L'icône Timonier (une barre à roue) de la barre d'activité ouvre la vue d'ensemble, le
-  pont. Dans un projet pas encore configuré pour vos agents, il le dit en haut, avec le bouton
-  « Configurer » et la liste des agents à configurer, cochés d'après ceux qui sont installés ;
-  le bouton lance `timonier init` pour eux (l'icône porte un badge tant que ce n'est pas fait). Il
-  répond en quelques secondes à trois questions :
-  - où en est le plan : le jalon en cours, son avancement, la session d'agent ouverte ;
-  - que s'est-il passé depuis votre dernière revue : boîtes nouvelles, modifiées, supprimées,
-    dépendances, sessions d'agent et fichiers à relire ;
-  - où regarder : d'abord ce qui demande une décision (tâche bloquée, fichier illisible, cycle
-    ajouté), puis les boîtes à relire, les non suivies en tête. Un clic ouvre la carte sur la
-    boîte ; la commande « Où regarder » fait de même depuis la palette.
-- Le bouton « Ouvrir la carte » du pont, comme la commande « Timonier : Ouvrir la carte »,
-  ouvre la carte d'architecture du projet, en Rust ou en TypeScript :
-  - quelques boîtes nommées par rôle à l'ouverture (point d'entrée, interface, modèle de
-    données, persistance…) ; un clic ou Entrée ouvre une boîte sur son contenu, jusqu'aux
-    symboles ;
-  - les liens sont les dépendances et les appels : ils sortent d'une boîte à droite et entrent
-    dans l'autre à gauche. En tirets, ils ne sont vus que par tree-sitter, donc approchés. En
-    trait plein, ils sont sûrs : déclarés dans un manifeste (`Cargo.toml`, `package.json`), ou
-    confirmés par un serveur de langage de VSCode. Un fichier Rust ou TypeScript modifié mais
-    pas encore enregistré suspend ces confirmations, qui reprennent à l'enregistrement ;
-  - la carte suit le code à chaque sauvegarde, sans déplacer ce qui n'a pas changé ;
-  - la disposition est calculée, mais chaque boîte se déplace à la main, à la souris ou avec
-    Alt et une flèche ; « Réinitialiser la disposition » revient aux positions calculées ;
-  - « Aller au code » (Maj+Entrée, double-clic) ouvre le fichier à côté de la carte ;
-  - « Marquer comme revu » fige la carte telle que vous l'avez revue. Ensuite, chaque boîte
-    nouvelle ou modifiée depuis le dit en toutes lettres (une étoile et « Nouveau », un point
-    et « Modifié » ; un rôle fermé dit « 2 modifiés »), comme chaque lien nouveau et chaque
-    boîte d'un cycle ajouté, ou dont le fan-in ou le fan-out a bondi ; la légende explique ces
-    marques. Un bandeau au-dessus de la carte compte les changements depuis la revue et les
-    liste, suppressions comprises ; « Mettre en avant les changements » estompe le reste. Seuls les changements du code comptent : ni ce que la seule vérification d'un
-    serveur de langage fait apparaître, ni les fichiers que Timonier regroupe autrement. Une
-    boîte n'est nouvelle ou supprimée que si du code arrive ou part avec elle, une crate avec
-    son manifeste ; un dossier ou une crate renommés sont modifiés ;
-  - « Dette de revue », dans la barre d'outils, montre sur chaque boîte combien de ses fichiers
-    ont changé depuis votre dernière revue et restent à relire (« 9 fichiers à relire »), en
-    trois paliers ; ce qui a changé sans session d'agent ouverte est hachuré et dit
-    « non suivi » ;
-  - tout se fait au clavier, et chaque action a sa commande dans la palette.
-- La vue « Plan, todo et sessions », dans la barre latérale secondaire, à droite (« Afficher la
-  barre latérale secondaire » si elle est fermée), suit l'agent en direct, à chaque appel de ses
-  outils MCP. Large, elle montre deux colonnes collées, étroite, l'une sous l'autre :
-  - « Plan » : les jalons, leur avancement (« 2 sur 5 faites » et une barre) et leurs tâches,
-    chacune avec une forme selon son état (à faire, en cours, bloquée, faite, abandonnée) ;
-  - « Todo » : la todo de la session ouverte, qui se remplit quand l'agent découpe le travail
-    et se coche au fil de l'exécution ;
-  - « Sessions » : le journal, la session ouverte d'abord, avec son objectif, ses tâches, les
-    composants touchés et les dépendances ajoutées ou retirées (en direct pendant la session),
-    sa todo et son résumé de fin.
+## Getting started
 
-  Un fichier de `.timonier/` modifié à la main s'y voit aussi ; s'il ne se lit plus, le
-  panneau le dit.
-- Elle suit le thème de VSCode, clair, sombre ou à contraste élevé, en anglais ou en français.
+1. Open a Rust or TypeScript project in VSCode, then the Timonier icon (a ship's wheel) in the
+   activity bar.
+2. In the Overview, tick the agents to configure (Claude Code, GitHub Copilot, Cursor, Codex)
+   and click **Set up**. Timonier writes their instructions, its MCP server and its hooks into
+   the project, and puts the `timonier` command on your PATH so that the agents find it.
+3. Open the map. Ask your agent for a task: the plan, its todo and its session appear in
+   « Plan, todo and sessions », in the secondary side bar.
 
-## Réglages
+The extension ships the `timonier` program for your system: nothing else to install.
 
-- `timonier.daemon.path` : le chemin du programme `timonier`. Vide, celui du `PATH`.
-- `timonier.map.density` : la densité de la carte, `comfortable` (confortable, par défaut) ou
-  `compact` (boîtes plus petites, espacements resserrés).
+## What it shows
 
-Code source et feuille de route : <https://github.com/nicolas-a-michel/timonier>.
-Licence : MIT.
+- **The architecture map.** A few boxes named by role (entry point, data model, persistence,
+  interface…), opened by a click down to files and symbols. Dashed links are known from syntax
+  only; solid ones are confirmed by a manifest or by the IDE's language servers. Shift+Enter
+  opens the code.
+- **What changed since your review.** « Mark as reviewed » freezes the map; then every new or
+  modified box, new dependency and added cycle says so, and the review debt shows which boxes
+  hold code nobody read again.
+- **The whiteboard.** Draw freely, or with typed shapes the agents read as constraints: a box
+  is a component, an arrow is allowed, forbidden or required, a note can set a performance
+  budget. Only you write it. « Compare with the intent » marks forbidden edges crossed and
+  drawn components missing.
+- **Plan, todo and sessions.** Each agent session, its objective, its todo live, the
+  components it touched, its tests and its AI cost (Claude Code's own token counts).
+- **Performance.** `timonier test` measures the tests (time, CPU, memory), receives their
+  OpenTelemetry traces, attaches them to the map, checks the whiteboard's budgets and detects
+  regressions between commits.
+- **Technology inventory.** Dependencies, licences, duplicates by function, known
+  vulnerabilities (OSV.dev), and a CycloneDX SBOM.
+
+![The whiteboard: two layers, four boxes, a required arrow, a forbidden one in red, and a budget of 5 ms at p95](https://raw.githubusercontent.com/nicolas-a-michel/timonier/main/docs/images/whiteboard.png)
+
+## For the agents
+
+Any MCP agent works through Timonier's tools: open a session, split the work into a todo, read
+the intended architecture and check the drift, read the performance gaps and budget violations,
+follow the project's development process (tickets, a branch and a pull request per task). The
+hooks Timonier installs hold an agent once when it stops with its todo not done.
+
+## Settings
+
+- `timonier.daemon.path`: the `timonier` program to run. Empty: the one this extension ships.
+- `timonier.map.density`: `comfortable` (default) or `compact`.
+
+## Privacy
+
+Everything runs on your machine. The daemon listens on a local socket; the OpenTelemetry
+receivers listen on 127.0.0.1. The network is used only to look up known vulnerabilities on
+OSV.dev, when you ask for the inventory, and by `gh` for the GitHub process, when you choose
+it.
+
+Licence: MIT.

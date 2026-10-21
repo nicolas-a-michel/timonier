@@ -3,7 +3,7 @@
 
 use std::fs::{DirBuilder, File, OpenOptions};
 use std::io::{ErrorKind, Write};
-use std::os::unix::ffi::OsStrExt;
+#[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
@@ -44,11 +44,17 @@ impl Paths {
             return Err(Error::NotAProject(root));
         }
         // A short name: the 104 bytes of a Unix socket path on macOS (ADR 0019).
-        let hash = blake3::hash(root.as_os_str().as_bytes()).to_hex();
+        let hash = blake3::hash(root.as_os_str().as_encoded_bytes()).to_hex();
         let name = &hash.as_str()[..16];
+        // Windows: a named pipe, which the spec names beside the Unix socket (T-125).
+        let socket = if cfg!(windows) {
+            PathBuf::from(format!(r"\\.\pipe\timonier-{name}"))
+        } else {
+            runtime.join(format!("{name}.sock"))
+        };
         Ok(Self {
             database: root.join(".timonier").join("graph.sqlite"),
-            socket: runtime.join(format!("{name}.sock")),
+            socket,
             lock: runtime.join(format!("{name}.lock")),
             log: runtime.join(format!("{name}.log")),
             runtime: runtime.to_path_buf(),
@@ -73,6 +79,12 @@ pub fn runtime_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
         return std::env::temp_dir().join("timonier");
     }
+    // Windows: the user's own local application data (T-125).
+    if cfg!(windows)
+        && let Some(dir) = std::env::var_os("LOCALAPPDATA").filter(|d| !d.is_empty())
+    {
+        return PathBuf::from(dir).join("timonier").join("run");
+    }
     let cache = std::env::var_os("XDG_CACHE_HOME")
         .filter(|d| !d.is_empty())
         .map(PathBuf::from)
@@ -84,10 +96,7 @@ pub fn runtime_dir() -> PathBuf {
     match cache {
         Some(cache) => cache.join("timonier").join("run"),
         // No home at all: the temporary directory, checked like any other (owner, mode 0700).
-        None => match std::fs::metadata("/proc/self") {
-            Ok(meta) => std::env::temp_dir().join(format!("timonier-{}", meta.uid())),
-            Err(_) => std::env::temp_dir().join("timonier"),
-        },
+        None => temp_runtime(),
     }
 }
 
@@ -131,11 +140,11 @@ fn open_lock(paths: &Paths) -> Result<File> {
         path: paths.runtime.clone(),
         source,
     };
-    DirBuilder::new()
-        .recursive(true)
-        .mode(0o700)
-        .create(&paths.runtime)
-        .map_err(io)?;
+    let mut dir = DirBuilder::new();
+    dir.recursive(true);
+    #[cfg(unix)]
+    dir.mode(0o700);
+    dir.create(&paths.runtime).map_err(io)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -147,15 +156,33 @@ fn open_lock(paths: &Paths) -> Result<File> {
             source,
         })?;
     // Only its user may reach the socket: the directory must be theirs, closed to others.
-    // The lock file was created by this process, so it carries the user's id.
-    let dir = std::fs::metadata(&paths.runtime).map_err(io)?;
-    let mine = file.metadata().map_err(io)?.uid();
-    if dir.uid() != mine || dir.permissions().mode() & 0o077 != 0 {
-        return Err(Error::RuntimeDir {
-            path: paths.runtime.clone(),
-        });
+    // The lock file was created by this process, so it carries the user's id. On Windows the
+    // folder is in the user's own LOCALAPPDATA, and a named pipe is the user's by default.
+    #[cfg(unix)]
+    {
+        let dir = std::fs::metadata(&paths.runtime).map_err(io)?;
+        let mine = file.metadata().map_err(io)?.uid();
+        if dir.uid() != mine || dir.permissions().mode() & 0o077 != 0 {
+            return Err(Error::RuntimeDir {
+                path: paths.runtime.clone(),
+            });
+        }
     }
     Ok(file)
+}
+
+/// No home at all: the temporary directory, checked like any other (owner, mode 0700).
+#[cfg(unix)]
+fn temp_runtime() -> PathBuf {
+    match std::fs::metadata("/proc/self") {
+        Ok(meta) => std::env::temp_dir().join(format!("timonier-{}", meta.uid())),
+        Err(_) => std::env::temp_dir().join("timonier"),
+    }
+}
+
+#[cfg(not(unix))]
+fn temp_runtime() -> PathBuf {
+    std::env::temp_dir().join("timonier")
 }
 
 /// Creates `.timonier/` and its `.gitignore` when they are missing (spec « Initialisation »).
@@ -188,7 +215,7 @@ pub fn prepare_repository(paths: &Paths) -> Result<()> {
 
 /// The home folder and `/`: a daemon there would watch and index everything under it (T-119).
 pub fn not_a_project(root: &Path) -> bool {
-    let home = std::env::var_os("HOME")
+    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
         .filter(|h| !h.is_empty())
         .and_then(|h| Path::new(&h).canonicalize().ok());
     root.parent().is_none() || home.as_deref() == Some(root)
@@ -216,9 +243,16 @@ mod tests {
         let dotted = repo.path().join(".");
         let b = Paths::in_runtime(&dotted, runtime.path()).unwrap();
         assert_eq!(a, b);
+        #[cfg(unix)]
         assert_eq!(
             a.socket.file_name().unwrap().len(),
             "0123456789abcdef.sock".len()
+        );
+        #[cfg(windows)]
+        assert!(
+            a.socket
+                .to_string_lossy()
+                .starts_with(r"\\.\pipe\timonier-")
         );
         assert_eq!(a.database, a.root.join(".timonier/graph.sqlite"));
         let other = tempfile::tempdir().unwrap();
@@ -233,11 +267,15 @@ mod tests {
         let paths = Paths::in_runtime(repo.path(), &runtime.path().join("timonier")).unwrap();
         assert!(!Lock::is_held(&paths).unwrap());
         let lock = Lock::acquire(&paths).unwrap().unwrap();
-        let mode = std::fs::metadata(&paths.runtime)
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o777, 0o700);
+        #[cfg(unix)]
+        assert_eq!(
+            std::fs::metadata(&paths.runtime)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
         assert!(Lock::acquire(&paths).unwrap().is_none());
         assert!(Lock::is_held(&paths).unwrap());
         drop(lock);
@@ -260,6 +298,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn a_runtime_directory_open_to_others_is_refused() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = tempfile::tempdir().unwrap();

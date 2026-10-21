@@ -115,7 +115,8 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
       return `${Math.round(hours / 24)} d ago`;
     },
     wall: "Duration",
-    cpu: (source) => (source === "instructions" ? "CPU" : "CPU time"),
+    cpu: (source) =>
+      source === "instructions" ? "CPU" : source === "wall_time" ? "Wall time (no CPU time here)" : "CPU time",
     instructions: (billions) => `${billions} G instructions`,
     memory: (whole) => (whole ? "Peak memory, all processes" : "Peak memory, largest process"),
     tests: (count, failed) => `${count} ${plural(count, "test", "tests")}${failed > 0 ? `, ${failed} failed` : ""}`,
@@ -199,7 +200,8 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
       return `il y a ${Math.round(hours / 24)} j`;
     },
     wall: "Durée",
-    cpu: (source) => (source === "instructions" ? "CPU" : "Temps CPU"),
+    cpu: (source) =>
+      source === "instructions" ? "CPU" : source === "wall_time" ? "Durée réelle (pas de temps CPU ici)" : "Temps CPU",
     instructions: (billions) => `${billions} G instructions`,
     memory: (whole) => (whole ? "Mémoire max, tous les processus" : "Mémoire max, plus gros processus"),
     tests: (count, failed) => `${count} ${plural(count, "test", "tests")}${failed > 0 ? `, ${failed} en échec` : ""}`,

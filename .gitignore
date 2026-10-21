@@ -12,6 +12,8 @@ coverage/
 .vscode-test/
 # Copied from the root at build time (vsce needs it next to the extension manifest)
 editors/vscode/LICENSE
+# The platform's timonier, put there by the publishing CI (ADR 0059)
+editors/vscode/bin/
 
 # Timonier runtime state (the SQLite graph is a cache, never versioned)
 .timonier/*.sqlite

@@ -3,7 +3,6 @@
 
 use std::collections::VecDeque;
 use std::io::{ErrorKind, Read, Write};
-use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -44,7 +43,7 @@ pub struct Incoming {
 }
 
 pub struct Client {
-    stream: UnixStream,
+    stream: Stream,
     decoder: Decoder,
     next_id: i64,
     incoming: VecDeque<Incoming>,
@@ -54,7 +53,7 @@ pub struct Client {
 impl Client {
     pub fn connect(socket: &Path) -> Result<Self, ClientError> {
         Ok(Self {
-            stream: UnixStream::connect(socket)?,
+            stream: Stream::connect(socket)?,
             decoder: Decoder::default(),
             next_id: 1,
             incoming: VecDeque::new(),
@@ -195,13 +194,7 @@ impl Client {
             if left.is_zero() {
                 return Ok(None);
             }
-            // macOS refuses the timeout (EINVAL) once the daemon has closed the socket, even
-            // with its last answer still to read; a closed socket does not block the read.
-            match self.stream.set_read_timeout(Some(left)) {
-                Err(e) if e.kind() != ErrorKind::InvalidInput => return Err(e.into()),
-                _ => {}
-            }
-            match self.stream.read(&mut buffer) {
+            match self.stream.read_within(left, &mut buffer) {
                 Ok(0) => return Err(ClientError::Closed),
                 Ok(n) => self.decoder.push(&buffer[..n]),
                 Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {
@@ -211,5 +204,105 @@ impl Client {
                 Err(e) => return Err(e.into()),
             }
         }
+    }
+}
+
+/// The connection to the daemon: a Unix socket, or a named pipe on Windows (T-125).
+#[cfg(unix)]
+struct Stream(std::os::unix::net::UnixStream);
+
+#[cfg(unix)]
+impl Stream {
+    fn connect(socket: &Path) -> std::io::Result<Self> {
+        std::os::unix::net::UnixStream::connect(socket).map(Self)
+    }
+
+    fn write_all(&mut self, bytes: &[u8]) -> std::io::Result<()> {
+        self.0.write_all(bytes)
+    }
+
+    /// Reads what came, waiting `left` at most.
+    fn read_within(&mut self, left: Duration, buffer: &mut [u8]) -> std::io::Result<usize> {
+        // macOS refuses the timeout (EINVAL) once the daemon has closed the socket, even with
+        // its last answer still to read; a closed socket does not block the read.
+        match self.0.set_read_timeout(Some(left)) {
+            Err(e) if e.kind() != ErrorKind::InvalidInput => return Err(e),
+            _ => {}
+        }
+        self.0.read(buffer)
+    }
+}
+
+/// A named pipe opened as a file has no read timeout: a thread reads it, and the client waits
+/// on what it hands over.
+#[cfg(windows)]
+struct Stream {
+    pipe: std::fs::File,
+    chunks: std::sync::mpsc::Receiver<std::io::Result<Vec<u8>>>,
+    pending: Vec<u8>,
+}
+
+#[cfg(windows)]
+impl Stream {
+    fn connect(socket: &Path) -> std::io::Result<Self> {
+        /// `ERROR_PIPE_BUSY`: every instance of the pipe is taken for a moment.
+        const PIPE_BUSY: i32 = 231;
+        /// `ERROR_FILE_NOT_FOUND`: the daemon announced itself and makes its pipe right after.
+        const NOT_YET: i32 = 2;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let pipe = loop {
+            match std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(socket)
+            {
+                Err(e)
+                    if matches!(e.raw_os_error(), Some(PIPE_BUSY | NOT_YET))
+                        && Instant::now() < deadline =>
+                {
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+                opened => break opened?,
+            }
+        };
+        let mut reader = pipe.try_clone()?;
+        let (send, chunks) = std::sync::mpsc::channel();
+        std::thread::Builder::new()
+            .name("timonier-client".into())
+            .spawn(move || {
+                let mut buffer = vec![0; 64 << 10];
+                loop {
+                    let read = reader.read(&mut buffer).map(|n| buffer[..n].to_vec());
+                    let end = !matches!(&read, Ok(chunk) if !chunk.is_empty());
+                    if send.send(read).is_err() || end {
+                        return;
+                    }
+                }
+            })?;
+        Ok(Self {
+            pipe,
+            chunks,
+            pending: Vec::new(),
+        })
+    }
+
+    fn write_all(&mut self, bytes: &[u8]) -> std::io::Result<()> {
+        self.pipe.write_all(bytes)
+    }
+
+    fn read_within(&mut self, left: Duration, buffer: &mut [u8]) -> std::io::Result<usize> {
+        if self.pending.is_empty() {
+            match self.chunks.recv_timeout(left) {
+                Ok(chunk) => self.pending = chunk?,
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    return Err(ErrorKind::TimedOut.into());
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Ok(0),
+            }
+        }
+        let n = self.pending.len().min(buffer.len());
+        buffer[..n].copy_from_slice(&self.pending[..n]);
+        self.pending.drain(..n);
+        Ok(n)
     }
 }

@@ -1,8 +1,12 @@
 //! `timonier daemon start|stop|status|run`: one daemon per project (ADR 0019).
 
 use std::fs::OpenOptions;
+#[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Stdio};
 use std::time::{Duration, Instant};
@@ -152,6 +156,11 @@ pub enum Launched {
     Started(u32),
 }
 
+#[cfg(windows)]
+const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
 /// Starts this project's daemon in the background unless one answers, and waits until it
 /// does. Prints nothing: `timonier mcp` speaks MCP on its standard output.
 pub fn launch(paths: &Paths) -> Result<Launched> {
@@ -161,24 +170,28 @@ pub fn launch(paths: &Paths) -> Result<Launched> {
     refused(paths)?;
     // The runtime directory, closed to others, before the log goes in it.
     timonier_daemon::runtime::prepare_runtime(paths)?;
-    let log = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .mode(0o600)
+    let mut log = OpenOptions::new();
+    log.create(true).write(true).truncate(true);
+    #[cfg(unix)]
+    log.mode(0o600);
+    let log = log
         .open(&paths.log)
         .with_context(|| format!("cannot open the log `{}`", paths.log.display()))?;
     let program = std::env::current_exe().context("cannot find the timonier program")?;
-    let mut child = Command::new(program)
+    let mut command = Command::new(program);
+    command
         .args(["daemon", "run", "--root"])
         .arg(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(log)
-        // Its own process group: a terminal closed or a Ctrl-C here does not reach it.
-        .process_group(0)
-        .spawn()
-        .context("cannot start the daemon")?;
+        .stderr(log);
+    // Its own process group: a terminal closed or a Ctrl-C here does not reach it.
+    #[cfg(unix)]
+    command.process_group(0);
+    // Windows: a group of its own too, and no console window (T-125).
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+    let mut child = command.spawn().context("cannot start the daemon")?;
     let deadline = Instant::now() + WAIT;
     while Instant::now() < deadline {
         if connect(paths).is_some() {
@@ -314,6 +327,7 @@ mod tests {
     /// Review n° 4 of Phase 7, m-4: a daemon that refuses this version is said as such, with
     /// how to stop it; another refusal is not taken for a version.
     #[test]
+    #[cfg(unix)]
     fn a_daemon_of_another_version_is_said_as_such() {
         use std::io::{BufRead, BufReader, Read, Write};
         let refused_with = |code: i64| -> String {

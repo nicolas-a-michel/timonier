@@ -551,7 +551,6 @@ fn record_of(previous: Record, changes: &[Change], agents: &[Agent]) -> Record {
 
 /// Applies the plan: each file written whole, scripts made executable.
 pub fn apply(root: &Path, planned: &Planned) -> std::io::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
     for change in &planned.changes {
         let path = root.join(&change.path);
         if let Some(folder) = path.parent() {
@@ -566,7 +565,10 @@ pub fn apply(root: &Path, planned: &Planned) -> std::io::Result<()> {
             continue;
         };
         std::fs::write(&path, after)?;
+        // Windows has no such bit: Git for Windows runs its hooks with its own shell.
+        #[cfg(unix)]
         if change.executable {
+            use std::os::unix::fs::PermissionsExt;
             let mut permissions = std::fs::metadata(&path)?.permissions();
             permissions.set_mode(permissions.mode() | 0o755);
             std::fs::set_permissions(&path, permissions)?;
@@ -661,12 +663,15 @@ mod tests {
         );
         assert!(record.created.contains(&".mcp.json".to_owned()));
         assert_eq!(record.agents, ["claude", "codex", "copilot", "cursor"]);
-        use std::os::unix::fs::PermissionsExt;
-        let mode = std::fs::metadata(root.path().join(".git/hooks/pre-commit"))
-            .unwrap()
-            .permissions()
-            .mode();
-        assert_eq!(mode & 0o111, 0o111);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(root.path().join(".git/hooks/pre-commit"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o111, 0o111);
+        }
     }
 
     #[test]

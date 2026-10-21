@@ -420,6 +420,8 @@ fn the_watch_reads_a_file_found_stale_at_once() {
 /// Review n° 8, I8-1: the file the answers point into cannot be read. The watch reads it again
 /// once, and the file it holds waits: no loop of questions.
 #[test]
+// File modes: Unix.
+#[cfg(unix)]
 fn the_watch_does_not_loop_on_a_file_out_of_reach() {
     use std::os::unix::fs::PermissionsExt;
     let (repo, db) = repository();
@@ -1340,6 +1342,8 @@ fn a_file_whose_verification_was_dropped_is_refined_again() {
 /// again, it stays out of reach: the file it holds is not released, and not asked about again
 /// and again. A change elsewhere, or the client, lets it go once.
 #[test]
+// File modes: Unix.
+#[cfg(unix)]
 fn a_file_out_of_reach_holds_without_asking_again() {
     use std::os::unix::fs::PermissionsExt;
     let (repo, db) = repository();
