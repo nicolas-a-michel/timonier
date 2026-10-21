@@ -3610,3 +3610,7 @@ capture des thèmes.
   corrigé.
 - 2026-10-21 — Phase 7 validée par toi (« commit et push et passe à la suite ») : ADR 0037 à 0042
   acceptées ; Phase 8 commencée.
+- 2026-10-21 — CI macOS rouge sur c7f59f0 (`shutdown_closes_the_other_clients`) : macOS refuse
+  le délai de lecture (EINVAL) sur un socket que le démon a déjà fermé, sa réponse encore à
+  lire ; le client bloquant lit quand même (un socket fermé ne bloque pas). Corrigé sans session
+  Timonier (le serveur MCP de la session ne se reconnecte pas au démon relancé).

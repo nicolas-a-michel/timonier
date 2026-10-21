@@ -195,7 +195,12 @@ impl Client {
             if left.is_zero() {
                 return Ok(None);
             }
-            self.stream.set_read_timeout(Some(left))?;
+            // macOS refuses the timeout (EINVAL) once the daemon has closed the socket, even
+            // with its last answer still to read; a closed socket does not block the read.
+            match self.stream.set_read_timeout(Some(left)) {
+                Err(e) if e.kind() != ErrorKind::InvalidInput => return Err(e.into()),
+                _ => {}
+            }
             match self.stream.read(&mut buffer) {
                 Ok(0) => return Err(ClientError::Closed),
                 Ok(n) => self.decoder.push(&buffer[..n]),
