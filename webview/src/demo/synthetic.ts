@@ -37,6 +37,7 @@ function node(
     children,
     file: kind === "file" ? name : null,
     span: null,
+    signature: null,
     review: null,
     debt: null,
   };

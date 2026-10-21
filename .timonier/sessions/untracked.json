@@ -66,6 +66,62 @@
         "crates/timonier-cli/src/init/uninit.rs",
         "crates/timonier-index/src/pack.rs"
       ]
+    },
+    {
+      "from": 28,
+      "to": 32,
+      "until": {
+        "at": "2026-10-21T09:32:09Z",
+        "session": "S-2026-10-21-5"
+      },
+      "files": [
+        "crates/timonier-core/src/actual.rs",
+        "crates/timonier-core/src/drift.rs",
+        "crates/timonier-daemon/src/client.rs",
+        "crates/timonier-daemon/src/sketch.rs",
+        "editors/vscode/src/driftFeed.ts",
+        "webview/src/map/MapView.test.ts",
+        "webview/src/map/intent.test.ts",
+        "webview/src/map/stability.test.ts",
+        "webview/src/map/stability.ts",
+        "webview/test/a11y/debt.a11y.ts",
+        "webview/test/a11y/density.a11y.ts",
+        "webview/test/a11y/design.a11y.ts",
+        "webview/test/a11y/intent.a11y.ts",
+        "webview/test/a11y/map.a11y.ts",
+        "webview/test/a11y/measure.ts",
+        "webview/test/a11y/move.a11y.ts",
+        "webview/test/a11y/review.a11y.ts",
+        "webview/test/a11y/tracking.a11y.ts",
+        "webview/test/perf/map.perf.ts",
+        "webview/test/perf/whiteboard.perf.ts",
+        "webview/test/production/build.ts",
+        "webview/test/production/page.ts",
+        "webview/test/production/whiteboard.prod.ts"
+      ]
+    },
+    {
+      "from": 53,
+      "to": 54,
+      "until": {
+        "at": "2026-10-21T12:44:59Z",
+        "session": "S-2026-10-21-16"
+      },
+      "files": [
+        "webview/test/screenshots/readme.shots.ts"
+      ]
+    },
+    {
+      "from": 55,
+      "to": 56,
+      "until": {
+        "at": "2026-10-21T12:55:09Z",
+        "session": "S-2026-10-21-17"
+      },
+      "files": [
+        "crates/timonier-daemon/src/tracking.rs",
+        "crates/timonier-daemon/tests/server.rs"
+      ]
     }
   ]
 }

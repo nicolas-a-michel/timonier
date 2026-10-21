@@ -23,5 +23,7 @@
   "Timonier whiteboard": "Tableau blanc de Timonier",
   "Timonier could not open the whiteboard: {0}": "Timonier n'a pas pu ouvrir le tableau blanc : {0}",
   "Open the whiteboard first: « Timonier: Open the Whiteboard ».": "Ouvrez d'abord le tableau blanc : « Timonier : Ouvrir le tableau blanc ».",
-  "the daemon is not running": "le démon ne tourne pas"
+  "the daemon is not running": "le démon ne tourne pas",
+  "Timonier performances": "Performances de Timonier",
+  "Timonier could not open the performances: {0}": "Timonier n'a pas pu ouvrir les performances : {0}"
 }

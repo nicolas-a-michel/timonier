@@ -27,6 +27,7 @@ let announced = false;
 const actions = {
   onReveal: (target: string, path: string[]) => host?.postMessage({ type: "reveal", target, path }),
   onOpenMap: () => host?.postMessage({ type: "openMap" }),
+  onOpenPerformance: () => host?.postMessage({ type: "openPerformance" }),
   onMarkReviewed: () => host?.postMessage({ type: "markReviewed" }),
   onConfigure: () => host?.postMessage({ type: "configure" }),
 };

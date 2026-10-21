@@ -118,6 +118,11 @@ uses = "vitest"
 command = "npx vitest run --reporter=default --reporter=junit --outputFile.junit=.timonier/runs/junit.xml"
 junit = ".timonier/runs/junit.xml"
 
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs.
+[tests.runners.smoke]
+command = "npx vitest run timonier.smoke.test.ts"
+files = [{ path = "timonier.smoke.test.ts", source = "instrumentation/timonier.smoke.test.ts" }]
+
 [[tests.runners]]
 name = "node:test"
 uses = "node --test"
@@ -128,3 +133,22 @@ junit = ".timonier/runs/junit.xml"
 name = "jest"
 uses = "jest"
 note = "jest writes JUnit XML through the jest-junit package: add it as a development dependency."
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050):
+# development dependencies (the API a production one, Q78), and the initialisation module. Verified on 2026-10-21: sdk-node
+# 0.223.0 brings the OTLP exporters and reads OTEL_SDK_DISABLED; the 0.300 line, out the day
+# before, waits.
+[instrumentation]
+files = [{ path = "timonier.otel.ts", source = "instrumentation/timonier.otel.ts" }]
+note = "run `npm install` for the OpenTelemetry SDK; the module `timonier.otel.ts` starts it: call `startTelemetry()` where the tests set up, as the conventions say."
+
+# The module of the code that ships imports the API (Q78): a production dependency, inert
+# without an SDK.
+[[instrumentation.dependencies]]
+name = "@opentelemetry/api"
+version = "1.9.1"
+production = true
+
+[[instrumentation.dependencies]]
+name = "@opentelemetry/sdk-node"
+version = "0.223.0"

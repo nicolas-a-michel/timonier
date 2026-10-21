@@ -390,9 +390,13 @@ pub struct DoctorArgs {
     /// Repair nothing, ask nothing: the exit status says whether all is in order (for CI)
     #[arg(long)]
     check: bool,
+    /// Skip the smoke test, which builds and runs the instrumented test of each language
+    #[arg(long)]
+    no_smoke: bool,
 }
 
 /// `timonier doctor` (PLAN.md 6.10): the setup checked, and repaired once asked.
+#[tracing::instrument(skip_all)]
 pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
     let examine = || -> Result<bool> {
         let paths = daemon::resolve(&args.target)?;
@@ -402,14 +406,29 @@ pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
         if root.join(plan::RECORD).is_file() {
             checked.findings.extend(daemon_findings(&paths));
         }
+        // The chain, end to end (spec « Initialisation », 7): a trace attached to the graph.
+        let mut smoked = Vec::new();
+        if !args.no_smoke && root.join(plan::RECORD).is_file() {
+            let (findings, said) = smoke(&paths);
+            checked.findings.extend(findings);
+            smoked = said;
+        }
+        let paranoid = std::fs::read_to_string("/proc/sys/kernel/perf_event_paranoid").ok();
+        let counters = doctor::counters_note(paranoid.as_deref());
         if checked.findings.is_empty() {
             println!("Timonier is set up and in order in {}.", root.display());
-            for said in &checked.repair.info {
+            for said in checked.repair.info.iter().chain(&smoked).chain(&counters) {
                 println!("  - {said}");
             }
             return Ok(true);
         }
         println!("Timonier in {}:", root.display());
+        for said in &smoked {
+            println!("  - {said}");
+        }
+        if let Some(note) = &counters {
+            println!("  - {note} (a note)");
+        }
         for finding in &checked.findings {
             let mark = if finding.repairable {
                 "repairable"
@@ -457,6 +476,78 @@ pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
 }
 
 /// What the daemon says: whether it starts and answers, and the tracking files that do not read.
+/// Runs the smoke test of each language `timonier init` instrumented (ADR 0050): what is wrong,
+/// and what went well.
+#[tracing::instrument(skip_all)]
+fn smoke(paths: &Paths) -> (Vec<doctor::Finding>, Vec<String>) {
+    let by_hand = |what: String| doctor::Finding {
+        what,
+        repairable: false,
+    };
+    let runners = std::fs::read_to_string(paths.root.join(plan::TESTS))
+        .ok()
+        .and_then(|text| serde_json::from_str::<plan::Tests>(&text).ok())
+        .map(|tests| tests.runners)
+        .unwrap_or_default();
+    let mut findings = Vec::new();
+    let mut said = Vec::new();
+    for runner in runners {
+        let Some(command) = &runner.smoke else {
+            continue;
+        };
+        let language = &runner.language;
+        eprintln!("timonier: the smoke test ({language}): {command}");
+        let outcome = crate::test::smoke(paths, command);
+        let Some(run) = outcome.run else {
+            findings.push(by_hand(format!(
+                "the smoke test ({language}) was not recorded: is the daemon there?"
+            )));
+            continue;
+        };
+        if outcome.code != 0 {
+            findings.push(by_hand(format!(
+                "the smoke test ({language}) failed (exit status {}, run {run}): `{command}`; \
+                 the OpenTelemetry SDK may need installing",
+                outcome.code
+            )));
+            continue;
+        }
+        let report = daemon::connect_as(paths, "timonier-doctor").and_then(|mut client| {
+            client
+                .request::<serde_json::Value>(
+                    timonier_core::protocol::methods::TOOLS_CALL,
+                    &serde_json::json!({
+                        "name": timonier_core::tools::GET_INSTRUMENTATION_GAPS,
+                        "arguments": { "run": run, "limit": 1 },
+                    }),
+                )
+                .ok()
+        });
+        let result = report
+            .as_ref()
+            .map(|r| r["structuredContent"]["result"].clone())
+            .unwrap_or_default();
+        let spans = result["spans"].as_u64().unwrap_or(0);
+        let unattached = result["unattached"].as_u64().unwrap_or(0);
+        if spans == 0 {
+            findings.push(by_hand(format!(
+                "the smoke test ({language}) sent no span to Timonier (run {run})"
+            )));
+        } else if unattached >= spans {
+            findings.push(by_hand(format!(
+                "the spans of the smoke test ({language}) attach to no node of the graph (run {run})"
+            )));
+        } else {
+            said.push(format!(
+                "the smoke test ({language}) produced a trace attached to the graph: {} of {spans} \
+                 spans (run {run})",
+                spans - unattached
+            ));
+        }
+    }
+    (findings, said)
+}
+
 fn daemon_findings(paths: &Paths) -> Vec<doctor::Finding> {
     let by_hand = |what: String| doctor::Finding {
         what,

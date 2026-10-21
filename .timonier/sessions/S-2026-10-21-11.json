@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-11",
+  "agent": "claude-code",
+  "objective": "8.6: Timonier instruments itself behind the otel feature; the instrumentation part of timonier init for Rust and TypeScript; timonier doctor produces a trace attached to the graph",
+  "tasks": [
+    "T-98"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T10:52:20Z",
+  "ended_at": "2026-10-21T11:11:08Z",
+  "snapshots": {
+    "start": 44,
+    "end": 45
+  },
+  "summary": "8.6 done (ADR 0050, Q72): telemetry.rs installs logs and, behind the otel feature, the OpenTelemetry layer when a run asks; spans on the crates boundaries; packs gain [instrumentation] and [tests.runners.smoke]; init adds the SDK to Cargo.toml (two blocks) or package.json (devDependencies), writes the module and the smoke test, uninit takes them back; doctor runs the smoke test and checks its trace is attached to the graph (--no-smoke skips it). Left: the TypeScript smoke test is not played in tests (needs npm install); the conventions in Timonier's own .timonier/ wait for a doctor --fix by the human. Next: 8.7, the views.",
+  "changes": {
+    "files": 25,
+    "added": [
+      {
+        "id": "pkg:cargo/opentelemetry",
+        "name": "opentelemetry",
+        "within": "observability"
+      },
+      {
+        "id": "pkg:cargo/opentelemetry-otlp",
+        "name": "opentelemetry-otlp",
+        "within": "observability"
+      },
+      {
+        "id": "pkg:cargo/opentelemetry_sdk",
+        "name": "opentelemetry_sdk",
+        "within": "observability"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/packs",
+        "name": "packs",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:npm/timonier-workspace",
+        "name": "timonier-workspace",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/tracing-opentelemetry",
+        "name": "tracing-opentelemetry",
+        "within": "observability"
+      }
+    ],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/observability",
+        "name": "observability",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

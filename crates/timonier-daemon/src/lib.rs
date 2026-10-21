@@ -2,6 +2,7 @@
 //!
 //! One daemon per project; it wires the other crates together. See the `rust-daemon` skill.
 
+mod attach;
 pub mod bridge;
 pub mod client;
 pub mod debt;
@@ -10,6 +11,7 @@ mod git;
 pub mod indexing;
 pub mod journal;
 mod relay;
+pub mod runs;
 pub mod runtime;
 pub mod server;
 pub mod sketch;
@@ -25,7 +27,9 @@ pub use runtime::{Lock, Paths};
 pub use server::{Daemon, Options};
 /// The language packs, for the CLI's `init` (ADR 0034): the CLI depends on the daemon, not on
 /// the indexer (ADR 0003).
-pub use timonier_index::pack::{ConfigBlock, RunnerRule};
+pub use timonier_index::pack::{
+    ConfigBlock, InstrumentationRules, RunnerRule, SdkDependency, SmokeRule, TemplateFile,
+};
 pub use timonier_index::{Pack, Packs};
 pub use watch::{Event, PendingReview, Watch};
 

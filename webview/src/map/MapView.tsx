@@ -21,15 +21,19 @@ import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEve
 import { EdgeLegend, Toolbar } from "../design/components";
 import { ArrowIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
-import type { Density, DriftView, MapCommand, NodeDebt, Role, Span } from "../protocol";
+import type { BudgetsView, Density, DriftView, MapCommand, NodeDebt, PerfMap, Role, Span } from "../protocol";
+import { performanceMessages } from "../performance/messages";
+import { duration } from "../performance/model";
 import type { ViewData } from "../viewModel";
 import { edgeTypes, nodeTypes, type BoxNode, type LineEdge, type RoleNode, type Sides } from "./elements";
 import { layout, METRICS, ROOT, type Layout, type Pins } from "./layout";
-import { changed, mapContent, toggleOf, type MapContent, type MapItem, type Toggle } from "./mapModel";
+import { changed, mapContent, symbolOf, toggleOf, type MapContent, type MapItem, type Toggle } from "./mapModel";
 import { directionOf, nearest, type Direction } from "./navigation";
 import { intentMarks, type IntentMark, type IntentMarks } from "./intent";
 import type { Obstacle } from "./labelSpot";
 import { IntentPanel } from "./intentPanel";
+import { budgetMarks, perfMarks, type PerfMark, type PerfMarks } from "./perf";
+import { PerfPanel } from "./perfPanel";
 import { reviewLines, ReviewSummaryPanel } from "./review";
 import { absolute } from "./stability";
 
@@ -72,6 +76,22 @@ export interface MapViewProps {
   intent?: DriftView | null;
   onToggleIntent?: () => void;
   onOpenWhiteboard?: () => void;
+  /** The Performances layer (ADR 0051), and what the host gave for it: `undefined` until it
+   * comes, `null` when it cannot. */
+  showPerformance?: boolean;
+  performance?: PerfMap | null;
+  onTogglePerformance?: () => void;
+  onOpenPerformance?: () => void;
+  /** The whiteboard's budgets on the last runs: an exceeded one marks its box, always (Q74). */
+  budgets?: BudgetsView | null;
+}
+
+/** What an item cost in the run, for screen readers and the details (ADR 0051). */
+function perfLine(mark: PerfMark | undefined, locale: Locale): string[] {
+  if (!mark) return [];
+  return [
+    `${performanceMessages[locale].boxWords(duration(mark.totalNs, locale), duration(mark.selfNs, locale), mark.calls)}.`,
+  ];
 }
 
 /** The words of a review debt, for screen readers: as many files, and whether untracked. */
@@ -119,9 +139,12 @@ function describe(item: MapItem, locale: Locale): { name: string; label: string;
     };
   }
   const { node } = item;
+  const symbol = symbolOf(node);
   const role = node.role ? t.roles[node.role] : t.noRole;
-  const kind =
-    node.kind === "repo" || node.kind === "component" || node.kind === "package" || node.kind === "file"
+  // A symbol says its kind and its signature (T-114).
+  const kind = symbol
+    ? t.symbolTip(t.symbolKinds[symbol.kind], symbol.signature)
+    : node.kind === "repo" || node.kind === "component" || node.kind === "package" || node.kind === "file"
       ? t.kinds[node.kind]
       : t.kinds.symbol;
   const hint = item.folded
@@ -135,8 +158,10 @@ function describe(item: MapItem, locale: Locale): { name: string; label: string;
   const said = changes.map((line) => ` ${line}.`).join("");
   return {
     name: node.name,
-    label: `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${said}${hint}`,
-    lines: [`${kind} · ${role}`, t.items(node.children), ...(node.file ? [node.file] : []), ...changes],
+    label: symbol
+      ? `${node.name}, ${kind}, ${t.items(node.children)}.${said}${hint}`
+      : `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${said}${hint}`,
+    lines: [symbol ? kind : `${kind} · ${role}`, t.items(node.children), ...(node.file ? [node.file] : []), ...changes],
   };
 }
 
@@ -148,6 +173,8 @@ function flowNodes(
   density: Density,
   debt: boolean,
   marks?: IntentMarks,
+  perf?: PerfMarks,
+  budgets?: Map<string, string[]>,
 ): Node[] {
   const nodes: Node[] = [];
   const ins = new Set(content.edges.map((edge) => edge.target));
@@ -166,6 +193,8 @@ function flowNodes(
         describe(item, locale).label,
         ...(debt ? debtLine(item.kind === "role" ? item.debt : item.node.debt, locale) : []),
         ...intentLine(marks?.items.get(item.id), locale),
+        ...perfLine(perf?.items.get(item.id), locale),
+        ...(budgets?.get(item.id) ?? []).map((said) => `${said}.`),
       ].join(" "),
       draggable: true,
       connectable: false,
@@ -178,14 +207,34 @@ function flowNodes(
       nodes.push({
         ...common,
         type: "role",
-        data: { group: item, locale, sides, quiet, density, debt, intent: marks?.items.get(item.id) },
+        data: {
+          group: item,
+          locale,
+          sides,
+          quiet,
+          density,
+          debt,
+          intent: marks?.items.get(item.id),
+          perf: perf && (perf.items.get(item.id) ?? null),
+          budgets: budgets?.get(item.id),
+        },
       } satisfies RoleNode);
     } else {
       nodes.push({
         ...common,
         type: "box",
         parentId: item.parent.startsWith("@role/") || placed.has(item.parent) ? item.parent : undefined,
-        data: { box: item, locale, sides, quiet, density, debt, intent: marks?.items.get(item.id) },
+        data: {
+          box: item,
+          locale,
+          sides,
+          quiet,
+          density,
+          debt,
+          intent: marks?.items.get(item.id),
+          perf: perf && (perf.items.get(item.id) ?? null),
+          budgets: budgets?.get(item.id),
+        },
       } satisfies BoxNode);
     }
   }
@@ -205,6 +254,7 @@ function flowEdges(
   onlyChanges: boolean,
   marks?: IntentMarks,
   covering?: readonly Obstacle[],
+  perf?: PerfMarks,
 ): LineEdge[] {
   const t = messages[locale];
   const names = new Map(content.items.map((item) => [item.id, describe(item, locale).name]));
@@ -222,6 +272,7 @@ function flowEdges(
           quiet: onlyChanges && !line.review,
           forbidden: marks?.lines.get(line.id),
           ...(marks?.lines.has(line.id) ? { covering } : {}),
+          ...(perf ? { traffic: { calls: perf.lines.get(line.id) ?? 0, most: perf.most } } : {}),
         },
         focusable: false,
         selectable: false,
@@ -237,6 +288,9 @@ function flowEdges(
           ...(line.review?.added ? [`${t.review.addedLong}.`] : []),
           ...(line.review?.cycle ? [`${t.review.cycleLong}.`] : []),
           ...(marks?.lines.has(line.id) ? [t.intent.forbiddenLine((marks.lines.get(line.id) ?? []).join(", "))] : []),
+          ...(perf?.lines.has(line.id)
+            ? [`${performanceMessages[locale].linkWords(perf.lines.get(line.id) ?? 0)}.`]
+            : []),
         ].join(" "),
       }) satisfies LineEdge,
   );
@@ -283,6 +337,11 @@ function Canvas({
   intent,
   onToggleIntent,
   onOpenWhiteboard,
+  showPerformance = false,
+  performance,
+  onTogglePerformance,
+  onOpenPerformance,
+  budgets,
 }: MapViewProps) {
   // Before the first review there is nothing to highlight: the map shows as it is (Q27).
   const onlyChanges = filter && view.review.since !== null;
@@ -331,9 +390,22 @@ function Canvas({
     () => (compareIntent && intent?.drawn && placed ? intentMarks(intent, placed.content, view) : undefined),
     [compareIntent, intent, placed, view],
   );
+  // The Performances layer: what each item cost in the last run, and its lines' traffic (ADR 0051).
+  const perf = useMemo(
+    () => (showPerformance && performance && placed ? perfMarks(performance, placed.content, view) : undefined),
+    [showPerformance, performance, placed, view],
+  );
+  // The budgets the last runs exceed, on the boxes that hold them, always (Q74, ADR 0052).
+  const exceeded = useMemo(
+    () => (budgets && placed ? budgetMarks(budgets, placed.content, view, locale) : undefined),
+    [budgets, placed, view, locale],
+  );
   const laidOut = useMemo(
-    () => (placed ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt, marks) : []),
-    [placed, locale, onlyChanges, density, showDebt, marks],
+    () =>
+      placed
+        ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt, marks, perf, exceeded)
+        : [],
+    [placed, locale, onlyChanges, density, showDebt, marks, perf, exceeded],
   );
   const nodes = useMemo(
     () =>
@@ -380,8 +452,8 @@ function Canvas({
     [placed, marks, density],
   );
   const allEdges = useMemo(
-    () => (placed ? flowEdges(placed.content, locale, onlyChanges, marks, covering) : []),
-    [placed, locale, onlyChanges, marks, covering],
+    () => (placed ? flowEdges(placed.content, locale, onlyChanges, marks, covering, perf) : []),
+    [placed, locale, onlyChanges, marks, covering, perf],
   );
   const edges = useMemo(() => withActive(allEdges, shownItem), [allEdges, shownItem]);
   const fitted = useRef(false);
@@ -513,6 +585,9 @@ function Canvas({
       case "toggleIntent":
         onToggleIntent?.();
         return;
+      case "togglePerformance":
+        onTogglePerformance?.();
+        return;
     }
   };
   /** Pins boxes where they are now, relative to their container; the newest last. */
@@ -608,7 +683,12 @@ function Canvas({
   const details = shownId ? items.get(shownId) : undefined;
   const described = details && {
     ...describe(details, locale),
-    lines: [...describe(details, locale).lines, ...intentLine(marks?.items.get(details.id), locale)],
+    lines: [
+      ...describe(details, locale).lines,
+      ...intentLine(marks?.items.get(details.id), locale),
+      ...perfLine(perf?.items.get(details.id), locale),
+      ...(exceeded?.get(details.id) ?? []).map((said) => `${said}.`),
+    ],
   };
   const code = codeOf(shownId);
   return (
@@ -633,6 +713,9 @@ function Canvas({
       />
       {compareIntent && intent !== undefined && (
         <IntentPanel view={intent} locale={locale} onOpenWhiteboard={onOpenWhiteboard} />
+      )}
+      {showPerformance && performance !== undefined && (
+        <PerfPanel view={performance} locale={locale} onOpenPerformance={onOpenPerformance} />
       )}
       <div className="tim-map__flow">
         <ReactFlow
@@ -685,6 +768,16 @@ function Canvas({
                 ...(onToggleIntent
                   ? [{ id: "intent", label: t.intent.layer, pressed: compareIntent, onSelect: onToggleIntent }]
                   : []),
+                ...(onTogglePerformance
+                  ? [
+                      {
+                        id: "performance",
+                        label: performanceMessages[locale].layer,
+                        pressed: showPerformance,
+                        onSelect: onTogglePerformance,
+                      },
+                    ]
+                  : []),
               ]}
             />
           </Panel>
@@ -694,6 +787,8 @@ function Canvas({
               changes={view.review.since !== null}
               debt={showDebt}
               intent={compareIntent && intent?.drawn === true}
+              performance={Boolean(perf)}
+              budgets={Boolean(exceeded && exceeded.size > 0)}
             />
           </Panel>
           {described && (

@@ -1375,133 +1375,332 @@
           "id": "T-93",
           "title": "8.1 ADR",
           "criterion": "ADR acceptées. Sujets : voir PLAN.md",
-          "status": "todo",
+          "status": "done",
           "sessions": [
             "S-2026-10-20-2",
-            "S-2026-10-20-3"
+            "S-2026-10-20-3",
+            "S-2026-10-21-6"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T09:36:08Z",
+              "session": "S-2026-10-21-6",
+              "text": "ADR 0043 à 0046 écrites (Proposé), à accepter à la validation de la phase (Q15). Q70 et Q71 répondues."
+            }
+          ]
         },
         {
           "id": "T-94",
           "title": "8.2 `timonier test -- <commande>`, niveau 1",
           "criterion": "test d'intégration sur un projet fixture",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-7"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T09:54:58Z",
+              "session": "S-2026-10-21-7",
+              "text": "Integration test crates/timonier-cli/tests/test.rs green (fixture project in git, real daemon). Measuring relay with getrusage plus a systemd scope on Linux, instruction counter with fallback, JUnit via junit-parser, runs in .timonier/perf/perf.sqlite. 493 Rust tests green."
+            }
+          ]
         },
         {
           "id": "T-95",
           "title": "8.3 Injection de `OTEL_EXPORTER_OTLP_ENDPOINT` et `OTEL_RESOURCE_ATTRIBUTES` (`timonier.run_id`, `timonier.snapshot`) ; chaque test devient un span racine",
           "criterion": "test",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-8"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T10:12:18Z",
+              "session": "S-2026-10-21-8",
+              "text": "Test the_tests_are_told_their_run_and_each_test_becomes_a_root_span green (real daemon). run/start + run/finish, OTEL env merged, synthesized test root spans (ADR 0047). 500 Rust tests green."
+            }
+          ]
         },
         {
           "id": "T-96",
           "title": "8.4 `timonier-otlp` : récepteur gRPC 4317 et HTTP 4318 (tonic 0.14, opentelemetry-proto 0.33), ports occupés gérés, rattachement au graphe par les attributs `code.*`",
           "criterion": "test d'intégration avec un vrai exporteur OTLP",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-9"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T10:25:46Z",
+              "session": "S-2026-10-21-9",
+              "text": "Real opentelemetry-otlp exporter over gRPC to both ports (crates/timonier-otlp/tests/receiver.rs), and timonier test running an instrumented example whose spans come back attached to their test and node. 511 Rust tests green. ADR 0048."
+            }
+          ]
         },
         {
           "id": "T-97",
           "title": "8.5 Vérification de l'instrumentation : fonctions publiques jamais vues, spans sans `code.*`, surcoût estimé contre le niveau 1 ; outils MCP `get_instrumentation_gaps` et `get_instrumentation_convent…",
           "criterion": "une fixture aux trous connus les fait tous remonter",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-10"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T10:49:24Z",
+              "session": "S-2026-10-21-10",
+              "text": "a_fixture_s_known_gaps_all_show green: never seen public function, spans without code.*, a span without node, overhead against a run without traces; conventions tool tested. 518 Rust tests green. ADR 0049."
+            }
+          ]
         },
         {
           "id": "T-98",
           "title": "8.6 Instrumentation",
           "criterion": "`timonier doctor` produit une trace rattachée au graphe",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-11"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T11:11:08Z",
+              "session": "S-2026-10-21-11",
+              "text": "doctor_s_smoke_test_produces_a_trace_attached_to_the_graph green (Rust fixture, real SDK built, doctor says the smoke trace is attached to the graph, uninit restores Cargo.toml). Timonier instruments itself behind the otel feature (on by default). Q72 answered. ADR 0050. 523 Rust tests, vitest 142, node:test 83 + 27 green."
+            }
+          ]
         },
         {
           "id": "T-99",
           "title": "8.7 Vues",
           "criterion": "test des cinq secondes",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-12",
+            "S-2026-10-21-22"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T11:49:41Z",
+              "session": "S-2026-10-21-12",
+              "text": "Built and tested (ADR 0051, Q73): perf/runs, perf/run, perf/map; the map's Performances layer; the Performances panel (timeline, call tree, evolution, uPlot); a11y in six themes, integration in VSCode. The criterion, the five-second test, is the human's: the task stays in progress until it is done."
+            },
+            {
+              "at": "2026-10-21T16:16:44Z",
+              "session": "S-2026-10-21-22",
+              "text": "Phase 8 validated by the human on 2026-10-21, after testing the views himself; the five-second test's answers were not recorded."
+            }
+          ]
         },
         {
           "id": "T-100",
           "title": "8.8 Budgets",
           "criterion": "un budget dépassé volontairement est visible sur la carte et lisible via MCP",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-13"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T12:19:45Z",
+              "session": "S-2026-10-21-13",
+              "text": "a_budget_exceeded_on_purpose_shows_on_the_map_through_mcp_and_in_the_journal green (real exporter, real daemon); the map's mark tested in six themes. Q74, Q75, ADR 0052. 531 Rust, 149 vitest, 88 + 27 node:test, 178 a11y, 26 integration."
+            }
+          ]
         },
         {
           "id": "T-101",
           "title": "8.9 Détection de régressions selon la méthode décidée dans la spec",
           "criterion": "tests statistiques sur des jeux de données connus ; une fonction ralentie exprès passe de « probable » à « confirmée ». Méthode : voir PLAN.md",
-          "status": "todo",
+          "status": "done",
           "sessions": [
             "S-2026-10-20-2",
-            "S-2026-10-20-3"
+            "S-2026-10-20-3",
+            "S-2026-10-21-14"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T12:38:09Z",
+              "session": "S-2026-10-21-14",
+              "text": "Statistical tests against SciPy 1.18.1 values on known datasets, and a_function_slowed_on_purpose_goes_from_probable_to_confirmed (stable over 10 runs). ADR 0053. 536 Rust, 149 vitest, 88 + 27 node:test, 179 a11y, 26 integration."
+            }
+          ]
         },
         {
           "id": "T-102",
           "title": "8.10 Relecture par `phase-reviewer`",
           "criterion": "verdict « prête »",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-21-19"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T14:29:01Z",
+              "session": "S-2026-10-21-19",
+              "text": "Six reviews. Review n° 6: no finding; its only reserves are the human's own checks (8.7 five-second test, T-113 budget in red on Timonier). Fixes of reviews 1 to 5 recorded in PLAN.md, Q76 to Q78 answered."
+            }
+          ]
+        },
+        {
+          "id": "T-110",
+          "title": "Le proxy MCP se reconnecte à un démon relancé",
+          "criterion": "integration test: the daemon is ended and started again, the next tool call of the same proxy succeeds",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-6",
+            "S-2026-10-21-15",
+            "S-2026-10-21-19"
+          ],
+          "created": {
+            "at": "2026-10-21T09:32:27Z",
+            "session": "S-2026-10-21-6"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T12:41:09Z",
+              "session": "S-2026-10-21-15",
+              "text": "the_proxy_reaches_a_daemon_that_went_again green: the proxy reconnects, relaunching the daemon through the CLI, and never replays a call cut midway."
+            }
+          ]
+        },
+        {
+          "id": "T-111",
+          "title": "Le hook d'arrêt ignore ce qui a été commité sous une session fermée",
+          "criterion": "test: files committed after their session ended are not reported as changed without a session",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-6",
+            "S-2026-10-21-17",
+            "S-2026-10-21-19"
+          ],
+          "created": {
+            "at": "2026-10-21T09:32:27Z",
+            "session": "S-2026-10-21-6"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T12:55:09Z",
+              "session": "S-2026-10-21-17",
+              "text": "Cause: the clustering at each commit (ADR 0016) changes the parent of files; changed_files counted them. Fixed in tracking::changed_files (regrouped); tests files_only_regrouped_into_another_component_are_not_changed and work_committed_after_its_session_ended_holds_no_agent."
+            }
+          ]
+        },
+        {
+          "id": "T-112",
+          "title": "README avec captures, en anglais et en français",
+          "criterion": "README.md says in its first screen what Timonier is for, shows a screenshot of each feature taken by `npm run screenshots -w webview`, and links README.fr.md, which says the same in French; a writing skill guides later rewrites.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-16",
+            "S-2026-10-21-19"
+          ],
+          "created": {
+            "at": "2026-10-21T12:44:59Z",
+            "session": "S-2026-10-21-16"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T12:48:02Z",
+              "session": "S-2026-10-21-16",
+              "text": "README.md rewritten with a tour of 12 screenshots, README.fr.md, docs/features.md, skill readme; lint and typecheck clean."
+            }
+          ]
+        },
+        {
+          "id": "T-113",
+          "title": "Critère de sortie de la Phase 8 sur Timonier",
+          "criterion": "timonier test on Timonier gives a timeline per test with spans attached to graph nodes; a provoked regression is detected; an exceeded budget shows in red (PLAN.md, Q71)",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-18",
+            "S-2026-10-21-19",
+            "S-2026-10-21-22"
+          ],
+          "created": {
+            "at": "2026-10-21T12:57:12Z",
+            "session": "S-2026-10-21-18"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T13:00:49Z",
+              "session": "S-2026-10-21-18",
+              "text": "Timeline per test (R-2: 585 spans, all under their test and a node) and the provoked regression (probable then confirmed, index_all +800 %) verified. Left: an exceeded budget in red needs a budget the human draws on the whiteboard. Found and fixed: Timonier's own telemetry did not name the nextest test on its spans."
+            },
+            {
+              "at": "2026-10-21T16:16:44Z",
+              "session": "S-2026-10-21-22",
+              "text": "Timeline per test and provoked regression verified on Timonier; the budget in red left to the human, who validated the phase on 2026-10-21."
+            }
+          ]
+        },
+        {
+          "id": "T-114",
+          "title": "La carte dit ce qu'est un symbole, et son type",
+          "criterion": "On the map, a symbol box has the IDE's symbol colour and icon for its kind and the kind in words; its tooltip and details give the kind and the signature (the type of a field or constant); tests and a11y in every theme.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-21-20",
+            "S-2026-10-21-21"
+          ],
+          "created": {
+            "at": "2026-10-21T15:56:23Z",
+            "session": "S-2026-10-21-20"
+          },
+          "notes": [
+            {
+              "at": "2026-10-21T16:15:19Z",
+              "session": "S-2026-10-21-21",
+              "text": "Symbols on the map: the IDE's outline colour of their kind, an icon and the word, the signature in code font, tooltip « Field: pub size: u32 »; ViewNode.signature (ADR 0054). Tests: daemon, vitest, a11y in six themes."
+            }
+          ]
         }
       ]
     },

@@ -92,6 +92,66 @@ export function RoleIcon({ role }: { role: Role | null }) {
   return <Icon className="tim-icon--role">{ROLE_SHAPES[role]}</Icon>;
 }
 
+/** The kinds of symbols the map shows (T-114). */
+export type SymbolKind = "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
+
+/** One shape per kind of symbol, as the IDE's outline draws them, simplified. */
+const SYMBOL_SHAPES: Record<SymbolKind, ReactNode> = {
+  // A cube.
+  function: (
+    <>
+      <path d="M8 2l5 2.8v6.4L8 14l-5-2.8V4.8z" />
+      <path d="M3 4.8L8 7.6l5-2.8M8 7.6V14" />
+    </>
+  ),
+  // A cube with a dot: a function of a type.
+  method: (
+    <>
+      <path d="M8 2l5 2.8v6.4L8 14l-5-2.8V4.8z" />
+      <circle cx="8" cy="10.5" r="1.2" />
+    </>
+  ),
+  // Three linked boxes.
+  type: (
+    <>
+      <rect x="2" y="2.5" width="5" height="4" rx="0.8" />
+      <rect x="9" y="9.5" width="5" height="4" rx="0.8" />
+      <path d="M4.5 6.5v5H9" />
+    </>
+  ),
+  // A ring and its handle: what a type implements.
+  trait: (
+    <>
+      <circle cx="5" cy="8" r="3" />
+      <path d="M8 8h6" />
+    </>
+  ),
+  // A rectangle with a line: a slot of a record.
+  field: (
+    <>
+      <rect x="2" y="4" width="12" height="8" rx="1" />
+      <path d="M5 8h6" />
+    </>
+  ),
+  // Two bars: equal.
+  constant: (
+    <>
+      <path d="M3.5 6h9M3.5 10h9" />
+    </>
+  ),
+  // Braces.
+  module: (
+    <>
+      <path d="M6 2.5c-1.5 0-2 .7-2 2v1.5c0 1-.6 2-1.5 2 .9 0 1.5 1 1.5 2v1.5c0 1.3.5 2 2 2" />
+      <path d="M10 2.5c1.5 0 2 .7 2 2v1.5c0 1 .6 2 1.5 2-.9 0-1.5 1-1.5 2v1.5c0 1.3-.5 2-2 2" />
+    </>
+  ),
+};
+
+export function SymbolIcon({ kind }: { kind: SymbolKind }) {
+  return <Icon className="tim-icon--role">{SYMBOL_SHAPES[kind]}</Icon>;
+}
+
 export type Tone = "neutral" | "violation" | "attention" | "conformity";
 
 /** A distinct shape per tone: a dot, a cross, a triangle, a tick. */

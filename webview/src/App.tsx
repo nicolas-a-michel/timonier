@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { EmptyState } from "./design/components";
 import { messages, type Locale } from "./i18n";
 import type { Toggle } from "./map/mapModel";
-import type { Density, DriftView, Span } from "./protocol";
+import type { BudgetsView, Density, DriftView, PerfMap, Span } from "./protocol";
 import type { Pins } from "./map/layout";
 import { MapView, type MapCommands } from "./map/MapView";
 import { initialUi, type UiState } from "./uiState";
@@ -33,6 +33,12 @@ export interface AppProps {
   onToggleIntent?: () => void;
   intent?: DriftView | null;
   onOpenWhiteboard?: () => void;
+  /** The Performances layer (ADR 0051): the toggle, and what the host gave for it. */
+  onTogglePerformance?: () => void;
+  performance?: PerfMap | null;
+  onOpenPerformance?: () => void;
+  /** The whiteboard's budgets on the last runs, shown when exceeded (ADR 0052). */
+  budgets?: BudgetsView | null;
   /** Where the palette's commands for the map come in. */
   commandsRef?: MapCommands;
   /** Called once, after the first render reached the DOM. */
@@ -58,6 +64,10 @@ export function App({
   onToggleIntent,
   intent,
   onOpenWhiteboard,
+  onTogglePerformance,
+  performance,
+  onOpenPerformance,
+  budgets,
   commandsRef,
   onReady,
 }: AppProps) {
@@ -100,6 +110,11 @@ export function App({
           intent={intent}
           onToggleIntent={onToggleIntent}
           onOpenWhiteboard={onOpenWhiteboard}
+          showPerformance={ui.performance ?? false}
+          performance={performance}
+          onTogglePerformance={onTogglePerformance}
+          onOpenPerformance={onOpenPerformance}
+          budgets={budgets}
           commandsRef={commandsRef}
         />
       </main>

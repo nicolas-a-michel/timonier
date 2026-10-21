@@ -5,6 +5,7 @@
  * Semantic zoom: the opening shows one box per role; a role opens on its components; a component
  * opens on what it holds (the daemon expands it), down to the symbols.
  */
+import type { SymbolKind } from "../design/icons";
 import type { EdgeReview, NodeDebt, Role, ViewEdge, ViewNode } from "../protocol";
 import type { ViewData } from "../viewModel";
 
@@ -304,4 +305,11 @@ export function debtLevel(debt: NodeDebt | null): 0 | 1 | 2 | 3 {
   if (debt.files * 3 < debt.of) return 1;
   if (debt.files * 3 < debt.of * 2) return 2;
   return 3;
+}
+
+const SYMBOL_KINDS = new Set<string>(["module", "type", "trait", "function", "method", "field", "constant"]);
+
+/** What a symbol of the map is, and its signature (T-114); `null` for a box that is no symbol. */
+export function symbolOf(node: ViewNode): { kind: SymbolKind; signature: string | null } | null {
+  return SYMBOL_KINDS.has(node.kind) ? { kind: node.kind as SymbolKind, signature: node.signature } : null;
 }

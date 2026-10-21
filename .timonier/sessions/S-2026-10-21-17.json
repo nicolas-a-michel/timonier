@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-17",
+  "agent": "claude-code",
+  "objective": "T-111: the Stop hook no longer counts files the commit's clustering regrouped as code changed with no session",
+  "tasks": [
+    "T-111"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T12:55:09Z",
+  "ended_at": "2026-10-21T12:55:09Z",
+  "snapshots": {
+    "start": 56,
+    "end": 57
+  },
+  "summary": "T-111 done: a file whose only change is its parent component (the commit's clustering) is no longer a changed file, for the Stop hook and the review debt. Unit test fails without the fix; integration test on a real daemon. Left: the Phase 8 exit criterion on Timonier, the 8.10 review.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Find the cause in graph.sqlite at the Phase 7 commit",
+      "task": "T-111",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "changed_files ignores files whose parent alone changed, with a unit test that fails without it",
+      "task": "T-111",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Integration test on a real daemon, a commit after the session; PLAN.md",
+      "task": "T-111",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

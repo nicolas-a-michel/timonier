@@ -1,5 +1,6 @@
 import * as assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import * as vscode from "vscode";
@@ -26,6 +27,14 @@ function whiteboardTabs(): vscode.Tab[] {
   return vscode.window.tabGroups.all
     .flatMap((group) => group.tabs)
     .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.endsWith("timonier.whiteboard"));
+}
+
+function performanceTabs(): vscode.Tab[] {
+  return vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter(
+      (tab) => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.endsWith("timonier.performance"),
+    );
 }
 
 /** Rejects when `promise` takes longer than `ms`. */
@@ -83,6 +92,98 @@ describe("Timonier extension", () => {
     await vscode.commands.executeCommand("timonier.openMap");
     await waitFor(() => isMapTab(vscode.window.tabGroups.activeTabGroup.activeTab));
     assert.equal(mapTabs().length, 1);
+  });
+
+  it("opens the Performances panel under the strict CSP, and the map's layer asks the daemon (ADR 0051)", async () => {
+    const timonier = await api();
+    await vscode.commands.executeCommand("timonier.openPerformance");
+    await waitFor(() => performanceTabs().length === 1);
+    const ready = timonier.whenPerformanceReady();
+    assert.ok(ready, "no Performances panel is tracked");
+    await inTime(ready, "the Performances panel never said ready");
+    await vscode.commands.executeCommand("timonier.openPerformance");
+    assert.equal(performanceTabs().length, 1, "revealed, not opened twice");
+    // The map's layer: no run yet in the fixture, so a layer of no run, from the daemon itself.
+    await vscode.commands.executeCommand("timonier.openMap");
+    await waitFor(() => mapTabs().length >= 1);
+    assert.equal(
+      await inTime(Promise.resolve(timonier.mapCommand({ name: "togglePerformance" })), "no map command"),
+      true,
+    );
+    await waitFor(() => timonier.mapPerformance() !== undefined, 20_000);
+    assert.deepEqual(timonier.mapPerformance(), { run: null, nodes: [], links: [], ancestors: {} });
+    await timonier.mapCommand({ name: "togglePerformance" });
+  });
+
+  it("shows a run's time and an exceeded budget on the map, from a real run (ADR 0051, 0052)", async () => {
+    const timonier = await api();
+    const project = process.env.TIMONIER_FIXTURE;
+    const daemon = process.env.TIMONIER_DAEMON_PATH;
+    assert.ok(project && daemon, "no fixture project or daemon");
+    // A budget the human would draw: the fixture's package, under a microsecond at p95.
+    const intent = path.join(project, ".timonier", "intent.json");
+    const drawn = existsSync(intent) ? readFileSync(intent, "utf8") : null;
+    mkdirSync(path.dirname(intent), { recursive: true });
+    writeFileSync(
+      intent,
+      JSON.stringify({
+        version: 1,
+        components: [{ id: "C-1", name: "fixture", layer: null, role: "the fixture" }],
+        budgets: [{ id: "N-1", attached_to: "C-1", p95_ms: 0.001 }],
+      }),
+    );
+    // A test process that sends one span of `run` over OTLP/HTTP JSON, as an SDK would.
+    const emit = path.join(project, "emit.mjs");
+    writeFileSync(
+      emit,
+      `const run = (process.env.OTEL_RESOURCE_ATTRIBUTES ?? "").match(/timonier\\.run_id=([^,]+)/)?.[1];
+const now = BigInt(Date.now()) * 1000000n;
+const span = {
+  traceId: "0af7651916cd43dd8448eb211c80319c", spanId: "b7ad6b7169203331", name: "run",
+  startTimeUnixNano: String(now - 5000000n), endTimeUnixNano: String(now),
+  attributes: [
+    { key: "code.function.name", value: { stringValue: "run" } },
+    { key: "code.file.path", value: { stringValue: "src/main.ts" } },
+    { key: "code.line.number", value: { intValue: "3" } },
+  ],
+};
+const body = { resourceSpans: [{
+  resource: { attributes: [{ key: "timonier.run_id", value: { stringValue: run } }] },
+  scopeSpans: [{ spans: [span] }],
+}] };
+const answer = await fetch(process.env.OTEL_EXPORTER_OTLP_ENDPOINT + "/v1/traces", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+process.exit(answer.ok ? 0 : 1);
+`,
+    );
+    try {
+      await vscode.commands.executeCommand("timonier.openMap");
+      await waitFor(() => mapTabs().length >= 1);
+      const ran = spawnSync(daemon, ["test", "--root", project, "--", process.execPath, emit], {
+        encoding: "utf8",
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      });
+      assert.equal(ran.status, 0, `${ran.stdout}\n${ran.stderr}`);
+      // The run ended: the map's budgets follow, its box marked.
+      await waitFor(() => timonier.mapBudgets()?.checks.some((c) => c.state === "exceeded") === true, 20_000).catch(
+        (error: unknown) => {
+          throw new Error(`${String(error)}: ${JSON.stringify(timonier.mapBudgets())}\n${ran.stderr}`);
+        },
+      );
+      const check = timonier.mapBudgets()?.checks.find((c) => c.id === "N-1");
+      assert.deepEqual(check?.boxes, ["pkg:npm/fixture"]);
+      // The layer, turned on, gives the run's time to the function's node.
+      assert.equal(await timonier.mapCommand({ name: "togglePerformance" }), true);
+      await waitFor(() => (timonier.mapPerformance()?.nodes.length ?? 0) > 0, 20_000);
+      const node = timonier.mapPerformance()?.nodes.find((n) => n.node === "typescript:fixture/src/main#run");
+      assert.ok(node && node.selfNs > 0 && node.enteredNs > 0, JSON.stringify(timonier.mapPerformance()));
+      await timonier.mapCommand({ name: "togglePerformance" });
+    } finally {
+      if (drawn === null) rmSync(intent, { force: true });
+      else writeFileSync(intent, drawn);
+      rmSync(emit, { force: true });
+    }
   });
 
   it("opens the whiteboard, whose production bundle runs under the strict CSP (ADR 0036)", async () => {

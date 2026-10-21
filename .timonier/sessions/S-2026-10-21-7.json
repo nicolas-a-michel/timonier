@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-7",
+  "agent": "claude-code",
+  "objective": "8.2: timonier test -- <command>, level 1 (measuring relay, getrusage, systemd scope on Linux, instruction counter, JUnit durations), recorded by the daemon in perf.sqlite",
+  "tasks": [
+    "T-94"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T09:42:47Z",
+  "ended_at": "2026-10-21T09:54:58Z",
+  "snapshots": {
+    "start": 36,
+    "end": 37
+  },
+  "summary": "8.2 done: timonier test -- <command> (or the runners of tests.json), measuring relay __measure (getrusage everywhere; systemd user scope on Linux for the whole tree, its samples and io.stat; perf-event counter with CPU-time fallback), JUnit durations via junit-parser, runs kept by the daemon (run/record) in .timonier/perf/perf.sqlite. doctor gives the sysctl advice as a note (Q70). ADR 0043 path refined; README, CLAUDE.md, PLAN.md updated. For 8.3: take the snapshot at the start of the run; Ctrl-C loses the run.",
+  "changes": {
+    "files": 16,
+    "added": [
+      {
+        "id": "pkg:cargo/junit-parser",
+        "name": "junit-parser",
+        "within": "other"
+      },
+      {
+        "id": "pkg:cargo/nix",
+        "name": "nix",
+        "within": "other"
+      },
+      {
+        "id": "pkg:cargo/perf-event",
+        "name": "perf-event",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "pkg:cargo/timonier-cli",
+          "name": "timonier-cli",
+          "within": null
+        },
+        "to": {
+          "id": "pkg:cargo/timonier-store",
+          "name": "timonier-store",
+          "within": null
+        }
+      }
+    ],
+    "unlinked": []
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-9",
+  "agent": "claude-code",
+  "objective": "8.4: the OTLP receiver in timonier-otlp (gRPC and HTTP on 4317/4318 or free ports), spans and metrics of the runs kept, attached to tests and graph nodes (ADR 0048), tested with a real OTLP exporter",
+  "tasks": [
+    "T-96"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T10:14:57Z",
+  "ended_at": "2026-10-21T10:25:46Z",
+  "snapshots": {
+    "start": 40,
+    "end": 41
+  },
+  "summary": "8.4 done (ADR 0048): timonier-otlp decodes OTLP (gRPC, HTTP protobuf and JSON) and listens on 127.0.0.1 4317/4318 or free ports, each serving both protocols; the daemon starts it at the first run, keeps spans and metric points of open runs (cap 200k, retention 50 runs), links spans to JUnit tests by timonier.test.name and to graph nodes by id, name in file, line, file. timonier test waits for the first indexing. Next: 8.5, the instrumentation gaps and the MCP tools get_instrumentation_gaps and get_instrumentation_conventions.",
+  "changes": {
+    "files": 15,
+    "added": [
+      {
+        "id": "pkg:cargo/axum",
+        "name": "axum",
+        "within": "network"
+      },
+      {
+        "id": "pkg:cargo/opentelemetry-proto",
+        "name": "opentelemetry-proto",
+        "within": "observability"
+      },
+      {
+        "id": "pkg:cargo/prost",
+        "name": "prost",
+        "within": "serialization"
+      },
+      {
+        "id": "pkg:cargo/tonic",
+        "name": "tonic",
+        "within": "network"
+      }
+    ],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external/network",
+        "name": "network",
+        "within": "external"
+      },
+      {
+        "id": "component:external/observability",
+        "name": "observability",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:external/serialization",
+        "name": "serialization",
+        "within": "external"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "pkg:cargo/timonier-otlp",
+          "name": "timonier-otlp",
+          "within": null
+        },
+        "to": {
+          "id": "component:external",
+          "name": "external",
+          "within": null
+        }
+      }
+    ],
+    "unlinked": []
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-15",
+  "agent": "claude-code",
+  "objective": "T-110: the MCP proxy reconnects to a restarted daemon",
+  "tasks": [
+    "T-110"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T12:39:34Z",
+  "ended_at": "2026-10-21T12:41:09Z",
+  "snapshots": {
+    "start": 52,
+    "end": 53
+  },
+  "summary": "T-110 done: the MCP proxy notices a closed connection, reconnects at the next call (relaunching the daemon through the CLI when none answers) and introduces itself again; a call cut midway is not replayed. Integration test added. Next: the README the human asked for, then T-111.",
+  "changes": {
+    "files": 3,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-mcp",
+        "name": "timonier-mcp",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

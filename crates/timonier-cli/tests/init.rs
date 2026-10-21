@@ -150,7 +150,7 @@ fn stdout(output: &Output) -> String {
 const RUST: &[(&str, &str)] = &[
     (
         "Cargo.toml",
-        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+        "[package]\nname = \"demo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
     ),
     ("src/lib.rs", "pub mod a;\npub fn top() { a::f(); }\n"),
     ("src/a.rs", "pub fn f() {}\n"),
@@ -438,18 +438,18 @@ fn doctor_finds_and_repairs_the_setup() {
             .output()
             .expect("tim runs")
     };
-    let never = check(&project, &["doctor", "--check"]);
+    let never = check(&project, &["doctor", "--check", "--no-smoke"]);
     assert!(!never.status.success());
     assert!(stdout(&never).contains("run `timonier init`"));
     project.tim(&["init", "--yes", "--agents", "claude,cursor"]);
-    let fine = project.tim(&["doctor", "--check"]);
+    let fine = project.tim(&["doctor", "--check", "--no-smoke"]);
     assert!(stdout(&fine).contains("in order"), "{}", stdout(&fine));
     // A daemon that cannot start: its runtime directory cannot be made.
-    let dead = check(&project, &["doctor", "--check"]);
+    let dead = check(&project, &["doctor", "--check", "--no-smoke"]);
     assert!(dead.status.success(), "the daemon above runs");
     let blocked = project
         .command(assert_cmd::cargo::cargo_bin!("tim"))
-        .args(["doctor", "--check"])
+        .args(["doctor", "--check", "--no-smoke"])
         .env("TIMONIER_RUNTIME_DIR", "/dev/null/run")
         .output()
         .expect("tim runs");
@@ -460,7 +460,7 @@ fn doctor_finds_and_repairs_the_setup() {
         stdout(&blocked)
     );
     std::fs::remove_file(project.root().join(".timonier/intent.json")).unwrap();
-    let no_whiteboard = check(&project, &["doctor", "--check"]);
+    let no_whiteboard = check(&project, &["doctor", "--check", "--no-smoke"]);
     assert!(
         stdout(&no_whiteboard).contains("the whiteboard (.timonier/intent.json) is missing"),
         "{}",
@@ -468,7 +468,7 @@ fn doctor_finds_and_repairs_the_setup() {
     );
     std::fs::remove_file(project.root().join(".mcp.json")).unwrap();
     std::fs::write(project.root().join(".timonier/todo.json"), "{ broken").unwrap();
-    let broken = check(&project, &["doctor", "--check"]);
+    let broken = check(&project, &["doctor", "--check", "--no-smoke"]);
     assert!(!broken.status.success());
     let said = stdout(&broken);
     assert!(
@@ -480,7 +480,7 @@ fn doctor_finds_and_repairs_the_setup() {
         !project.root().join(".mcp.json").exists(),
         "--check repairs nothing"
     );
-    let fixed = check(&project, &["doctor", "--fix"]);
+    let fixed = check(&project, &["doctor", "--fix", "--no-smoke"]);
     assert!(
         stdout(&fixed).contains("repaired .mcp.json"),
         "{}",
@@ -496,7 +496,10 @@ fn doctor_finds_and_repairs_the_setup() {
     )
     .unwrap();
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-    while !check(&project, &["doctor", "--check"]).status.success() {
+    while !check(&project, &["doctor", "--check", "--no-smoke"])
+        .status
+        .success()
+    {
         assert!(std::time::Instant::now() < deadline, "never in order again");
         std::thread::sleep(std::time::Duration::from_millis(200));
     }
@@ -670,4 +673,64 @@ fn init_puts_an_empty_whiteboard_that_uninit_keeps_once_drawn_on() {
     // A second `init` leaves the drawing as it is.
     project.tim(&["init", "--yes", "--agents", "claude"]);
     assert_eq!(std::fs::read_to_string(&intent).unwrap(), drawn);
+}
+
+/// PLAN.md 8.6, ADR 0050: `init` adds the OpenTelemetry SDK, its module and a smoke test to a
+/// Rust project; `doctor` runs the smoke test under `timonier test`, and its trace comes back
+/// attached to the graph. The fixture builds the real SDK: slow the first time, its build kept
+/// in `target/tmp` for the next.
+#[test]
+fn doctor_s_smoke_test_produces_a_trace_attached_to_the_graph() {
+    let project = Fixture::new(RUST);
+    project.tim(&["init", "--yes", "--agents", "claude"]);
+    let manifest = project.read("Cargo.toml");
+    assert!(manifest.contains("otel = [\"dep:"), "{manifest}");
+    assert!(
+        project
+            .read("src/timonier_otel.rs")
+            .contains("pub fn init()")
+    );
+    assert!(
+        project
+            .read("tests/timonier_smoke.rs")
+            .contains("fn timonier_smoke()")
+    );
+    assert!(
+        project
+            .read(".timonier/tests.json")
+            .contains("timonier_smoke")
+    );
+
+    // Cargo and its toolchain as this machine has them, not in the fixture's empty home.
+    let home = std::env::var("HOME").unwrap_or_default();
+    let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| format!("{home}/.cargo"));
+    let rustup_home = std::env::var("RUSTUP_HOME").unwrap_or_else(|_| format!("{home}/.rustup"));
+    let target = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("smoke-fixture");
+    let doctor = project
+        .command(assert_cmd::cargo::cargo_bin!("tim"))
+        .args(["doctor", "--check"])
+        .env("CARGO_HOME", cargo_home)
+        .env("RUSTUP_HOME", rustup_home)
+        .env("CARGO_TARGET_DIR", target)
+        .env("TIMONIER_MEASURE", "rusage")
+        .output()
+        .expect("tim runs");
+    let said = stdout(&doctor);
+    assert!(
+        said.contains("the smoke test (rust) produced a trace attached to the graph"),
+        "{said}\n{}",
+        String::from_utf8_lossy(&doctor.stderr)
+    );
+    // Its run is a smoke test, which neither the budgets nor the views take (relecture n° 3).
+    let perf = timonier_store::PerfStore::open(project.root().join(".timonier/perf/perf.sqlite"))
+        .expect("the runs");
+    let runs = perf.summaries(10).expect("the runs");
+    assert!(!runs.is_empty() && runs.iter().all(|r| r.smoke), "{runs:?}");
+    assert_eq!(perf.latest_traced().expect("the runs"), None);
+
+    // And `uninit` takes it all back.
+    project.tim(&["uninit", "--yes"]);
+    assert_eq!(project.read("Cargo.toml"), RUST[0].1);
+    assert!(!project.root().join("src/timonier_otel.rs").exists());
+    assert!(!project.root().join("tests").exists());
 }

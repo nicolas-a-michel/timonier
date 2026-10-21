@@ -27,6 +27,7 @@ function withBoxes(count: number): ViewModel {
       children: 0,
       file: null,
       span: null,
+      signature: null,
       review: null,
       debt: null,
     });

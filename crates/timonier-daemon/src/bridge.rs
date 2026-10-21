@@ -299,6 +299,7 @@ mod tests {
             summary: None,
             todo: Vec::new(),
             changes: None,
+            budgets: Vec::new(),
         };
         let sessions = [
             session("2026-10-20T08:00:00Z"),

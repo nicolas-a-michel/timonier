@@ -43,7 +43,8 @@ function rendered(view: ViewData): WebviewMessage {
 export function reduce(model: ViewModel, message: HostMessage): Reduced {
   switch (message.type) {
     // For the map itself (main.tsx), not for the view's data; the tracking is for its panels
-    // (ADR 0031), the whiteboard's commands for its page (ADR 0037).
+    // (ADR 0031), the whiteboard's commands for its page (ADR 0037), the performances for the map's
+    // layer and their panel (ADR 0051).
     case "command":
     case "pins":
     case "density":
@@ -52,6 +53,11 @@ export function reduce(model: ViewModel, message: HostMessage): Reduced {
     case "intent":
     case "intentSaved":
     case "drift":
+    case "perfMap":
+    case "perfRuns":
+    case "perfRun":
+    case "budgets":
+    case "perfRegressions":
       return { model, effects: [] };
     case "daemon":
       return { model: { ...model, daemon: { state: message.state, detail: message.detail } }, effects: [] };

@@ -47,3 +47,15 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0040 | [Le dessin libre pour l'agent : une image et des emplacements](0040-croquis-pour-l-agent.md) | Accepté | 7 |
 | 0041 | [Les outils `get_intended_architecture` et `get_drift`, et l'ancrage](0041-outils-intention-et-derive.md) | Accepté | 7 |
 | 0042 | [La carte comparée à l'intention](0042-carte-comparee-a-l-intention.md) (complète la 0021) | Accepté | 7 |
+| 0043 | [Où vivent les mesures de performance](0043-stockage-des-mesures.md) | Accepté | 8 |
+| 0044 | [L'instrumentation de Timonier : la feature `otel` et `code.function.name`](0044-feature-otel.md) | Accepté | 8 |
+| 0045 | [Niveau 1 : mesurer un run de tests sous Linux et macOS](0045-niveau-1.md) | Accepté | 8 |
+| 0046 | [Les compteurs d'instructions CPU](0046-compteurs-materiels.md) | Accepté | 8 |
+| 0047 | [Le run se signale aux tests, et chaque test devient un span racine](0047-test-span-racine.md) | Accepté | 8 |
+| 0048 | [Le récepteur OTLP : ports, protocoles, ce qu'il garde, et le rattachement au graphe](0048-recepteur-otlp.md) | Accepté | 8 |
+| 0049 | [Les trous d'instrumentation et le surcoût](0049-trous-d-instrumentation.md) | Accepté | 8 |
+| 0050 | [Le volet instrumentation de `timonier init`, et le test de fumée de `doctor`](0050-init-instrumentation.md) | Accepté | 8 |
+| 0051 | [Les vues de performances : le calque de la carte, et le panneau](0051-vues-de-performances.md) | Accepté | 8 |
+| 0052 | [Les budgets de performance vérifiés sur les runs](0052-budgets.md) | Accepté | 8 |
+| 0053 | [La détection des régressions de performances](0053-regressions.md) | Accepté | 8 |
+| 0054 | [Ce que la carte dit d'un symbole : sa sorte et sa signature](0054-symboles-de-la-carte.md) | Accepté | 8 |

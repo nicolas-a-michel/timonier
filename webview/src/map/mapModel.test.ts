@@ -17,6 +17,7 @@ function node(id: string, role: Role | null, parent: string | null = null, child
     children,
     file: null,
     span: null,
+    signature: null,
     review: null,
     debt: null,
   };

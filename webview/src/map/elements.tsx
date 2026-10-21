@@ -17,13 +17,16 @@ import {
 import { useMemo } from "react";
 
 import { Badge, ComponentBox } from "../design/components";
-import { ChangeIcon, IntentIcon, RoleIcon } from "../design/icons";
+import { ChangeIcon, IntentIcon, RoleIcon, SymbolIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
 import type { Density, NodeDebt, Role } from "../protocol";
 import { METRICS } from "./layout";
 import type { IntentMark } from "./intent";
+import { trafficWidth, type PerfMark } from "./perf";
+import { performanceMessages } from "../performance/messages";
+import { duration } from "../performance/model";
 import { labelSpot, type Obstacle } from "./labelSpot";
-import { debtLevel, type MapBox, type MapEdge, type MapGroup } from "./mapModel";
+import { debtLevel, symbolOf, type MapBox, type MapEdge, type MapGroup } from "./mapModel";
 import { LinkBadge, primaryChange, ReviewBadge } from "./review";
 
 /** Which sides of an item edges leave from (right) or come into (left). */
@@ -66,7 +69,38 @@ function Ends({ y, sides }: { y: number; sides: Sides }) {
  * Out of the filter « only the changes »: drawn, but quieter (ADR 0024). `debt`: the layer of
  * the review debt is on (ADR 0030).
  */
-export type Quiet = { quiet: boolean; debt?: boolean; intent?: IntentMark };
+export type Quiet = {
+  quiet: boolean;
+  debt?: boolean;
+  intent?: IntentMark;
+  /** The Performances layer is on (ADR 0051): what the item cost, `null` when nothing measured. */
+  perf?: PerfMark | null;
+  /** The budgets it holds that the last runs exceed, in words (ADR 0052). */
+  budgets?: string[];
+};
+
+/** A budget the last runs exceed (Q74, ADR 0052): the violation's shape and word, in the title
+ * bar; what it says, on hover and in the item's name. */
+function BudgetFlag({ said, locale }: { said: string[] | undefined; locale: Locale }) {
+  if (!said || said.length === 0) return null;
+  return (
+    <span className="tim-budget-mark" title={said.join(" · ")}>
+      <Badge tone="violation" label={performanceMessages[locale].budgetMark} />
+    </span>
+  );
+}
+
+/** What an item cost in the run (ADR 0051, Q76): its cumulative time; its own time and calls when there is room. */
+function PerfWords({ mark, locale, short }: { mark: PerfMark; locale: Locale; short?: boolean }) {
+  const t = performanceMessages[locale];
+  const time = duration(mark.totalNs, locale);
+  const words = t.boxWords(time, duration(mark.selfNs, locale), mark.calls);
+  return (
+    <span className="tim-perf-words" title={words}>
+      <span className="tim-perf-words__time">{short ? t.boxShort(time) : words}</span>
+    </span>
+  );
+}
 
 /**
  * What a box says of the whiteboard (ADR 0042): an icon in its title bar, which always has room
@@ -148,6 +182,8 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
               <Changes count={group.changes} locale={locale} />
             )}
             <IntentFlag mark={data.intent} locale={locale} />
+            <BudgetFlag said={data.budgets} locale={locale} />
+            {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -173,6 +209,8 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
             <Changes count={group.changes} locale={locale} />
           )}
           <IntentFlag mark={data.intent} locale={locale} />
+          <BudgetFlag said={data.budgets} locale={locale} />
+          {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
         </div>
         <ul className="tim-map-role__members">
           {shown.map((member) => {
@@ -223,22 +261,28 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
   const { node } = box;
   const flag = node.review ? <ReviewBadge review={node.review} locale={locale} /> : undefined;
   const debt = data.debt && node.debt ? node.debt : null;
+  const symbol = symbolOf(node);
   if (box.open) {
     return (
       <>
         <div
           className={quiet ? "tim-map-frame tim-map-frame--box tim-map--quiet" : "tim-map-frame tim-map-frame--box"}
           data-contrast="outline"
-          data-role={node.role ?? undefined}
+          data-role={symbol ? undefined : (node.role ?? undefined)}
+          data-symbol={symbol?.kind}
+          title={symbol ? t.symbolTip(t.symbolKinds[symbol.kind], symbol.signature) : undefined}
         >
           <div className="tim-map-frame__header" data-contrast="icon">
-            <RoleIcon role={node.role} />
+            {symbol ? <SymbolIcon kind={symbol.kind} /> : <RoleIcon role={node.role} />}
             <span className="tim-map-frame__title">{node.name}</span>
             <span className="tim-map-frame__meta">
-              {node.role ? t.roles[node.role] : t.noRole} · {t.items(node.children)}
+              {symbol ? t.symbolKinds[symbol.kind] : node.role ? t.roles[node.role] : t.noRole} ·{" "}
+              {t.items(node.children)}
             </span>
             {data.debt ? debt && <DebtWords debt={debt} locale={locale} short /> : flag}
             <IntentFlag mark={data.intent} locale={locale} />
+            <BudgetFlag said={data.budgets} locale={locale} />
+            {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -255,16 +299,24 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
         focusable={false}
         dimmed={quiet}
         flag={
-          (!data.debt && flag) || data.intent ? (
+          (!data.debt && flag) || data.intent || data.budgets ? (
             <>
               {data.debt ? undefined : flag}
               <IntentFlag mark={data.intent} locale={locale} />
+              <BudgetFlag said={data.budgets} locale={locale} />
             </>
           ) : undefined
         }
         badges={box.folded ? <Badge tone="neutral" label={t.folded(node.children)} /> : undefined}
-        debt={debt ? <DebtWords debt={debt} locale={locale} /> : undefined}
+        debt={
+          debt ? (
+            <DebtWords debt={debt} locale={locale} />
+          ) : data.perf ? (
+            <PerfWords mark={data.perf} locale={locale} />
+          ) : undefined
+        }
         debtLevel={debtLevel(debt)}
+        symbol={symbol ?? undefined}
       />
       <Ends y={pinY.box} sides={sides} />
     </>
@@ -279,6 +331,8 @@ export type LineEdge = Edge<
     forbidden?: string[];
     /** What the forbidden word may lie over, computed once per layout (labelSpot.ts). */
     covering?: readonly Obstacle[];
+    /** The Performances layer: the calls this line carries, and the busiest line's (ADR 0051). */
+    traffic?: { calls: number; most: number };
   } & Quiet,
   "line"
 >;
@@ -331,6 +385,12 @@ export function LineElement({
         id={id}
         path={path}
         className={classes.join(" ")}
+        // Thickness is the measured traffic's, and only its (ADR 0021, 0051).
+        style={
+          data?.traffic && data.traffic.calls > 0
+            ? { strokeWidth: `calc(var(--tim-edge-width) * ${trafficWidth(data.traffic.calls, data.traffic.most)})` }
+            : undefined
+        }
         data-role={active && active !== "neutral" ? active : undefined}
         // Quieted by the filter, it steps back: its contrast is no longer its job.
         data-contrast={quiet && !active ? undefined : "stroke"}

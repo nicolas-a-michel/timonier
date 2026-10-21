@@ -12,6 +12,9 @@
 !dist/webview/whiteboard/assets/**
 !dist/webview/whiteboard/.vite/manifest.json
 !dist/webview/whiteboard/THIRD-PARTY-NOTICES.md
+!dist/webview/performance/assets/**
+!dist/webview/performance/.vite/manifest.json
+!dist/webview/performance/THIRD-PARTY-NOTICES.md
 !l10n/**
 !media/**
 !package.nls.json

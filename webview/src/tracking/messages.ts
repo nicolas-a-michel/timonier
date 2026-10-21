@@ -58,7 +58,9 @@ export interface TrackingMessages {
   unlinked: string;
   todo: string;
   tests: string;
+  /** The Tests part of a session: no budget exceeded at its end, or checked when it ends. */
   noTests: string;
+  testsAtEnd: string;
   /** The bridge (ADR 0032). */
   bridgeLabel: string;
   planHeading: string;
@@ -77,6 +79,8 @@ export interface TrackingMessages {
   sessionsSince: (count: number) => string;
   toRead: (files: number, untracked: number) => string;
   openMap: string;
+  openPerformance: string;
+  budgetExceeded: string;
   markReviewed: string;
   lookHeading: string;
   lookEmpty: string;
@@ -151,7 +155,8 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     unlinked: "removed",
     todo: "Todo",
     tests: "Tests",
-    noTests: "No test run measured yet: they come with « timonier test ».",
+    noTests: "No budget of the whiteboard exceeded when it ended.",
+    testsAtEnd: "The budgets of the whiteboard are checked on the last runs when it ends.",
     bridgeLabel: "Where things stand",
     planHeading: "Plan",
     underway: (inProgress, blocked) =>
@@ -172,6 +177,8 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     toRead: (files, untracked) =>
       `${files === 1 ? "1 file" : `${files} files`} to read again${untracked > 0 ? `, ${untracked} untracked` : ""}`,
     openMap: "Open Map",
+    openPerformance: "Performances",
+    budgetExceeded: "Budget exceeded",
     markReviewed: "Mark as reviewed",
     lookHeading: "Where to look",
     lookEmpty: "Nothing to read again.",
@@ -243,7 +250,8 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     unlinked: "retirée",
     todo: "Todo",
     tests: "Tests",
-    noTests: "Aucun run de tests mesuré pour l'instant : ils arrivent avec « timonier test ».",
+    noTests: "Aucun budget du tableau blanc dépassé à sa fin.",
+    testsAtEnd: "Les budgets du tableau blanc sont vérifiés sur les derniers runs à sa fin.",
     bridgeLabel: "Où en sont les choses",
     planHeading: "Plan",
     underway: (inProgress, blocked) =>
@@ -264,6 +272,8 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     toRead: (files, untracked) =>
       `${files === 1 ? "1 fichier" : `${files} fichiers`} à relire${untracked > 0 ? `, dont ${untracked} non suivi${untracked > 1 ? "s" : ""}` : ""}`,
     openMap: "Ouvrir la carte",
+    openPerformance: "Performances",
+    budgetExceeded: "Budget dépassé",
     markReviewed: "Marquer comme revu",
     lookHeading: "Où regarder",
     lookEmpty: "Rien à relire.",

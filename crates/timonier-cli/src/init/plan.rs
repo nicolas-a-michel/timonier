@@ -31,7 +31,7 @@ blocked, done or dropped.
 `get_drift`: forbidden edges crossed, required edges and drawn components missing.
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and \
 `intent.json`, the whiteboard, belongs to the developer.
-- Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says.
+- Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
 - Every tool result starts with a mailbox header: read the messages it announces.";
 
 /// What `CLAUDE.md` holds when it exists: Claude Code then reads it instead of `AGENTS.md`.
@@ -124,6 +124,9 @@ pub struct TestRunner {
     /// `null` when the runner cannot write JUnit XML as it is (see the note of `init`).
     pub command: Option<String>,
     pub junit: Option<String>,
+    /// Timonier's smoke test, which `timonier doctor` runs (ADR 0050).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoke: Option<String>,
 }
 
 pub const TESTS: &str = ".timonier/tests.json";
@@ -286,6 +289,8 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
     // The test runners and the conventions of each language (ADR 0034).
     let mut runner_notes = Vec::new();
     let mut info = Vec::new();
+    // The languages whose manifest took the SDK: their smoke test exists.
+    let mut instrumented = std::collections::BTreeSet::new();
     for runner in &choices.runners {
         let rule = &runner.rule;
         if let Some(config) = &rule.config {
@@ -319,6 +324,74 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
             let path = PathBuf::from(format!(".timonier/conventions/{}/{name}", runner.language));
             change(path, Ok(text.clone()), false, "");
         }
+        // The OpenTelemetry SDK, its module and the smoke test (ADR 0050).
+        // Only where Timonier runs the tests: not at the top of npm workspaces, say.
+        if let Some(rules) = runner
+            .instrumentation
+            .as_ref()
+            .filter(|_| rule.command.is_some())
+        {
+            let sdk: Vec<edits::Sdk<'_>> = rules
+                .dependencies
+                .iter()
+                .map(|d| edits::Sdk {
+                    name: &d.name,
+                    version: &d.version,
+                    features: &d.features,
+                    default_features: d.default_features,
+                    production: d.production,
+                })
+                .collect();
+            let manifest = match runner.ecosystem.as_str() {
+                "cargo" => "Cargo.toml",
+                _ => "package.json",
+            };
+            // `false`: the manifest takes no SDK here, so the files have no crate to go in.
+            let mut takes = false;
+            if let Some(current) = read(root, Path::new(manifest)) {
+                let after = match (runner.ecosystem.as_str(), &rules.feature) {
+                    ("cargo", Some(feature)) => edits::cargo_with_sdk(&current, feature, &sdk),
+                    ("cargo", None) => Err("the pack names no feature".to_owned()),
+                    _ => edits::npm_with_sdk(&current, &sdk).map(Some),
+                };
+                match after {
+                    Ok(Some(after)) => {
+                        takes = true;
+                        instrumented.insert(runner.language.clone());
+                        change(
+                            PathBuf::from(manifest),
+                            Ok(after),
+                            false,
+                            "the OpenTelemetry SDK",
+                        );
+                    }
+                    Ok(None) => info.push(format!(
+                        "OpenTelemetry ({}): a workspace without a root package; each crate \
+                         that runs tests takes the SDK as the conventions say",
+                        runner.language
+                    )),
+                    Err(why) => change(
+                        PathBuf::from(manifest),
+                        Err(why),
+                        false,
+                        "the OpenTelemetry SDK",
+                    ),
+                }
+            }
+            let smoke = rule.smoke.iter().flat_map(|s| &s.files);
+            for file in rules.files.iter().chain(smoke).filter(|_| takes) {
+                let path = PathBuf::from(&file.path);
+                // A file of the developer's at that place stays theirs.
+                if read(root, &path).is_none()
+                    && let Some(text) = runner.templates.get(&file.source)
+                {
+                    change(path, Ok(text.clone()), false, "");
+                }
+            }
+            if let Some(said) = rules.note.as_ref().filter(|_| takes) {
+                info.push(format!("OpenTelemetry ({}): {said}", runner.language));
+            }
+        }
     }
     // An empty whiteboard (spec « Initialisation », 6; Q57): drawn on in VSCode, read by the
     // agents. One already there is the developer's.
@@ -342,6 +415,12 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                     runner: r.rule.name.clone(),
                     command: r.rule.command.clone(),
                     junit: r.rule.junit.clone(),
+                    smoke: r
+                        .rule
+                        .smoke
+                        .as_ref()
+                        .filter(|_| instrumented.contains(&r.language))
+                        .map(|s| s.command.clone()),
                 })
                 .collect(),
         };

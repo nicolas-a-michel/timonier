@@ -19,10 +19,26 @@ const MIGRATION_SLICE: &[M<'_>] = &[
 
 pub(crate) const MIGRATIONS: Migrations<'_> = Migrations::from_slice(MIGRATION_SLICE);
 
+/// The measurements' own migrations (ADR 0043), forward-only too.
+const PERF_MIGRATION_SLICE: &[M<'_>] = &[
+    M::up(include_str!("../migrations/perf/0001_runs.sql")),
+    M::up(include_str!(
+        "../migrations/perf/0002_worktree_and_aggregates.sql"
+    )),
+    M::up(include_str!("../migrations/perf/0003_smoke.sql")),
+];
+
+pub(crate) const PERF_MIGRATIONS: Migrations<'_> = Migrations::from_slice(PERF_MIGRATION_SLICE);
+
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Opens the only read-write connection, in WAL mode, and brings the schema up to date.
 pub(crate) fn open_writer(path: &Path) -> Result<Connection> {
+    open_writer_with(path, &MIGRATIONS)
+}
+
+/// [`open_writer`], for a database with other migrations.
+pub(crate) fn open_writer_with(path: &Path, migrations: &Migrations<'_>) -> Result<Connection> {
     let mut connection = Connection::open(path)?;
     connection.busy_timeout(BUSY_TIMEOUT)?;
     let mode: String =
@@ -33,7 +49,7 @@ pub(crate) fn open_writer(path: &Path) -> Result<Connection> {
     // Safe with WAL; the database is a rebuildable cache (ADR 0011).
     connection.pragma_update(None, "synchronous", "NORMAL")?;
     connection.pragma_update(None, "foreign_keys", "ON")?;
-    MIGRATIONS.to_latest(&mut connection)?;
+    migrations.to_latest(&mut connection)?;
     Ok(connection)
 }
 
@@ -56,6 +72,7 @@ mod tests {
     #[test]
     fn migrations_are_valid() {
         MIGRATIONS.validate().unwrap();
+        PERF_MIGRATIONS.validate().unwrap();
     }
 
     #[test]

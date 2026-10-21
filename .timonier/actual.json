@@ -149,11 +149,25 @@
       "parent": "pkg:cargo/timonier-daemon"
     },
     {
+      "id": "component:dir/crates/timonier-index/packs",
+      "kind": "component",
+      "name": "packs",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-index"
+    },
+    {
       "id": "component:dir/crates/timonier-index/tests",
       "kind": "component",
       "name": "tests",
       "role": "utility",
       "parent": "pkg:cargo/timonier-index"
+    },
+    {
+      "id": "component:dir/crates/timonier-store/examples",
+      "kind": "component",
+      "name": "examples",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-store"
     },
     {
       "id": "component:dir/editors/vscode/src/test",
@@ -317,6 +331,13 @@
       "parent": "component:external/other"
     },
     {
+      "id": "pkg:cargo/axum",
+      "kind": "package",
+      "name": "axum",
+      "role": "external_libraries",
+      "parent": "component:external/network"
+    },
+    {
       "id": "pkg:cargo/blake3",
       "kind": "package",
       "name": "blake3",
@@ -345,11 +366,67 @@
       "parent": "component:external/other"
     },
     {
+      "id": "pkg:cargo/junit-parser",
+      "kind": "package",
+      "name": "junit-parser",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/nix",
+      "kind": "package",
+      "name": "nix",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:cargo/notify-debouncer-full",
       "kind": "package",
       "name": "notify-debouncer-full",
       "role": "external_libraries",
       "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/opentelemetry",
+      "kind": "package",
+      "name": "opentelemetry",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/opentelemetry-otlp",
+      "kind": "package",
+      "name": "opentelemetry-otlp",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/opentelemetry-proto",
+      "kind": "package",
+      "name": "opentelemetry-proto",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/opentelemetry_sdk",
+      "kind": "package",
+      "name": "opentelemetry_sdk",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/perf-event",
+      "kind": "package",
+      "name": "perf-event",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/prost",
+      "kind": "package",
+      "name": "prost",
+      "role": "external_libraries",
+      "parent": "component:external/serialization"
     },
     {
       "id": "pkg:cargo/rayon",
@@ -453,7 +530,7 @@
       "id": "pkg:cargo/timonier-otlp",
       "kind": "package",
       "name": "timonier-otlp",
-      "role": "utility",
+      "role": "entry_point",
       "parent": null
     },
     {
@@ -485,9 +562,23 @@
       "parent": "component:external/serialization"
     },
     {
+      "id": "pkg:cargo/tonic",
+      "kind": "package",
+      "name": "tonic",
+      "role": "external_libraries",
+      "parent": "component:external/network"
+    },
+    {
       "id": "pkg:cargo/tracing",
       "kind": "package",
       "name": "tracing",
+      "role": "external_libraries",
+      "parent": "component:external/observability"
+    },
+    {
+      "id": "pkg:cargo/tracing-opentelemetry",
+      "kind": "package",
+      "name": "tracing-opentelemetry",
       "role": "external_libraries",
       "parent": "component:external/observability"
     },
@@ -576,6 +667,20 @@
       "parent": null
     },
     {
+      "id": "pkg:npm/timonier-workspace",
+      "kind": "package",
+      "name": "timonier-workspace",
+      "role": "utility",
+      "parent": null
+    },
+    {
+      "id": "pkg:npm/uplot",
+      "kind": "package",
+      "name": "uplot",
+      "role": "external_libraries",
+      "parent": "component:external/ui"
+    },
+    {
       "id": "pkg:npm/vscode-jsonrpc",
       "kind": "package",
       "name": "vscode-jsonrpc",
@@ -622,6 +727,14 @@
     },
     {
       "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-core/src/aggregate.rs",
       "to": "pkg:cargo/serde",
       "kinds": [
         "imports"
@@ -636,7 +749,7 @@
         "imports",
         "references"
       ],
-      "weight": 37
+      "weight": 39
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -646,7 +759,7 @@
         "imports",
         "references"
       ],
-      "weight": 59
+      "weight": 66
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -654,7 +767,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 6
+      "weight": 9
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -662,7 +775,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 11
+      "weight": 19
     },
     {
       "from": "component:cluster/crates/timonier-core/src/protocol.rs",
@@ -678,7 +791,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 4
+      "weight": 7
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
@@ -773,16 +886,17 @@
         "imports",
         "references"
       ],
-      "weight": 102
+      "weight": 130
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
       "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
       "kinds": [
         "calls",
+        "imports",
         "references"
       ],
-      "weight": 7
+      "weight": 21
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -792,7 +906,7 @@
         "imports",
         "references"
       ],
-      "weight": 287
+      "weight": 486
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -802,7 +916,7 @@
         "imports",
         "references"
       ],
-      "weight": 25
+      "weight": 30
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -812,7 +926,7 @@
         "imports",
         "references"
       ],
-      "weight": 23
+      "weight": 28
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -841,13 +955,23 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "pkg:cargo/timonier-otlp",
+      "kinds": [
+        "calls",
+        "implements",
+        "references"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
       "to": "pkg:cargo/timonier-store",
       "kinds": [
         "calls",
         "imports",
         "references"
       ],
-      "weight": 6
+      "weight": 32
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -922,7 +1046,7 @@
         "imports",
         "references"
       ],
-      "weight": 76
+      "weight": 80
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1110,7 +1234,17 @@
         "imports",
         "references"
       ],
-      "weight": 58
+      "weight": 73
+    },
+    {
+      "from": "component:cluster/editors/vscode/src/extension.ts",
+      "to": "pkg:npm/timonier",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 7
     },
     {
       "from": "component:cluster/webview/src/App.test.tsx",
@@ -1119,7 +1253,7 @@
         "imports",
         "references"
       ],
-      "weight": 14
+      "weight": 16
     },
     {
       "from": "component:cluster/webview/src/App.test.tsx",
@@ -1163,9 +1297,10 @@
       "to": "component:dir/webview/src/design",
       "kinds": [
         "calls",
-        "imports"
+        "imports",
+        "references"
       ],
-      "weight": 2
+      "weight": 4
     },
     {
       "from": "component:cluster/webview/src/App.test.tsx",
@@ -1200,7 +1335,7 @@
         "imports",
         "references"
       ],
-      "weight": 21
+      "weight": 23
     },
     {
       "from": "component:cluster/webview/src/host.ts",
@@ -1253,7 +1388,7 @@
         "imports",
         "references"
       ],
-      "weight": 27
+      "weight": 35
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1263,7 +1398,7 @@
         "imports",
         "references"
       ],
-      "weight": 47
+      "weight": 62
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1291,7 +1426,7 @@
         "imports",
         "references"
       ],
-      "weight": 25
+      "weight": 34
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1301,7 +1436,16 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 36
+    },
+    {
+      "from": "component:cluster/webview/src/map/MapView.test.ts",
+      "to": "pkg:npm/@timonier/webview",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 12
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -1372,7 +1516,7 @@
         "imports",
         "references"
       ],
-      "weight": 61
+      "weight": 62
     },
     {
       "from": "component:cluster/webview/src/map/mapModel.test.ts",
@@ -1391,6 +1535,15 @@
         "imports"
       ],
       "weight": 6
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 3
     },
     {
       "from": "component:cluster/webview/src/map/mapModel.test.ts",
@@ -1416,7 +1569,7 @@
         "imports",
         "references"
       ],
-      "weight": 9
+      "weight": 10
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
@@ -1425,7 +1578,7 @@
         "imports",
         "references"
       ],
-      "weight": 5
+      "weight": 6
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
@@ -1434,7 +1587,7 @@
         "calls",
         "references"
       ],
-      "weight": 2
+      "weight": 4
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
@@ -1476,15 +1629,25 @@
         "imports",
         "references"
       ],
-      "weight": 17
+      "weight": 19
     },
     {
       "from": "component:dir/crates/timonier-cli/tests",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 16
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/tests",
+      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "kinds": [
         "calls"
       ],
-      "weight": 2
+      "weight": 4
     },
     {
       "from": "component:dir/crates/timonier-cli/tests",
@@ -1501,6 +1664,16 @@
         "imports"
       ],
       "weight": 3
+    },
+    {
+      "from": "component:dir/crates/timonier-cli/tests",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 6
     },
     {
       "from": "component:dir/crates/timonier-daemon/examples",
@@ -1614,7 +1787,7 @@
         "imports",
         "references"
       ],
-      "weight": 141
+      "weight": 145
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1634,7 +1807,7 @@
         "imports",
         "references"
       ],
-      "weight": 38
+      "weight": 42
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
@@ -1704,6 +1877,36 @@
       "weight": 19
     },
     {
+      "from": "component:dir/crates/timonier-store/examples",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 29
+    },
+    {
+      "from": "component:dir/crates/timonier-store/examples",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 25
+    },
+    {
+      "from": "component:dir/crates/timonier-store/examples",
+      "to": "pkg:cargo/timonier-store",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 10
+    },
+    {
       "from": "component:dir/editors/vscode/src/test/integration",
       "to": "component:cluster/editors/vscode/src/daemon.ts",
       "kinds": [
@@ -1754,6 +1957,14 @@
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
+      "to": "pkg:npm/timonier",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:dir/editors/vscode/src/test/unit",
       "to": "pkg:npm/vscode-jsonrpc",
       "kinds": [
         "imports"
@@ -1778,7 +1989,7 @@
         "imports",
         "references"
       ],
-      "weight": 45
+      "weight": 49
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -1788,7 +1999,7 @@
         "imports",
         "references"
       ],
-      "weight": 9
+      "weight": 10
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -1812,9 +2023,10 @@
       "to": "component:dir/webview/src/design",
       "kinds": [
         "calls",
-        "imports"
+        "imports",
+        "references"
       ],
-      "weight": 17
+      "weight": 20
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -1823,6 +2035,14 @@
         "calls"
       ],
       "weight": 2
+    },
+    {
+      "from": "component:dir/webview/src/demo",
+      "to": "pkg:npm/@timonier/webview",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
     },
     {
       "from": "component:dir/webview/src/demo",
@@ -1864,7 +2084,15 @@
       "kinds": [
         "calls"
       ],
-      "weight": 32
+      "weight": 42
+    },
+    {
+      "from": "component:dir/webview/src/design",
+      "to": "pkg:npm/@timonier/webview",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
     },
     {
       "from": "component:dir/webview/src/design",
@@ -1926,7 +2154,7 @@
         "calls",
         "imports"
       ],
-      "weight": 15
+      "weight": 16
     },
     {
       "from": "component:dir/webview/src/tracking",
@@ -1962,7 +2190,7 @@
         "imports",
         "references"
       ],
-      "weight": 34
+      "weight": 29
     },
     {
       "from": "component:dir/webview/src/whiteboard",
@@ -2040,14 +2268,6 @@
     },
     {
       "from": "component:dir/webview/test/a11y",
-      "to": "component:cluster/webview/src/density.test.ts",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
-    },
-    {
-      "from": "component:dir/webview/test/a11y",
       "to": "component:cluster/webview/src/map/MapView.test.ts",
       "kinds": [
         "calls"
@@ -2103,10 +2323,11 @@
       "from": "pkg:cargo/timonier-cli",
       "to": "component:cluster/crates/timonier-core/src/protocol.rs",
       "kinds": [
+        "calls",
         "imports",
         "references"
       ],
-      "weight": 17
+      "weight": 70
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2116,16 +2337,17 @@
         "imports",
         "references"
       ],
-      "weight": 28
+      "weight": 39
     },
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "component:dir/crates/timonier-cli/src/init",
       "kinds": [
         "calls",
+        "imports",
         "references"
       ],
-      "weight": 8
+      "weight": 11
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2134,7 +2356,7 @@
         "depends_on",
         "imports"
       ],
-      "weight": 5
+      "weight": 7
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2143,7 +2365,59 @@
         "depends_on",
         "imports"
       ],
-      "weight": 9
+      "weight": 11
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/junit-parser",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/nix",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/opentelemetry",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/opentelemetry-otlp",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/opentelemetry_sdk",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/perf-event",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
     },
     {
       "from": "pkg:cargo/timonier-cli",
@@ -2191,17 +2465,51 @@
       "to": "pkg:cargo/timonier-mcp",
       "kinds": [
         "calls",
+        "depends_on",
+        "references"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
         "depends_on"
       ],
-      "weight": 2
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/toml",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/tracing",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/tracing-opentelemetry",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
     },
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/tracing-subscriber",
       "kinds": [
-        "depends_on"
+        "depends_on",
+        "imports"
       ],
-      "weight": 1
+      "weight": 7
     },
     {
       "from": "pkg:cargo/timonier-core",
@@ -2443,7 +2751,7 @@
         "imports",
         "references"
       ],
-      "weight": 14
+      "weight": 19
     },
     {
       "from": "pkg:cargo/timonier-mcp",
@@ -2503,7 +2811,7 @@
         "depends_on",
         "imports"
       ],
-      "weight": 8
+      "weight": 7
     },
     {
       "from": "pkg:cargo/timonier-mcp",
@@ -2515,7 +2823,101 @@
     },
     {
       "from": "pkg:cargo/timonier-otlp",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 28
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/axum",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/opentelemetry",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/opentelemetry-otlp",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/opentelemetry-proto",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 24
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/prost",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/serde_json",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
       "to": "pkg:cargo/timonier-core",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 4
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/tonic",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-otlp",
+      "to": "pkg:cargo/tracing",
       "kinds": [
         "depends_on"
       ],
@@ -2529,7 +2931,7 @@
         "imports",
         "references"
       ],
-      "weight": 317
+      "weight": 288
     },
     {
       "from": "pkg:cargo/timonier-store",
@@ -2539,7 +2941,17 @@
         "imports",
         "references"
       ],
-      "weight": 235
+      "weight": 214
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "component:cluster/crates/timonier-core/src/protocol.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 80
     },
     {
       "from": "pkg:cargo/timonier-store",
@@ -2548,11 +2960,28 @@
         "depends_on",
         "imports"
       ],
-      "weight": 18
+      "weight": 22
     },
     {
       "from": "pkg:cargo/timonier-store",
       "to": "pkg:cargo/rusqlite_migration",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/serde",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/serde_json",
       "kinds": [
         "depends_on",
         "imports"
@@ -2574,6 +3003,78 @@
         "depends_on"
       ],
       "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-store",
+      "to": "pkg:cargo/tracing",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:cluster/webview/src/App.test.tsx",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 17
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:cluster/webview/src/density.test.ts",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 48
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:cluster/webview/src/host.ts",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/src/design",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/src/whiteboard",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 7
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/test/a11y",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 9
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "component:dir/webview/test/production",
+      "kinds": [
+        "calls",
+        "imports"
+      ],
+      "weight": 2
     },
     {
       "from": "pkg:npm/@timonier/webview",
@@ -2603,17 +3104,45 @@
       "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/react",
       "kinds": [
-        "depends_on"
+        "depends_on",
+        "imports"
       ],
-      "weight": 1
+      "weight": 4
     },
     {
       "from": "pkg:npm/@timonier/webview",
       "to": "pkg:npm/react-dom",
       "kinds": [
-        "depends_on"
+        "depends_on",
+        "imports"
       ],
-      "weight": 1
+      "weight": 3
+    },
+    {
+      "from": "pkg:npm/@timonier/webview",
+      "to": "pkg:npm/uplot",
+      "kinds": [
+        "depends_on",
+        "imports"
+      ],
+      "weight": 3
+    },
+    {
+      "from": "pkg:npm/timonier",
+      "to": "component:cluster/editors/vscode/src/daemon.ts",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 38
+    },
+    {
+      "from": "pkg:npm/timonier",
+      "to": "component:dir/editors/vscode/src/test/unit",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 5
     },
     {
       "from": "pkg:npm/timonier",

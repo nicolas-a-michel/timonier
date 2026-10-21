@@ -40,8 +40,22 @@ export function isHostMessage(data: unknown): data is HostMessage {
     type === "daemon" ||
     type === "command" ||
     type === "pins" ||
-    type === "drift"
+    type === "drift" ||
+    type === "perfMap" ||
+    type === "budgets"
   );
+}
+
+/** The host's messages to the Performances panel (ADR 0051): the runs, the run shown, the daemon's state. */
+export type PerformanceHostMessage = Extract<
+  HostMessage,
+  { type: "perfRuns" | "perfRun" | "perfRegressions" | "daemon" }
+>;
+
+export function isPerformanceMessage(data: unknown): data is PerformanceHostMessage {
+  if (typeof data !== "object" || data === null) return false;
+  const { type } = data as { type?: unknown };
+  return type === "perfRuns" || type === "perfRun" || type === "perfRegressions" || type === "daemon";
 }
 
 /** The host's messages to a panel of the tracking (ADR 0031): the state, and the daemon's. */

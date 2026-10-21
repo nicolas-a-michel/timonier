@@ -14,6 +14,7 @@ use serde_json::Value;
 use timonier_core::SnapshotKind;
 use timonier_core::drift::DriftView;
 use timonier_core::intent::Intent;
+use timonier_core::perf::{PerfRunParams, RunFinish, RunStart};
 use timonier_core::protocol::{
     FilesParams, InitializeParams, InitializeResult, IntentRead, IntentWriteParams, IntentWritten,
     LookupCounts, PROTOCOL_VERSION, ReviewMark, StatusResult, SubscribeParams, SubscriptionParams,
@@ -214,6 +215,8 @@ impl Daemon {
             lookups,
             source_extensions,
             tracking: Mutex::new(()),
+            runs: Arc::new(crate::runs::Runs::new(&paths.root)),
+            receiver: tokio::sync::OnceCell::new(),
         });
         let mut background = JoinSet::new();
         background.spawn(idle(Arc::clone(&shared), options.idle));
@@ -287,6 +290,10 @@ struct Shared {
     source_extensions: Vec<String>,
     /// One tool call of the tracking at a time: the daemon is the only writer (ADR 0029).
     tracking: Mutex<()>,
+    /// The measurements of the test runs (ADR 0043).
+    runs: Arc<crate::runs::Runs>,
+    /// The OTLP receiver, started at the first run (ADR 0048); `None` if it cannot listen.
+    receiver: tokio::sync::OnceCell<Option<timonier_otlp::Receiver>>,
 }
 
 impl Shared {
@@ -542,6 +549,7 @@ impl Session {
         let _ = self.outbox.send(message.frame()).await;
     }
 
+    #[tracing::instrument(skip_all, fields(method = %method))]
     async fn request(&mut self, id: Id, method: &str, params: Value) {
         // `daemon/shutdown` needs no handshake: a client of another version, which the daemon
         // refuses, can still stop it, so that the next start runs the version installed
@@ -565,6 +573,66 @@ impl Session {
             methods::ACTUAL_WRITE => self.write_actual().await,
             methods::INTENT_READ => self.read_intent().await,
             methods::INTENT_DRIFT => self.intent_drift().await,
+            methods::RUN_START => match parse::<RunStart>(params) {
+                Ok(start) => self.start_run(start).await,
+                Err(error) => Err(error),
+            },
+            methods::RUN_FINISH => match parse::<RunFinish>(params) {
+                Ok(finish) => self.finish_run(finish).await,
+                Err(error) => Err(error),
+            },
+            methods::PERF_RUNS => {
+                let shared = Arc::clone(&self.shared);
+                answer(tokio::task::spawn_blocking(move || shared.runs.listed()).await)
+            }
+            methods::PERF_RUN => match parse::<PerfRunParams>(params) {
+                Ok(PerfRunParams { run: Some(run) }) => {
+                    let shared = Arc::clone(&self.shared);
+                    answer(
+                        tokio::task::spawn_blocking(move || shared.runs.view(&shared.store, &run))
+                            .await,
+                    )
+                }
+                Ok(PerfRunParams { run: None }) => Err(ErrorObject::new(
+                    errors::INVALID_PARAMS,
+                    "`perf/run` needs a run: `R-<number>`".to_owned(),
+                )),
+                Err(error) => Err(error),
+            },
+            methods::PERF_REGRESSIONS => {
+                match parse::<timonier_core::perf::RegressionParams>(params) {
+                    Ok(params) => {
+                        let shared = Arc::clone(&self.shared);
+                        answer(
+                            tokio::task::spawn_blocking(move || {
+                                shared
+                                    .runs
+                                    .regressions(&shared.store, params.batch.as_deref())
+                            })
+                            .await,
+                        )
+                    }
+                    Err(error) => Err(error),
+                }
+            }
+            methods::PERF_BUDGETS => {
+                let shared = Arc::clone(&self.shared);
+                answer(
+                    tokio::task::spawn_blocking(move || shared.runs.budgets(&shared.store)).await,
+                )
+            }
+            methods::PERF_MAP => match parse::<PerfRunParams>(params) {
+                Ok(params) => {
+                    let shared = Arc::clone(&self.shared);
+                    answer(
+                        tokio::task::spawn_blocking(move || {
+                            shared.runs.map(&shared.store, params.run.as_deref())
+                        })
+                        .await,
+                    )
+                }
+                Err(error) => Err(error),
+            },
             methods::INTENT_WRITE => match parse::<IntentWriteParams>(params) {
                 Ok(params) => self.write_intent(params.intent).await,
                 Err(error) => Err(error),
@@ -890,6 +958,48 @@ impl Session {
         }
     }
 
+    /// A run of tests begins (ADR 0047), with the receiver listening for its spans (ADR 0048).
+    async fn start_run(&self, start: RunStart) -> Result<Value, ErrorObject> {
+        let receiver = self
+            .shared
+            .receiver
+            .get_or_init(|| async {
+                let sink = crate::runs::RunSink {
+                    runs: Arc::clone(&self.shared.runs),
+                    graph: self.shared.store.clone(),
+                };
+                match timonier_otlp::Receiver::start(Arc::new(sink)).await {
+                    Ok(receiver) => Some(receiver),
+                    Err(error) => {
+                        tracing::warn!(%error, "the OTLP receiver cannot listen: runs without traces");
+                        None
+                    }
+                }
+            })
+            .await;
+        let endpoint = receiver.as_ref().map(timonier_otlp::Receiver::endpoint);
+        let shared = Arc::clone(&self.shared);
+        answer(
+            tokio::task::spawn_blocking(move || shared.runs.start(&shared.store, start, endpoint))
+                .await,
+        )
+    }
+
+    /// Keeps what `timonier test` measured of a run (ADR 0043).
+    async fn finish_run(&self, finish: RunFinish) -> Result<Value, ErrorObject> {
+        let shared = Arc::clone(&self.shared);
+        let finished = tokio::task::spawn_blocking(move || shared.runs.finish(finish)).await;
+        match finished {
+            Ok(Err(
+                error @ (Error::UnknownRun(_)
+                | Error::Store(
+                    timonier_store::Error::UnknownRun(_) | timonier_store::Error::RunFinished(_),
+                )),
+            )) => Err(ErrorObject::new(errors::INVALID_PARAMS, error.to_string())),
+            other => answer(other),
+        }
+    }
+
     async fn call_tool(&self, params: ToolCallParams) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
         let agent = self.client.clone();
@@ -930,6 +1040,12 @@ impl Session {
                         let graph = crate::view::load(&mut reader)?;
                         Ok(timonier_core::actual::actual(&graph))
                     },
+                    run_facts: &|run| shared.runs.facts(&shared.store, run),
+                    budgets: &|| shared.runs.budgets(&shared.store),
+                    component_perf: &|component, run| {
+                        shared.runs.component_perf(&shared.store, component, run)
+                    },
+                    regressions: &|batch| shared.runs.regressions(&shared.store, batch),
                 },
             ))
         });
@@ -1024,6 +1140,17 @@ fn shutting_down() -> ErrorObject {
 /// Whether a daemon answers on the project's socket.
 pub fn is_serving(paths: &Paths) -> bool {
     std::os::unix::net::UnixStream::connect(&paths.socket).is_ok()
+}
+
+/// The answer of a blocking task: its result, or an internal error.
+fn answer<T: Serialize>(
+    done: std::result::Result<Result<T>, tokio::task::JoinError>,
+) -> Result<Value, ErrorObject> {
+    match done {
+        Ok(Ok(value)) => Ok(serde_json::to_value(value).unwrap_or(Value::Null)),
+        Ok(Err(error)) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+    }
 }
 
 #[cfg(test)]

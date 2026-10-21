@@ -8,7 +8,15 @@ import { resolveLocale } from "./i18n";
 import type { Pins } from "./map/layout";
 import type { Toggle } from "./map/mapModel";
 import type { MapCommands } from "./map/MapView";
-import { isHostMessage, readyMessage, subscribeTo, type Density, type DriftView } from "./protocol";
+import {
+  isHostMessage,
+  readyMessage,
+  subscribeTo,
+  type Density,
+  type BudgetsView,
+  type DriftView,
+  type PerfMap,
+} from "./protocol";
 import {
   applyToggle,
   closeAll,
@@ -17,6 +25,7 @@ import {
   toggleChanges,
   toggleDebt,
   toggleIntent,
+  togglePerformance,
   type Applied,
   type UiState,
 } from "./uiState";
@@ -49,6 +58,8 @@ const announceReady = () => {
   host?.postMessage(subscribeTo(ui.expanded));
   // A map left compared with the whiteboard asks for the drift again (ADR 0042).
   if (ui.intent) host?.postMessage({ type: "compareIntent", on: true });
+  // And one left showing its performances, the last run's (ADR 0051).
+  if (ui.performance) host?.postMessage({ type: "showPerformance", on: true });
 };
 
 function apply({ ui: next, subscribe }: Applied) {
@@ -64,6 +75,18 @@ const onToggleIntent = () => {
   apply(toggleIntent(ui));
   intent = undefined;
   host?.postMessage({ type: "compareIntent", on: ui.intent === true });
+  render();
+};
+
+// The whiteboard's budgets on the last runs, always (Q74, ADR 0052).
+let budgets: BudgetsView | null | undefined;
+
+// The Performances layer the host gave while the map shows it (ADR 0051).
+let performance: PerfMap | null | undefined;
+const onTogglePerformance = () => {
+  apply(togglePerformance(ui));
+  performance = undefined;
+  host?.postMessage({ type: "showPerformance", on: ui.performance === true });
   render();
 };
 
@@ -99,6 +122,10 @@ function render() {
         onToggleIntent={onToggleIntent}
         intent={intent}
         onOpenWhiteboard={() => host?.postMessage({ type: "openWhiteboard" })}
+        onTogglePerformance={onTogglePerformance}
+        performance={performance}
+        onOpenPerformance={() => host?.postMessage({ type: "openPerformance" })}
+        budgets={budgets}
         onReveal={(target, path) => apply(reveal(ui, target, path, model.view))}
         commandsRef={mapCommands}
         onReady={announceReady}
@@ -121,6 +148,16 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
   }
   if (event.data.type === "drift") {
     intent = event.data.drift;
+    render();
+    return;
+  }
+  if (event.data.type === "budgets") {
+    budgets = event.data.budgets;
+    render();
+    return;
+  }
+  if (event.data.type === "perfMap") {
+    performance = event.data.perf;
     render();
     return;
   }

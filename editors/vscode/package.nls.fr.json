@@ -40,5 +40,7 @@
   "command.whiteboard.addZone.title": "Ajouter une zone de couche au tableau blanc",
   "command.whiteboard.addNote.title": "Ajouter une note au tableau blanc",
   "command.whiteboard.addBudget.title": "Ajouter une note budget au tableau blanc",
-  "command.map.compareIntent.title": "Comparer la carte au tableau blanc (activer ou non)"
+  "command.map.compareIntent.title": "Comparer la carte au tableau blanc (activer ou non)",
+  "command.openPerformance.title": "Ouvrir le panneau des performances",
+  "command.map.showPerformance.title": "Afficher les performances sur la carte (activer ou non)"
 }

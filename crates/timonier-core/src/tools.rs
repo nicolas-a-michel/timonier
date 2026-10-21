@@ -6,6 +6,8 @@ use schemars::generate::SchemaSettings;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use crate::budgets::GetPerf;
+use crate::gaps::{GetInstrumentationConventions, GetInstrumentationGaps};
 use crate::tracking::{
     GetSession, NoArguments, PlanAddTask, PlanUpdateTask, Refusal, SessionEnd, SessionStart,
     TodoAdd, TodoComplete,
@@ -22,6 +24,12 @@ pub const GET_TODO: &str = "get_todo";
 pub const GET_SESSION: &str = "get_session";
 pub const GET_INTENDED_ARCHITECTURE: &str = "get_intended_architecture";
 pub const GET_DRIFT: &str = "get_drift";
+pub const GET_INSTRUMENTATION_GAPS: &str = "get_instrumentation_gaps";
+pub const GET_INSTRUMENTATION_CONVENTIONS: &str = "get_instrumentation_conventions";
+pub const GET_BUDGETS: &str = "get_budgets";
+pub const GET_BUDGET_VIOLATIONS: &str = "get_budget_violations";
+pub const GET_PERF: &str = "get_perf";
+pub const GET_REGRESSIONS: &str = "get_regressions";
 
 /// `get_intended_architecture` (ADR 0041): the image of the sketch comes unless declined.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize, JsonSchema)]
@@ -128,6 +136,51 @@ pub fn catalogue() -> Vec<Value> {
              package or component it stands for (by name, then place), the drawn components the \
              code lacks, the forbidden edges the code crosses with the dependencies that cross \
              them, and the required edges it lacks. Check it after changing the structure.",
+            true,
+        ),
+        tool::<GetInstrumentationGaps>(
+            GET_INSTRUMENTATION_GAPS,
+            "Check the instrumentation after a run of `timonier test`: the public functions no \
+             span was seen in (paged), the spans that lack code.function.name, code.file.path or \
+             code.line.number, those attached to no node of the graph, and the overhead of the \
+             traces against runs without them. The last finished run with traces unless one is \
+             given, `timonier doctor`'s smoke tests aside.",
+            true,
+        ),
+        tool::<GetInstrumentationConventions>(
+            GET_INSTRUMENTATION_CONVENTIONS,
+            "Read how this project instruments a language with OpenTelemetry: the SDK packages, \
+             the initialisation module, one span per public function with the code.* \
+             attributes, no span in hot loops. Read it before instrumenting code.",
+            true,
+        ),
+        tool::<NoArguments>(
+            GET_BUDGETS,
+            "Read the performance budgets the developer set on the whiteboard (latency p50 and p95 \
+             of each incoming call, peak memory, allocations, calls), each checked against the \
+             median of the last runs of `timonier test`: ok, exceeded, unmeasured, or attached to \
+             nothing the code has.",
+            true,
+        ),
+        tool::<NoArguments>(
+            GET_BUDGET_VIOLATIONS,
+            "List the whiteboard's performance budgets the last runs exceed, with the limit and \
+             what was measured. Check it after a change, before saying the work is done.",
+            true,
+        ),
+        tool::<crate::perf::RegressionParams>(
+            GET_REGRESSIONS,
+            "Read the performance regressions of the last batch of runs (`timonier test --runs \
+             auto`) against the main branch: each measure (the run's CPU work, a test's duration, \
+             a function's own time) slower beyond doubt (Mann-Whitney p < 0.01) and by at least \
+             max(5 %, 3 MAD), probable when seen once, confirmed when the next batch sees it too.",
+            true,
+        ),
+        tool::<GetPerf>(
+            GET_PERF,
+            "Read what a component cost in a run of `timonier test`: its incoming calls and their \
+             latency (p50, p95), the peak memory during them, the time spent in it, what inside \
+             took the most time, the tests that reached it, and its budgets.",
             true,
         ),
     ];

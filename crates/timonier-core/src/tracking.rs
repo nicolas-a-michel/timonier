@@ -192,6 +192,9 @@ pub struct Session {
     /// What it changed in the code, written at its end (ADR 0031).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub changes: Option<SessionChanges>,
+    /// The whiteboard's budgets the last runs exceeded when it ended, in words (ADR 0052).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub budgets: Vec<String>,
 }
 
 /// What a session changed in the code, between its snapshots, as the review diff tells it

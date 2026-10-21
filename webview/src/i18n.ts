@@ -1,3 +1,4 @@
+import type { SymbolKind } from "./design/icons";
 import type { Role } from "./protocol";
 
 /** UI languages. English is the base; French follows VSCode's display language. */
@@ -48,6 +49,9 @@ export interface Messages {
   /** An edge of the map, for screen readers. */
   edgeLabel: (source: string, target: string, links: number, approximate: boolean) => string;
   kinds: Record<"repo" | "component" | "package" | "file" | "symbol", string>;
+  /** What a symbol is (T-114), and its tooltip: the kind, then its signature. */
+  symbolKinds: Record<SymbolKind, string>;
+  symbolTip: (kind: string, signature: string | null) => string;
   /** The review diff (ADR 0024). */
   review: ReviewMessages;
   /** The map compared with the whiteboard (ADR 0042). */
@@ -195,6 +199,16 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} to ${target}: ${links === 1 ? "1 link" : `${links} links`}, ${approximate ? "approximate" : "certain"}`,
     kinds: { repo: "Repository", component: "Component", package: "Package", file: "File", symbol: "Symbol" },
+    symbolKinds: {
+      module: "Module",
+      type: "Type",
+      trait: "Trait",
+      function: "Function",
+      method: "Method",
+      field: "Field",
+      constant: "Constant",
+    },
+    symbolTip: (kind, signature) => (signature ? `${kind}: ${signature}` : kind),
     intent: {
       layer: "Compare with the intent",
       summaryLabel: "The map compared with the whiteboard",
@@ -326,6 +340,16 @@ export const messages: Record<Locale, Messages> = {
     edgeLabel: (source, target, links, approximate) =>
       `${source} vers ${target} : ${links === 1 ? "1 lien" : `${links} liens`}, ${approximate ? "approché" : "sûr"}`,
     kinds: { repo: "Dépôt", component: "Composant", package: "Paquet", file: "Fichier", symbol: "Symbole" },
+    symbolKinds: {
+      module: "Module",
+      type: "Type",
+      trait: "Trait",
+      function: "Fonction",
+      method: "Méthode",
+      field: "Champ",
+      constant: "Constante",
+    },
+    symbolTip: (kind, signature) => (signature ? `${kind} : ${signature}` : kind),
     intent: {
       layer: "Comparer à l'intention",
       summaryLabel: "La carte comparée au tableau blanc",

@@ -40,5 +40,7 @@
   "command.whiteboard.addZone.title": "Add a Layer Zone to the Whiteboard",
   "command.whiteboard.addNote.title": "Add a Note to the Whiteboard",
   "command.whiteboard.addBudget.title": "Add a Budget Note to the Whiteboard",
-  "command.map.compareIntent.title": "Compare the Map with the Whiteboard (On or Off)"
+  "command.map.compareIntent.title": "Compare the Map with the Whiteboard (On or Off)",
+  "command.openPerformance.title": "Open the Performances Panel",
+  "command.map.showPerformance.title": "Show the Map's Performances (On or Off)"
 }

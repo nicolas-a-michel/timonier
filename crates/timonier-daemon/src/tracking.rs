@@ -11,13 +11,18 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use timonier_core::Snapshot;
 use timonier_core::drift::Drift;
+use timonier_core::gaps::{self, GetInstrumentationConventions, GetInstrumentationGaps};
 use timonier_core::intent::{Intent, Policy};
+use timonier_core::perf::run_number;
 use timonier_core::tools::{self, Mailbox};
 use timonier_core::tracking::{
     FORMAT_VERSION, GetSession, MAX_TEXT, NoArguments, Outcome, Plan, PlanAddTask, PlanUpdateTask,
     Refusal, Session, SessionChanges, SessionEnd, SessionSnapshots, SessionStart, SessionStatus,
     Stamp, Todo, TodoAdd, TodoComplete, Untracked, UntrackedGap, id_number, text, utc,
 };
+
+/// What `get_perf` finds: the component's cost, or why there is none.
+pub type Measured = std::result::Result<timonier_core::budgets::ComponentPerf, String>;
 
 /// Where the tracking lives: `.timonier/` at the root of the project.
 pub struct Tracker {
@@ -40,6 +45,16 @@ pub struct Context<'a> {
     pub forget_contents: &'a dyn Fn() -> crate::Result<()>,
     /// The architecture the head holds, as `actual.json` says it (ADR 0033): for `get_drift`.
     pub actual: &'a dyn Fn() -> crate::Result<timonier_core::actual::Actual>,
+    /// What a run says of the instrumentation (ADR 0049): the last finished run when `None`;
+    /// `None` when there is no such run.
+    pub run_facts: &'a dyn Fn(Option<u64>) -> crate::Result<Option<crate::runs::RunFacts>>,
+    /// The whiteboard's budgets on the last runs (ADR 0052); `None` without budgets.
+    pub budgets: &'a dyn Fn() -> crate::Result<Option<timonier_core::budgets::BudgetsView>>,
+    /// What a component cost in a run (`get_perf`): `Err` says why there is nothing.
+    pub component_perf: &'a dyn Fn(&str, Option<&str>) -> crate::Result<Measured>,
+    /// A batch of runs against the main branch (ADR 0053).
+    pub regressions:
+        &'a dyn Fn(Option<&str>) -> crate::Result<timonier_core::perf::RegressionReport>,
 }
 
 impl Tracker {
@@ -50,6 +65,7 @@ impl Tracker {
     }
 
     /// Runs a tool: its result as MCP's `CallToolResult`, the mailbox header first (ADR 0028).
+    #[tracing::instrument(skip_all, fields(tool = name))]
     pub fn call(&self, name: &str, arguments: Option<Value>, context: &Context) -> Value {
         let mailbox = Mailbox::default();
         if name == tools::GET_INTENDED_ARCHITECTURE {
@@ -127,6 +143,127 @@ impl Tracker {
                 let drift = timonier_core::drift::drift(&intent, &actual);
                 Ok((drift_summary(&intent, &drift), json(&drift)))
             }
+            tools::GET_INSTRUMENTATION_GAPS => {
+                let input: GetInstrumentationGaps = tools::arguments(arguments)?;
+                self.gaps(&input, context)
+            }
+            tools::GET_INSTRUMENTATION_CONVENTIONS => {
+                let input: GetInstrumentationConventions = tools::arguments(arguments)?;
+                self.conventions(&input.language)
+            }
+            tools::GET_BUDGETS | tools::GET_BUDGET_VIOLATIONS => {
+                let _: NoArguments = tools::arguments(arguments)?;
+                let view = (context.budgets)().map_err(|e| internal(e.to_string()))?;
+                let mut checks = view.map(|v| v.checks).unwrap_or_default();
+                let all = checks.len();
+                if name == tools::GET_BUDGET_VIOLATIONS {
+                    checks.retain(|c| c.state == timonier_core::budgets::BudgetState::Exceeded);
+                }
+                let summary = if all == 0 {
+                    "No budget on the whiteboard.".to_owned()
+                } else if name == tools::GET_BUDGET_VIOLATIONS {
+                    if checks.is_empty() {
+                        format!("No budget exceeded, of {all}.")
+                    } else {
+                        let said: Vec<String> = checks.iter().map(budget_words).collect();
+                        format!(
+                            "{} of {all} budgets exceeded: {}.",
+                            checks.len(),
+                            said.join("; ")
+                        )
+                    }
+                } else {
+                    let exceeded = checks
+                        .iter()
+                        .filter(|c| c.state == timonier_core::budgets::BudgetState::Exceeded)
+                        .count();
+                    format!("{all} budgets, {exceeded} exceeded.")
+                };
+                Ok((summary, serde_json::json!({ "budgets": checks })))
+            }
+            tools::GET_REGRESSIONS => {
+                let input: timonier_core::perf::RegressionParams = tools::arguments(arguments)?;
+                if input
+                    .batch
+                    .as_ref()
+                    .is_some_and(|b| b.is_empty() || b.len() > 64)
+                {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "batch is 1 to 64 characters",
+                    ));
+                }
+                let report = (context.regressions)(input.batch.as_deref())
+                    .map_err(|e| internal(e.to_string()))?;
+                let summary = match &report.note {
+                    Some(note) => format!("No regression judged: {note}."),
+                    None if report.regressions.is_empty() => {
+                        format!(
+                            "No regression, {} measures compared with the main branch.",
+                            report.checked
+                        )
+                    }
+                    None => {
+                        let said: Vec<String> = report
+                            .regressions
+                            .iter()
+                            .map(|r| {
+                                format!(
+                                    "{} {:+.1} % ({})",
+                                    r.label,
+                                    r.verdict.change * 100.0,
+                                    match r.status {
+                                        timonier_core::perf::RegressionStatus::Probable =>
+                                            "probable",
+                                        timonier_core::perf::RegressionStatus::Confirmed =>
+                                            "confirmed",
+                                    }
+                                )
+                            })
+                            .collect();
+                        format!(
+                            "{} regressions: {}.",
+                            report.regressions.len(),
+                            said.join("; ")
+                        )
+                    }
+                };
+                Ok((summary, json(&report)))
+            }
+            tools::GET_PERF => {
+                let input: timonier_core::budgets::GetPerf = tools::arguments(arguments)?;
+                if input.component.trim().is_empty() || input.component.len() > 256 {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "component is 1 to 256 characters",
+                    ));
+                }
+                if let Some(run) = &input.run
+                    && run_number(run).is_none()
+                {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        format!("`{run}` is not a run: R-<number>"),
+                    ));
+                }
+                match (context.component_perf)(&input.component, input.run.as_deref())
+                    .map_err(|e| internal(e.to_string()))?
+                {
+                    Ok(perf) => {
+                        let p95 = perf
+                            .p95_ms
+                            .map_or_else(|| "—".to_owned(), |v| format!("{v:.2} ms"));
+                        Ok((
+                            format!(
+                                "{} in {}: {} incoming calls, p95 {p95}, {:.2} ms spent in it.",
+                                perf.name, perf.run, perf.calls, perf.self_ms
+                            ),
+                            json(&perf),
+                        ))
+                    }
+                    Err(why) => Err(Refusal::new("no_measure", why)),
+                }
+            }
             tools::GET_PLAN => {
                 let _: NoArguments = tools::arguments(arguments)?;
                 let plan = self.plan()?;
@@ -164,6 +301,109 @@ impl Tracker {
                 "unknown_tool",
                 format!("no tool {other}: list the tools again"),
             )),
+        }
+    }
+
+    /// `get_instrumentation_gaps` (ADR 0049): checked as the schema says, the daemon being the
+    /// authority.
+    fn gaps(&self, input: &GetInstrumentationGaps, context: &Context) -> Outcome<(String, Value)> {
+        let run = match &input.run {
+            None => None,
+            Some(run) => Some(run_number(run).ok_or_else(|| {
+                Refusal::new(
+                    "invalid_argument",
+                    format!("`{run}` is not a run: R-<number>"),
+                )
+            })?),
+        };
+        let cursor: usize = match &input.cursor {
+            None => 0,
+            Some(cursor) => cursor.parse().map_err(|_| {
+                Refusal::new(
+                    "invalid_argument",
+                    "the cursor is the `next_cursor` of a page",
+                )
+            })?,
+        };
+        let limit = input.limit.unwrap_or(gaps::DEFAULT_LIMIT);
+        if !(1..=gaps::MAX_LIMIT).contains(&limit) {
+            return Err(Refusal::new(
+                "invalid_argument",
+                format!("limit is 1 to {}", gaps::MAX_LIMIT),
+            ));
+        }
+        let facts = (context.run_facts)(run).map_err(|e| internal(e.to_string()))?;
+        let Some(facts) = facts else {
+            return Err(Refusal::new(
+                "no_run",
+                match &input.run {
+                    Some(run) => format!("no finished run {run}"),
+                    None => {
+                        "no run yet: run the tests with `timonier test -- <command>`".to_owned()
+                    }
+                },
+            ));
+        };
+        let report = gaps::report(
+            gaps::Facts {
+                run: facts.run,
+                snapshot: facts.snapshot,
+                callables: &facts.callables,
+                spans: &facts.spans,
+                overhead: facts.overhead,
+            },
+            cursor,
+            limit as usize,
+        );
+        let without_code: u64 = report.without_code.iter().map(|w| w.spans).sum();
+        let overhead = report.overhead.as_ref().map_or_else(
+            || "overhead unknown".to_owned(),
+            |o| format!("overhead {:+.1} %", o.percent),
+        );
+        Ok((
+            format!(
+                "Run {}: {} of {} public functions never seen, {without_code} spans without \
+                 code.*, {} attached to no node, {overhead}.",
+                report.run, report.never_seen_count, report.public_functions, report.unattached
+            ),
+            json(&report),
+        ))
+    }
+
+    /// `get_instrumentation_conventions`: what `timonier init` copied for the language.
+    fn conventions(&self, language: &str) -> Outcome<(String, Value)> {
+        let valid = language.len() <= 32
+            && language.starts_with(|c: char| c.is_ascii_lowercase())
+            && language
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_+-".contains(c));
+        let folder = self.dir.join("conventions");
+        let path = folder.join(language).join("instrumentation.md");
+        match valid.then(|| std::fs::read_to_string(&path)) {
+            Some(Ok(text)) => Ok((
+                format!("The {language} instrumentation conventions of this project."),
+                serde_json::json!({ "language": language, "conventions": text }),
+            )),
+            _ => {
+                let mut known: Vec<String> = std::fs::read_dir(&folder)
+                    .map(|entries| {
+                        entries
+                            .flatten()
+                            .filter(|e| e.path().join("instrumentation.md").is_file())
+                            .map(|e| e.file_name().to_string_lossy().into_owned())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                known.sort();
+                Err(Refusal::new(
+                    "unknown_language",
+                    if known.is_empty() {
+                        "no conventions here: `timonier init` copies them".to_owned()
+                    } else {
+                        format!("no conventions for `{language}`: {}", known.join(", "))
+                    },
+                ))
+            }
         }
     }
 
@@ -206,6 +446,7 @@ impl Tracker {
             summary: None,
             todo: Vec::new(),
             changes: None,
+            budgets: Vec::new(),
         };
         if let Some(task) = &input.task {
             plan.note_session(task, &session.id);
@@ -253,6 +494,22 @@ impl Tracker {
             Err(error) => {
                 tracing::warn!(%error, session = %session.id, "cannot compute the session's changes");
                 None
+            }
+        };
+        // The budgets the last runs exceed, in the journal (spec « Budgets », ADR 0052).
+        session.budgets = match (context.budgets)() {
+            Ok(view) => view
+                .map(|v| {
+                    v.checks
+                        .iter()
+                        .filter(|c| c.state == timonier_core::budgets::BudgetState::Exceeded)
+                        .map(budget_words)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            Err(error) => {
+                tracing::warn!(%error, session = %session.id, "cannot check the budgets");
+                Vec::new()
             }
         };
         self.write_session(&session)?;
@@ -576,6 +833,12 @@ pub fn changed_files(
         match change {
             NodeChange::Added { node } => note(&after, &node.id),
             NodeChange::Removed { node } => note(&before, &node.id),
+            // Regrouped into another component, as a commit's clustering does (ADR 0016):
+            // not a change of the code (T-111).
+            NodeChange::Modified {
+                before: old,
+                after: new,
+            } if regrouped(old, new) => {}
             NodeChange::Modified {
                 before: old,
                 after: new,
@@ -599,6 +862,15 @@ pub fn changed_files(
         }
     }
     Ok(files.into_iter().collect())
+}
+
+/// A file that only changed its parent: Timonier put it in another component.
+fn regrouped(before: &timonier_core::Node, after: &timonier_core::Node) -> bool {
+    before.kind == timonier_core::NodeKind::File
+        && timonier_core::Node {
+            parent: after.parent.clone(),
+            ..before.clone()
+        } == *after
 }
 
 fn remember(session: &mut Session, task: &str) {
@@ -707,6 +979,31 @@ fn intended_summary(intent: &Intent, image: bool) -> String {
     )
 }
 
+/// « N-1 on Parser: p95 7.20 ms > 5 ms ».
+fn budget_words(check: &timonier_core::budgets::BudgetCheck) -> String {
+    use timonier_core::budgets::LimitKind;
+    let over: Vec<String> = check
+        .limits
+        .iter()
+        .filter(|l| l.exceeded)
+        .map(|l| {
+            let (what, unit) = match l.kind {
+                LimitKind::P50Ms => ("p50", " ms"),
+                LimitKind::P95Ms => ("p95", " ms"),
+                LimitKind::MemoryMb => ("memory", " MB"),
+                LimitKind::Allocations => ("allocations", ""),
+                LimitKind::Calls => ("calls", ""),
+            };
+            format!(
+                "{what} {:.2}{unit} > {}{unit}",
+                l.measured.unwrap_or_default(),
+                l.limit
+            )
+        })
+        .collect();
+    format!("{} on {}: {}", check.id, check.on, over.join(", "))
+}
+
 fn drift_summary(intent: &Intent, drift: &Drift) -> String {
     let name = |id: &str| {
         intent
@@ -794,6 +1091,10 @@ mod tests {
                     dependencies: Vec::new(),
                 })
             },
+            run_facts: &|_| Ok(None),
+            budgets: &|| Ok(None),
+            component_perf: &|_, _| Ok(Err("no run".to_owned())),
+            regressions: &|_| Ok(timonier_core::perf::RegressionReport::default()),
         }
     }
 
@@ -1143,5 +1444,53 @@ mod tests {
         ] {
             assert!(!is_session_id(bad), "{bad}");
         }
+    }
+
+    /// T-111: a commit's clustering moves files into other components; that is no change of
+    /// the code, a changed content is.
+    #[test]
+    fn files_only_regrouped_into_another_component_are_not_changed() {
+        use timonier_core::{ContentHash, Freeze, Node, NodeId, NodeKind, ScopeKey, ScopeUpdate};
+        let id = |s: &str| NodeId::parse(s).unwrap();
+        let structure = |component: bool, content: u8| {
+            let mut nodes = vec![
+                Node::new(id("repo:demo"), NodeKind::Repo, "demo"),
+                Node::new(id("pkg:cargo/demo"), NodeKind::Package, "demo")
+                    .with_parent(id("repo:demo")),
+            ];
+            let mut home = id("pkg:cargo/demo");
+            if component {
+                nodes.push(
+                    Node::new(id("component:dir/src"), NodeKind::Component, "src")
+                        .with_parent(home.clone()),
+                );
+                home = id("component:dir/src");
+            }
+            for (path, hash) in [("src/a.rs", 1), ("src/b.rs", content)] {
+                nodes.push(
+                    Node::new(id(&format!("file:{path}")), NodeKind::File, path)
+                        .with_parent(home.clone())
+                        .with_body_hash(ContentHash::from_bytes([hash; 32])),
+                );
+            }
+            ScopeUpdate::new(ScopeKey::structure()).with_nodes(nodes)
+        };
+        let db = tempfile::tempdir().unwrap();
+        let store = timonier_store::Store::open(db.path().join("graph.sqlite")).unwrap();
+        store.apply(structure(false, 2)).unwrap();
+        let ended = store.freeze(Freeze::WorkingTree).unwrap().seq;
+        store.apply(structure(true, 2)).unwrap();
+        let mut reader = store.reader().unwrap();
+        let head = reader.head().unwrap().seq;
+        assert_eq!(
+            changed_files(&mut reader, Some(ended), head).unwrap(),
+            Vec::<String>::new()
+        );
+        store.apply(structure(true, 3)).unwrap();
+        let head = reader.head().unwrap().seq;
+        assert_eq!(
+            changed_files(&mut reader, Some(ended), head).unwrap(),
+            ["src/b.rs"]
+        );
     }
 }

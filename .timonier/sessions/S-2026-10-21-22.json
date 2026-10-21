@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-22",
+  "agent": "claude-code",
+  "objective": "Close Phase 8 on the human's validation: tasks 8.7 and T-113, ADRs 0043 to 0054 accepted, PLAN.md",
+  "tasks": [
+    "T-99",
+    "T-113"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T16:16:44Z",
+  "ended_at": "2026-10-21T16:16:59Z",
+  "snapshots": {
+    "start": 67,
+    "end": 68
+  },
+  "summary": "Phase 8 closed on the human validation: all M-10 tasks done, ADRs 0043 to 0054 accepted, PLAN.md marks the phase finished. Not committed yet.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Tasks 8.7 and T-113 done on the human's validation",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "ADRs 0043 to 0054 accepted; Phase 8 finished in PLAN.md",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

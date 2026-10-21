@@ -135,6 +135,11 @@ children: number,
  */
 file: string | null, span: Span | null, 
 /**
+ * A symbol's normalised signature, as its language pack writes it: a function's
+ * parameters and result, a field's or constant's type; `null` for the others (T-114).
+ */
+signature: string | null, 
+/**
  * What changed in it since the last review; `null` without change, and before the first
  * review (ADR 0024).
  */
@@ -306,7 +311,11 @@ todo: Array<TodoItemView>,
  * What it changed in the code: since its start while it is open; `null` for a session
  * that ended without it.
  */
-changes: SessionChanges | null, };
+changes: SessionChanges | null, 
+/**
+ * The budgets the last runs exceeded when it ended (ADR 0052).
+ */
+budgets: Array<string>, };
 
 export type TrackingProblem = { 
 /**
@@ -369,7 +378,7 @@ export type Density = "comfortable" | "compact";
 
 export type DaemonState = "starting" | "connected" | "restarting" | "unavailable";
 
-export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "toggleIntent" } | { "name": "reveal", target: string, path: Array<string>, };
+export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "toggleIntent" } | { "name": "togglePerformance" } | { "name": "reveal", target: string, path: Array<string>, };
 
 export type WhiteboardTool = "select" | "pen" | "eraser" | "box" | "zone" | "note" | "budget" | "arrow";
 
@@ -545,6 +554,189 @@ names: Record<string, string>,
  */
 ancestors: Record<string, Array<string>>, };
 
+export type CpuSource = "instructions" | "cpu_time";
+
+export type TestStatus = "passed" | "failed" | "error" | "skipped";
+
+export type SpanStatus = "unset" | "ok" | "error";
+
+export type Sample = { 
+/**
+ * Since the start of the run (`RunStart::started_at_ms`), as its spans are.
+ */
+atMs: number, memoryBytes: number, cpuUs: number, };
+
+export type RunSummary = { 
+/**
+ * `R-<n>`.
+ */
+run: string, startedAtMs: number, command: Array<string>, finished: boolean, traced: boolean, snapshot: number, commit: string | null, branch: string | null, exitCode: number | null, wallUs: number | null, 
+/**
+ * User and system CPU time.
+ */
+cpuUs: number | null, instructions: number | null, cpuSource: CpuSource | null, 
+/**
+ * The whole tree's peak when a scope measured it, else the largest process's.
+ */
+memoryBytes: number | null, memoryWholeTree: boolean, tests: number, failed: number, spans: number, batch: string | null, 
+/**
+ * The machine's fingerprint, once finished (ADR 0043).
+ */
+fingerprint: string | null, 
+/**
+ * The fingerprint of the working tree's changes when it was not the commit (Q77): such a
+ * run never enters the reference of the main branch.
+ */
+worktree: string | null, 
+/**
+ * `timonier doctor`'s smoke test (relecture n° 2, I-1).
+ */
+smoke: boolean, };
+
+export type PerfRuns = { runs: Array<RunSummary>, };
+
+export type PerfRunParams = { run: string | null, };
+
+export type TestView = { 
+/**
+ * Its place in the JUnit XML.
+ */
+ord: number, name: string, classname: string | null, status: TestStatus, durationUs: number, file: string | null, line: number | null, };
+
+export type SpanView = { trace: string, id: string, parent: string | null, 
+/**
+ * The test it belongs to (`TestView::ord`).
+ */
+test: number | null, name: string, 
+/**
+ * `None`: when it started is not known (a test the JUnit does not date).
+ */
+startNs: number | null, durationNs: number, status: SpanStatus, 
+/**
+ * A root Timonier made for a test (ADR 0047).
+ */
+synthesized: boolean, node: string | null, function: string | null, file: string | null, line: number | null, };
+
+export type PerfRun = { summary: RunSummary, tests: Array<TestView>, spans: Array<SpanView>, 
+/**
+ * The run has more spans than the views take (ADR 0051).
+ */
+spansLeftOut: number, samples: Array<Sample>, 
+/**
+ * The name of each node a span is attached to.
+ */
+nodes: Record<string, string>, };
+
+export type NodePerf = { node: string, calls: number, 
+/**
+ * Its spans' time less that of the spans they called: added up, a box's spans give the
+ * time spent in it, never counted twice.
+ */
+selfNs: number, 
+/**
+ * The time of its spans that no span of a node called: the tests', or a process's own
+ * start. With the links' time, the cumulative time of a box (Q76).
+ */
+enteredNs: number, };
+
+export type LinkPerf = { from: string, to: string, calls: number, 
+/**
+ * The time of the callee's spans so called, nested calls to itself counted once (Q76).
+ */
+ns: number, };
+
+export type PerfMap = { run: string | null, nodes: Array<NodePerf>, links: Array<LinkPerf>, 
+/**
+ * The ancestors of each node, from the top, the node excluded.
+ */
+ancestors: Record<string, Array<string>>, };
+
+export type Verdict = { reference: number, candidate: number, 
+/**
+ * `(candidate − reference) / reference`.
+ */
+change: number, pValue: number, 
+/**
+ * The smallest change that counts here: max(5 %, 3 × MAD), in the values' unit.
+ */
+threshold: number, regressed: boolean, };
+
+export type RegressionStatus = "probable" | "confirmed";
+
+export type RegressionNote = "no_run" | "no_batch" | "no_finished_run" | "no_reference" | "machine_changed" | "batch_too_small";
+
+export type Regression = { 
+/**
+ * `run`, `test:<class>::<name>`, `node:<id>`.
+ */
+key: string, 
+/**
+ * In words: « the run », « test parses », « f ».
+ */
+label: string, 
+/**
+ * `instructions`, `cpu_us`, `us` (a test's duration), `ns` (a node's own time).
+ */
+unit: string, status: RegressionStatus, verdict: Verdict, };
+
+export type RegressionReport = { batch: string | null, commit: string | null, 
+/**
+ * The main branch's commits the reference comes from, the newest first.
+ */
+reference: Array<string>, source: CpuSource | null, 
+/**
+ * How many measures were compared.
+ */
+checked: number, regressions: Array<Regression>, 
+/**
+ * Why nothing could be compared: no reference yet, a new machine; in English, for agents.
+ */
+note: string | null, 
+/**
+ * The same, for the views to say in their language (relecture n° 1, m1).
+ */
+noteKind: RegressionNote | null, 
+/**
+ * The main branch the reference is read on.
+ */
+main: string | null, };
+
+export type RegressionParams = { batch?: string | null, };
+
+export type LimitKind = "p50_ms" | "p95_ms" | "memory_mb" | "allocations" | "calls";
+
+export type LimitCheck = { kind: LimitKind, limit: number, 
+/**
+ * The median of the runs that measured it; `None` when none did.
+ */
+measured: number | null, exceeded: boolean, };
+
+export type BudgetState = "ok" | "exceeded" | "unmeasured" | "unanchored";
+
+export type BudgetCheck = { 
+/**
+ * `N-…`.
+ */
+id: string, attachedTo: string | null, 
+/**
+ * What it is on, in words: « Parser », « Daemon → Store », « the tests ».
+ */
+on: string, state: BudgetState, 
+/**
+ * The real boxes that show it on the map: the anchors, or an arrow's target.
+ */
+boxes: Array<string>, limits: Array<LimitCheck>, 
+/**
+ * The runs it was judged on, the newest first.
+ */
+runs: Array<string>, };
+
+export type BudgetsView = { checks: Array<BudgetCheck>, 
+/**
+ * The ancestors of each box a check names, from the top, the box excluded.
+ */
+ancestors: Record<string, Array<string>>, };
+
 export type IntentRead = { intent: Intent | null, problem: string | null, };
 
 export type IntentWriteParams = { intent: Intent, };
@@ -559,9 +751,9 @@ detail: string | null, } | { "type": "command", command: MapCommand, } | { "type
 /**
  * Why the file does not read; the page then waits for the developer to start over.
  */
-problem: string | null, } | { "type": "intentSaved", saved: boolean, detail: string | null, } | { "type": "drift", drift: DriftView | null, };
+problem: string | null, } | { "type": "intentSaved", saved: boolean, detail: string | null, } | { "type": "drift", drift: DriftView | null, } | { "type": "perfMap", perf: PerfMap | null, } | { "type": "perfRuns", runs: PerfRuns, } | { "type": "perfRun", run: PerfRun | null, } | { "type": "perfRegressions", report: RegressionReport | null, } | { "type": "budgets", budgets: BudgetsView | null, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure" } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "showPerformance", on: boolean, } | { "type": "openPerformance" } | { "type": "chooseRun", run: string, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -583,6 +775,11 @@ export const METHODS = {
   INTENT_READ: "intent/read",
   INTENT_WRITE: "intent/write",
   INTENT_DRIFT: "intent/drift",
+  PERF_RUNS: "perf/runs",
+  PERF_RUN: "perf/run",
+  PERF_MAP: "perf/map",
+  PERF_BUDGETS: "perf/budgets",
+  PERF_REGRESSIONS: "perf/regressions",
 } as const;
 
 export const ERRORS = {

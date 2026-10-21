@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-16",
+  "agent": "claude-code",
+  "objective": "Rewrite the README for GitHub readers, with English screenshots of each feature, a French README and a writing skill.",
+  "tasks": [
+    "T-112"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T12:44:59Z",
+  "ended_at": "2026-10-21T12:48:02Z",
+  "snapshots": {
+    "start": 54,
+    "end": 55
+  },
+  "summary": "README.md rewritten for GitHub readers: purpose, the problem, a tour of each feature with its screenshot, how it works, status, try it. README.fr.md translates it; the old detailed list moved to docs/features.md. Twelve English screenshots in docs/images/, taken by `npm run screenshots -w webview` (webview/test/screenshots/readme.shots.ts). New skill readme; CLAUDE.md and PLAN.md updated. Left: the human's reading of both READMEs; T-111, the exit criterion on Timonier and the 8.10 review.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Screenshots of each feature: npm run screenshots -w webview → docs/images",
+      "task": "T-112",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "The readme writing skill",
+      "task": "T-112",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "README.md rewritten in English, the full feature list in docs/features.md",
+      "task": "T-112",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "README.fr.md in French, cross-linked",
+      "task": "T-112",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "CLAUDE.md, PLAN.md and checks",
+      "task": "T-112",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

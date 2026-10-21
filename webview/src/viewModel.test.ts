@@ -21,6 +21,7 @@ function node(id: string, name = id): ViewNode {
     children: 0,
     file: null,
     span: null,
+    signature: null,
     review: null,
     debt: null,
   };

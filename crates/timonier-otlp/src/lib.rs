@@ -1,6 +1,16 @@
 //! Timonier's local OpenTelemetry receiver (OTLP over gRPC 4317 and HTTP 4318).
 //!
-//! See the `otel-instrumentation` skill.
+//! See the `otel-instrumentation` skill and ADR 0048.
+
+pub mod decode;
+mod receiver;
+
+pub use receiver::{Receiver, Sink};
+
+/// OTLP's default HTTP port (spec « Performances »).
+pub const HTTP_PORT: u16 = 4318;
+/// OTLP's default gRPC port.
+pub const GRPC_PORT: u16 = 4317;
 
 #[cfg(test)]
 mod tests {

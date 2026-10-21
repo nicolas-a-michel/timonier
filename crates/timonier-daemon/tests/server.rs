@@ -627,6 +627,92 @@ fn the_daemon_says_when_to_hold_an_agent_and_writes_the_actual_architecture() {
     assert!(!again.changed, "the same graph, the same file");
 }
 
+fn git(root: &Path, args: &[&str]) {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args([
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "commit.gpgsign=false",
+        ])
+        .args(args)
+        .output()
+        .expect("git runs");
+    assert!(
+        output.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+/// T-111: the work of a session, committed after it ended, holds nobody (the commit's clustering
+/// regroups files, which is no change); what changes after the commit with no session open
+/// still does.
+#[test]
+fn work_committed_after_its_session_ended_holds_no_agent() {
+    let repo = project();
+    let root = repo.path();
+    git(root, &["init", "--quiet", "--initial-branch=main"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "--quiet", "-m", "first"]);
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("test-agent").unwrap();
+    indexed(&mut client, 2);
+    let reason = |client: &mut Client| -> Option<String> {
+        let stop: AgentStop = client
+            .request(methods::AGENT_STOP, &Value::Null)
+            .expect("answered");
+        stop.reason
+    };
+    let status = |client: &mut Client| -> StatusResult {
+        client
+            .request(methods::STATUS, &Value::Null)
+            .expect("answered")
+    };
+    let until = |client: &mut Client, what: &str, done: &dyn Fn(&mut Client) -> bool| {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while !done(client) {
+            assert!(Instant::now() < deadline, "never: {what}");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    };
+    tool(&mut client, "session_start", json!({"objective": "Extra"}));
+    tool(&mut client, "todo_add", json!({"text": "Write extra"}));
+    std::fs::write(root.join("src/extra.rs"), "pub fn extra() {}\n").unwrap();
+    std::fs::write(root.join("src/a.rs"), "pub fn f() { g(); }\nfn g() {}\n").unwrap();
+    until(&mut client, "the files indexed", &|c| status(c).files >= 3);
+    tool(&mut client, "todo_complete", json!({"item_id": "D-1"}));
+    tool(
+        &mut client,
+        "session_end",
+        json!({"summary": "Extra written."}),
+    );
+    assert_eq!(reason(&mut client), None);
+
+    let before = status(&mut client).head;
+    git(root, &["add", "."]);
+    git(root, &["commit", "--quiet", "-m", "extra"]);
+    until(&mut client, "the commit's snapshot", &|c| {
+        status(c).head > before
+    });
+    // The commit's snapshot and the head that follows it settle; nobody is held meanwhile.
+    for _ in 0..20 {
+        assert_eq!(reason(&mut client), None, "committed after its session");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    std::fs::write(root.join("src/late.rs"), "pub fn late() {}\n").unwrap();
+    until(&mut client, "the late change held", &|c| {
+        reason(c).is_some_and(|r| r.contains("src/late.rs") && !r.contains("extra"))
+    });
+}
+
 /// PLAN.md 7.3, ADR 0039 (Q66), on a real daemon: the whiteboard read and written, checked, in
 /// its one layout; a file that does not read says why, and is left as it is.
 #[test]
@@ -1684,4 +1770,33 @@ fn a_relaying_client_that_stops_reading_holds_nothing() {
         "the daemon did not stop"
     );
     assert!(start.elapsed() < Duration::from_secs(10));
+}
+
+/// T-114: a symbol of the map carries its kind and its signature, as its pack wrote it.
+#[test]
+fn a_symbol_of_the_map_says_its_kind_and_signature() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("vscode").unwrap();
+    indexed(&mut client, 2);
+    let snapshot = subscribe(&mut client, &["pkg:cargo/demo", "file:src/a.rs"]);
+    let f = snapshot
+        .nodes
+        .iter()
+        .find(|n| n.id.as_str() == "rust:demo::a::f")
+        .unwrap_or_else(|| panic!("{:?}", snapshot.nodes));
+    assert_eq!(
+        f.kind,
+        timonier_core::NodeKind::Symbol(timonier_core::SymbolKind::Function)
+    );
+    assert_eq!(f.signature.as_deref(), Some("pub fn f()"));
+    let file = snapshot
+        .nodes
+        .iter()
+        .find(|n| n.id.as_str() == "file:src/a.rs")
+        .expect("the file");
+    assert_eq!(file.signature, None);
 }

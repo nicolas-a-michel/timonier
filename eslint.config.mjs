@@ -16,7 +16,16 @@ const nodeGlobals = {
 };
 
 export default defineConfig([
-  globalIgnores(["**/dist/", "**/out/", "**/node_modules/", "target/", "**/.vscode-test/", "**/coverage/"]),
+  // The packs' instrumentation templates are written into other projects, with their own SDK.
+  globalIgnores([
+    "**/dist/",
+    "**/out/",
+    "**/node_modules/",
+    "target/",
+    "**/.vscode-test/",
+    "**/coverage/",
+    "crates/timonier-index/packs/*/instrumentation/",
+  ]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],

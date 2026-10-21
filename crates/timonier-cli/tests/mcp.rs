@@ -102,9 +102,15 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
     assert_eq!(
         names,
         [
+            "get_budget_violations",
+            "get_budgets",
             "get_drift",
+            "get_instrumentation_conventions",
+            "get_instrumentation_gaps",
             "get_intended_architecture",
+            "get_perf",
             "get_plan",
+            "get_regressions",
             "get_session",
             "get_todo",
             "plan_add_task",
@@ -356,5 +362,28 @@ async fn an_agent_reads_the_whiteboard_and_the_drift_of_the_code() {
     // Never written back: the whiteboard is the developer's.
     let kept = std::fs::read_to_string(root.join(".timonier/intent.json")).expect("kept");
     assert!(kept.starts_with(r#"{"version": 1,"#));
+    agent.cancel().await.expect("the agent goes");
+}
+
+/// PLAN.md T-110: the daemon stopped (an upgrade, a `kill`), the agent's next call still
+/// answers: the proxy reaches the daemon again, and starts it when none answers.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_proxy_reaches_a_daemon_that_went_again() {
+    let project = Project::new();
+    let agent = project.agent().await;
+    let (plan, error) = call(&agent, "get_plan", json!({})).await;
+    assert!(!error, "{plan}");
+    let stopped = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
+        .args(["daemon", "stop", "--root"])
+        .arg(project.repo.path())
+        .env("TIMONIER_RUNTIME_DIR", project.runtime.path().join("run"))
+        .output()
+        .expect("tim runs");
+    assert!(stopped.status.success(), "{stopped:?}");
+    // The proxy notices the connection closed; give it a moment.
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    let (again, error) = call(&agent, "get_plan", json!({})).await;
+    assert!(!error, "{again}");
+    assert_eq!(again["result"], plan["result"]);
     agent.cancel().await.expect("the agent goes");
 }

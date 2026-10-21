@@ -97,9 +97,14 @@ impl Environment {
 #[derive(Clone, Debug)]
 pub struct Runner {
     pub language: String,
+    /// `cargo` or `npm`: which manifest takes the SDK (ADR 0050).
+    pub ecosystem: String,
     pub rule: timonier_daemon::RunnerRule,
     /// `conventions/<name>.md` of the pack, by name.
     pub conventions: Vec<(String, String)>,
+    /// The OpenTelemetry SDK and module the pack adds, and its templates by name.
+    pub instrumentation: Option<timonier_daemon::InstrumentationRules>,
+    pub templates: std::collections::BTreeMap<String, String>,
 }
 
 impl PartialEq for Runner {
@@ -208,6 +213,9 @@ fn runners(root: &Path, test_script: Option<&str>) -> Vec<Runner> {
                 })?;
             Some(Runner {
                 language: pack.language.to_string(),
+                ecosystem: pack.manifest.ecosystem.as_str().to_owned(),
+                instrumentation: pack.manifest.instrumentation.clone(),
+                templates: pack.templates.clone(),
                 rule: rule.clone(),
                 conventions: pack
                     .conventions

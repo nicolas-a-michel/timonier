@@ -15,6 +15,20 @@ pub struct Finding {
     pub repairable: bool,
 }
 
+/// What the kernel says of the instruction counters (ADR 0046, Q70): a note, not a finding, as
+/// the runs count in CPU time without them. `paranoid`: `/proc/sys/kernel/perf_event_paranoid`.
+pub fn counters_note(paranoid: Option<&str>) -> Option<String> {
+    let level: i64 = paranoid?.trim().parse().ok()?;
+    (level > 2).then(|| {
+        format!(
+            "the kernel refuses the CPU instruction counters (perf_event_paranoid is {level}): \
+             `timonier test` counts in CPU time, which varies more. To allow them: `sudo sysctl \
+             kernel.perf_event_paranoid=2`, and to keep it, the line \
+             `kernel.perf_event_paranoid = 2` in a file of /etc/sysctl.d/"
+        )
+    })
+}
+
 pub struct Checked {
     pub findings: Vec<Finding>,
     /// What repairs the repairable findings.
@@ -153,6 +167,19 @@ pub fn check(root: &Path, environment: &Environment, git: Git) -> Checked {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refused_counters_are_a_note_with_the_command() {
+        let note = counters_note(Some("4\n")).unwrap();
+        assert!(
+            note.contains("sudo sysctl kernel.perf_event_paranoid=2"),
+            "{note}"
+        );
+        assert!(note.contains("/etc/sysctl.d/"), "{note}");
+        assert_eq!(counters_note(Some("2")), None);
+        assert_eq!(counters_note(Some("-1")), None);
+        assert_eq!(counters_note(None), None);
+    }
 
     fn git(root: &Path) -> Git {
         Git::Repository {

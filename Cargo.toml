@@ -52,6 +52,21 @@ rmcp = { version = "3.5.1", default-features = false, features = ["server", "tra
 schemars = "1.2.3"
 # Draws the whiteboard's sketch as a PNG for the agent's vision (ADR 0040).
 tiny-skia = "0.12.0"
+# `timonier test` (ADR 0045, 0046), verified 2026-10-21: the JUnit XML of the runners, the
+# relay's getrusage, the instruction counters (Linux).
+junit-parser = { version = "1.7.0", default-features = false }
+nix = { version = "0.31.3", default-features = false, features = ["resource"] }
+perf-event = "0.4.9"
+# The OTLP receiver (ADR 0048), verified 2026-10-21: gRPC and HTTP on one port.
+axum = { version = "0.8.9", default-features = false, features = ["http1", "http2", "tokio"] }
+opentelemetry-proto = { version = "0.33.1", default-features = false, features = ["gen-tonic", "trace", "metrics", "with-serde"] }
+prost = "0.14.4"
+tonic = { version = "0.14.6", default-features = false, features = ["server", "router", "codegen"] }
+# OpenTelemetry's own SDK and exporter (ADR 0044), verified 2026-10-21: always upgraded together.
+opentelemetry = { version = "0.33.1", default-features = false, features = ["trace", "metrics"] }
+opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.33.1", default-features = false, features = ["trace", "metrics", "grpc-tonic"] }
+tracing-opentelemetry = { version = "0.34.0", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

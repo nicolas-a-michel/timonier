@@ -3,10 +3,20 @@ import { readFileSync } from "node:fs";
 import * as vscode from "vscode";
 
 import { DriftFeed } from "./driftFeed";
+import { BudgetFeed, PerfMapFeed } from "./perfMapFeed";
 import { webviewEntry, type WebviewEntry } from "./viteManifest";
 import { densityOf, onPageMessage, onSettingsChange, type MapHostActions } from "./mapHost";
 import { ViewRelay, type DaemonSource, type PinStore, type Rendered } from "./viewRelay";
-import { METHODS, type Density, type DriftView, type MapCommand, type Span } from "./protocol/generated";
+import {
+  METHODS,
+  type Density,
+  type BudgetsView,
+  type DriftView,
+  type MapCommand,
+  type PerfMap,
+  type PerfRuns,
+  type Span,
+} from "./protocol/generated";
 import { createNonce, renderWebviewHtml } from "./webviewHtml";
 
 export const MAP_VIEW_TYPE = "timonier.map";
@@ -53,6 +63,16 @@ export class MapPanel {
     return MapPanel.current?.ready;
   }
 
+  /** The Performances layer the open map was last given, while it shows it (ADR 0051). */
+  static performance(): PerfMap | null | undefined {
+    return MapPanel.current?.perf.last;
+  }
+
+  /** The budgets the open map was last given (ADR 0052): for the tests. */
+  static budgets(): BudgetsView | null | undefined {
+    return MapPanel.current?.budgets.last;
+  }
+
   /** The drift the open map was last given, while it compares with the whiteboard (ADR 0042). */
   static drift(): DriftView | null | undefined {
     return MapPanel.current?.drift.last;
@@ -80,6 +100,8 @@ export class MapPanel {
   private readonly ready: Promise<void>;
   private readonly relay: ViewRelay;
   private readonly drift: DriftFeed;
+  private readonly perf: PerfMapFeed;
+  private readonly budgets: BudgetFeed;
 
   private constructor(
     private readonly panel: vscode.WebviewPanel,
@@ -102,11 +124,38 @@ export class MapPanel {
       },
       post: (message) => webview.postMessage(message),
     });
+    // The Performances layer (ADR 0051): built again when a run with traces ends.
+    this.perf = new PerfMapFeed({
+      fetch: () => {
+        if (!daemon.client) return Promise.reject(new Error("the daemon is not running"));
+        return daemon.client.sendRequest<PerfMap>(METHODS.PERF_MAP, {});
+      },
+      runs: () => {
+        if (!daemon.client) return Promise.reject(new Error("the daemon is not running"));
+        return daemon.client.sendRequest<PerfRuns>(METHODS.PERF_RUNS);
+      },
+      post: (message) => webview.postMessage(message),
+    });
+    // The budgets of the whiteboard, always while the map shows (Q74, ADR 0052).
+    this.budgets = new BudgetFeed({
+      fetch: () => {
+        if (!daemon.client) return Promise.reject(new Error("the daemon is not running"));
+        return daemon.client.sendRequest<BudgetsView | null>(METHODS.PERF_BUDGETS);
+      },
+      runs: () => {
+        if (!daemon.client) return Promise.reject(new Error("the daemon is not running"));
+        return daemon.client.sendRequest<PerfRuns>(METHODS.PERF_RUNS);
+      },
+      post: (message) => webview.postMessage(message),
+    });
     const rendered = this.relay.onDidRender(() => this.drift.changed());
     const whiteboard = root
       ? vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(root, ".timonier/intent.json"))
       : undefined;
-    const drawn = () => this.drift.changed();
+    const drawn = () => {
+      this.drift.changed();
+      void this.budgets.changed();
+    };
     whiteboard?.onDidChange(drawn);
     whiteboard?.onDidCreate(drawn);
     whiteboard?.onDidDelete(drawn);
@@ -115,10 +164,15 @@ export class MapPanel {
     const actions: MapHostActions = {
       post: (message) => webview.postMessage(message),
       density: mapDensity,
-      ready: () => announceReady(),
+      ready: () => {
+        announceReady();
+        void this.budgets.start();
+      },
       markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
       compareIntent: (on) => this.drift.compare(on),
       openWhiteboard: () => vscode.commands.executeCommand("timonier.openWhiteboard"),
+      showPerformance: (on) => this.perf.show(on),
+      openPerformance: () => vscode.commands.executeCommand("timonier.openPerformance"),
       relay: (message) => this.relay.receive(message),
     };
     const messages = webview.onDidReceiveMessage((message: unknown) => onPageMessage(message, actions));
@@ -135,8 +189,10 @@ export class MapPanel {
     const visibility = panel.onDidChangeViewState(({ webviewPanel }) => {
       if (!webviewPanel.visible) {
         this.relay.unloaded();
-        // The new page says again whether it compares.
+        // The new page says again whether it compares, and whether it shows performances.
         void this.drift.compare(false);
+        void this.perf.show(false);
+        this.budgets.stop();
       }
     });
     const settings = vscode.workspace.onDidChangeConfiguration((event) =>
@@ -144,6 +200,8 @@ export class MapPanel {
     );
     panel.onDidDispose(() => {
       this.drift.dispose();
+      this.perf.dispose();
+      this.budgets.stop();
       rendered.dispose();
       whiteboard?.dispose();
       settings.dispose();

@@ -51,9 +51,9 @@ pub struct Manifest {
     /// How the tests of this language run and write JUnit XML (ADR 0034).
     #[serde(default)]
     pub tests: TestRules,
-    /// Reserved for later phases (ADR 0012): read, not interpreted.
+    /// The OpenTelemetry SDK and initialisation module `timonier init` adds (ADR 0050).
     #[serde(default)]
-    pub instrumentation: Option<toml::Table>,
+    pub instrumentation: Option<InstrumentationRules>,
     #[serde(default)]
     pub security: Option<toml::Table>,
 }
@@ -92,6 +92,66 @@ pub struct RunnerRule {
     /// What is good to know, with nothing to do: `doctor` says it without failing.
     #[serde(default)]
     pub info: Option<String>,
+    /// Timonier's smoke test with this runner, which `timonier doctor` runs (ADR 0050).
+    #[serde(default)]
+    pub smoke: Option<SmokeRule>,
+}
+
+/// The smoke test: the command that runs it, and the files `init` writes for it.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SmokeRule {
+    pub command: String,
+    #[serde(default)]
+    pub files: Vec<TemplateFile>,
+}
+
+/// A file `init` writes into the project, from a template of the pack
+/// (`instrumentation/<name>`).
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TemplateFile {
+    /// Where, relative to the root.
+    pub path: String,
+    /// Which template of the pack.
+    pub source: String,
+}
+
+/// What `init` adds for OpenTelemetry (ADR 0050).
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InstrumentationRules {
+    /// The SDK's packages: optional dependencies behind `feature` (Cargo), or development
+    /// dependencies (npm).
+    #[serde(default)]
+    pub dependencies: Vec<SdkDependency>,
+    /// The Cargo feature that turns the instrumentation on.
+    #[serde(default)]
+    pub feature: Option<String>,
+    /// The initialisation module.
+    #[serde(default)]
+    pub files: Vec<TemplateFile>,
+    /// What is left to do by hand.
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SdkDependency {
+    pub name: String,
+    pub version: String,
+    #[serde(default)]
+    pub features: Vec<String>,
+    #[serde(default = "yes")]
+    pub default_features: bool,
+    /// Imported by the code that ships, not only by its tests (Q78): in `dependencies`.
+    #[serde(default)]
+    pub production: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -261,6 +321,8 @@ pub struct Pack {
     /// `conventions/<name>.md`, by name: copied into `.timonier/conventions/<language>/` by
     /// `timonier init` (ADR 0034).
     pub conventions: BTreeMap<String, String>,
+    /// `instrumentation/<name>`, by name: the files `init` writes from them (ADR 0050).
+    pub templates: BTreeMap<String, String>,
 }
 
 impl Pack {
@@ -327,9 +389,10 @@ impl Pack {
             )
             .collect();
         let convention = |file: &str| file.starts_with("conventions/") && file.ends_with(".md");
+        let template = |file: &str| file.starts_with("instrumentation/");
         if let Some(stray) = files
             .keys()
-            .find(|file| !known.contains(file) && !convention(file))
+            .find(|file| !known.contains(file) && !convention(file) && !template(file))
         {
             return Err(pack_error(format!("unexpected file `{stray}`")));
         }
@@ -391,11 +454,37 @@ impl Pack {
                 Some((name.to_owned(), text.clone()))
             })
             .collect();
+        let templates: BTreeMap<String, String> = files
+            .iter()
+            .filter(|(file, _)| template(file))
+            .map(|(file, text)| (file.clone(), text.clone()))
+            .collect();
+        let sources = manifest
+            .instrumentation
+            .iter()
+            .flat_map(|i| &i.files)
+            .chain(
+                manifest
+                    .tests
+                    .runners
+                    .iter()
+                    .filter_map(|r| r.smoke.as_ref())
+                    .flat_map(|s| &s.files),
+            );
+        for file in sources {
+            if !templates.contains_key(&file.source) {
+                return Err(pack_error(format!(
+                    "`{}` names the template `{}`, which the pack lacks",
+                    file.path, file.source
+                )));
+            }
+        }
         Ok(Self {
             manifest,
             language,
             grammars,
             conventions,
+            templates,
         })
     }
 }
@@ -583,7 +672,9 @@ const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
             "definitions.scm",
             "references.scm",
             "roles.scm",
-            "conventions/instrumentation.md"
+            "conventions/instrumentation.md",
+            "instrumentation/timonier_otel.rs",
+            "instrumentation/timonier_smoke.rs"
         ]
     ),
     pack_files!(
@@ -594,7 +685,9 @@ const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
             "references.scm",
             "references.tsx.scm",
             "roles.scm",
-            "conventions/instrumentation.md"
+            "conventions/instrumentation.md",
+            "instrumentation/timonier.otel.ts",
+            "instrumentation/timonier.smoke.test.ts"
         ]
     ),
 ];

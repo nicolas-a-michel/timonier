@@ -62,6 +62,18 @@ pub mod methods {
     pub const INTENT_WRITE: &str = "intent/write";
     /// How the code drifts from the whiteboard, for the map (ADR 0042).
     pub const INTENT_DRIFT: &str = "intent/drift";
+    /// A run of tests begins: its number, its snapshot, where its traces go (ADR 0047).
+    pub const RUN_START: &str = "run/start";
+    /// What `timonier test` measured of it, to keep (ADR 0043, 0045).
+    pub const RUN_FINISH: &str = "run/finish";
+    /// The performance views (ADR 0051): the last runs, one run, the map's layer.
+    pub const PERF_RUNS: &str = "perf/runs";
+    pub const PERF_RUN: &str = "perf/run";
+    pub const PERF_MAP: &str = "perf/map";
+    /// The whiteboard's budgets checked on the last runs (ADR 0052); `null` without budgets.
+    pub const PERF_BUDGETS: &str = "perf/budgets";
+    /// A batch of runs against the main branch (ADR 0053).
+    pub const PERF_REGRESSIONS: &str = "perf/regressions";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -234,6 +246,9 @@ pub struct ViewNode {
     pub file: Option<String>,
     #[ts(type = "Span | null")]
     pub span: Option<Span>,
+    /// A symbol's normalised signature, as its language pack writes it: a function's
+    /// parameters and result, a field's or constant's type; `null` for the others (T-114).
+    pub signature: Option<String>,
     /// What changed in it since the last review; `null` without change, and before the first
     /// review (ADR 0024).
     pub review: Option<NodeReview>,
@@ -614,6 +629,8 @@ pub struct SessionView {
     /// What it changed in the code: since its start while it is open; `null` for a session
     /// that ended without it.
     pub changes: Option<SessionChanges>,
+    /// The budgets the last runs exceeded when it ended (ADR 0052).
+    pub budgets: Vec<String>,
 }
 
 /// A tracking file that does not read (ADR 0029).
@@ -678,6 +695,7 @@ impl TrackingView {
                     started_at: session.started_at,
                     ended_at: session.ended_at,
                     summary: session.summary,
+                    budgets: session.budgets,
                 }
             })
             .collect();
@@ -902,6 +920,27 @@ pub enum HostMessage {
     Drift {
         drift: Option<crate::drift::DriftView>,
     },
+    /// The map's Performances layer, while it is on (ADR 0051); `null` when it cannot be had.
+    PerfMap {
+        perf: Option<crate::perf::PerfMap>,
+    },
+    /// The Performances panel: the last runs, again when a run ends (ADR 0051).
+    PerfRuns {
+        runs: crate::perf::PerfRuns,
+    },
+    /// The run the panel shows; `null` when it is gone or the daemon cannot answer.
+    PerfRun {
+        run: Option<crate::perf::PerfRun>,
+    },
+    /// The regressions of the latest batch, for the panel (ADR 0053); `null` without daemon.
+    PerfRegressions {
+        report: Option<crate::perf::RegressionReport>,
+    },
+    /// The whiteboard's budgets checked on the last runs, for the map, always (Q74, ADR 0052);
+    /// `null` without budgets or daemon.
+    Budgets {
+        budgets: Option<crate::budgets::BudgetsView>,
+    },
 }
 
 /// The density of the map: the sizes of its boxes and the room between them (Q32).
@@ -967,6 +1006,8 @@ pub enum MapCommand {
     ToggleDebt,
     /// Compare the map with the whiteboard, or no longer (ADR 0042).
     ToggleIntent,
+    /// Show the Performances layer of the last run, or no longer (ADR 0051).
+    TogglePerformance,
     /// Open what leads to a box, then center and select it (ADR 0032, Q46): `path` are its
     /// ancestors from the top of the map.
     Reveal {
@@ -1068,6 +1109,12 @@ pub enum WebviewMessage {
     CompareIntent { on: bool },
     /// The map's « Open the whiteboard » button.
     OpenWhiteboard,
+    /// The map shows its Performances layer, or no longer (ADR 0051).
+    ShowPerformance { on: bool },
+    /// « Open the Performances panel », from the map's layer.
+    OpenPerformance,
+    /// The Performances panel shows this run (`R-…`).
+    ChooseRun { run: String },
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]
@@ -1167,6 +1214,30 @@ pub fn typescript() -> String {
         crate::drift::Unchecked::decl(&cfg),
         crate::drift::Drift::decl(&cfg),
         crate::drift::DriftView::decl(&cfg),
+        crate::perf::CpuSource::decl(&cfg),
+        crate::perf::TestStatus::decl(&cfg),
+        crate::perf::SpanStatus::decl(&cfg),
+        crate::perf::Sample::decl(&cfg),
+        crate::perf::RunSummary::decl(&cfg),
+        crate::perf::PerfRuns::decl(&cfg),
+        crate::perf::PerfRunParams::decl(&cfg),
+        crate::perf::TestView::decl(&cfg),
+        crate::perf::SpanView::decl(&cfg),
+        crate::perf::PerfRun::decl(&cfg),
+        crate::perf::NodePerf::decl(&cfg),
+        crate::perf::LinkPerf::decl(&cfg),
+        crate::perf::PerfMap::decl(&cfg),
+        crate::regression::Verdict::decl(&cfg),
+        crate::perf::RegressionStatus::decl(&cfg),
+        crate::perf::RegressionNote::decl(&cfg),
+        crate::perf::Regression::decl(&cfg),
+        crate::perf::RegressionReport::decl(&cfg),
+        crate::perf::RegressionParams::decl(&cfg),
+        crate::budgets::LimitKind::decl(&cfg),
+        crate::budgets::LimitCheck::decl(&cfg),
+        crate::budgets::BudgetState::decl(&cfg),
+        crate::budgets::BudgetCheck::decl(&cfg),
+        crate::budgets::BudgetsView::decl(&cfg),
         IntentRead::decl(&cfg),
         IntentWriteParams::decl(&cfg),
         IntentWritten::decl(&cfg),
@@ -1197,6 +1268,11 @@ pub fn typescript() -> String {
         ("INTENT_READ", methods::INTENT_READ),
         ("INTENT_WRITE", methods::INTENT_WRITE),
         ("INTENT_DRIFT", methods::INTENT_DRIFT),
+        ("PERF_RUNS", methods::PERF_RUNS),
+        ("PERF_RUN", methods::PERF_RUN),
+        ("PERF_MAP", methods::PERF_MAP),
+        ("PERF_BUDGETS", methods::PERF_BUDGETS),
+        ("PERF_REGRESSIONS", methods::PERF_REGRESSIONS),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -1245,6 +1321,7 @@ mod tests {
                 files: 3,
                 ..SessionChanges::default()
             }),
+            budgets: Vec::new(),
         }
     }
 
@@ -1369,6 +1446,7 @@ mod tests {
             children: 2,
             file: Some("src/a.rs".into()),
             span: None,
+            signature: None,
             review: Some(NodeReview {
                 change: Some(ReviewChange::Added),
                 fan_in: Some(FanJump {

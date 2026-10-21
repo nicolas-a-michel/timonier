@@ -20,6 +20,8 @@ export type Panel = "all" | "bridge";
 export interface BridgeHost {
   reveal(target: string, path: string[]): unknown;
   openMap(): unknown;
+  /** The Performances panel (ADR 0051). */
+  openPerformance?(): unknown;
   markReviewed(): unknown;
   /** `timonier init` in a terminal (Q52, Q53). */
   configure(): unknown;
@@ -68,6 +70,9 @@ class TrackingViewProvider implements vscode.WebviewViewProvider {
           return;
         case "openMap":
           this.host?.openMap();
+          return;
+        case "openPerformance":
+          this.host?.openPerformance?.();
           return;
         case "markReviewed":
           this.host?.markReviewed();

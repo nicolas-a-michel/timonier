@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-6",
+  "agent": "claude-code",
+  "objective": "8.1: ADRs for Phase 8 (trace and metric storage, the instrumentation feature, level 1 on Linux and macOS, hardware counters) and plan the two defects found at the Phase 7 commit",
+  "tasks": [
+    "T-93",
+    "T-110",
+    "T-111"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T09:32:27Z",
+  "ended_at": "2026-10-21T09:36:08Z",
+  "snapshots": {
+    "start": 34,
+    "end": 35
+  },
+  "summary": "8.1 done: ADRs 0043 (perf.sqlite apart, retention), 0044 (feature otel, code.function.name derived by the receiver), 0045 (level 1 through a measuring relay: getrusage everywhere, systemd user scope on Linux; junit-parser), 0046 (perf-event instruction counter on the whole run, CPU-time fallback, Q70). Skill otel-instrumentation and PLAN.md updated. T-110 and T-111 planned (proxy reconnection, Stop hook). Next: 8.2 timonier test.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

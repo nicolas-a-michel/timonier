@@ -33,21 +33,38 @@ the same rules.
   - the overhead, estimated against the level-1 measurement.
 - These gaps are reported and readable by the agent over MCP (`get_instrumentation_gaps`).
 
+## The receiver (ADR 0047, 0048)
+
+- `timonier-otlp` listens on 127.0.0.1, 4317 and 4318 or ports of the system's choice; each port
+  serves gRPC and HTTP (protobuf or JSON), so the injected endpoint suits any exporter. The
+  daemon starts it at the first `run/start`.
+- It keeps only spans and points whose resource or own attributes carry `timonier.run_id` of
+  an open run (or one ended less than 60 s ago).
+- A span names its test with `timonier.test.name` and `timonier.test.classname` (span or
+  resource attribute), matched against the JUnit cases; each JUnit case is a synthesized root
+  span.
+- A span finds its node by: `rust:` + `code.function.name` as a graph ID; then the function of
+  `code.file.path` with the same last name; then the symbol holding `code.line.number`; then
+  the file.
+
 ## Applying it in Timonier's Rust code
 
 - Library crates depend only on `tracing`. A span costs almost nothing when no subscriber is
   installed.
-- The OpenTelemetry layer and exporter live behind a Cargo feature, in the binary only. The
-  feature name is fixed by ADR in Phase 8.
+- The OpenTelemetry layer and exporter live behind the Cargo feature `otel`, in `timonier-cli`
+  only, on by default (ADR 0044). `--no-default-features` builds a binary with no OpenTelemetry
+  dependency. At run time the exporter exists only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set;
+  `OTEL_SDK_DISABLED=true` turns it off.
   - Verified versions: `tracing-opentelemetry` 0.34.0 goes with `opentelemetry` /
     `opentelemetry_sdk` / `opentelemetry-otlp` 0.33.1.
   - The OTel Rust traces API is still Beta: always upgrade these crates together.
 - Public boundary functions use `#[tracing::instrument(skip_all, fields(...))]`, with explicit,
   small fields. Never put file contents, secrets or whole payloads in fields: sizes only.
-- **To verify in Phase 8, do not assume**: whether `tracing-opentelemetry` exports source
-  location under the current semantic-convention names (`code.file.path`, `code.line.number`,
-  `code.function.name`) or under older ones. If it uses older names, set the attributes
-  explicitly.
+- Verified on 2026-10-21 (`tracing-opentelemetry` 0.34.0, `src/layer.rs`): it exports
+  `code.file.path`, `code.line.number` and `code.module.name` (current names), and **never**
+  `code.function.name`. The receiver derives it as `<code.module.name>::<span name>` for such
+  spans and marks it derived (ADR 0044): do not rename the span of a boundary function
+  (`#[instrument(name = …)]`), or the derived name is wrong.
 - Hot paths get counters and histograms, not spans. Examples: the per-node and per-edge loops
   in indexing, SQLite row loops, the particle loop in the webview. Metric names use the
   `timonier.` prefix.

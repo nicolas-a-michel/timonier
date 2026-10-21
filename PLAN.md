@@ -110,14 +110,17 @@ par tâche en Phase 9 ; le calque par composant reste en v2.
 - Recommandation : en Phase 9, la seule collecte par session et par tâche via la télémétrie
   OpenTelemetry de Claude Code. Le calque par composant reste en v2.
 
-**Q8 — Assistant « Nouveau projet piloté »** (Phase 9)
+**Q8 — Assistant « Nouveau projet piloté »** (Phase 9) — ✅ répondu le 2026-10-21 : **en
+Phase 9**. L'assistant de VSCode crée un projet : choix de la stack, générateur officiel
+(`cargo new`, `npm create`…), puis `timonier init`, `doctor` et le test de fumée.
 - Il est décrit dans « Initialisation » mais absent de la liste du MVP et du prompt.
-- Recommandation : en Phase 9, sinon v2. La détection à l'ouverture d'un dépôt non configuré
-  est prévue en Phase 6.
+- La détection à l'ouverture d'un dépôt non configuré existe depuis la Phase 6.
 
-**Q9 — Projet pilote du critère de sortie du MVP** (Phase 9)
+**Q9 — Projet pilote du critère de sortie du MVP** (Phase 9) — ✅ répondu le 2026-10-21 : **un
+nouveau projet**, créé et développé par un agent sous Timonier (en Rust ou en TypeScript, avec des
+tests), qui sert aussi d'épreuve à l'assistant de Q8. Lequel exactement : à choisir ensemble au
+début de 9.6.
 - Critère : « un projet réel piloté de bout en bout sans lire le code ligne à ligne ».
-- À trancher : lequel ?
 
 **Q10 — Outils MCP de lecture du suivi** (Phase 6) — ✅ répondu le 2026-10-20 : **les
 ajouter**. `get_plan`, `get_todo` et `get_session`, en lecture seule, avec le même en-tête de
@@ -239,6 +242,48 @@ l'as laissée quand le code change.
 - Autre option pour le premier point : un fichier `.timonier/layout.json` dans le dépôt,
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
+
+**Q78 — Où `timonier init` met `@opentelemetry/api`** (8.6, relecture n° 1, m6) — ✅ répondu le
+2026-10-21 : **en `dependencies`**. Le module de production l'importe ; le SDK et l'exporteur
+restent en `devDependencies` (complète Q72).
+
+**Q77 — Un run sur un arbre de travail modifié** (8.9, relecture n° 1, I6) — ✅ répondu le
+2026-10-21 : **marqué, hors référence**. Le run garde l'empreinte de l'arbre modifié ; il n'entre
+jamais dans la référence de la branche principale, et ne confirme une régression que si
+l'empreinte est la même.
+
+**Q76 — Le temps affiché sur la carte** (8.7, relecture n° 1, I7) — ✅ répondu le 2026-10-21 :
+**cumulé, propre en détail**. Comme la spec : le temps cumulé sur la boîte ; le temps propre
+dans l'infobulle et le panneau de détail.
+
+**Q75 — Ce que mesurent p50 et p95 d'un budget** (8.8) — ✅ répondu le 2026-10-21 : **chaque
+appel entrant**. Chaque span du composant appelé depuis l'extérieur est un appel ; p50 et p95
+sur leur durée dans un run, puis la médiane sur les 5 derniers runs avec traces ; « appels » les
+compte ; « mémoire max » est le pic du processus pendant eux ; une flèche, les appels de la
+source vers la cible ; sans attache, la durée des tests (ADR 0052).
+
+**Q74 — Quand un budget dépassé apparaît sur la carte** (8.8) — ✅ répondu le 2026-10-21 :
+**toujours**. La boîte porte une marque rouge avec une icône dès que la carte est ouverte ; le
+détail chiffré est dans le calque Performances et via MCP ; rien tant que tout tient (ADR 0052).
+
+**Q73 — Où vivent les vues de performances** (8.7) — ✅ répondu le 2026-10-21 : **calque et
+panneau**. La carte annotée est un calque « Performances » de la carte (bouton et commande) ;
+la timeline par test, l'arbre des appels et l'évolution par commit sont dans un panneau à part,
+ouvert depuis la carte, le pont ou la palette (ADR 0051).
+
+**Q72 — Jusqu'où `timonier init` touche le projet pour l'instrumentation** (8.6) — ✅ répondu
+le 2026-10-21 : **manifestes et deux fichiers**. `init` ajoute le SDK au manifeste entre
+marqueurs (Cargo.toml : dépendances optionnelles et feature `otel` ; package.json :
+devDependencies), écrit un module d'initialisation et un test de fumée ; `--dry-run` montre le
+diff, `uninit` retire tout ; `doctor` lance le test de fumée et vérifie qu'un span se rattache au
+graphe (ADR 0050).
+
+**Q71 — Le critère de sortie de la Phase 8** — ✅ répondu le 2026-10-21 : **validé tel quel**.
+
+**Q70 — Les compteurs d'instructions refusés** (8.1) — ✅ répondu le 2026-10-21 : **repli et
+doctor**. Sur Ubuntu (`perf_event_paranoid` = 4), `perf_event_open` est refusé sans réglage
+système : la détection de régressions se fait alors sur le temps CPU, et le dit ; `timonier
+doctor` explique la commande `sysctl` qui les active, sans la lancer.
 
 **Q69 — Les IDs écrits à la main** (relecture n° 1 de la Phase 7, I2) — ✅ répondu le
 2026-10-21 : **accepter en lecture**. Un `intent.json` écrit avec des IDs nommés comme l'exemple de
@@ -3214,34 +3259,142 @@ le titre d'un rôle ouvert dans un cadre étroit se réduit, défaut antérieur 
 
 ## Phase 8 — Performances
 
-Statut : à faire
+Statut : terminée (validée par toi le 2026-10-21)
 
 - 8.1 ADR — critère : ADR acceptées. Sujets :
   - stockage des traces et des métriques ;
   - nom de la feature qui désactive l'instrumentation ;
   - niveau 1 sur macOS (H8) ;
   - compteurs matériels.
+
+  Fait (2026-10-21) : ADR 0043 (base à part `.timonier/perf.sqlite`, rétention de 50 runs,
+  200 000 spans par run), 0044 (feature `otel` du binaire, active par défaut, export seulement
+  si `OTEL_EXPORTER_OTLP_ENDPOINT` ; `code.function.name` déduit par le récepteur pour les
+  spans `tracing`, qui ne l'écrit pas), 0045 (relais mesureur `timonier __measure` : `getrusage`
+  partout, scope systemd utilisateur sous Linux quand cpu et memory sont délégués ; JUnit par
+  `junit-parser`), 0046 (compteur d'instructions `perf-event` sur l'arbre entier, repli sur le
+  temps CPU, Q70). Proposées, acceptées à la validation de la phase (Q15).
 - 8.2 `timonier test -- <commande>`, niveau 1 — critère : test d'intégration sur un projet
   fixture. Contenu :
   - durée, CPU, mémoire max et I/O via cgroups v2 / procfs sur Linux, avec un repli sur
     macOS ;
-  - durée par test lue dans le JUnit XML (quick-junit 0.8).
+  - durée par test lue dans le JUnit XML (junit-parser 1.7, voir « Dépendances vérifiées »).
+
+  Fait (2026-10-21) :
+  - `timonier test [--junit F] [--root D] [-- <commande>]` ; sans commande, les runners de
+    `.timonier/tests.json` (`sh -c`), un run chacun ; le JUnit vient de `--junit`, sinon du
+    runner dont c'est la commande ; un rapport plus ancien que le run n'est pas lu (et le run
+    le dit). Code de sortie : celui de la commande (127 si elle ne se lance pas).
+  - Relais `timonier __measure` (ADR 0045) : `getrusage(RUSAGE_CHILDREN)` (CPU, plus gros
+    processus, blocs) ; sous Linux, scope systemd utilisateur quand `systemd-run` est là et que
+    cpu et memory sont délégués (`memory.peak` de l'arbre, `cpu.stat`, `io.stat` si io est
+    délégué, échantillons toutes les 100 ms) ; `TIMONIER_MEASURE=rusage` force le repli.
+    Compteur d'instructions `perf-event` sur l'arbre (ADR 0046) ; refusé ici
+    (`perf_event_paranoid` = 4), le run le dit et `timonier doctor` donne la commande `sysctl`
+    (une note, pas un constat : `--check` reste vert).
+  - Le démon garde le run (`run/record`, sans changer le numéro du protocole : une méthode de
+    plus ne casse aucun client) dans `.timonier/perf/perf.sqlite`, avec son `.gitignore` (ADR
+    0043, chemin précisé) : snapshot de tête, commit, branche, empreinte de la machine.
+  - Tests : `crates/timonier-cli/tests/test.rs` (projet fixture en git, vrai démon : mesures,
+    tests et durées du JUnit, fichier et ligne, commit et branche, repli rusage, runners de
+    `tests.json`, rapport périmé, commande introuvable), unités du relais, du JUnit, du store
+    et de l'empreinte. Essayé à la main : 70 Mo pour tout l'arbre dans le scope, 68 Mo pour le
+    plus gros processus sans.
+  - Le snapshot est pris au début du run depuis 8.3. Un Ctrl-C arrête aussi le relais : le
+    run reste commencé, sans mesures. Sur Timonier, les durées par test demandent cargo-nextest (`doctor` le dit).
 - 8.3 Injection de `OTEL_EXPORTER_OTLP_ENDPOINT` et `OTEL_RESOURCE_ATTRIBUTES`
   (`timonier.run_id`, `timonier.snapshot`) ; chaque test devient un span racine — critère :
   test.
+
+  Fait (2026-10-21), ADR 0047 :
+  - le run commence chez le démon (`run/start` : numéro, snapshot de tête au début, commit,
+    branche, adresse du récepteur) et finit par `run/finish` ; `run/record` de 8.2 disparaît ;
+    un run jamais fini reste, sans mesures ;
+  - la commande reçoit `OTEL_EXPORTER_OTLP_ENDPOINT` (pour l'instant
+    `http://127.0.0.1:4318`, le port HTTP par défaut ; 8.4 donnera l'adresse réelle) et
+    `OTEL_RESOURCE_ATTRIBUTES` avec `timonier.run_id` et `timonier.snapshot` après les
+    attributs déjà posés ;
+  - chaque cas du JUnit XML devient un span racine synthétisé du run (`timonier.test.name`,
+    `.classname`, `.status`, `code.file.path` et `code.line.number` quand le runner les
+    donne), daté par le `timestamp` du cas (lu en RFC 3339) ; les spans du code s'y
+    rattacheront par `timonier.test.name` au récepteur (8.4), posé par les conventions (8.6 ;
+    nextest donne `NEXTEST_TEST_NAME` et `NEXTEST_BINARY_ID`, vérifié) ;
+  - critère : `the_tests_are_told_their_run_and_each_test_becomes_a_root_span` (vrai démon),
+    plus les tests du store (début, fin unique, racines) et du CLI (attributs, dates).
 - 8.4 `timonier-otlp` : récepteur gRPC 4317 et HTTP 4318 (tonic 0.14, opentelemetry-proto
   0.33), ports occupés gérés, rattachement au graphe par les attributs `code.*` — critère :
   test d'intégration avec un vrai exporteur OTLP.
+
+  Fait (2026-10-21), ADR 0048 :
+  - `timonier-otlp` : `decode` (OTLP → spans et points des runs : `code.*`, test, statut,
+    attributs bornés à 4 Kio ; `code.function.name` déduit de `code.module.name`, ADR 0044) et
+    `Receiver` (127.0.0.1 ; 4317 et 4318 sinon un port du système ; chaque port sert gRPC et
+    OTLP/HTTP en protobuf et en JSON ; 415 pour la compression et les autres types, 400 pour un
+    message qui ne se lit pas ; 16 Mio au plus) ;
+  - le démon le démarre au premier `run/start` et donne son adresse à la commande ; il garde ce
+    qui nomme un run ouvert (ou fini depuis moins de 60 s), au plus 200 000 spans par run (le
+    reste compté), efface les spans et métriques des runs plus anciens que les 50 derniers ;
+  - rattachement : au test par `timonier.test.name` et `.classname` (à la fin du run, ou à
+    l'arrivée s'il est fini) ; au nœud par ID, puis nom dans le fichier, puis ligne, puis
+    fichier, la règle gardée ; `timonier test` attend la première indexation avant d'ouvrir le
+    run ;
+  - critère : `crates/timonier-otlp/tests/receiver.rs` (un vrai exporteur `opentelemetry-otlp`
+    en gRPC, vers chacun des deux ports ; OTLP/HTTP protobuf et JSON écrit à la main ; port pris)
+    et `the_spans_of_a_real_exporter_come_back_attached_to_their_test_and_node` (`timonier test`
+    lance `examples/emit_spans.rs`, instrumenté avec le SDK : ses trois spans reviennent avec
+    leur test et leur nœud, par ID, par nom et par ligne).
 - 8.5 Vérification de l'instrumentation : fonctions publiques jamais vues, spans sans
   `code.*`, surcoût estimé contre le niveau 1 ; outils MCP `get_instrumentation_gaps` et
   `get_instrumentation_conventions(lang)` — critère : une fixture aux trous connus les fait
   tous remonter.
+
+  Fait (2026-10-21), ADR 0049 :
+  - `timonier-core::gaps` : fonctions publiques (Rust : signature `pub` ; TypeScript : toutes
+    sauf privées, faute d'`export` dans le graphe, dit dans `approximations`), hors code de
+    test ; jamais vues = aucun span rattaché par ID, nom ou ligne ; spans sans `code.*` groupés
+    par nom avec ce qui manque ; spans sans nœud ; spans au-delà du plafond ; surcoût =
+    médianes des runs avec et sans traces de même commit, commande et empreinte ;
+  - `timonier test --without-traces` (`OTEL_SDK_DISABLED=true` ; le récepteur ne garde rien
+    d'un tel run ; le SDK Rust 0.33.1 ne lit pas la variable, vérifié : les conventions la
+    liront, 8.6) ;
+  - outils MCP `get_instrumentation_gaps { run?, cursor?, limit? }` (le dernier run fini avec
+    traces ; pages de 100, 500 au plus ; arguments vérifiés par le démon) et
+    `get_instrumentation_conventions { language }` (`.timonier/conventions/<langage>/`) ;
+    catalogue et bloc géré d'`AGENTS.md` à jour ;
+  - critère : `a_fixture_s_known_gaps_all_show` (fixture : `h` publique jamais vue, `p` privée
+    ignorée, un span sans rien, un span avec son seul fichier, un span sans nœud, le surcoût
+    contre un run sans traces) et `the_conventions_of_a_language_are_those_init_copied`.
+  - Écart : le surcoût n'a qu'une mesure de chaque côté tant que la méthode des runs répétés
+    (8.9) n'existe pas.
 - 8.6 Instrumentation — critère : `timonier doctor` produit une trace rattachée au graphe.
   Contenu :
   - Timonier s'instrumente lui-même, derrière la feature ;
   - volet instrumentation de `timonier init` pour Rust et TS (SDK OpenTelemetry, module
     d'initialisation) ;
   - test de fumée de `timonier doctor` (H6).
+
+  Fait (2026-10-21), ADR 0050 :
+  - Timonier s'instrumente (ADR 0044) : `timonier-cli/src/telemetry.rs` (logs sur stderr par
+    une seule installation, et la couche OpenTelemetry derrière la feature `otel`, active par
+    défaut, quand `OTEL_EXPORTER_OTLP_ENDPOINT` est posée sans `OTEL_SDK_DISABLED=true`) ; des
+    spans `#[instrument(skip_all)]` aux frontières : écritures du store et des mesures, diff et
+    agrégation, étapes du pipeline, requêtes JSON-RPC (`method`), outils MCP (`tool`), runs,
+    décodage OTLP, `doctor` ; essayé : un `tim doctor` lancé sous `tim test` envoie
+    `run_doctor` avec `code.function.name` déduit, `code.file.path` et `code.line.number` ;
+  - volet instrumentation d'`init` (Q72) : section `[instrumentation]` des packs et
+    `[tests.runners.smoke]` ; `Cargo.toml` (deux blocs), `package.json` (devDependencies),
+    `src/timonier_otel.rs` et `tests/timonier_smoke.rs`, `timonier.otel.ts` et
+    `timonier.smoke.test.ts` (vitest) ; `smoke` dans `tests.json` ; `uninit` reprend tout ;
+    conventions des deux packs réécrites ;
+  - `doctor` lance le test de fumée (`--no-smoke` pour le sauter) ;
+  - critère : `doctor_s_smoke_test_produces_a_trace_attached_to_the_graph` (fixture Rust :
+    `init`, vrai SDK compilé, `doctor --check` dit « the smoke test (rust) produced a trace
+    attached to the graph », puis `uninit` rend `Cargo.toml` tel quel) ; tests des éditions de
+    manifestes (aller et retour, `[features]` du développeur, workspace, feature prise).
+  - Écarts : le test de fumée TypeScript n'est pas joué dans les tests (il faut `npm install`
+    du SDK) ; les conventions de `.timonier/` de Timonier restent à l'ancienne version jusqu'à
+    un `timonier doctor --fix`, que je ne lance pas : il poserait aussi le tableau blanc vide,
+    qui est à toi.
 - 8.7 Vues — critère : test des cinq secondes. Contenu :
   - timeline par test (spans emboîtés, ressources du processus dessous, uPlot) ;
   - carte annotée (temps cumulé, nombre d'appels, arêtes épaissies selon le trafic) ;
@@ -3249,11 +3402,50 @@ Statut : à faire
   - à ta demande (2026-10-18), s'inspirer des panneaux « Performances » des outils de
     développement de Chrome et de Firefox : un arbre des appels qu'on déplie, avec le temps
     passé en ms et les ressources utilisées à chaque niveau.
+
+  Fait (2026-10-21), ADR 0051 :
+  - démon : `perf/runs`, `perf/run` (20 000 spans au plus, temps depuis le début du run),
+    `perf/map` (temps propre et appels par nœud, trafic entre nœuds, lignées) ;
+    `timonier-core::perf::map_of`, pur et testé ;
+  - calque « Performances » de la carte (bouton, commande `timonier.map.showPerformance`, état
+    gardé) : temps passé dans chaque boîte, liens épaissis selon les appels mesurés (échelle
+    log), bandeau du run et de ses trois nœuds les plus lents, légende ; `PerfMapFeed` dans
+    l'extension (`perf/runs` toutes les 3 s tant qu'il est allumé) ;
+  - panneau Performances (`webview/src/performance/`, page `performance.html`, commande
+    `timonier.openPerformance`, bouton du pont et du calque) : choix du run et ses chiffres,
+    onglets Timeline (tests, spans par profondeur, mémoire et CPU du processus pendant le
+    test), Arbre des appels (`treegrid` déplié au clavier, total, propre, appels, mémoire et CPU
+    du processus par niveau), Évolution (durée et CPU par run, nommés par commit) ; uPlot
+    1.6.32 ; un tableau caché à la vue pour chaque courbe ;
+  - tests : modèle (vitest), feeds (node:test), `the_views_read_a_run_its_spans_and_the_map_s_layer`
+    (vrai démon, vrai exporteur), `performance.a11y.ts` (clavier, tableaux, AA dans les six
+    thèmes, calque compris), intégration (le panneau s'ouvre sous la CSP, le calque interroge le
+    démon) ;
+  - reste : le test des cinq secondes, à toi (critère de 8.7).
+  - Écarts : les ressources d'un niveau de l'arbre sont celles de tout le processus pendant qu'il
+    tournait, pas du niveau (rien ne les mesure) ; sans scope systemd (macOS), pas de courbe ni
+    de ressources par niveau.
 - 8.8 Budgets — critère : un budget dépassé volontairement est visible sur la carte et
   lisible via MCP. Contenu :
   - chaque note budget de l'intention est comparée à la médiane de plusieurs runs ;
   - un dépassement apparaît en rouge, avec une icône, sur la carte et dans le journal ;
   - outils MCP `get_budgets`, `get_budget_violations` et `get_perf(component)`.
+
+  Fait (2026-10-21), ADR 0052 :
+  - `timonier-core::budgets` (pur) : cible de chaque budget (ancre, couche, flèche, tests),
+    appels entrants d'un run, p50 et p95 au rang le plus proche, médiane des 5 derniers runs avec
+    traces qui ont atteint la cible, hors tests de fumée (relectures n° 1 et 2), états `ok`,
+    `exceeded`, `unmeasured`, `unanchored` ; les allocations restent non mesurées ;
+  - démon : `perf/budgets` ; outils MCP `get_budgets`, `get_budget_violations`, `get_perf
+    { component, run? }` ; `session_end` garde les budgets dépassés dans la session (champ
+    `budgets`, schéma régénéré) ;
+  - carte : badge « Budget dépassé » dans la barre de titre de la boîte, toujours, chiffres au
+    survol et dans le nom, légende ; `BudgetFeed` dans l'extension ; journal : la partie « Tests »
+    d'une session montre ses budgets dépassés ; bloc géré d'`AGENTS.md` ;
+  - critère : `a_budget_exceeded_on_purpose_shows_on_the_map_through_mcp_and_in_the_journal`
+    (fixture : un p95 d'une nanoseconde sur `demo`, vrai exporteur, vrai démon : MCP, données de
+    la carte avec la boîte, `get_perf`, journal) et `performance.a11y.ts` (la marque sur la
+    carte, son nom, AA dans les six thèmes).
 - 8.9 Détection de régressions selon la méthode décidée dans la spec — critère : tests
   statistiques sur des jeux de données connus ; une fonction ralentie exprès passe de
   « probable » à « confirmée ». Méthode :
@@ -3263,6 +3455,51 @@ Statut : à faire
   - régression signalée si Mann-Whitney p < 0,01 et écart ≥ max(5 %, 3 × MAD) ;
   - « probable », puis « confirmée » après un nouveau run ;
   - référence réinitialisée si l'empreinte de la machine change.
+
+  Fait (2026-10-21), ADR 0053 :
+  - `timonier-core::regression` : médiane, MAD, Mann-Whitney unilatéral (exact sans ex æquo
+    jusqu'à 40 valeurs, sinon normal corrigé), jugement selon la spec ; vérifié contre SciPy
+    1.18.1 sur des jeux connus ;
+  - `timonier test --runs N|auto` (5, jusqu'à 15 si la MAD dépasse 5 % de la médiane), lots
+    `B-…` ; référence : les 5 derniers commits de la branche principale (`origin/HEAD`, sinon
+    `main`), même commande et même empreinte ; mesures : coût du run, durée de chaque test,
+    temps propre de chaque nœud ; « probable » puis « confirmée » par le lot précédent du même
+    commit ;
+  - `perf/regressions`, outil MCP `get_regressions` (nouveau), lignes à la fin de
+    `timonier test`, liste dans l'onglet Évolution, bloc géré d'`AGENTS.md` ;
+  - critère : `the_mann_whitney_test_gives_scipy_s_values_on_known_datasets` et
+    `a_function_slowed_on_purpose_goes_from_probable_to_confirmed` (fixture : un lot de
+    référence sur `main`, puis `f` ralentie de 40 ms : « probable », puis « confirmée » au lot
+    suivant ; la durée du test, inchangée, n'en est pas une ; stable sur 10 passages).
+- T-110 (ajoutée le 2026-10-21) : le serveur MCP se reconnecte à un démon relancé. Le relais
+  sait sa connexion morte ; l'appel suivant se reconnecte, relance le démon par le CLI s'il ne
+  répond pas, et refait la poignée de main ; un appel coupé en cours n'est pas rejoué (une
+  écriture a pu se faire), l'erreur le dit. Test : `the_proxy_reaches_a_daemon_that_went_again`.
+- T-111 (ajoutée le 2026-10-21) : le hook d'arrêt ne compte plus comme du code changé ce que le
+  commit regroupe. Cause, lue dans `graph.sqlite` au commit de la Phase 7 (snapshot 29) : le
+  regroupement en composants fait à chaque commit (ADR 0016) change le parent de 24 fichiers,
+  sans rien changer de leur contenu ni de leurs arêtes ; `changed_files` les comptait. Un fichier
+  dont seul le parent change n'y compte plus ; la dette de relecture (ADR 0030), qui lit la même
+  fonction, cesse aussi de les marquer « untracked ». Tests :
+  `files_only_regrouped_into_another_component_are_not_changed` (échoue sans le correctif) et
+  `work_committed_after_its_session_ended_holds_no_agent` (démon réel, commit après la session,
+  puis un changement tardif toujours retenu).
+- T-114 (ajoutée le 2026-10-21, à la demande de l'humain) : la carte dit ce qu'est un symbole.
+  Couleur de sa sorte (celle de la vue « Structure » de l'IDE), icône et mot à la place du rôle,
+  signature en police de code, et l'infobulle « Champ : pub size: u32 » ; `ViewNode.signature`
+  porte la signature du pack (ADR 0054). Tests : `a_symbol_of_the_map_says_its_kind_and_signature`
+  (démon), « a symbol's box » (vitest), `test:a11y` (une boîte de chaque sorte dans la galerie,
+  six thèmes).
+- T-112 (ajoutée le 2026-10-21, à la demande de l'humain) : README lisible sur GitHub, avec une
+  capture en anglais de chaque fonctionnalité. `README.md` (anglais, la référence) : but en une
+  phrase, le problème, une visite par fonctionnalité avec sa capture, le fonctionnement, l'état,
+  essayer, développer ; `README.fr.md` le traduit, mêmes sections et mêmes images, liens de
+  langue en tête ; la liste détaillée d'avant passe dans `docs/features.md`. Les 12 captures de
+  `docs/images/` sont prises par Playwright (`npm run screenshots -w webview`,
+  `webview/test/screenshots/readme.shots.ts`, projet à part sous `SHOTS=1`) : la page de
+  développement avec ses données d'exemple pour la carte, le suivi et le panneau Performances,
+  le build de production pour le tableau blanc, thème Dark Modern. Skill `readme` pour les
+  réécritures suivantes.
 - 8.10 Relecture par `phase-reviewer` — critère : verdict « prête ».
 
 Reporté de la Phase 4 (Écarts) : le coût de Timonier lui-même sur un grand dépôt, mesuré par
@@ -3275,12 +3512,39 @@ les relectures n° 15 et 16 sur des dépôts synthétiques (build release, tmpfs
   filtrer dans le processus les événements de tout le dépôt (notify 8.2, FSEvents ; ADR 0023,
   relecture n° 17, m17-7).
 
-Critère de sortie (proposé, à valider) : `timonier test` sur Timonier produit une timeline par
+Critère de sortie (validé le 2026-10-21, Q71) : `timonier test` sur Timonier produit une timeline par
 test, avec des spans rattachés aux nœuds du graphe ; une régression provoquée est détectée ;
 un budget dépassé apparaît en rouge.
 
-Décisions : —
-Écarts : —
+Vérification du critère de sortie sur Timonier (2026-10-21, T-113) :
+- timeline par test : `tim test` (cargo-nextest 0.9.149, Apache-2.0 OR MIT, installé ce jour)
+  passe les 540 tests en 13,0 s (run R-2, 2,4 Go au plus pour tous les processus) ; 585 spans
+  reçus, tous rattachés à leur test et à un nœud du graphe (571 par le nom, 14 par l'id), sur
+  les 19 tests qui lancent le binaire `timonier` (les autres n'exécutent pas de code instrumenté
+  dans un processus qui exporte) ; `get_instrumentation_gaps` : 0 span sans `code.*`, 0 sans
+  nœud ;
+- régression provoquée, dans un clone jetable (scratchpad, commits locaux non signés, jamais
+  poussés) : un lot de référence de 5 runs sur `main`, puis un commit qui ajoute 40 ms au
+  début d'`index_all`, sur `cargo nextest run --profile timonier -p timonier-cli --test mcp` :
+  « probable » au premier lot (`index_all` +797,7 %, p = 0,0003), « confirmée » au second
+  (+800,9 %) ; `request` et `call`, qui attendent l'indexation côté client, et la durée du test
+  qui lance le plus de démons (+21 %) le sont aussi ;
+- budget dépassé en rouge : à l'humain, qui seul dessine les budgets sur le tableau blanc (la
+  vue est vérifiée par `test:a11y` et l'intégration, ADR 0052).
+
+Décisions : ADR 0043 à 0054.
+Écarts :
+- Trouvé par le critère de sortie : la télémétrie de Timonier lui-même ne posait pas le test
+  de nextest sur ses spans (ADR 0047), au contraire du module que le pack Rust écrit ; au
+  premier run, aucun span réel n'était sous un test. `telemetry::test_attributes` copie
+  désormais `NEXTEST_TEST_NAME` et `NEXTEST_BINARY_ID` dans la ressource, que les démons lancés
+  par un test héritent (test `the_test_nextest_runs_names_the_spans`).
+- T-111 : le regroupement en composants à chaque commit comptait comme du code changé sans
+  session, pour le hook d'arrêt et la dette de relecture (détail ci-dessus).
+- ADR 0047 : pas de fichier de mise en place pour vitest et `node --test` ; un span TypeScript se
+  rattache à son test seulement si le code de test pose `timonier.test.name` (relecture n° 1, I4).
+- Un run sur un arbre de travail modifié reste hors de la référence des régressions (Q77) : les
+  sorties des tests doivent être ignorées par git.
 
 ## Phase 9 — Fin du MVP
 
@@ -3307,10 +3571,13 @@ Statut : à faire
   pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche.
   Sans source, la valeur est « non mesuré », jamais une estimation inventée — critère : une
   session réelle donne des tokens attribués.
-- 9.4 Assistant « Nouveau projet piloté », selon Q8 — critère : défini avec la réponse.
+- 9.4 Assistant « Nouveau projet piloté », selon Q8 (en Phase 9) — critère : depuis VSCode, un
+  nouveau projet Rust ou TypeScript est créé par le générateur officiel, configuré par `init`,
+  et `doctor` voit sa première trace rattachée au graphe.
 - 9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage » —
   critère : verdict « prête ».
-- 9.6 Critère de sortie du MVP selon la spec : un projet réel (Q9) piloté de bout en bout
+- 9.6 Critère de sortie du MVP selon la spec : un projet réel, nouveau (Q9), créé par
+  l'assistant de 9.4 et piloté de bout en bout
   sans lire le code ligne à ligne — critère : constaté avec toi.
 - 9.7 Publication de l'extension, selon Q58 et Q59, avant la relecture 9.5 : un `.vsix` par
   plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
@@ -3351,7 +3618,16 @@ avant ajout si plus d'un mois s'est écoulé.
 | clap | 4.6.7 | MIT OR Apache-2.0 | |
 | blake3 | 1.8.7 | CC0-1.0 OR Apache-2.0 | |
 | graphrs | 0.12.0 | MIT | **Écarté** (ADR 0016) : son Leiden ne part pas d'une partition initiale |
-| quick-junit | 0.8.0 | Apache-2.0 OR MIT | |
+| quick-junit | 0.8.0 | Apache-2.0 OR MIT | Revérifiée le 2026-10-21 : sa lecture est « expérimentale » et refuse une racine `<testsuite>` seule ; écrire seulement |
+| junit-parser | 1.7.0 | BSD-2-Clause | 2026-10-21 : lit `testsuites`, `testsuite` seul et `testrun` ; `file` et `line` par cas (8.2) |
+| perf-event | 0.4.9 | MIT OR Apache-2.0 | 2026-10-21 : compteurs avec `inherit` et `enable_on_exec` ; refusé si `perf_event_paranoid` > 2 (Q70) |
+| nix / wait4 | 0.31.3 / 0.2.0 | MIT / MIT | 2026-10-21 : `getrusage` sûr (nix) ; `wait4` par enfant (crate wait4, MSRV 1.95) ; le `maxrss` de rusage est suspect |
+| libproc | 0.14.11 | MIT | 2026-10-21 : macOS, `pidrusage::<RUsageInfoV4>` (instructions et cycles d'un processus, sans ses enfants) ; non essayé sur un Mac |
+| tonic / opentelemetry-proto / axum | 0.14.6 / 0.33.1 / 0.8.9 | MIT / Apache-2.0 / MIT | 2026-10-21 : récepteur (ADR 0048) ; un `Routes` de tonic dans un routeur axum sert gRPC et HTTP sur un port |
+| opentelemetry, _sdk, -otlp | 0.33.1 | Apache-2.0 | 2026-10-21 : `-otlp` sans ses features par défaut, avec `grpc-tonic` ; en test seulement pour l'instant (8.6 : la feature `otel`) |
+| @opentelemetry/sdk-node / api | 0.223.0 / 1.9.1 | Apache-2.0 | 2026-10-21 : ajoutés par `init` (ADR 0050) ; sdk-node apporte les exporteurs OTLP et lit `OTEL_SDK_DISABLED` ; la ligne 0.300 (SDK 3.0, 2026-10-20) attend |
+| tracing-opentelemetry | 0.34.0 | MIT | 2026-10-21 : feature `otel` du CLI (ADR 0044), sans features par défaut |
+| statrs | 0.19.1 | MIT | 2026-10-21 : son Mann-Whitney exact est faux (queues inversées, essayé) ; à écrire nous-mêmes |
 | cyclonedx-bom | 0.8.1 | Apache-2.0 | |
 | scip | 0.10.0 | Apache-2.0 | v2 ; dépend de rust-protobuf, pas de prost |
 | procfs / cgroups-rs | 0.18.0 / 0.5.1 | MIT OR Apache-2.0 | |
@@ -3614,3 +3890,53 @@ capture des thèmes.
   le délai de lecture (EINVAL) sur un socket que le démon a déjà fermé, sa réponse encore à
   lire ; le client bloquant lit quand même (un socket fermé ne bloque pas). Corrigé sans session
   Timonier (le serveur MCP de la session ne se reconnecte pas au démon relancé).
+- 2026-10-21 — Phase 8, relecture n° 1 « pas prête » (7 importants, 11 mineurs, aucun bloquant).
+  Trois questions posées et répondues (Q76 temps cumulé sur la carte, Q77 runs sur un arbre
+  modifié, Q78 `@opentelemetry/api` en `dependencies`). Corrigé :
+  - I1 : l'évolution est la médiane des runs de chaque commit, pour la commande du run affiché ;
+  - I2 : test en échec et span en erreur en icône et en mot ;
+  - I3 : une seule origine du temps pour les spans et les échantillons (`rebase_samples`) ;
+  - I4 : table `aggregate` (migration `perf/0002`), lue au-delà de la rétention ; l'ADR 0047
+    corrigée pour TypeScript (pas de fichier de mise en place, Q72) ;
+  - I5 : test d'intégration VSCode sur un vrai run et un budget dépassé (émetteur OTLP/HTTP JSON) ;
+  - I6 (Q77) : colonne `worktree`, hors référence, confirmation à empreinte égale ;
+  - I7 (Q76) : `enteredNs` par nœud et `ns` par lien, temps cumulé sur la boîte ;
+  - m1 et m2 (note des régressions traduite, lot d'un run trop petit), m3 (README), m4 (titres en
+    français), m5 (budgets sur la commande du dernier run), m6 (Q78), m8 (CPU du scope par
+    `cpu.stat`), m9 (ligne du test de fumée TypeScript), m10 (budgets dépassés et trous dits à
+    la fin de `timonier test`), m11 (jetons) ; m7 noté dans l'ADR 0053.
+- 2026-10-21 — Phase 8, relecture n° 2 « prête avec réserves » (1 important, 4 mineurs). Corrigé :
+  - I-1 : le correctif de m5 faisait juger les budgets sur la commande du dernier run, test de
+    fumée compris ; les runs de fumée sont marqués (`smoke`, migration `perf/0003`) et laissés
+    hors des budgets et des vues par défaut, et chaque budget prend les 5 derniers runs qui ont
+    atteint ce qu'il vise (test : un run qui n'atteint pas la crate laisse le budget dépassé) ;
+  - m-1 (ADR 0043 : l'évolution lit les 50 derniers résumés), m-2 (test de la confirmation à
+    empreinte d'arbre égale), m-3 (titres des commandes « (activer ou non) », « panneau »), m-4
+    (commentaire d'`evolution`).
+- 2026-10-21 — Phase 8, relecture n° 3 « prête avec réserves » (2 importants, 3 mineurs). Corrigé :
+  - I-1 : le calque de la carte et les budgets de l'extension ne prennent plus un test de fumée
+    pour le dernier run (le calque se redemandait toutes les 3 s) ; test node:test ;
+  - I-2 : le panneau ouvre sur le dernier run hors fumée, et la liste marque la fumée en mot ;
+  - m-1 (tests : le choix des runs par budget, le run de `doctor` marqué `smoke`), m-2 (coût de
+    `perf/budgets` noté dans l'ADR 0052, non mesuré), m-3 (ADR 0043, 0049, 0051, PLAN.md 8.8,
+    descriptions des outils MCP régénérées).
+- 2026-10-21 — Phase 8, relecture n° 4 « prête avec réserves » (7 mineurs, aucun important).
+  Corrigé : tests du run par défaut du panneau et du mot « fumée » (m-1), d'un run de fumée pour
+  les budgets de la carte (m-2) ; ADR 0049 et description de `get_perf` (m-3, m-4) ; le calque
+  ne se redemande plus à chaque tick quand aucun run listé n'a de traces (m-5, test) ; mise en
+  forme de 8.8 (m-7). m-6, un échec isolé de `test:a11y` : non reproduit en 3 passages complets
+  répétés (537 sur 537), test non identifié.
+- 2026-10-21 — Phase 8, relecture n° 5 « prête avec réserves » (1 mineur) : après un seul échec
+  de `perf/map` ou de `perf/budgets`, la carte ne les redemandait plus avant le run suivant ;
+  corrigé (l'échec laisse la prochaine relève redemander), tests node:test pour les deux.
+- 2026-10-21 — Phase 8, relecture n° 6 : aucun constat (ni bloquant, ni important, ni mineur) ;
+  « prête avec réserves » pour les seules vérifications laissées à l'humain : le test des cinq
+  secondes (8.7) et le budget en rouge sur Timonier (T-113). Le correctif de la relecture n° 5
+  tient : un mutant sans lui fait échouer ses deux tests, et les relèves restent bornées.
+- 2026-10-21 — Trouvé par l'humain au test de 8.7 : le `.vsix` n'embarquait pas la page
+  Performances (`.vscodeignore` liste les fichiers à garder page par page ; les tests
+  d'intégration tournent sur `dist/`, pas sur le paquet). Ajoutée ; le test du manifeste déduit
+  désormais les pages des fichiers HTML de la webview au lieu de les nommer.
+- 2026-10-21 — Phase 8 validée par toi (« oui je valide ») : ADR 0043 à 0054 acceptées ; 8.7 et
+  T-113 closes sur ta validation, après tes propres essais des vues (les réponses du test des
+  cinq secondes ne sont pas consignées). Pas encore de commit.

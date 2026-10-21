@@ -106,9 +106,61 @@ junit = "target/nextest/timonier/junit.xml"
 program = "cargo-nextest"
 note = "Timonier reads the tests' JUnit XML through cargo-nextest: install it (`cargo install cargo-nextest --locked`)."
 
+# Timonier's smoke test (spec « Initialisation », 7): `timonier doctor` runs it under
+# `timonier test`; plain `cargo test` is enough, the JUnit is not read.
+[tests.runners.smoke]
+command = "cargo test --features otel --test timonier_smoke"
+files = [{ path = "tests/timonier_smoke.rs", source = "instrumentation/timonier_smoke.rs" }]
+
 [tests.runners.config]
 file = ".config/nextest.toml"
 text = """
 # The tests' JUnit XML, for `timonier test` (timonier init).
 [profile.timonier.junit]
 path = "junit.xml\""""
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050): optional
+# dependencies of the root package behind the feature `otel`, and the initialisation module.
+# Versions verified on 2026-10-21, upgraded together.
+[instrumentation]
+feature = "otel"
+files = [{ path = "src/timonier_otel.rs", source = "instrumentation/timonier_otel.rs" }]
+note = "the module `src/timonier_otel.rs` starts the export: declare it with `#[cfg(feature = \"otel\")] mod timonier_otel;` and keep `let _otel = timonier_otel::init();` alive at the start of `main`, as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "tracing"
+version = "0.1.44"
+
+[[instrumentation.dependencies]]
+name = "tracing-subscriber"
+version = "0.3.23"
+default_features = false
+features = ["registry", "std"]
+
+[[instrumentation.dependencies]]
+name = "tracing-opentelemetry"
+version = "0.34.0"
+default_features = false
+
+[[instrumentation.dependencies]]
+name = "opentelemetry"
+version = "0.33.1"
+default_features = false
+features = ["trace"]
+
+[[instrumentation.dependencies]]
+name = "opentelemetry_sdk"
+version = "0.33.1"
+default_features = false
+features = ["trace"]
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-otlp"
+version = "0.33.1"
+default_features = false
+features = ["trace", "grpc-tonic"]
+
+[[instrumentation.dependencies]]
+name = "tokio"
+version = "1.53.3"
+features = ["rt-multi-thread"]

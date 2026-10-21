@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-19",
+  "agent": "claude-code",
+  "objective": "8.10: independent review of Phase 8 by phase-reviewer, and fixes of its findings",
+  "tasks": [
+    "T-102",
+    "T-110",
+    "T-111",
+    "T-112",
+    "T-113"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T13:02:58Z",
+  "ended_at": "2026-10-21T14:29:01Z",
+  "snapshots": {
+    "start": 60,
+    "end": 61
+  },
+  "summary": "8.10 done: six phase-reviewer reviews of Phase 8, every finding fixed and tested (evolution median per commit, failure and error in shape and word, one time origin, aggregates beyond retention, real-run integration test, modified trees out of the reference, cumulative time on the map, smoke runs out of budgets and views, feeds robust to failures). All checks green: cargo test 544, vitest 153, node:test 90 + 27, a11y 179, integration 27. Left to the human: 8.7's five-second test, T-113's budget in red on Timonier, then the phase's validation and commit.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Run phase-reviewer on Phase 8",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Fix or answer each finding, record the review in PLAN.md",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "I1 evolution: a median per commit and command, per spec",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "I2 failed test and error span in shape and word, not colour alone",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "I3 one time origin for spans and resource samples",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "I4 ADR 0043 aggregate kept beyond retention; ADR 0047 TypeScript setup file",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-7",
+      "text": "I5 integration test: daemon with a run and a budget, the extension shows it",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-8",
+      "text": "I6 (Q77) runs on a modified tree marked, out of the reference",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-9",
+      "text": "I7 (Q76) cumulative time on the map, own time in detail",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-10",
+      "text": "Minor findings m1 to m11, Q78",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-11",
+      "text": "Review n° 2 of Phase 8, and its findings",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-12",
+      "text": "Review n° 3: confirm the fixes of review n° 2",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-13",
+      "text": "Review n° 4: confirm the fixes of review n° 3",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-14",
+      "text": "Review n° 5: a verdict on the phase after the minor fixes",
+      "task": "T-102",
+      "status": "done"
+    },
+    {
+      "id": "D-15",
+      "text": "Review n° 6: the verdict after the fix of review n° 5",
+      "task": "T-102",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 37,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      },
+      {
+        "id": "pkg:npm/timonier-workspace",
+        "name": "timonier-workspace",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

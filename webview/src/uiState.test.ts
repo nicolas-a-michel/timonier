@@ -16,6 +16,7 @@ function node(id: string, parent: string | null, children: number): ViewNode {
     children,
     file: null,
     span: null,
+    signature: null,
     review: null,
     debt: null,
   };

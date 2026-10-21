@@ -6,16 +6,20 @@
 
 pub mod actual;
 pub mod aggregate;
+pub mod budgets;
 pub mod diff;
 pub mod drift;
 mod edge;
 mod error;
 pub mod fusion;
+pub mod gaps;
 pub mod graph;
 mod id;
 pub mod intent;
 mod node;
+pub mod perf;
 pub mod protocol;
+pub mod regression;
 pub mod review;
 pub mod rpc;
 mod snapshot;

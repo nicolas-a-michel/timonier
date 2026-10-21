@@ -78,6 +78,11 @@
         "category": "Timonier"
       },
       {
+        "command": "timonier.openPerformance",
+        "title": "%command.openPerformance.title%",
+        "category": "Timonier"
+      },
+      {
         "command": "timonier.whiteboard.undo",
         "title": "%command.whiteboard.undo.title%",
         "category": "Timonier"
@@ -215,6 +220,11 @@
       {
         "command": "timonier.map.compareIntent",
         "title": "%command.map.compareIntent.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.showPerformance",
+        "title": "%command.map.showPerformance.title%",
         "category": "Timonier"
       },
       {

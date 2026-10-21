@@ -31,8 +31,14 @@ export function drawnName(view: DriftView, id: string): string {
   return view.names[id] || id;
 }
 
-/** The item that shows a real box on this map, if any. */
-export function shownBy(id: string, view: DriftView, content: MapContent, data: ViewData): string | undefined {
+/** The item that shows a real box on this map, if any: `ancestors` give its lineage (the drift's,
+ * the performances'). */
+export function shownBy(
+  id: string,
+  view: { ancestors: Record<string, string[]> },
+  content: MapContent,
+  data: ViewData,
+): string | undefined {
   const drawn = new Set(content.items.map((item) => item.id));
   const line = [...(view.ancestors[id] ?? []), id];
   for (let i = line.length - 1; i >= 0; i--) {

@@ -4,6 +4,9 @@ mod daemon;
 mod hook;
 mod init;
 mod mcp;
+mod measure;
+mod telemetry;
+mod test;
 
 use std::process::ExitCode;
 
@@ -28,6 +31,11 @@ enum Command {
     Mcp(daemon::Target),
     /// Set the project up for Timonier and its agents: instructions, MCP server, hooks, plan
     Init(init::InitArgs),
+    /// Run the tests and measure them: time, CPU, memory, I/O, and each test's duration
+    Test(test::TestArgs),
+    /// The measuring relay of `timonier test`
+    #[command(name = "__measure", hide = true)]
+    Measure(measure::MeasureArgs),
     /// Take back what `timonier init` made
     Uninit(init::UninitArgs),
     /// Check the setup `timonier init` made, and repair it
@@ -48,10 +56,26 @@ pub fn run() -> ExitCode {
         Ok(cli) => cli,
         Err(error) => error.exit(),
     };
+    // Logs on stderr, never on stdout (`timonier mcp` speaks MCP there), `RUST_LOG` for more;
+    // the daemon in the foreground says what it does. Spans go out when a run asks (ADR 0044).
+    let foreground = matches!(
+        cli.command,
+        Some(Command::Daemon {
+            action: daemon::Action::Run(_)
+        })
+    );
+    let _telemetry = if foreground {
+        use std::io::IsTerminal;
+        telemetry::install("info", std::io::stderr().is_terminal())
+    } else {
+        telemetry::install("warn", false)
+    };
     match cli.command {
         Some(Command::Daemon { action }) => daemon::run(action),
         Some(Command::Mcp(target)) => mcp::run(&target),
         Some(Command::Init(args)) => init::run(&args),
+        Some(Command::Test(args)) => test::run(&args),
+        Some(Command::Measure(args)) => measure::run(&args),
         Some(Command::Uninit(args)) => init::run_uninit(&args),
         Some(Command::Doctor(args)) => init::run_doctor(&args),
         Some(Command::Hook { hook }) => hook::run(&hook),

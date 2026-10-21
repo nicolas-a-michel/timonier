@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, ListToolsResult,
@@ -22,7 +22,7 @@ use timonier_core::rpc::{Decoder, ErrorObject, Id, Message};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 use tokio::net::unix::OwnedWriteHalf;
-use tokio::sync::{Mutex, OnceCell, oneshot};
+use tokio::sync::{Mutex, oneshot};
 
 /// What the server tells the agent once, at the start.
 const INSTRUCTIONS: &str = "Timonier keeps this project's plan, todo and session journal. Open a \
@@ -42,22 +42,31 @@ pub enum Error {
     Mcp(String),
 }
 
+/// Starts the daemon again when it is gone (ADR 0027, PLAN.md T-110): the command line's own,
+/// since the proxy has none. `Err` says why it cannot.
+pub type Relaunch = Arc<dyn Fn() -> Result<(), String> + Send + Sync>;
+
 /// [`serve`], on a runtime of its own: for the command line.
-pub fn run(socket: &Path) -> Result<(), Error> {
+pub fn run(socket: &Path, relaunch: Relaunch) -> Result<(), Error> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|e| Error::Mcp(e.to_string()))?
-        .block_on(serve(socket))
+        .block_on(serve(socket, relaunch))
 }
 
 /// Serves MCP on the standard input and output, for the daemon listening at `socket`, until the
-/// agent goes.
-pub async fn serve(socket: &Path) -> Result<(), Error> {
+/// agent goes. A daemon that goes meanwhile (stopped, upgraded, killed) is reached again at the
+/// next call, started again if it does not answer.
+pub async fn serve(socket: &Path, relaunch: Relaunch) -> Result<(), Error> {
     let link = Link::connect(socket).await?;
     let running = Proxy {
-        link,
-        initialized: Arc::new(OnceCell::new()),
+        socket: socket.to_path_buf(),
+        relaunch,
+        connection: Arc::new(Mutex::new(Some(Connection {
+            link,
+            introduced: false,
+        }))),
     }
     .serve(rmcp::transport::stdio())
     .await
@@ -72,20 +81,66 @@ pub async fn serve(socket: &Path) -> Result<(), Error> {
 /// The agent of a client that gives no name (`clientInfo` is optional in MCP 2026-07-28).
 const UNNAMED: &str = "mcp-client";
 
+/// A connection to the daemon, and whether it was introduced (`initialize`, ADR 0029).
+struct Connection {
+    link: Link,
+    introduced: bool,
+}
+
 /// The proxy: MCP on one side, the daemon on the other.
 #[derive(Clone)]
 pub struct Proxy {
-    link: Link,
-    /// The daemon learns the agent's name once, before the first tool (ADR 0029).
-    initialized: Arc<OnceCell<()>>,
+    socket: PathBuf,
+    relaunch: Relaunch,
+    connection: Arc<Mutex<Option<Connection>>>,
 }
 
 impl Proxy {
-    pub fn new(link: Link) -> Self {
-        Self {
-            link,
-            initialized: Arc::new(OnceCell::new()),
+    /// The link to the daemon, introduced as `agent`: the open one, else a new one, the daemon
+    /// started again if it does not answer.
+    async fn link(&self, agent: &str) -> Result<Link, ErrorObject> {
+        let mut connection = self.connection.lock().await;
+        if connection.as_ref().is_some_and(|c| !c.link.alive()) {
+            tracing::info!("the daemon went: reaching it again");
+            *connection = None;
         }
+        if connection.is_none() {
+            let link = match Link::connect(&self.socket).await {
+                Ok(link) => link,
+                Err(_) => {
+                    let relaunch = Arc::clone(&self.relaunch);
+                    tokio::task::spawn_blocking(move || relaunch())
+                        .await
+                        .map_err(|e| ErrorObject::new(-32603, e.to_string()))?
+                        .map_err(|why| {
+                            ErrorObject::new(
+                                -32603,
+                                format!("the daemon is gone and does not start: {why}"),
+                            )
+                        })?;
+                    Link::connect(&self.socket)
+                        .await
+                        .map_err(|e| ErrorObject::new(-32603, e.to_string()))?
+                }
+            };
+            *connection = Some(Connection {
+                link,
+                introduced: false,
+            });
+        }
+        let Some(open) = connection.as_mut() else {
+            return Err(ErrorObject::new(-32603, "no connection to the daemon"));
+        };
+        if !open.introduced {
+            open.link
+                .request(
+                    methods::INITIALIZE,
+                    json!({ "protocolVersion": PROTOCOL_VERSION, "client": agent }),
+                )
+                .await?;
+            open.introduced = true;
+        }
+        Ok(open.link.clone())
     }
 
     /// The daemon's answer to `method`, once the connection is introduced.
@@ -100,22 +155,8 @@ impl Proxy {
         let agent = context
             .client_info()
             .map_or_else(|| UNNAMED.to_owned(), |info| info.name);
-        self.initialized
-            .get_or_try_init(|| async {
-                self.link
-                    .request(
-                        methods::INITIALIZE,
-                        json!({ "protocolVersion": PROTOCOL_VERSION, "client": agent }),
-                    )
-                    .await
-                    .map(|_| ())
-            })
-            .await
-            .map_err(daemon_error)?;
-        self.link
-            .request(method, params)
-            .await
-            .map_err(daemon_error)
+        let link = self.link(&agent).await.map_err(daemon_error)?;
+        link.request(method, params).await.map_err(daemon_error)
     }
 }
 
@@ -163,6 +204,8 @@ pub struct Link {
     writer: Arc<Mutex<OwnedWriteHalf>>,
     waiting: Arc<std::sync::Mutex<Waiting>>,
     next: Arc<AtomicI64>,
+    /// Until the daemon closes the connection.
+    alive: Arc<AtomicBool>,
 }
 
 impl Link {
@@ -178,8 +221,10 @@ impl Link {
             writer: Arc::new(Mutex::new(writer)),
             waiting: Arc::default(),
             next: Arc::new(AtomicI64::new(1)),
+            alive: Arc::new(AtomicBool::new(true)),
         };
         let waiting = Arc::clone(&link.waiting);
+        let alive = Arc::clone(&link.alive);
         tokio::spawn(async move {
             let mut decoder = Decoder::default();
             let mut buffer = vec![0; 64 * 1024];
@@ -201,12 +246,18 @@ impl Link {
                     }
                 }
             }
-            // The daemon went: whoever waits learns it.
+            // The daemon went: whoever waits learns it, and the next call connects again.
+            alive.store(false, Ordering::SeqCst);
             if let Ok(mut waiting) = waiting.lock() {
                 waiting.clear();
             }
         });
         Ok(link)
+    }
+
+    /// Whether the daemon still holds the connection.
+    pub fn alive(&self) -> bool {
+        self.alive.load(Ordering::SeqCst)
     }
 
     /// Sends a request and waits for its answer.
@@ -217,7 +268,14 @@ impl Link {
             waiting.insert(id, answer);
         }
         let frame = Message::request(Id::Number(id), method, params).frame();
-        let gone = || ErrorObject::new(-32603, "the daemon is gone; start the agent again");
+        // Not sent again: a write may have been done before the answer was lost.
+        let gone = || {
+            ErrorObject::new(
+                -32603,
+                "the daemon went during the call, which may or may not have been done: check, then \
+                 call again (the next call reaches the daemon again)",
+            )
+        };
         self.writer
             .lock()
             .await

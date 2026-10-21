@@ -15,6 +15,10 @@ export interface MapHostActions {
   compareIntent?(on: boolean): unknown;
   /** The map's « Open the whiteboard » button. */
   openWhiteboard?(): unknown;
+  /** The map shows its Performances layer, or no longer (ADR 0051). */
+  showPerformance?(on: boolean): unknown;
+  /** The layer's « Open the Performances panel » button. */
+  openPerformance?(): unknown;
   /** Every other message goes to the view relay. */
   relay(message: WebviewMessage): unknown;
 }
@@ -42,6 +46,14 @@ export function onPageMessage(message: unknown, actions: MapHostActions): void {
   }
   if (message.type === "openWhiteboard") {
     actions.openWhiteboard?.();
+    return;
+  }
+  if (message.type === "showPerformance") {
+    actions.showPerformance?.(message.on);
+    return;
+  }
+  if (message.type === "openPerformance") {
+    actions.openPerformance?.();
     return;
   }
   actions.relay(message);

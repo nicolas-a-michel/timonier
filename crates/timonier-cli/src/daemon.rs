@@ -248,14 +248,6 @@ fn status(paths: &Paths) -> Result<ExitCode> {
 }
 
 fn foreground(paths: &Paths) -> Result<ExitCode> {
-    use std::io::IsTerminal;
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_writer(|| Stderr)
-        .with_ansi(std::io::stderr().is_terminal())
-        .init();
     let mut options = Options::new(&paths.root);
     options.runtime = Some(paths.runtime.clone());
     let Some(daemon) = Daemon::bind(options)? else {
@@ -269,23 +261,6 @@ fn foreground(paths: &Paths) -> Result<ExitCode> {
     announce(paths, Some(std::process::id()))?;
     daemon.run()?;
     Ok(ExitCode::SUCCESS)
-}
-
-/// Standard error, for the log, that never fails. The process that launched the daemon may read
-/// it, then go: the extension's window closed. The daemon outlives it (ADR 0019), its lines lost
-/// since; a failed write would otherwise make `tracing-subscriber` panic in `eprintln!`.
-struct Stderr;
-
-impl std::io::Write for Stderr {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let _ = std::io::stderr().write_all(buf);
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        let _ = std::io::stderr().flush();
-        Ok(())
-    }
 }
 
 /// One JSON line on stdout, once the socket listens: where the daemon is, and whether this

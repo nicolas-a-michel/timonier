@@ -5,12 +5,102 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
+    "description": "List the whiteboard's performance budgets the last runs exceed, with the limit and what was measured. Check it after a change, before saying the work is done.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "get_budget_violations"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read the performance budgets the developer set on the whiteboard (latency p50 and p95 of each incoming call, peak memory, allocations, calls), each checked against the median of the last runs of `timonier test`: ok, exceeded, unmeasured, or attached to nothing the code has.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "name": "get_budgets"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
     "description": "Compare the code with the developer's whiteboard: each drawn component and the real package or component it stands for (by name, then place), the drawn components the code lacks, the forbidden edges the code crosses with the dependencies that cross them, and the required edges it lacks. Check it after changing the structure.",
     "inputSchema": {
       "additionalProperties": false,
       "type": "object"
     },
     "name": "get_drift"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read how this project instruments a language with OpenTelemetry: the SDK packages, the initialisation module, one span per public function with the code.* attributes, no span in hot loops. Read it before instrumenting code.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "description": "The language, as the packs name it: `rust`, `typescript`.",
+          "pattern": "^[a-z][a-z0-9_+-]{0,31}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "type": "object"
+    },
+    "name": "get_instrumentation_conventions"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Check the instrumentation after a run of `timonier test`: the public functions no span was seen in (paged), the spans that lack code.function.name, code.file.path or code.line.number, those attached to no node of the graph, and the overhead of the traces against runs without them. The last finished run with traces unless one is given, `timonier doctor`'s smoke tests aside.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "description": "Where the previous page of never seen functions stopped (`next_cursor`).",
+          "pattern": "^[0-9]{1,9}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit": {
+          "description": "How many never seen functions per page: 1 to 500, 100 by default.",
+          "format": "uint32",
+          "maximum": 500,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "run": {
+          "description": "A run (`R-…`); the last finished one with traces when absent, `doctor`'s smoke tests aside.",
+          "pattern": "^R-[1-9][0-9]*$",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_instrumentation_gaps"
   },
   {
     "annotations": {
@@ -41,12 +131,67 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
+    "description": "Read what a component cost in a run of `timonier test`: its incoming calls and their latency (p50, p95), the peak memory during them, the time spent in it, what inside took the most time, the tests that reached it, and its budgets.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "description": "A component of the code or of the whiteboard: its id (`pkg:cargo/parser`, `C-1`) or its\nname (`parser`, `Parser`).",
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "run": {
+          "description": "A run (`R-…`); the last finished one with traces when absent, `doctor`'s smoke tests aside.",
+          "pattern": "^R-[1-9][0-9]*$",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "component"
+      ],
+      "type": "object"
+    },
+    "name": "get_perf"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
     "description": "Read the plan: milestones, their tasks, statuses and progress.",
     "inputSchema": {
       "additionalProperties": false,
       "type": "object"
     },
     "name": "get_plan"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read the performance regressions of the last batch of runs (`timonier test --runs auto`) against the main branch: each measure (the run's CPU work, a test's duration, a function's own time) slower beyond doubt (Mann-Whitney p < 0.01) and by at least max(5 %, 3 MAD), probable when seen once, confirmed when the next batch sees it too.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "batch": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_regressions"
   },
   {
     "annotations": {

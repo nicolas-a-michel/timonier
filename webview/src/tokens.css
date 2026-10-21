@@ -120,6 +120,47 @@
   /* A box under the pointer: its outline stands out; its background stays opaque. */
   --tim-color-outline-hover: var(--tim-edge-confirmed);
 
+  /* The kinds of symbols (T-114), in the colours VSCode's outline gives them; the title bar takes
+     a tint of it, as a role's. Always with the kind's icon and word. */
+  --tim-symbol-function: color-mix(
+    in srgb,
+    var(--vscode-symbolIcon-functionForeground, #b180d7) 85%,
+    var(--tim-color-fg)
+  );
+  --tim-symbol-method: color-mix(in srgb, var(--vscode-symbolIcon-methodForeground, #b180d7) 85%, var(--tim-color-fg));
+  /* The outline's orange is pale on light themes: closer to the text, it keeps 3:1. */
+  --tim-symbol-type: color-mix(in srgb, var(--vscode-symbolIcon-classForeground, #ee9d28) 65%, var(--tim-color-fg));
+  --tim-symbol-trait: color-mix(
+    in srgb,
+    var(--vscode-symbolIcon-interfaceForeground, #75beff) 85%,
+    var(--tim-color-fg)
+  );
+  --tim-symbol-field: color-mix(in srgb, var(--vscode-symbolIcon-fieldForeground, #75beff) 85%, var(--tim-color-fg));
+  --tim-symbol-constant: color-mix(
+    in srgb,
+    var(--vscode-symbolIcon-constantForeground, #cccccc) 85%,
+    var(--tim-color-fg)
+  );
+  --tim-symbol-module: color-mix(in srgb, var(--vscode-symbolIcon-moduleForeground, #cccccc) 85%, var(--tim-color-fg));
+  --tim-symbol-function-tint: color-mix(in srgb, var(--tim-symbol-function) 22%, var(--tim-color-surface));
+  --tim-symbol-method-tint: color-mix(in srgb, var(--tim-symbol-method) 22%, var(--tim-color-surface));
+  --tim-symbol-type-tint: color-mix(in srgb, var(--tim-symbol-type) 22%, var(--tim-color-surface));
+  --tim-symbol-trait-tint: color-mix(in srgb, var(--tim-symbol-trait) 22%, var(--tim-color-surface));
+  --tim-symbol-field-tint: color-mix(in srgb, var(--tim-symbol-field) 22%, var(--tim-color-surface));
+  --tim-symbol-constant-tint: color-mix(in srgb, var(--tim-symbol-constant) 22%, var(--tim-color-surface));
+  --tim-symbol-module-tint: color-mix(in srgb, var(--tim-symbol-module) 22%, var(--tim-color-surface));
+
+  /* Performances (ADR 0051): the bars of the timeline, the curves, the shares. Calm: a tint of
+     the link colour; a span in error takes the violation's. */
+  --tim-perf-bar: color-mix(in srgb, var(--tim-color-info) 22%, var(--tim-color-surface));
+  --tim-perf-bar-border: color-mix(in srgb, var(--tim-color-info) 70%, var(--tim-color-surface));
+  --tim-perf-bar-root: color-mix(in srgb, var(--tim-color-fg) 10%, var(--tim-color-surface));
+  --tim-perf-bar-error: color-mix(in srgb, var(--tim-color-violation) 18%, var(--tim-color-surface));
+  --tim-perf-series-1: var(--tim-color-info);
+  --tim-perf-series-2: var(--tim-role-interface);
+  --tim-perf-share: color-mix(in srgb, var(--tim-color-info) 55%, var(--tim-color-surface));
+  --tim-perf-share-track: color-mix(in srgb, var(--tim-color-fg) 10%, var(--tim-color-bg));
+
   /* Typography */
   --tim-font-family: var(--vscode-font-family, system-ui, sans-serif);
   --tim-font-size: var(--vscode-font-size, 13px);
@@ -176,6 +217,13 @@ body.vscode-high-contrast {
   --tim-role-data-model-wash: transparent;
   --tim-role-persistence-wash: transparent;
   --tim-role-neutral-wash: transparent;
+  --tim-symbol-function-tint: var(--tim-color-surface);
+  --tim-symbol-method-tint: var(--tim-color-surface);
+  --tim-symbol-type-tint: var(--tim-color-surface);
+  --tim-symbol-trait-tint: var(--tim-color-surface);
+  --tim-symbol-field-tint: var(--tim-color-surface);
+  --tim-symbol-constant-tint: var(--tim-color-surface);
+  --tim-symbol-module-tint: var(--tim-color-surface);
   --tim-grid-minor: transparent;
   --tim-grid-major: transparent;
 }

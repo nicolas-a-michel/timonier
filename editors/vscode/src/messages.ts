@@ -57,7 +57,12 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
     case "compareIntent":
       return typeof message.on === "boolean";
     case "openWhiteboard":
+    case "openPerformance":
       return true;
+    case "showPerformance":
+      return typeof message.on === "boolean";
+    case "chooseRun":
+      return typeof message.run === "string" && /^R-[1-9][0-9]*$/.test(message.run);
     case "intent":
       // The board itself is checked by the daemon, the only one that writes the file.
       return isObject(message.intent) && message.intent.version === 1;

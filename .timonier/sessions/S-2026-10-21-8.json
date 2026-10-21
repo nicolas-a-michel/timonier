@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-8",
+  "agent": "claude-code",
+  "objective": "8.3: run/start and run/finish, OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_RESOURCE_ATTRIBUTES injected, each JUnit test a synthesized root span (ADR 0047)",
+  "tasks": [
+    "T-95"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T10:07:17Z",
+  "ended_at": "2026-10-21T10:12:18Z",
+  "snapshots": {
+    "start": 38,
+    "end": 39
+  },
+  "summary": "8.3 done (ADR 0047): runs begin at the daemon (run/start: number, head snapshot at start, commit, branch, receiver endpoint) and end with run/finish; the command gets OTEL_EXPORTER_OTLP_ENDPOINT (default http://127.0.0.1:4318 until 8.4) and OTEL_RESOURCE_ATTRIBUTES with timonier.run_id and timonier.snapshot after the existing ones; each JUnit test becomes a synthesized root span (span table), dated by its RFC 3339 timestamp. Next: 8.4, the OTLP receiver, which attaches the code spans to the test roots by timonier.test.name.",
+  "changes": {
+    "files": 11,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-otlp",
+        "name": "timonier-otlp",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

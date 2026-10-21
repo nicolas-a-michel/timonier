@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-10",
+  "agent": "claude-code",
+  "objective": "8.5: instrumentation gaps (public functions never seen, spans without code.*, overhead against level 1) and the MCP tools get_instrumentation_gaps and get_instrumentation_conventions",
+  "tasks": [
+    "T-97"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T10:40:25Z",
+  "ended_at": "2026-10-21T10:49:24Z",
+  "snapshots": {
+    "start": 42,
+    "end": 43
+  },
+  "summary": "8.5 done (ADR 0049): gaps computed in timonier-core::gaps (public functions never seen, spans without code.*, unattached and dropped spans, overhead against runs --without-traces of the same commit), served by get_instrumentation_gaps (paged, checked by the daemon) and get_instrumentation_conventions; the AGENTS block mentions both. Found: the Rust SDK 0.33.1 ignores OTEL_SDK_DISABLED, so the conventions must read it (8.6). Next: 8.6, Timonier instruments itself behind the otel feature, the instrumentation part of init, the doctor smoke trace.",
+  "changes": {
+    "files": 14,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

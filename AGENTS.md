@@ -9,6 +9,6 @@ This project is steered with Timonier. Its MCP server, `timonier`, holds the pro
 - When the work is done, call `session_end` with a summary of what was done and what is left.
 - Before changing the structure of the code, read the architecture the developer wants with `get_intended_architecture` (their whiteboard, with an image of the sketch); after, check `get_drift`: forbidden edges crossed, required edges and drawn components missing.
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and `intent.json`, the whiteboard, belongs to the developer.
-- Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says.
+- Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
 - Every tool result starts with a mailbox header: read the messages it announces.
 <!-- timonier:end -->

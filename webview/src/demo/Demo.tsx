@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 
 import { Badge, ComponentBox, EdgeLegend, EdgeLine, EmptyState, Toolbar, Tooltip } from "../design/components";
 import { messages, type Locale } from "../i18n";
+import type { SymbolKind } from "../design/icons";
 import type { Role } from "../protocol";
+
+/** One symbol of each kind, with a signature as the packs write them (T-114). */
+const SYMBOLS: [SymbolKind, string, string | null][] = [
+  ["function", "parse", "pub fn parse(text: &str) -> Result<Tree>"],
+  ["method", "new", "pub fn new(a: u32) -> Self"],
+  ["type", "Tree", "pub struct Tree"],
+  ["trait", "Shape", "pub trait Shape: Clone"],
+  ["field", "size", "pub size: u32"],
+  ["constant", "LIMIT", "pub const LIMIT: usize ="],
+  ["module", "inner", "mod inner"],
+];
 
 const ROLES: Role[] = [
   "entry_point",
@@ -87,6 +99,15 @@ export function Demo({ locale, theme, themes, onRendered }: DemoProps) {
             badges={<Badge tone="attention" label="2 to review" />}
           />
           <ComponentBox name="dimmed" role="utility" items={2} locale={locale} dimmed />
+        </div>
+      </section>
+
+      <section className="tim-demo__section" aria-labelledby="demo-symbols">
+        <h2 id="demo-symbols">Symbols</h2>
+        <div className="tim-demo__grid">
+          {SYMBOLS.map(([kind, name, signature]) => (
+            <ComponentBox key={kind} name={name} role={null} items={0} locale={locale} symbol={{ kind, signature }} />
+          ))}
         </div>
       </section>
 

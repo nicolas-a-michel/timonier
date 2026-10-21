@@ -142,6 +142,7 @@ impl Pipeline {
     /// Indexes the whole repository, reusing the cached extractions, and records the result.
     /// The components and the LSP verifications of the head are kept (ADR 0014, 0016). The
     /// commit HEAD points at gets its snapshot if it has none yet (ADR 0015).
+    #[tracing::instrument(skip_all)]
     pub fn index_all(&mut self) -> Result<Report> {
         let report = self.index_everything()?;
         self.consolidate()?;
@@ -356,6 +357,7 @@ impl Pipeline {
 
     /// Computes the components again now, from the current ones (ADR 0016). The daemon does it
     /// at each commit; this is for an explicit request.
+    #[tracing::instrument(skip_all)]
     pub fn recluster(&mut self) -> Result<ApplyStats> {
         let batch = self.indexer.recluster();
         Ok(self.store.apply_all(batch.updates)?)
@@ -371,6 +373,7 @@ impl Pipeline {
     /// Freezes the head as reviewed (ADR 0024). The review must be the working tree, as before a
     /// commit snapshot: a store behind the indexer catches up first, and what the disk holds
     /// that the watcher has yet to bring is read, a save made just before the click included.
+    #[tracing::instrument(skip_all)]
     pub fn mark_reviewed(&mut self) -> Result<Snapshot> {
         self.catch_up()?;
         self.sync_with_disk()?;
@@ -379,6 +382,7 @@ impl Pipeline {
 
     /// Freezes the head as a `working_tree` snapshot, the start or the end of a session
     /// (ADR 0029): what the disk holds, as for a review mark.
+    #[tracing::instrument(skip_all)]
     pub fn freeze_working_tree(&mut self) -> Result<Snapshot> {
         self.catch_up()?;
         self.sync_with_disk()?;
@@ -395,6 +399,7 @@ impl Pipeline {
     /// committed tree exactly: the indexable files that differ from the commit take their
     /// committed version for the time of the freeze (ADR 0015). The working tree always comes
     /// back, even when the freeze fails.
+    #[tracing::instrument(skip_all)]
     pub fn consolidate(&mut self) -> Result<Consolidated> {
         let start = Instant::now();
         // A store behind the indexer would be frozen as the commit (review n° 13, m13-2), and
@@ -677,12 +682,14 @@ impl Pipeline {
     /// Files or directories changed on disk. Verified files that changed, and verified files
     /// that depend on a changed signature, wait for refinement again (ADR 0014). When the
     /// packages changed, ids may have changed: every LSP verification is dropped.
+    #[tracing::instrument(skip_all)]
     pub fn refresh(&mut self, paths: &[PathBuf]) -> Result<Report> {
         self.refresh_with(paths, false)
     }
 
     /// [`Pipeline::refresh`], and the walk again as if an ignore file changed: one outside the
     /// root, git's own or that of a folder above it (ADR 0023).
+    #[tracing::instrument(skip_all)]
     pub fn reconcile(&mut self, paths: &[PathBuf]) -> Result<Report> {
         self.refresh_with(paths, true)
     }

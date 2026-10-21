@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { App } from "../App";
 import type { Locale } from "../i18n";
 import type { Density, ViewSnapshot } from "../protocol";
-import type { DriftView } from "../protocol";
+import type { BudgetsView, DriftView, PerfMap } from "../protocol";
 import {
   applyToggle,
   closeAll,
@@ -11,6 +11,7 @@ import {
   toggleChanges,
   toggleDebt,
   toggleIntent,
+  togglePerformance,
   type Applied,
   type UiState,
 } from "../uiState";
@@ -34,6 +35,10 @@ export interface MapDemoProps {
   debt?: boolean;
   /** Compared with a whiteboard drawn for Timonier (ADR 0042). */
   intent?: boolean;
+  /** The Performances layer, on a run measured on Timonier (ADR 0051). */
+  performance?: boolean;
+  /** A budget of the whiteboard the last runs exceed, on the daemon (ADR 0052). */
+  budget?: boolean;
   density?: Density;
   onRendered?: () => void;
 }
@@ -107,6 +112,91 @@ function everythingOpen(open: ViewSnapshot): UiState {
   };
 }
 
+/** Where a run of Timonier's tests spent its time (ADR 0051, Q76): calls, own times, and traffic. */
+const MEASURED: [string, number, number][] = [
+  ["file:crates/timonier-daemon/src/server.rs", 420, 8_400_000_000],
+  ["file:crates/timonier-daemon/src/client.rs", 610, 1_900_000_000],
+  ["file:crates/timonier-core/src/protocol.rs", 1_250, 640_000_000],
+  ["file:crates/timonier-core/src/rpc.rs", 1_250, 310_000_000],
+  ["file:crates/timonier-cli/src/daemon.rs", 36, 2_700_000_000],
+];
+
+/** The time of the spans no other node called (Q76). */
+const ENTERED: Record<string, number> = {
+  "file:crates/timonier-cli/src/daemon.rs": 4_910_000_000,
+  "file:crates/timonier-daemon/src/server.rs": 9_040_000_000,
+};
+
+/** The layer as the daemon gives it, the lineage of each node read in the snapshot. */
+function measured(snapshot: ViewSnapshot): PerfMap {
+  const parents = new Map(snapshot.nodes.map((n) => [n.id, n.parent]));
+  const lineage = (id: string) => {
+    const line: string[] = [];
+    for (let at = parents.get(id); at; at = parents.get(at)) line.unshift(at);
+    return line;
+  };
+  return {
+    run: "R-12",
+    // Entered from no other node: the daemon's start and its server; the rest is called.
+    nodes: MEASURED.map(([node, calls, selfNs]) => ({ node, calls, selfNs, enteredNs: ENTERED[node] ?? 0 })),
+    links: [
+      {
+        from: "file:crates/timonier-cli/src/daemon.rs",
+        to: "file:crates/timonier-daemon/src/client.rs",
+        calls: 36,
+        ns: 2_210_000_000,
+      },
+      {
+        from: "file:crates/timonier-daemon/src/client.rs",
+        to: "file:crates/timonier-core/src/rpc.rs",
+        calls: 1_250,
+        ns: 310_000_000,
+      },
+      {
+        from: "file:crates/timonier-daemon/src/server.rs",
+        to: "file:crates/timonier-core/src/protocol.rs",
+        calls: 420,
+        ns: 640_000_000,
+      },
+    ],
+    ancestors: Object.fromEntries(MEASURED.map(([node]) => [node, lineage(node)])),
+  };
+}
+
+/** A p95 budget on the daemon, exceeded, and one that holds (ADR 0052). */
+function exceeded(snapshot: ViewSnapshot): BudgetsView {
+  const parents = new Map(snapshot.nodes.map((n) => [n.id, n.parent]));
+  const lineage = (id: string) => {
+    const line: string[] = [];
+    for (let at = parents.get(id); at; at = parents.get(at)) line.unshift(at);
+    return line;
+  };
+  const daemon = "pkg:cargo/timonier-daemon";
+  return {
+    checks: [
+      {
+        id: "N-1",
+        attachedTo: "C-1",
+        on: "Daemon",
+        state: "exceeded",
+        boxes: [daemon],
+        limits: [{ kind: "p95_ms", limit: 5, measured: 7.4, exceeded: true }],
+        runs: ["R-12", "R-11", "R-10"],
+      },
+      {
+        id: "N-2",
+        attachedTo: "C-2",
+        on: "Store",
+        state: "ok",
+        boxes: ["pkg:cargo/timonier-store"],
+        limits: [{ kind: "memory_mb", limit: 50, measured: 31, exceeded: false }],
+        runs: ["R-12", "R-11", "R-10"],
+      },
+    ],
+    ancestors: { [daemon]: lineage(daemon), "pkg:cargo/timonier-store": lineage("pkg:cargo/timonier-store") },
+  };
+}
+
 /** The webview's App, as main.tsx runs it, with a daemon that answers from a snapshot. */
 export function MapDemo({
   locale,
@@ -116,6 +206,8 @@ export function MapDemo({
   only,
   debt,
   intent,
+  performance,
+  budget,
   density,
   onRendered,
 }: MapDemoProps) {
@@ -127,6 +219,7 @@ export function MapDemo({
     ...(only ? { onlyChanges: true } : {}),
     ...(debt ? { debt: true } : {}),
     ...(intent ? { intent: true } : {}),
+    ...(performance ? { performance: true } : {}),
   }));
   // The host keeps the pins: here, the page, which the tests read.
   const [pins, setPins] = useState<Pins>({});
@@ -167,6 +260,10 @@ export function MapDemo({
         onToggleIntent={() => apply(toggleIntent(ui))}
         intent={DRAWN}
         onOpenWhiteboard={() => (document.body.dataset.whiteboard = "true")}
+        onTogglePerformance={() => apply(togglePerformance(ui))}
+        performance={measured(snapshot)}
+        onOpenPerformance={() => (document.body.dataset.performance = "true")}
+        budgets={budget ? exceeded(snapshot) : null}
         onMarkReviewed={() => {
           // What the daemon would do: a new review, the diff starts from it.
           const now = Date.now();

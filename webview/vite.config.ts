@@ -5,11 +5,12 @@ import { defineConfig } from "vitest/config";
 // Front-ends find the hashed entry files through the manifest (dist/.vite/manifest.json).
 // Three pages, three builds: the map (`dist/`), the panels of the tracking (`--mode tracking`,
 // `dist/tracking/`, ADR 0031) and the whiteboard (`--mode whiteboard`, `dist/whiteboard/`,
-// ADR 0037). Each page is one script: under the webview's CSP, only the script carrying the
+// ADR 0037), and the Performances panel (`--mode performance`, `dist/performance/`, ADR 0051). Each page is one script: under the webview's CSP, only the script carrying the
 // nonce runs, and a chunk it imported would not.
 const PAGES: Record<string, { outDir: string; input: string }> = {
   tracking: { outDir: "dist/tracking", input: "tracking.html" },
   whiteboard: { outDir: "dist/whiteboard", input: "whiteboard.html" },
+  performance: { outDir: "dist/performance", input: "performance.html" },
 };
 
 export default defineConfig(({ mode }) => {

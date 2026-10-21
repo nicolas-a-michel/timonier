@@ -33,14 +33,14 @@ The developer becomes architect and reviewer: what I want, what exists, how it b
 | `.claude/hooks/`             | Hook scripts (Node.js, no dependencies) and their tests          | exists   |
 | `.claude/skills/<name>/`     | Project skills                                                   | exists   |
 | `.claude/agents/`            | Project subagents                                                | exists   |
-| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4; in-memory graph and review diff since Phase 5; tracking formats and the MCP tool catalogue since Phase 6, snapshot in `tests/tools.json`; the whiteboard's `intent.json` format since Phase 7, ADR 0039) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`, `examples/commit_bench.rs`; `examples/support/synthetic.rs` writes the benches' synthetic workspaces); the daemon also runs the MCP tools and writes `.timonier/` (`tracking.rs`, ADR 0027 to 0029); `mcp` is the stdio proxy (rmcp); `cli` has `timonier daemon start|stop|status|run`, `timonier mcp`, `timonier init|uninit|doctor` and `timonier hook stop|pre-commit` (`src/init/`, ADR 0033, 0034; the packs' `[[tests.runners]]` and `conventions/*.md`); `otlp` is a skeleton | in progress |
+| `Cargo.toml`, `crates/`      | Cargo workspace: `timonier-{core,store,index,daemon,otlp,mcp,cli}`; dependency graph in ADR 0003. `timonier-core` (graph model, fusion, diff, aggregation, roles; protocol types and JSON-RPC framing since Phase 4; in-memory graph and review diff since Phase 5; tracking formats and the MCP tool catalogue since Phase 6, snapshot in `tests/tools.json`; the runs' types (`perf.rs`), the instrumentation gaps (`gaps.rs`, ADR 0049), the budgets checked on the runs (`budgets.rs`, ADR 0052) and the regressions (`regression.rs`, ADR 0053) since Phase 8; the whiteboard's `intent.json` format since Phase 7, ADR 0039) and `timonier-store` (SQLite history, single writer, extraction cache, refinement debt; `migrations/`, `examples/bench.rs`) since Phase 2; `timonier-index` (language packs in `packs/`, extraction, resolution, components, LSP refinement) and `timonier-daemon` (pipeline, watcher, commit consolidation; `examples/index_bench.rs`, `examples/index_dump.rs`) since Phase 3, plus its JSON-RPC server on a Unix socket, views, LSP relay and blocking client (Phase 4, ADR 0019, 0022; `examples/view_bench.rs`, `examples/view_snapshot.rs`, `examples/lsp_cost.rs`, `examples/commit_bench.rs`; `examples/support/synthetic.rs` writes the benches' synthetic workspaces); the daemon also runs the MCP tools and writes `.timonier/` (`tracking.rs`, ADR 0027 to 0029); `mcp` is the stdio proxy (rmcp); `cli` has `timonier daemon start|stop|status|run`, `timonier mcp`, `timonier init|uninit|doctor`, `timonier hook stop|pre-commit` (`src/init/`, ADR 0033, 0034; the packs' `[[tests.runners]]` and `conventions/*.md`) and `timonier test` with its measuring relay `__measure` (`src/test.rs`, `src/measure.rs`, ADR 0045, 0046), its own telemetry behind the feature `otel` (`src/telemetry.rs`, ADR 0044), the packs' `[instrumentation]` and smoke test written by `init` and run by `doctor` (ADR 0050); the daemon keeps the runs in `.timonier/perf/perf.sqlite` (`runs.rs`, `run/start` and `run/finish`; `timonier-store`'s `perf` module and `migrations/perf/`, ADR 0043, 0047); `otlp` is the OTLP receiver (gRPC and HTTP on 4317/4318 or free ports, `decode.rs`, `receiver.rs`, ADR 0048), started by the daemon at the first run, whose spans the daemon attaches to tests and nodes (`attach.rs`) | in progress |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | Toolchain (stable), formatting (edition 2024), clippy settings (ADR 0004) | exists |
 | `package.json`, `tsconfig.base.json` | npm workspaces root, shared TS settings, lint/format tooling (ADR 0005) | exists |
 | `eslint.config.mjs`, `.prettierrc.json` | Typed ESLint (TS 6.0.x), Prettier (Markdown excluded)        | exists   |
-| `webview/`                   | React + Vite webview, shared by future front-ends. `src/tokens.css` = design tokens, `src/design/` = components (ADR 0020), `src/map/` = architecture map with React Flow and elkjs (ADR 0021), `src/tracking/` + `tracking.html` = panels of the plan, todo and sessions, a second page built apart into `dist/tracking/` (ADR 0031), `src/whiteboard/` + `whiteboard.html` = the whiteboard (React Flow + perfect-freehand), a third page built into `dist/whiteboard/` (ADR 0036, 0037), `demo.html` = development page (`?tracking=all&width=…`); `test/a11y` (Playwright + axe-core), `test/production` (the whiteboard's production build under the webview CSP, built by Playwright's global setup), `test/themes` (captured VSCode themes), `test/views` (Timonier's views from `view_snapshot`) | in progress |
-| `editors/vscode/`            | VSCode extension: activity-bar container with the « Overview » view, the bridge (ADR 0007, 0032, icon in `media/`), daemon supervisor and JSON-RPC client, view relay, LSP relay that answers about saved content only, map panel (ADR 0019, 0022), whiteboard panel (ADR 0037), a « Plan, todo and sessions » webview view in a secondary-side-bar container, fed by one tracking subscription (ADR 0031), esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | in progress |
+| `webview/`                   | React + Vite webview, shared by future front-ends. `src/tokens.css` = design tokens, `src/design/` = components (ADR 0020), `src/map/` = architecture map with React Flow and elkjs (ADR 0021), `src/tracking/` + `tracking.html` = panels of the plan, todo and sessions, a second page built apart into `dist/tracking/` (ADR 0031), `src/whiteboard/` + `whiteboard.html` = the whiteboard (React Flow + perfect-freehand), a third page built into `dist/whiteboard/` (ADR 0036, 0037), `src/performance/` + `performance.html` = the Performances panel (timeline, call tree, evolution; uPlot), a fourth page built into `dist/performance/`, and `src/map/perf.ts` the map's Performances layer (ADR 0051), `demo.html` = development page (`?tracking=all&width=…`); `test/a11y` (Playwright + axe-core), `test/production` (the whiteboard's production build under the webview CSP, built by Playwright's global setup), `test/themes` (captured VSCode themes), `test/views` (Timonier's views from `view_snapshot`) | in progress |
+| `editors/vscode/`            | VSCode extension: activity-bar container with the « Overview » view, the bridge (ADR 0007, 0032, icon in `media/`), daemon supervisor and JSON-RPC client, view relay, LSP relay that answers about saved content only, map panel (ADR 0019, 0022), whiteboard panel (ADR 0037), Performances panel and the map's layer feed (ADR 0051), a « Plan, todo and sessions » webview view in a secondary-side-bar container, fed by one tracking subscription (ADR 0031), esbuild bundle, CSP webview panel, `node:test` unit + `@vscode/test-cli` integration tests | in progress |
 | `.vscode/`                   | `launch.json`: « Run Extension » (F5) and « Extension Tests » (needs the recommended Extension Test Runner); `tasks.json`; `extensions.json` | exists |
-| `LICENSE`, `README.md`       | MIT licence (Nicolas Michel); English README (what works, what is planned, how to try it) | exists   |
+| `LICENSE`, `README.md`, `README.fr.md`, `docs/features.md`, `docs/images/` | MIT licence (Nicolas Michel); README in English with its French translation (purpose, tour with screenshots, status, how to try it), the full feature list, and the screenshots `npm run screenshots -w webview` takes (`webview/test/screenshots/`); skill `readme` | exists   |
 | `.github/workflows/ci.yml`   | CI on ubuntu-latest and macos-latest                             | exists   |
 
 ## Commands
@@ -74,6 +74,7 @@ cargo run --release -p timonier-store --example bench [packages] [files] [symbol
 cargo run --release -p timonier-daemon --example lsp_cost [repository]   # questions refinement asks the language servers (ADR 0022)
 npm run bench:map -w webview       # map frames per second on synthetic repositories (PLAN.md 4.10)
 npm run bench:whiteboard -w webview   # whiteboard with 1,000 and 3,000 strokes: loading, a stroke, an undo (ADR 0037)
+npm run screenshots -w webview     # the README's images in docs/images/ (English, Dark Modern; after npm run build)
 cargo run --release -p timonier-store --example debt_bench   # cost of a refinement debt write (ADR 0022)
 cargo run --release -p timonier-daemon --example view_bench [repository|synthetic:CxDxF] [saves]   # RUST_LOG=timonier_daemon=debug for logs
 cargo run --release -p timonier-daemon --example commit_bench [CxDxF] [runs]   # commit snapshot, same or other packages (ADR 0025)
@@ -87,10 +88,13 @@ TIMONIER_UPDATE_TOOLS=1 cargo test -p timonier-core
 # MCP server for an agent, in a project (starts the daemon if needed)
 cargo run --bin tim -- mcp [--root DIR]
 
+# Run the tests measured (level 1, ADR 0045): the runners of .timonier/tests.json without a command
+cargo run --bin tim -- test [--runs N|auto] [--without-traces] [--junit FILE] [--root DIR] [-- <command>]   # TIMONIER_MEASURE=rusage: no systemd scope
+
 # Set a project up for its agents (ADR 0033), and take it back; never on a real home in tests
 cargo run --bin tim -- init [--dry-run] [--yes] [--agents claude,copilot,cursor,codex] [--root DIR]
 cargo run --bin tim -- uninit [--dry-run] [--purge [--yes]] [--root DIR]   # keeps the tracking unless --purge (Q54)
-cargo run --bin tim -- doctor [--fix | --check] [--root DIR]
+cargo run --bin tim -- doctor [--fix | --check] [--no-smoke] [--root DIR]
 
 # Indexing timings on a repository (default: this one, copied to a temp dir), and its graph
 cargo run --release -p timonier-daemon --example index_bench [repository] [saves]
@@ -121,7 +125,7 @@ cargo test --release -p timonier-daemon --test compaction -- --ignored   # load 
    `PLAN.md` lists what was verified, and when.
 5. **Quality.**
    - Language: code, identifiers, comments and commit messages in English; user documentation in French, except
-     `README.md`, in English at the human's request (2026-10-16). Files read
+     `README.md`, in English at the human's request (2026-10-16), with `README.fr.md` beside it (2026-10-21). Files read
      by the human to steer the project (`PLAN.md`, ADRs, review reports) are in French. Agent-facing files
      (`CLAUDE.md`, skills, subagents, hook messages) are in English.
    - Commits follow Conventional Commits. **Commit only when the human asks.**
@@ -143,6 +147,7 @@ cargo test --release -p timonier-daemon --test compaction -- --ignored   # load 
 | `mcp-tools`            | Adding or changing an MCP tool                                                        |
 | `otel-instrumentation` | Instrumenting code, `timonier-otlp`, `timonier test`, instrumentation gaps            |
 | `adr`                  | Recording a technical decision                                                        |
+| `readme`               | Writing or updating README.md, README.fr.md, docs/features.md or their screenshots    |
 
 ## Subagents
 

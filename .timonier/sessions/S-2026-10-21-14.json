@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-14",
+  "agent": "claude-code",
+  "objective": "8.9: regression detection as the spec decides it (instructions or CPU time, 5 to 15 runs, median and MAD, reference of the last 5 main-branch snapshots, Mann-Whitney p < 0.01 and gap >= max(5 %, 3 MAD), probable then confirmed, reset on a new machine)",
+  "tasks": [
+    "T-101"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T12:28:54Z",
+  "ended_at": "2026-10-21T12:38:09Z",
+  "snapshots": {
+    "start": 50,
+    "end": 51
+  },
+  "summary": "8.9 done (ADR 0053): timonier-core::regression (median, MAD, one-sided Mann-Whitney exact or normal, verdict per the spec) checked against SciPy; timonier test --runs N|auto with batches; reference of the last 5 main-branch commits with the same command and machine; probable then confirmed by the previous batch of the same commit; perf/regressions, MCP get_regressions, lines at the end of timonier test, the Evolution tab, the AGENTS block. Next: 8.10, the phase review; 8.7 still waits for the human's five-second test.",
+  "changes": {
+    "files": 29,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

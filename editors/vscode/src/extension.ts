@@ -15,11 +15,14 @@ import {
   type ReviewMark,
   type TrackingSnapshot,
   type DriftView,
+  type BudgetsView,
+  type PerfMap,
   type WhiteboardCommand,
 } from "./protocol/generated";
 import { TrackingRelay, type TrackingSource } from "./trackingRelay";
 import { registerTrackingViews } from "./trackingViews";
 import type { DaemonSource, Rendered } from "./viewRelay";
+import { PerformancePanel } from "./performancePanel";
 import { WhiteboardPanel } from "./whiteboardPanel";
 
 /** What `activate` exports. Only the integration tests use it for now. */
@@ -50,6 +53,12 @@ export interface TimonierApi {
   whenWhiteboardReady(): Promise<void> | undefined;
   /** A command for the open whiteboard, as the palette sends them: for the tests. */
   whiteboardCommand(command: WhiteboardCommand): Promise<boolean>;
+  /** Resolves once the open Performances panel's page has rendered; undefined when none is open. */
+  whenPerformanceReady(): Promise<void> | undefined;
+  /** The Performances layer the open map was last given (ADR 0051): for the tests. */
+  mapPerformance(): PerfMap | null | undefined;
+  /** The whiteboard's budgets the open map was last given (ADR 0052): for the tests. */
+  mapBudgets(): BudgetsView | null | undefined;
 }
 
 /** Where the workspace state keeps the boxes moved by hand on the map (ADR 0021). */
@@ -97,6 +106,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
           await MapPanel.command({ name: "reveal", target, path });
         },
         openMap: () => vscode.commands.executeCommand("timonier.openMap"),
+        openPerformance: () => vscode.commands.executeCommand("timonier.openPerformance"),
         markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
         configure: () => vscode.commands.executeCommand("timonier.configure"),
       },
@@ -226,6 +236,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         ["timonier.map.reviewDetails", { name: "toggleReviewDetails" }],
         ["timonier.map.reviewDebt", { name: "toggleDebt" }],
         ["timonier.map.compareIntent", { name: "toggleIntent" }],
+        ["timonier.map.showPerformance", { name: "togglePerformance" }],
       ] as const
     ).map(([id, command]) =>
       vscode.commands.registerCommand(id, async () => {
@@ -234,6 +245,15 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         }
       }),
     ),
+    // The Performances panel (ADR 0051).
+    vscode.commands.registerCommand("timonier.openPerformance", () => {
+      try {
+        PerformancePanel.show(context.extensionUri, daemon, log);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the performances: {0}", reason));
+      }
+    }),
     // The whiteboard (ADR 0036, 0037): one palette command for each of its actions.
     vscode.commands.registerCommand("timonier.openWhiteboard", () => {
       try {
@@ -286,6 +306,9 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     mapDrift: () => MapPanel.drift(),
     whenWhiteboardReady: () => WhiteboardPanel.whenReady(),
     whiteboardCommand: (command) => WhiteboardPanel.command(command),
+    whenPerformanceReady: () => PerformancePanel.whenReady(),
+    mapPerformance: () => MapPanel.performance(),
+    mapBudgets: () => MapPanel.budgets(),
     daemonRequest: async <T>(method: string, params: unknown) => {
       const client = daemon.client;
       if (!client) throw new Error("not connected to the daemon");

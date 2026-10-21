@@ -589,3 +589,32 @@ body.vscode-high-contrast .tim-map-frame__header {
 .tim-map .react-flow__node .tim-box[data-debt] .tim-box__role {
   color: var(--tim-color-fg);
 }
+
+/* The Performances layer (ADR 0051): the time spent in a box, quiet beside its name. */
+.tim-perf-words {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+  color: var(--tim-color-muted-on-box);
+  font-size: var(--tim-font-size-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-box__meta .tim-perf-words {
+  margin-left: 0;
+}
+
+/* On a tinted title bar, the muted grey of a box's body is too faint. */
+.tim-map-role__title .tim-perf-words,
+.tim-map-frame__header .tim-perf-words {
+  color: var(--tim-color-muted-on-header);
+}
+
+.tim-legend__traffic {
+  stroke-width: calc(var(--tim-edge-width) * 3);
+}
+
+.tim-legend__perf {
+  margin-left: 0;
+}

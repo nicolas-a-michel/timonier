@@ -5,8 +5,9 @@
 import { cloneElement, useId, useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
 
 import { messages, type Locale } from "../i18n";
+import { performanceMessages } from "../performance/messages";
 import type { Role } from "../protocol";
-import { ChangeIcon, IntentIcon, RoleIcon, ToneIcon, type Tone } from "./icons";
+import { ChangeIcon, IntentIcon, RoleIcon, SymbolIcon, ToneIcon, type SymbolKind, type Tone } from "./icons";
 
 export interface ComponentBoxProps {
   name: string;
@@ -25,9 +26,11 @@ export interface ComponentBoxProps {
   /** Its review debt, in place of the count of items, and its level (ADR 0030). */
   debt?: ReactNode;
   debtLevel?: number;
+  /** A symbol (T-114): its kind in colour, icon and word in place of a role, and its signature. */
+  symbol?: { kind: SymbolKind; signature: string | null };
 }
 
-/** A box of the map: a component, a package, a file. */
+/** A box of the map: a component, a package, a file, a symbol. */
 export function ComponentBox({
   name,
   role,
@@ -40,9 +43,10 @@ export function ComponentBox({
   focusable = true,
   debt,
   debtLevel,
+  symbol,
 }: ComponentBoxProps) {
   const t = messages[locale];
-  const roleLabel = role ? t.roles[role] : t.noRole;
+  const roleLabel = symbol ? t.symbolKinds[symbol.kind] : role ? t.roles[role] : t.noRole;
   const classes = ["tim-box", selected ? "tim-box--selected" : "", dimmed ? "tim-box--dimmed" : ""].filter(Boolean);
   return (
     <div
@@ -52,16 +56,19 @@ export function ComponentBox({
       aria-label={focusable ? `${name}, ${roleLabel}, ${t.items(items)}` : undefined}
       aria-current={selected ? "true" : undefined}
       data-contrast="outline"
-      data-role={role ?? undefined}
+      data-role={symbol ? undefined : (role ?? undefined)}
+      data-symbol={symbol?.kind}
       data-debt={debtLevel || undefined}
+      title={symbol ? t.symbolTip(roleLabel, symbol.signature) : undefined}
     >
       <div className="tim-box__header" data-contrast="icon">
-        <RoleIcon role={role} />
+        {symbol ? <SymbolIcon kind={symbol.kind} /> : <RoleIcon role={role} />}
         <span className="tim-box__name">{name}</span>
         {flag && <span className="tim-box__flag">{flag}</span>}
       </div>
       <div className="tim-box__body">
         <span className="tim-box__role">{roleLabel}</span>
+        {symbol?.signature && <code className="tim-box__signature">{symbol.signature}</code>}
         <div className="tim-box__meta">
           {debt ?? <span>{t.items(items)}</span>}
           {badges}
@@ -97,12 +104,18 @@ export function EdgeLegend({
   changes = false,
   debt = false,
   intent = false,
+  performance = false,
+  budgets = false,
 }: {
   locale: Locale;
   changes?: boolean;
   debt?: boolean;
   /** The map is compared with the whiteboard (ADR 0042). */
   intent?: boolean;
+  /** The map shows its Performances layer (ADR 0051). */
+  performance?: boolean;
+  /** A budget of the whiteboard is exceeded on the map (ADR 0052). */
+  budgets?: boolean;
 }) {
   const t = messages[locale];
   const sample = (approximate: boolean, label: string) => (
@@ -163,6 +176,33 @@ export function EdgeLegend({
             <li className="tim-legend__item">
               <span className="tim-legend__swatch tim-debt__hatch" aria-hidden="true" />
               <span>{`${t.review.untracked} : ${t.review.untrackedLegend}`}</span>
+            </li>
+          </ul>
+        </>
+      )}
+      {budgets && (
+        <ul className="tim-legend__list">
+          <li className="tim-legend__item">
+            <Badge tone="violation" label={performanceMessages[locale].budgetMark} />
+            <span>{performanceMessages[locale].legendBudget}</span>
+          </li>
+        </ul>
+      )}
+      {performance && (
+        <>
+          <p className="tim-legend__title tim-legend__subtitle">{performanceMessages[locale].layer}</p>
+          <ul className="tim-legend__list">
+            <li className="tim-legend__item">
+              <svg className="tim-legend__sample" viewBox="0 0 40 10" width="40" height="10" aria-hidden="true">
+                <path className="tim-edge tim-edge--confirmed tim-legend__traffic" d="M1 5H39" data-contrast="stroke" />
+              </svg>
+              <span>{performanceMessages[locale].legendTraffic}</span>
+            </li>
+            <li className="tim-legend__item">
+              <span className="tim-perf-words tim-legend__perf">
+                <span className="tim-perf-words__time">{performanceMessages[locale].legendTimeSample}</span>
+              </span>
+              <span>{performanceMessages[locale].legendTime}</span>
             </li>
           </ul>
         </>

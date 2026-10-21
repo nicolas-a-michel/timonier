@@ -8,6 +8,13 @@
       "description": "The MCP client that opened it (`claude-code`…).",
       "type": "string"
     },
+    "budgets": {
+      "description": "The whiteboard's budgets the last runs exceeded when it ended, in words (ADR 0052).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "changes": {
       "description": "What it changed in the code, written at its end (ADR 0031).",
       "anyOf": [

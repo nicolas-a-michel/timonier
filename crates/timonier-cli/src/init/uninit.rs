@@ -33,6 +33,8 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         ".codex/config.toml" | ".config/nextest.toml" => {
             Ok(edits::without_block(text, HASH_BEGIN, HASH_END))
         }
+        // The OpenTelemetry SDK (ADR 0050): Timonier's blocks only.
+        "Cargo.toml" => Ok(edits::cargo_without_sdk(text)),
         _ if name.ends_with("pre-commit") => {
             // A hook of Timonier's own making: the interpreter line alone is left.
             Ok(edits::without_block(text, HASH_BEGIN, HASH_END)
@@ -41,6 +43,27 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         // The record, the ignore file: Timonier's.
         _ => Ok(None),
     }
+}
+
+/// The packages of the OpenTelemetry SDK the npm packs add (ADR 0050).
+fn sdk_packages() -> Vec<&'static str> {
+    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    NAMES
+        .get_or_init(|| {
+            timonier_daemon::Packs::builtin()
+                .map(|packs| {
+                    packs
+                        .iter()
+                        .filter(|p| p.manifest.ecosystem.as_str() == "npm")
+                        .flat_map(|p| p.manifest.instrumentation.iter())
+                        .flat_map(|i| i.dependencies.iter().map(|d| d.name.clone()))
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+        .iter()
+        .map(String::as_str)
+        .collect()
 }
 
 /// The same content, whatever the layout: JSON compared as values.
@@ -155,7 +178,13 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
     for modified in &record.modified {
         let path = PathBuf::from(&modified.path);
         let Some(current) = read(&path) else { continue };
-        let after = match without(&path, &current) {
+        let undone = if path == Path::new("package.json") {
+            // The SDK's packages that were not there before `init` (ADR 0050).
+            edits::npm_without_sdk(&current, &modified.original, &sdk_packages())
+        } else {
+            without(&path, &current)
+        };
+        let after = match undone {
             Ok(Some(rest)) if same(&path, &rest, &modified.original) => {
                 Some(modified.original.clone())
             }

@@ -13,6 +13,8 @@ export interface BridgeActions {
   /** Show a box on the map (Q46): what leads to it, from the top. */
   onReveal: (target: string, path: string[]) => void;
   onOpenMap: () => void;
+  /** The Performances panel (ADR 0051). */
+  onOpenPerformance?: () => void;
   onMarkReviewed: () => void;
   /** `timonier init`, in a terminal (Q52, Q53). */
   onConfigure: () => void;
@@ -165,6 +167,11 @@ function SinceReview({
           <button type="button" className="tim-button" onClick={actions.onMarkReviewed}>
             {t.markReviewed}
           </button>
+          {actions.onOpenPerformance && (
+            <button type="button" className="tim-button" onClick={actions.onOpenPerformance}>
+              {t.openPerformance}
+            </button>
+          )}
         </div>
       )}
     </div>

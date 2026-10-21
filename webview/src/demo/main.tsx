@@ -4,7 +4,7 @@
  * (test/themes, captured by editors/vscode/scripts/capture-themes.mjs); `?locale=fr`, French;
  * `?map=timonier`, the map of a real repository (test/views); `&review=1`, with a review diff
  * (ADR 0024); `&density=compact`, the compact map (Q32); `&intent=1`, compared with a
- * whiteboard (ADR 0042).
+ * whiteboard (ADR 0042); `?performance=1`, the Performances panel (ADR 0051).
  * The contrast tests (`npm run test:a11y`) read this page in every theme.
  */
 import { StrictMode } from "react";
@@ -66,6 +66,31 @@ void applyTheme(theme).then(async (names) => {
       : map
         ? views[`../../test/views/${map}/open.json`]
         : undefined;
+  // `?performance=1`: the Performances panel on a sample run (ADR 0051); `&empty=1`, before any
+  // run; `&tab=tree|evolution`, that tab first. `?map=…&performance=map`: the map's layer.
+  if (params.get("performance") === "1") {
+    await import("../performance/performance.css");
+    const { SAMPLE_RUN, SAMPLE_RUNS, SAMPLE_NOW, SAMPLE_REGRESSIONS } = await import("../performance/sample");
+    const { Performance } = await import("../performance/Performance");
+    const empty = params.get("empty") === "1";
+    const tab = params.get("tab");
+    createRoot(container).render(
+      <StrictMode>
+        <Performance
+          locale={locale}
+          runs={empty ? { runs: [] } : SAMPLE_RUNS}
+          run={empty ? undefined : SAMPLE_RUN}
+          chosen={SAMPLE_RUN.summary.run}
+          onChoose={() => undefined}
+          now={SAMPLE_NOW}
+          initialTab={tab === "tree" || tab === "evolution" ? tab : undefined}
+          regressions={empty ? undefined : SAMPLE_REGRESSIONS}
+        />
+      </StrictMode>,
+    );
+    ready();
+    return;
+  }
   // `?tracking=plan|todo|sessions`: a panel of the tracking, in the side bar (ADR 0031);
   // `&empty=1`, before anything is tracked; `&problem=1`, with a file that does not read;
   // `&unset=1`, a project not set up yet (Q52).
@@ -110,6 +135,8 @@ void applyTheme(theme).then(async (names) => {
       only={params.get("only") === "1"}
       debt={params.get("debt") === "1"}
       intent={params.get("intent") === "1"}
+      performance={params.get("performance") === "map"}
+      budget={params.get("budget") === "1"}
       density={density}
       onRendered={ready}
     />

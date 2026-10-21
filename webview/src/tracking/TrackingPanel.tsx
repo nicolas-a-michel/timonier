@@ -4,7 +4,7 @@
  */
 import type { ReactNode } from "react";
 
-import { EmptyState } from "../design/components";
+import { Badge, EmptyState } from "../design/components";
 import { ChangeIcon, ToneIcon } from "../design/icons";
 import type { Locale } from "../i18n";
 import type {
@@ -415,7 +415,19 @@ function Session({
           )}
         </Part>
         <Part title={t.tests}>
-          <p className="tim-tracking__quiet">{t.noTests}</p>
+          {session.budgets.length > 0 ? (
+            // The budgets the last runs exceeded when it ended (ADR 0052): a violation, said so.
+            <ul className="tim-plain tim-session__budgets">
+              {session.budgets.map((said) => (
+                <li key={said} className="tim-session__budget">
+                  <Badge tone="violation" label={t.budgetExceeded} />
+                  <span>{said}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="tim-tracking__quiet">{session.open ? t.testsAtEnd : t.noTests}</p>
+          )}
         </Part>
       </div>
     </details>

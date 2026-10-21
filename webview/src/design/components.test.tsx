@@ -25,6 +25,34 @@ describe("component box", () => {
   });
 });
 
+describe("a symbol's box (T-114)", () => {
+  it("says its kind in colour, icon and word, and its signature in a tooltip", () => {
+    const html = renderToStaticMarkup(
+      <ComponentBox
+        name="size"
+        role={null}
+        items={0}
+        locale="fr"
+        symbol={{ kind: "field", signature: "pub size: u32" }}
+      />,
+    );
+    expect(html).toContain('data-symbol="field"');
+    expect(html).not.toContain("data-role");
+    expect(html).toContain('title="Champ : pub size: u32"');
+    expect(html).toContain(">Champ</span>");
+    expect(html).toContain('<code class="tim-box__signature">pub size: u32</code>');
+    expect(html).toContain('aria-label="size, Champ, ');
+  });
+
+  it("says only its kind when it has no signature", () => {
+    const html = renderToStaticMarkup(
+      <ComponentBox name="inner" role={null} items={2} locale="en" symbol={{ kind: "module", signature: null }} />,
+    );
+    expect(html).toContain('title="Module"');
+    expect(html).not.toContain("tim-box__signature");
+  });
+});
+
 describe("edges", () => {
   it("are dashed when approximate, solid when confirmed, and named", () => {
     const svg = (approximate: boolean) =>

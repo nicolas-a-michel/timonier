@@ -11,9 +11,13 @@ publish.workspace = true
 
 [dependencies]
 timonier-core = { workspace = true }
-rusqlite = { workspace = true }
+# u64 columns of the measurements (ADR 0043), refused beyond i64::MAX.
+rusqlite = { workspace = true, features = ["fallible_uint"] }
 rusqlite_migration = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }

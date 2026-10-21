@@ -93,6 +93,10 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
    - which OpenTelemetry SDK packages to add;
    - the initialisation module, behind a feature or a configuration switch;
    - how the rules of the `otel-instrumentation` skill translate to this language.
+7b. **Instrumentation for `init`** (ADR 0050): `[instrumentation]` lists the SDK packages
+   (name, version, features), the Cargo feature, the initialisation module from the pack's
+   `instrumentation/` templates; `[tests.runners.smoke]` gives the smoke test `doctor` runs and
+   its file. Templates are written into other projects: lint and type them there, not here.
 8. **Test runner**: how to detect it, how to make it produce JUnit XML, and how each test
    becomes a root span. Format fixed by ADR 0034: `[[tests.runners]]` in `pack.toml`, tried in
    order (`name`, `uses` = a word of the `test` script, `command`, `junit`, `config` = a block

@@ -1,0 +1,349 @@
+/* The Performances panel (ADR 0051): tokens only (tokens.css). */
+.tim-perf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-3);
+  padding: var(--tim-space-3) var(--tim-space-4);
+  color: var(--tim-color-fg);
+  background: var(--tim-color-bg);
+  font-family: var(--tim-font-family);
+  font-size: var(--tim-font-size);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.tim-perf__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tim-space-3) var(--tim-space-6);
+}
+
+.tim-perf__title {
+  margin: 0;
+  font-size: var(--tim-font-size-title);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-perf__choice {
+  display: flex;
+  align-items: center;
+  gap: var(--tim-space-2);
+}
+
+.tim-perf__choice select {
+  color: var(--tim-color-fg);
+  background: var(--tim-color-surface);
+  border: 1px solid var(--tim-color-outline);
+  border-radius: var(--tim-radius);
+  padding: var(--tim-space-1) var(--tim-space-2);
+  font: inherit;
+}
+
+.tim-perf__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tim-space-2) var(--tim-space-6);
+  margin: 0;
+}
+
+.tim-perf__figure dt {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-perf__figure dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-perf__figure[data-tone="violation"] dd {
+  color: var(--tim-color-violation);
+}
+
+.tim-perf__tabs {
+  display: flex;
+  gap: var(--tim-space-1);
+  border-bottom: 1px solid var(--tim-color-divider);
+}
+
+.tim-perf__tab {
+  color: var(--tim-color-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--tim-space-2) var(--tim-space-3);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tim-perf__tab[aria-selected="true"] {
+  color: var(--tim-color-fg);
+  border-bottom-color: var(--tim-color-focus);
+}
+
+.tim-perf__tab:focus-visible,
+.tim-perf__test:focus-visible,
+.tim-calltree__toggle:focus-visible,
+.tim-perf__choice select:focus-visible {
+  outline: 1px solid var(--tim-color-focus);
+  outline-offset: 1px;
+}
+
+.tim-perf__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-3);
+}
+
+.tim-perf__heading {
+  margin: 0;
+  font-size: var(--tim-font-size);
+  font-weight: var(--tim-font-weight-strong);
+}
+
+.tim-perf__note {
+  margin: 0;
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-perf__timeline {
+  display: grid;
+  grid-template-columns: minmax(180px, 28%) 1fr;
+  gap: var(--tim-space-4);
+}
+
+@media (max-width: 640px) {
+  .tim-perf__timeline {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tim-perf__tests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.tim-perf__test {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--tim-space-2);
+  width: 100%;
+  text-align: start;
+  color: var(--tim-color-fg);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--tim-radius);
+  padding: var(--tim-space-1) var(--tim-space-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tim-perf__test:hover {
+  background: var(--tim-color-surface-hover);
+}
+
+.tim-perf__test[aria-current="true"] {
+  background: var(--tim-color-selected);
+  color: var(--tim-color-selected-fg);
+  border-color: var(--tim-color-selected-outline);
+}
+
+.tim-perf__test[data-status="failed"] .tim-perf__test-name,
+.tim-perf__test[data-status="error"] .tim-perf__test-name {
+  color: var(--tim-color-violation);
+}
+
+.tim-perf__test-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tim-perf__test-time,
+.tim-calltree td {
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-perf__undated {
+  color: var(--tim-color-muted);
+}
+
+.tim-perf__share {
+  grid-column: 1 / -1;
+  display: block;
+  height: 3px;
+  background: var(--tim-perf-share-track);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tim-perf__share > span {
+  display: block;
+  height: 100%;
+  background: var(--tim-perf-share);
+}
+
+.tim-perf__spans {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-2);
+  min-width: 0;
+}
+
+.tim-flame {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tim-flame__row {
+  position: relative;
+  height: 22px;
+}
+
+.tim-flame__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--tim-perf-bar);
+  border: 1px solid var(--tim-perf-bar-border);
+  border-radius: 3px;
+  color: var(--tim-color-fg);
+  font-size: var(--tim-font-size-small);
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.tim-flame__bar[data-root] {
+  background: var(--tim-perf-bar-root);
+  border-color: var(--tim-color-outline);
+}
+
+.tim-flame__bar[data-status="error"] {
+  background: var(--tim-perf-bar-error);
+  border-color: var(--tim-color-violation);
+}
+
+.tim-flame__label {
+  padding: 0 var(--tim-space-1);
+}
+
+/* On a bar's tint, the muted grey is too faint: the time says itself by its place instead. */
+.tim-flame__time {
+  color: var(--tim-color-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-curves {
+  margin: 0;
+}
+
+.tim-curves__plot {
+  width: 100%;
+  font-size: var(--tim-font-size-small);
+  color: var(--tim-color-fg);
+}
+
+.tim-curves__plot .u-legend {
+  color: var(--tim-color-fg);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-calltree {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tim-calltree th {
+  color: var(--tim-color-muted);
+  font-weight: normal;
+  font-size: var(--tim-font-size-small);
+  text-align: start;
+  border-bottom: 1px solid var(--tim-color-divider);
+  padding: var(--tim-space-1) var(--tim-space-2);
+}
+
+.tim-calltree td {
+  padding: 2px var(--tim-space-2);
+  border-bottom: 1px solid var(--tim-color-divider);
+  white-space: nowrap;
+}
+
+.tim-calltree__name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+}
+
+.tim-calltree__toggle {
+  color: var(--tim-color-fg);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tim-calltree__leaf {
+  padding-inline-start: 1.1em;
+}
+
+.tim-calltree__node {
+  color: var(--tim-color-muted);
+  font-size: var(--tim-font-size-small);
+}
+
+.tim-calltree__total {
+  display: inline-grid;
+  grid-template-columns: 80px auto;
+  align-items: center;
+  gap: var(--tim-space-2);
+}
+
+.tim-calltree__total .tim-perf__share {
+  grid-column: auto;
+}
+
+.tim-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The regressions of the latest batch (ADR 0053): the tone's badge, then the words. */
+.tim-perf__regression {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+}
+
+.tim-perf__regression-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tim-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A span in error says it in shape and word (relecture n° 1, I2). */
+.tim-flame__error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tim-space-1);
+  font-weight: 600;
+}

@@ -35,6 +35,27 @@ pub(crate) fn head(root: &Path) -> Option<String> {
     git(root, &["rev-parse", "--verify", "--quiet", "HEAD^{commit}"]).and_then(text)
 }
 
+/// The main branch (ADR 0053): the one `origin/HEAD` points at, else `main`.
+pub(crate) fn main_branch(root: &Path) -> String {
+    git(
+        root,
+        &[
+            "symbolic-ref",
+            "--quiet",
+            "--short",
+            "refs/remotes/origin/HEAD",
+        ],
+    )
+    .and_then(text)
+    .map(|b| b.strip_prefix("origin/").map(str::to_owned).unwrap_or(b))
+    .unwrap_or_else(|| "main".to_owned())
+}
+
+/// The branch HEAD is on; `None` outside a repository or on a detached HEAD.
+pub(crate) fn branch(root: &Path) -> Option<String> {
+    git(root, &["symbolic-ref", "--quiet", "--short", "HEAD"]).and_then(text)
+}
+
 /// Where git keeps what the watcher follows, as absolute paths (ADR 0015).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Places {
@@ -88,6 +109,31 @@ pub(crate) fn dirty(root: &Path) -> Option<Vec<String>> {
             .filter_map(|path| path.strip_prefix(prefix).map(str::to_owned))
             .collect(),
     )
+}
+
+/// The fingerprint of the working tree's changes against HEAD (Q77): the paths that differ and
+/// their content, `.timonier/` aside (the tracking, not the code). `None` when the tree is the
+/// commit, or when git cannot say.
+pub(crate) fn worktree(root: &Path) -> Option<String> {
+    let mut paths: Vec<String> = dirty(root)?
+        .into_iter()
+        .filter(|path| !path.starts_with(".timonier/"))
+        .collect();
+    if paths.is_empty() {
+        return None;
+    }
+    paths.sort();
+    let mut hasher = blake3::Hasher::new();
+    for path in &paths {
+        hasher.update(path.as_bytes());
+        hasher.update(&[0]);
+        match std::fs::read(root.join(path)) {
+            Ok(content) => hasher.update(blake3::hash(&content).as_bytes()),
+            // Deleted: its absence is the change.
+            Err(_) => hasher.update(b"-"),
+        };
+    }
+    Some(hasher.finalize().to_hex()[..16].to_owned())
 }
 
 /// Paths, relative to the root, that differ between two commits. `None` if git fails.

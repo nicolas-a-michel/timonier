@@ -110,7 +110,10 @@ describe("the sessions panel", () => {
     expect(html).toContain("timonier-daemon › debt");
     expect(html).toContain('data-change="added"');
     expect(html).toContain("timonier-daemon → timonier-store");
-    expect(html).toContain("No test run measured yet");
+    // The journal keeps the budgets the last runs exceeded at a session's end (ADR 0052).
+    expect(html).toContain("The budgets of the whiteboard are checked on the last runs when it ends.");
+    expect(html).toContain("N-2 on Store: p95 7.40 ms &gt; 5 ms");
+    expect(html).toContain("No budget of the whiteboard exceeded when it ended.");
   });
 
   it("leaves the open session's items to the Todo panel, and lists those of the others", () => {

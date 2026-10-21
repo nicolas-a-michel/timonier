@@ -1,6 +1,8 @@
 //! What `timonier init` changes in a file, and `uninit` takes back (ADR 0033): always its own
 //! part, delimited, the rest left as it is. Pure: text in, text out.
 
+use std::fmt::Write;
+
 use super::ordered::Json;
 
 /// The markers of the managed block in Markdown (`AGENTS.md`, `CLAUDE.md`).
@@ -230,6 +232,170 @@ pub fn shell_with_block(text: Option<&str>, body: &str) -> Result<String, String
     Ok(format!("{first}\n{block}{rest}"))
 }
 
+/// The markers of the two blocks of the OpenTelemetry SDK in a `Cargo.toml` (ADR 0050).
+pub const FEATURE_BEGIN: &str = "# >>> timonier: feature >>>";
+pub const FEATURE_END: &str = "# <<< timonier: feature <<<";
+pub const DEPENDENCIES_BEGIN: &str = "# >>> timonier: dependencies >>>";
+pub const DEPENDENCIES_END: &str = "# <<< timonier: dependencies <<<";
+
+/// A package of the SDK, as the pack names it.
+pub struct Sdk<'a> {
+    pub name: &'a str,
+    pub version: &'a str,
+    pub features: &'a [String],
+    pub default_features: bool,
+    /// For npm: in `dependencies`, not `devDependencies` (Q78).
+    pub production: bool,
+}
+
+/// A TOML string, quoted.
+fn quoted(text: &str) -> String {
+    format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+/// `Cargo.toml` with the SDK (ADR 0050): the packages the root package lacks as optional
+/// dependencies, `[dependencies.<name>]` tables at the end, and `feature` turning them on, right
+/// after `[features]` (or under a `[features]` of its own). `None` for a workspace without a
+/// root package, whose crates take it as the conventions say; a feature of that name already
+/// there is refused, with what to do.
+pub fn cargo_with_sdk(
+    text: &str,
+    feature: &str,
+    sdk: &[Sdk<'_>],
+) -> Result<Option<String>, String> {
+    let bare = cargo_without_sdk(text).unwrap_or_default();
+    let manifest: toml::Table = bare
+        .parse()
+        .map_err(|e: toml::de::Error| format!("it does not read as TOML ({})", e.message()))?;
+    if !manifest.contains_key("package") {
+        return Ok(None);
+    }
+    let has = |table: &str, key: &str| {
+        manifest
+            .get(table)
+            .and_then(toml::Value::as_table)
+            .is_some_and(|t| t.contains_key(key))
+    };
+    if has("features", feature) {
+        return Err(format!("a feature `{feature}` is already there"));
+    }
+    let added: Vec<&Sdk<'_>> = sdk
+        .iter()
+        .filter(|p| !has("dependencies", p.name))
+        .collect();
+    let mut dependencies = String::new();
+    for package in &added {
+        let _ = writeln!(dependencies, "[dependencies.{}]", package.name);
+        let _ = writeln!(dependencies, "version = {}", quoted(package.version));
+        dependencies.push_str("optional = true\n");
+        if !package.default_features {
+            dependencies.push_str("default-features = false\n");
+        }
+        if !package.features.is_empty() {
+            let features: Vec<String> = package.features.iter().map(|f| quoted(f)).collect();
+            let _ = writeln!(dependencies, "features = [{}]", features.join(", "));
+        }
+        dependencies.push('\n');
+    }
+    let turned_on: Vec<String> = added
+        .iter()
+        .map(|p| quoted(&format!("dep:{}", p.name)))
+        .collect();
+    let line = format!("{feature} = [{}]", turned_on.join(", "));
+    let header = bare.lines().any(|l| l.trim() == "[features]");
+    let mut out = if header {
+        // Right after the developer's `[features]`.
+        let mut out = String::new();
+        let mut placed = false;
+        for piece in bare.split_inclusive('\n') {
+            out.push_str(piece);
+            if !placed && piece.trim() == "[features]" {
+                if !piece.ends_with('\n') {
+                    out.push('\n');
+                }
+                let _ = write!(out, "{FEATURE_BEGIN}\n{line}\n{FEATURE_END}\n");
+                placed = true;
+            }
+        }
+        out
+    } else {
+        with_block(
+            Some(&bare),
+            FEATURE_BEGIN,
+            FEATURE_END,
+            &format!("[features]\n{line}"),
+        )
+    };
+    if !added.is_empty() {
+        out = with_block(
+            Some(&out),
+            DEPENDENCIES_BEGIN,
+            DEPENDENCIES_END,
+            &dependencies,
+        );
+    }
+    out.parse::<toml::Table>()
+        .map_err(|e| format!("the result would not read as TOML ({})", e.message()))?;
+    Ok(Some(out))
+}
+
+/// `Cargo.toml` without the SDK's two blocks; `None` when nothing else is left.
+pub fn cargo_without_sdk(text: &str) -> Option<String> {
+    // The last added first: each block takes back the blank line it came with.
+    let rest = without_block(text, DEPENDENCIES_BEGIN, DEPENDENCIES_END)?;
+    without_block(&rest, FEATURE_BEGIN, FEATURE_END)
+}
+
+/// The names under `dependencies` and `devDependencies` of a `package.json`.
+fn npm_dependencies(manifest: &Json) -> Vec<String> {
+    ["dependencies", "devDependencies"]
+        .iter()
+        .filter_map(|section| match manifest.get(section) {
+            Some(Json::Object(entries)) => Some(entries.iter().map(|(name, _)| name.clone())),
+            _ => None,
+        })
+        .flatten()
+        .collect()
+}
+
+/// `package.json` with the SDK's packages it lacks as development dependencies (ADR 0050).
+pub fn npm_with_sdk(text: &str, sdk: &[Sdk<'_>]) -> Result<String, String> {
+    let manifest = object(Some(text))?;
+    let present = npm_dependencies(&manifest);
+    let mut out = text.to_owned();
+    for package in sdk.iter().filter(|p| !present.iter().any(|n| n == p.name)) {
+        out = json_with_entry(
+            Some(&out),
+            if package.production {
+                "dependencies"
+            } else {
+                "devDependencies"
+            },
+            package.name,
+            Json::String(package.version.to_owned()),
+        )?;
+    }
+    Ok(out)
+}
+
+/// `package.json` without the SDK's packages that `original`, the file before `init`, did not
+/// have.
+pub fn npm_without_sdk(
+    text: &str,
+    original: &str,
+    names: &[&str],
+) -> Result<Option<String>, String> {
+    let before = npm_dependencies(&object(Some(original))?);
+    let mut out = Some(text.to_owned());
+    for name in names.iter().filter(|n| !before.iter().any(|b| b == *n)) {
+        for section in ["devDependencies", "dependencies"] {
+            let Some(current) = &out else { break };
+            out = json_without_entry(current, section, name)?;
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,5 +558,111 @@ mod tests {
             Some(theirs)
         );
         assert!(shell_with_block(Some("#!/usr/bin/env python3\nprint()\n"), "x").is_err());
+    }
+
+    fn sdk() -> Vec<Sdk<'static>> {
+        static FEATURES: [String; 0] = [];
+        vec![
+            Sdk {
+                name: "tracing",
+                version: "0.1.44",
+                features: &FEATURES,
+                default_features: true,
+                production: true,
+            },
+            Sdk {
+                name: "opentelemetry",
+                version: "0.33.1",
+                features: &FEATURES,
+                default_features: false,
+                production: false,
+            },
+        ]
+    }
+
+    #[test]
+    fn the_sdk_goes_into_cargo_toml_and_comes_out_as_it_was() {
+        let plain = "[package]\nname = \"demo\"\n\n[dependencies]\ntracing = \"0.1\"\n";
+        let with = cargo_with_sdk(plain, "otel", &sdk()).unwrap().unwrap();
+        let manifest: toml::Table = with.parse().unwrap();
+        assert_eq!(
+            manifest["features"]["otel"].as_array().unwrap(),
+            &vec![toml::Value::from("dep:opentelemetry")],
+            "the developer's tracing stays theirs: {with}"
+        );
+        let otel = &manifest["dependencies"]["opentelemetry"];
+        assert_eq!(otel["optional"].as_bool(), Some(true));
+        assert_eq!(otel["default-features"].as_bool(), Some(false));
+        assert_eq!(manifest["dependencies"]["tracing"].as_str(), Some("0.1"));
+        // Again: the same; then taken back, as it was.
+        assert_eq!(
+            cargo_with_sdk(&with, "otel", &sdk()).unwrap(),
+            Some(with.clone())
+        );
+        assert_eq!(cargo_without_sdk(&with).as_deref(), Some(plain));
+
+        // A `[features]` of the developer's: the feature goes right under it.
+        let featured = "[package]\nname = \"demo\"\n\n[features]\nfast = []\n";
+        let with = cargo_with_sdk(featured, "otel", &sdk()).unwrap().unwrap();
+        assert!(
+            with.contains("[features]\n# >>> timonier: feature >>>\notel = ["),
+            "{with}"
+        );
+        let manifest: toml::Table = with.parse().unwrap();
+        assert!(manifest["features"].get("fast").is_some());
+        assert_eq!(cargo_without_sdk(&with).as_deref(), Some(featured));
+    }
+
+    #[test]
+    fn a_cargo_toml_the_sdk_cannot_go_into_says_why() {
+        let workspace = "[workspace]\nmembers = [\"a\"]\n";
+        assert_eq!(cargo_with_sdk(workspace, "otel", &sdk()), Ok(None));
+        let taken = "[package]\nname = \"d\"\n[features]\notel = []\n";
+        assert!(
+            cargo_with_sdk(taken, "otel", &sdk())
+                .unwrap_err()
+                .contains("already")
+        );
+        assert!(
+            cargo_with_sdk("[package", "otel", &sdk())
+                .unwrap_err()
+                .contains("TOML")
+        );
+    }
+
+    #[test]
+    fn the_sdk_goes_into_package_json_and_only_it_comes_out() {
+        let original =
+            "{\n  \"name\": \"demo\",\n  \"devDependencies\": {\n    \"tracing\": \"1\"\n  }\n}\n";
+        let with = npm_with_sdk(original, &sdk()).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&with).unwrap();
+        assert_eq!(value["devDependencies"]["opentelemetry"], "0.33.1");
+        assert_eq!(
+            value["dependencies"],
+            serde_json::Value::Null,
+            "tracing was there already"
+        );
+        assert_eq!(
+            value["devDependencies"]["tracing"], "1",
+            "the developer's stays"
+        );
+        let back = npm_without_sdk(&with, original, &["tracing", "opentelemetry"])
+            .unwrap()
+            .unwrap();
+        let value: serde_json::Value = serde_json::from_str(&back).unwrap();
+        assert_eq!(
+            value,
+            serde_json::from_str::<serde_json::Value>(original).unwrap()
+        );
+        // Q78: the one the shipped code imports goes into `dependencies`, and comes out of it.
+        let bare = "{\n  \"name\": \"demo\"\n}\n";
+        let with = npm_with_sdk(bare, &sdk()).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&with).unwrap();
+        assert_eq!(value["dependencies"]["tracing"], "0.1.44");
+        assert_eq!(value["devDependencies"]["opentelemetry"], "0.33.1");
+        let back = npm_without_sdk(&with, bare, &["tracing", "opentelemetry"])
+            .unwrap()
+            .unwrap();
+        assert_eq!(back, bare);
     }
 }

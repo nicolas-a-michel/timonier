@@ -30,6 +30,7 @@ function node(id: string, review: NodeReview | null = null, parent: string | nul
     children: 0,
     file: null,
     span: null,
+    signature: null,
     review,
     debt: null,
   };

@@ -47,6 +47,9 @@ pub enum Error {
     #[error("the snapshot of the session failed: {0}")]
     Freeze(String),
 
+    #[error("no run is named `{0}`: the name `run/start` gave is `R-<number>`")]
+    UnknownRun(String),
+
     #[error("cannot write in .timonier/: {0}")]
     Tracking(String),
 

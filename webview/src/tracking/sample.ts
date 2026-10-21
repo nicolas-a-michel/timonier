@@ -52,6 +52,7 @@ const open: SessionView = {
     linked: [],
     unlinked: [],
   },
+  budgets: [],
 };
 
 const ended: SessionView = {
@@ -80,6 +81,7 @@ const ended: SessionView = {
     ],
     unlinked: [],
   },
+  budgets: ["N-2 on Store: p95 7.40 ms > 5 ms"],
 };
 
 const older: SessionView = {
@@ -91,6 +93,7 @@ const older: SessionView = {
   endedAt: "2026-10-19T16:20:00Z",
   summary: "Untracked gaps are computed at each session start.",
   changes: null,
+  budgets: [],
 };
 
 export const SAMPLE_TRACKING: TrackingView = {

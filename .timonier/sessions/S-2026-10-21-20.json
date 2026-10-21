@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-20",
+  "agent": "claude-code",
+  "objective": "The map says what a symbol is (function, method, type, field, constant…) in colour, icon and word, and shows its signature (its type for a field or constant) in a tooltip",
+  "tasks": [
+    "T-114"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T15:56:22Z",
+  "ended_at": "2026-10-21T16:05:59Z",
+  "snapshots": {
+    "start": 62,
+    "end": 63
+  },
+  "summary": "T-114 done at the human's request: a symbol of the map says its kind in colour, icon and word, and its signature (a field's or constant's type) in its body and tooltip. ADR 0054. All checks green. Extension and binary reinstalled for the human's test.",
+  "changes": {
+    "files": 21,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/mapModel.test.ts",
+        "name": "mapModel",
+        "within": "map"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

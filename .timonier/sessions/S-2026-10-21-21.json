@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-21",
+  "agent": "claude-code",
+  "objective": "Record T-114 as done: the earlier update went from todo to done, a transition the plan refuses",
+  "tasks": [
+    "T-114"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T16:15:19Z",
+  "ended_at": "2026-10-21T16:15:19Z",
+  "snapshots": {
+    "start": 65,
+    "end": 66
+  },
+  "summary": "T-114 recorded as done (session S-2026-10-21-20 did the work; its update had been refused as a todo → done transition).",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "T-114 in progress, then done",
+      "task": "T-114",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

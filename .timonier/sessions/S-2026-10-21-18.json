@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-18",
+  "agent": "claude-code",
+  "objective": "Check the Phase 8 exit criterion on Timonier itself: a timeline per test with spans on graph nodes, a provoked regression detected, an exceeded budget in red",
+  "tasks": [
+    "T-113"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T12:57:12Z",
+  "ended_at": "2026-10-21T13:00:49Z",
+  "snapshots": {
+    "start": 58,
+    "end": 59
+  },
+  "summary": "Phase 8 exit criterion on Timonier: a timeline per test with spans on nodes (run R-2, 585 spans, 19 tests), a provoked regression probable then confirmed in a throwaway clone. Fixed Timonier's telemetry to put NEXTEST_TEST_NAME/NEXTEST_BINARY_ID on its resource. Left (D-3): the exceeded budget in red, which needs a budget drawn by the human.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "tim test on Timonier: a timeline per test, spans attached to nodes",
+      "task": "T-113",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "A provoked regression detected, probable then confirmed, in a throwaway clone with two commits on main",
+      "task": "T-113",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "An exceeded budget in red: needs a budget drawn by the human",
+      "task": "T-113",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 1,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

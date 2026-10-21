@@ -87,6 +87,59 @@ impl Reader {
         .transpose()
     }
 
+    /// Whether `id` is a node of the head.
+    pub fn exists(&self, id: &NodeId) -> Result<bool> {
+        let mut statement = self
+            .connection
+            .prepare_cached("SELECT 1 FROM node WHERE id = ?1 AND valid_to IS NULL LIMIT 1")?;
+        Ok(statement.exists([id.as_str()])?)
+    }
+
+    /// The functions and methods of a file's scope at the head, with the line each starts on:
+    /// where a span of the file may land (ADR 0048).
+    pub fn callables_in(&self, file: &NodeId) -> Result<Vec<(NodeId, Option<u32>)>> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT id, start_line FROM node
+             WHERE scope = ?1 AND valid_to IS NULL AND kind IN ('function', 'method')
+             ORDER BY id",
+        )?;
+        let rows = statement.query_map([file.as_str()], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<u32>>(1)?))
+        })?;
+        let mut callables = Vec::new();
+        for row in rows {
+            let (id, line) = row?;
+            let id = NodeId::parse(id.clone()).map_err(|_| Error::Corrupt {
+                column: "node.id",
+                value: id,
+                expected: "a node id",
+            })?;
+            callables.push((id, line));
+        }
+        Ok(callables)
+    }
+
+    /// Every function and method of the head, with its file, line and signature: what the
+    /// instrumentation gaps judge (ADR 0049).
+    pub fn callables(&self) -> Result<Vec<timonier_core::gaps::Callable>> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT id, name, scope, start_line, signature FROM node
+             WHERE valid_to IS NULL AND kind IN ('function', 'method')
+             ORDER BY scope, start_line, id",
+        )?;
+        let rows = statement.query_map([], |row| {
+            let scope: String = row.get(2)?;
+            Ok(timonier_core::gaps::Callable {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                file: scope.strip_prefix("file:").map(str::to_owned),
+                line: row.get(3)?,
+                signature: row.get(4)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// What one source observed in every scope, with the kinds it verified there: what the
     /// daemon reloads after a restart, for the LSP (ADR 0014, 0018).
     pub fn observations(
@@ -301,6 +354,7 @@ impl Reader {
 
     /// The structural diff from `from` to `to`. Only the rows that changed in between are read:
     /// the cost follows the size of the change, not of the graph.
+    #[tracing::instrument(skip_all)]
     pub fn diff(&mut self, from: u64, to: u64) -> Result<GraphDiff> {
         if to < from {
             return Err(Error::BackwardDiff { from, to });
@@ -359,6 +413,7 @@ impl Reader {
 
     /// Edges at a zoom level: every edge valid at `seq`, re-attached to the nearest visible
     /// ancestor of its endpoints (ADR 0009). Nothing is stored.
+    #[tracing::instrument(skip_all)]
     pub fn aggregate(&mut self, seq: u64, visible: &[NodeId]) -> Result<Vec<AggregatedEdge>> {
         // A savepoint: within the transaction of `consistent`, when there is one.
         let tx = self.connection.savepoint()?;

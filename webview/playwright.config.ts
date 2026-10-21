@@ -7,9 +7,14 @@ import { defineConfig } from "@playwright/test";
 const port = 5199;
 
 export default defineConfig({
-  // `BENCH=1`: the map's measurements (test/perf), apart from the accessibility tests.
+  // `BENCH=1`: the map's measurements (test/perf), apart from the accessibility tests;
+  // `SHOTS=1`: the README's screenshots (test/screenshots, `npm run screenshots`).
   testDir: process.env.BENCH ? "test/perf" : "test",
-  testMatch: process.env.BENCH ? "**/*.perf.ts" : ["a11y/**/*.a11y.ts", "production/**/*.prod.ts"],
+  testMatch: process.env.BENCH
+    ? "**/*.perf.ts"
+    : process.env.SHOTS
+      ? "screenshots/**/*.shots.ts"
+      : ["a11y/**/*.a11y.ts", "production/**/*.prod.ts"],
   // The whiteboard's tests and bench need its production build.
   globalSetup: "./test/production/build.ts",
   fullyParallel: true,

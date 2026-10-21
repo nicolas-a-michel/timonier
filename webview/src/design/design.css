@@ -39,6 +39,41 @@
   --tim-role-wash: var(--tim-role-persistence-wash);
 }
 
+[data-symbol="function"] {
+  --tim-role: var(--tim-symbol-function);
+  --tim-role-tint: var(--tim-symbol-function-tint);
+}
+
+[data-symbol="method"] {
+  --tim-role: var(--tim-symbol-method);
+  --tim-role-tint: var(--tim-symbol-method-tint);
+}
+
+[data-symbol="type"] {
+  --tim-role: var(--tim-symbol-type);
+  --tim-role-tint: var(--tim-symbol-type-tint);
+}
+
+[data-symbol="trait"] {
+  --tim-role: var(--tim-symbol-trait);
+  --tim-role-tint: var(--tim-symbol-trait-tint);
+}
+
+[data-symbol="field"] {
+  --tim-role: var(--tim-symbol-field);
+  --tim-role-tint: var(--tim-symbol-field-tint);
+}
+
+[data-symbol="constant"] {
+  --tim-role: var(--tim-symbol-constant);
+  --tim-role-tint: var(--tim-symbol-constant-tint);
+}
+
+[data-symbol="module"] {
+  --tim-role: var(--tim-symbol-module);
+  --tim-role-tint: var(--tim-symbol-module-tint);
+}
+
 .tim-icon--role {
   color: var(--tim-role, var(--tim-color-muted));
 }
@@ -356,4 +391,14 @@ body.vscode-high-contrast .tim-box__header {
   display: inline-flex;
   align-items: center;
   gap: var(--tim-space-1);
+}
+
+/* A symbol's signature (T-114): as the code writes it, on one line. */
+.tim-box__signature {
+  overflow: hidden;
+  color: var(--tim-color-muted-on-box);
+  font-family: var(--tim-font-family-code);
+  font-size: var(--tim-font-size-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

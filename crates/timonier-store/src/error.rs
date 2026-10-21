@@ -61,6 +61,12 @@ pub enum Error {
     #[error("scope {scope} observes an edge leaving {src}, which it does not provide (ADR 0009)")]
     ForeignSource { scope: ScopeKey, src: NodeId },
 
+    #[error("run {0} does not exist")]
+    UnknownRun(u64),
+
+    #[error("run {0} is already finished")]
+    RunFinished(u64),
+
     #[error("snapshot {0} does not exist")]
     UnknownSnapshot(u64),
 

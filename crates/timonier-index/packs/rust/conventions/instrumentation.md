@@ -20,8 +20,16 @@ pack (`rust`); `timonier init` copies them here, and `timonier doctor` keeps the
 
 - Spans: `#[tracing::instrument(skip_all, fields(...))]` on the boundary functions, with
   small, explicit fields.
-- Export: `tracing-opentelemetry` with `opentelemetry`, `opentelemetry_sdk` and
-  `opentelemetry-otlp`, upgraded together (0.34.0 and 0.33.1 on 2026-10-20). The exporter reads
-  `OTEL_EXPORTER_OTLP_ENDPOINT`, which `timonier test` sets.
+- Export: `tracing-opentelemetry` 0.34.0 with `opentelemetry`, `opentelemetry_sdk` and
+  `opentelemetry-otlp` 0.33.1, upgraded together (on 2026-10-21). `timonier init` adds them to
+  the root package as optional dependencies behind the feature `otel`, with the module
+  `src/timonier_otel.rs`: declare it with `#[cfg(feature = "otel")] mod timonier_otel;` and keep
+  `let _otel = timonier_otel::init();` alive at the start of `main` (or of a test). It exports
+  when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as `timonier test` sets it, and reads
+  `OTEL_SDK_DISABLED` itself: the Rust SDK does not. Under cargo-nextest, it names each span's
+  test from `NEXTEST_TEST_NAME` and `NEXTEST_BINARY_ID`.
+- `tracing` gives `code.file.path` and `code.line.number`; Timonier derives `code.function.name`
+  from the module and the span's name: do not rename the span of a boundary function.
+- `tests/timonier_smoke.rs` is Timonier's smoke test, which `timonier doctor` runs.
 - Tests run with `cargo nextest run --profile timonier`, which writes the JUnit XML Timonier
   reads (`.timonier/tests.json`).

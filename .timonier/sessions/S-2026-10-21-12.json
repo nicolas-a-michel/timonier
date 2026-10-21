@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-12",
+  "agent": "claude-code",
+  "objective": "8.7: performance views: a Performances layer on the map (time, calls, traffic), and a Performances panel with the timeline per test, the call tree and the evolution per commit (Q73)",
+  "tasks": [
+    "T-99"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-21T11:23:42Z",
+  "ended_at": "2026-10-21T11:49:41Z",
+  "snapshots": {
+    "start": 46,
+    "end": 47
+  },
+  "summary": "8.7 built (ADR 0051, Q73): daemon methods perf/runs, perf/run, perf/map (own time per node, traffic, lineage); the map's Performances layer (time on boxes, links thicker by traffic, banner, legend, command); the Performances panel (run choice and figures, Timeline with spans by depth and process resources, Call tree as a treegrid with resources per level, Evolution by commit; uPlot with hidden tables), opened from the map, the bridge and the palette. Tests: model, feeds, a real-exporter end-to-end, 27 a11y tests across six themes, integration in VSCode (26 passing). Left: the five-second test by the human, which is the criterion of 8.7.",
+  "changes": {
+    "files": 43,
+    "added": [
+      {
+        "id": "pkg:npm/uplot",
+        "name": "uplot",
+        "within": "ui"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/tracking",
+        "name": "tracking",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external/ui",
+        "name": "ui",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  }
+}

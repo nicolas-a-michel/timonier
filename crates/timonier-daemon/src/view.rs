@@ -225,6 +225,7 @@ impl ViewState {
                     children: u32::try_from(children.len()).unwrap_or(u32::MAX),
                     file: file_path(graph, id),
                     span: node.span,
+                    signature: node.signature.clone(),
                     review: review.and_then(|r| node_review(r.diff, id)),
                     debt: debt.and_then(|d| d.get(id).copied()),
                 },

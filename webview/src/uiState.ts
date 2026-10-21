@@ -16,6 +16,8 @@ export interface UiState {
   debt?: boolean;
   /** The map is compared with the whiteboard (ADR 0042). */
   intent?: boolean;
+  /** The map shows its Performances layer (ADR 0051). */
+  performance?: boolean;
 }
 
 export const initialUi: UiState = { openRoles: [], expanded: [] };
@@ -27,13 +29,14 @@ function strings(value: unknown): string[] | undefined {
 /** What `getState` gave back, if it is a state of this version. */
 export function parseUi(saved: unknown): UiState {
   if (typeof saved !== "object" || saved === null) return initialUi;
-  const { openRoles, expanded, focus, onlyChanges, debt, intent } = saved as {
+  const { openRoles, expanded, focus, onlyChanges, debt, intent, performance } = saved as {
     openRoles?: unknown;
     expanded?: unknown;
     focus?: unknown;
     onlyChanges?: unknown;
     debt?: unknown;
     intent?: unknown;
+    performance?: unknown;
   };
   return {
     openRoles: strings(openRoles) ?? [],
@@ -42,6 +45,7 @@ export function parseUi(saved: unknown): UiState {
     ...(onlyChanges === true ? { onlyChanges } : {}),
     ...(debt === true ? { debt } : {}),
     ...(intent === true ? { intent } : {}),
+    ...(performance === true ? { performance } : {}),
   };
 }
 
@@ -71,6 +75,7 @@ export function closeAll(ui: UiState): Applied {
       ...(ui.onlyChanges ? { onlyChanges: true } : {}),
       ...(ui.debt ? { debt: true } : {}),
       ...(ui.intent ? { intent: true } : {}),
+      ...(ui.performance ? { performance: true } : {}),
     },
     subscribe: ui.expanded.length > 0 ? [] : undefined,
   };
@@ -86,6 +91,12 @@ export function toggleDebt(ui: UiState): Applied {
 export function toggleIntent(ui: UiState): Applied {
   const { intent, ...rest } = ui;
   return { ui: intent ? rest : { ...rest, intent: true } };
+}
+
+/** The Performances layer, on or off (ADR 0051). */
+export function togglePerformance(ui: UiState): Applied {
+  const { performance, ...rest } = ui;
+  return { ui: performance ? rest : { ...rest, performance: true } };
 }
 
 /** The filter « only the changes », on or off (ADR 0024). */

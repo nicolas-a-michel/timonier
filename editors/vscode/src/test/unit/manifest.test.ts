@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
@@ -70,9 +70,15 @@ describe("activity bar entry", () => {
     }
   });
 
-  it("packages the three pages of the webview: the map, the panels and the whiteboard (ADR 0031, 0037)", () => {
+  it("packages every page of the webview: the map, the panels, the whiteboard, the Performances", () => {
     const kept = readFileSync(path.join(root, ".vscodeignore"), "utf8").split("\n");
-    for (const page of ["dist/webview", "dist/webview/tracking", "dist/webview/whiteboard"]) {
+    // Each HTML page of the webview but the development one is built into its folder: a new page
+    // is checked without being named here (the Performances page was left out once).
+    const pages = readdirSync(path.join(root, "..", "..", "webview"))
+      .filter((file) => file.endsWith(".html") && file !== "demo.html")
+      .map((file) => (file === "index.html" ? "dist/webview" : `dist/webview/${file.replace(/\.html$/, "")}`));
+    assert.ok(pages.includes("dist/webview/performance"), pages.join(", "));
+    for (const page of pages) {
       for (const file of ["assets/**", ".vite/manifest.json", "THIRD-PARTY-NOTICES.md"]) {
         assert.ok(kept.includes(`!${page}/${file}`), `${page}/${file} is left out of the .vsix`);
       }

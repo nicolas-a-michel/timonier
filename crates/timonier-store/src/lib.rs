@@ -8,6 +8,7 @@
 mod codec;
 mod error;
 mod extraction;
+mod perf;
 mod read;
 mod refinement;
 mod schema;
@@ -22,6 +23,10 @@ use timonier_core::{Freeze, ScopeUpdate, Snapshot};
 
 pub use error::{Error, Result};
 pub use extraction::CachedExtraction;
+pub use perf::{
+    KEPT_RUNS, KeptSpan, LATE_MS, PerfStore, RunPlace, SPANS_PER_RUN, SpansAdded, StoredRun,
+    StoredSpan,
+};
 pub use read::Reader;
 pub use refinement::{DebtChange, PendingLookup, RefinementDebt};
 pub use write::ApplyStats;
@@ -71,6 +76,7 @@ impl Store {
     /// at the end, so the updates may come in any order. When several scopes provide the same
     /// node or edge, one owns it by a fixed rule and the others wait for their turn (ADR 0009):
     /// the result never depends on the order of the updates.
+    #[tracing::instrument(skip_all)]
     pub fn apply_all(&self, updates: Vec<ScopeUpdate>) -> Result<ApplyStats> {
         self.inner
             .writer
@@ -79,6 +85,7 @@ impl Store {
 
     /// Freezes the head as a commit, a review mark or a working-tree snapshot, and opens a new
     /// head. Returns the frozen snapshot.
+    #[tracing::instrument(skip_all)]
     pub fn freeze(&self, freeze: Freeze) -> Result<Snapshot> {
         self.freeze_with(freeze, false)
     }
@@ -86,6 +93,7 @@ impl Store {
     /// Freezes like [`Store::freeze`], and keeps the content of each file for the snapshot, as
     /// a review mark does: a session's diff compares them (ADR 0031). They stay until
     /// [`Store::forget_contents`].
+    #[tracing::instrument(skip_all)]
     pub fn freeze_keeping_contents(&self, freeze: Freeze) -> Result<Snapshot> {
         self.freeze_with(freeze, true)
     }
@@ -108,6 +116,7 @@ impl Store {
 
     /// Saves extractions of the indexer and forgets the paths of `remove` (ADR 0013), in one
     /// transaction.
+    #[tracing::instrument(skip_all)]
     pub fn save_extractions(&self, put: Vec<CachedExtraction>, remove: Vec<String>) -> Result<()> {
         self.inner
             .writer
@@ -116,6 +125,7 @@ impl Store {
 
     /// A batch of scope updates, and what changed in what the LSP refinement owes after it, in
     /// one transaction (ADR 0022): a stop, or a failure, never leaves one without the other.
+    #[tracing::instrument(skip_all)]
     pub fn apply_all_owing(
         &self,
         updates: Vec<ScopeUpdate>,
@@ -127,6 +137,7 @@ impl Store {
     }
 
     /// Writes what changed in what the LSP refinement owes (ADR 0022): kept across a restart.
+    #[tracing::instrument(skip_all)]
     pub fn update_refinement_debt(&self, change: DebtChange) -> Result<()> {
         self.inner
             .writer

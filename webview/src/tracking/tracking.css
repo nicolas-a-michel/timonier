@@ -510,3 +510,11 @@ details[open] > summary > .tim-chevron {
 .tim-bridge__setup-title {
   font-weight: var(--tim-font-weight-strong);
 }
+
+/* A budget a session's last runs exceeded (ADR 0052): the violation's badge, then its words. */
+.tim-session__budget {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--tim-space-2);
+}
