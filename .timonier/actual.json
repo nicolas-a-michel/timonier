@@ -2727,7 +2727,7 @@
         "calls",
         "imports"
       ],
-      "weight": 24
+      "weight": 25
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",

@@ -6,15 +6,6 @@ Ce que Timonier fera ensuite, dans l'ordre. Aucune date n'est promise : chaque �
 quand son critère d'acceptation est vérifié sur un vrai projet ([PLAN.md](PLAN.md) les donne).
 Traduction de la version anglaise du 22 octobre 2026.
 
-## Avant la préversion
-
-Les phases 0 à 8 du MVP sont faites, et la phase 10 a donné à Timonier ses treize langages. Il
-reste, avant une première version publique :
-
-- **Windows sur une vraie machine.** Les tests passent sous Windows en CI ; un essai sur une vraie
-  machine y confirme l'extension et le démon.
-- **Préversion sur le Marketplace VSCode**, pour Linux, macOS et Windows (x64 et arm64).
-
 ## La fin du MVP
 
 - **Assistant « Nouveau projet piloté »** : démarrer un projet depuis VSCode avec ses agents, ses
@@ -45,6 +36,28 @@ reste, avant une première version publique :
 - **Collaboration entre modèles** : topologies, protocole, canaux, notifications et supervision.
 - **Couverture, santé et impact** par composant, et **voyage dans le temps** à travers les
   instantanés de la carte.
+- **Renommer une boîte** : le développeur donne son propre nom à une boîte de la carte (F2 ou
+  double clic), conservé dans `.timonier/` à travers les réindexations et les commits ; les
+  agents peuvent proposer des noms par un outil MCP, et le nom du développeur l'emporte.
+- **Ce qu'un commit a changé** : choisir un commit dans l'historique et voir sur la carte les
+  composants, fichiers et liens qu'il a ajoutés, modifiés ou supprimés, comme le diff de
+  relecture les montre depuis « Marquer comme revu ».
+- **Raccourcis pris par les agents** : tests désactivés, assertions affaiblies, avertissements
+  réduits au silence (`#[allow]`, `@ts-ignore`), ébauches et `TODO` laissés, blocs `catch`
+  vides, montrés en badges sur les boîtes de la carte avec le commit et la session qui les ont
+  introduits.
+- **Travail hors du périmètre d'une tâche** : chaque tâche du plan nomme les composants qu'elle
+  doit modifier ; la carte marque les composants qu'une session a touchés en dehors.
+- **Code dupliqué** : une fonction réécrite alors qu'une autre au même corps existe déjà, reliée
+  à elle sur la carte.
+- **Modifié mais non testé** : dans le diff depuis la dernière relecture, les symboles qu'aucun
+  test n'a exécutés.
+- **Croissance de chaque composant** : une petite courbe sur chaque boîte, de ses lignes, de ses
+  symboles et de ses dépendances au fil des commits.
+- **Code mort ajouté** : les nouveaux symboles que rien n'appelle ni ne référence, là où un
+  serveur de langage a confirmé les liens.
+- **Coût de l'IA par composant** : une couche de la carte qui montre où sont passés les tokens
+  des agents.
 - **Animation des flux de données** sur la carte.
 - **GitLab, Jira et Linear** pour le processus de développement, à côté de GitHub.
 

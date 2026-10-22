@@ -6,15 +6,6 @@ What Timonier will do next, in order. Dates are not promised: each step ends whe
 acceptance criterion is checked on a real project ([PLAN.md](PLAN.md), in French, holds the
 criteria). Last updated: 22 October 2026.
 
-## Before the pre-release
-
-The MVP's phases 0 to 8 are done, and phase 10 has given Timonier its thirteen languages. What
-remains before a first public version:
-
-- **Windows on a real machine.** The tests pass on Windows in CI; a try on a real machine
-  confirms the extension and the daemon there.
-- **Pre-release on the VSCode Marketplace**, for Linux, macOS and Windows (x64 and arm64).
-
 ## The end of the MVP
 
 - **« New steered project » assistant**: start a project from VSCode with its agents, its
@@ -44,6 +35,25 @@ remains before a first public version:
   supervision.
 - **Coverage, health and impact** per component, and **time travel** through the snapshots of
   the map.
+- **Renaming a box**: the developer gives a box of the map its own name (F2 or a double click),
+  kept in `.timonier/` across reindexing and commits; the agents can propose names through an
+  MCP tool, and the developer's name wins.
+- **What a commit changed**: choose a commit in the history and see on the map the components,
+  files and links it added, modified or removed, as the review diff shows them since « Mark as
+  reviewed ».
+- **Shortcuts taken by the agents**: disabled tests, weakened assertions, silenced warnings
+  (`#[allow]`, `@ts-ignore`), stubs and `TODO`s left behind, empty `catch` blocks, shown as
+  badges on the map's boxes with the commit and the session that brought them.
+- **Work outside a task's scope**: each plan task names the components it should change; the
+  map marks the components a session touched outside them.
+- **Duplicated code**: a function written again where one with the same body already exists,
+  drawn as a link between the two places.
+- **Changed but not tested**: in the diff since the last review, the symbols no test ran.
+- **Growth of each component**: a small curve on each box, of its lines, symbols and
+  dependencies over the commits.
+- **Dead code added**: new symbols that nothing calls or references, where a language server
+  confirmed the links.
+- **AI cost per component**: a map layer that shows where the agents' tokens went.
 - **Data-flow animation** on the map.
 - **GitLab, Jira and Linear** for the development process, beside GitHub.
 

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-18",
+  "agent": "claude-code",
+  "objective": "Publier la préversion 0.1.0 : tag v0.1.0, suivi du workflow de publication, vérification sur le Marketplace et la release GitHub.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T11:55:09Z",
+  "ended_at": "2026-10-22T11:56:05Z",
+  "snapshots": {
+    "start": 146,
+    "end": 147
+  },
+  "summary": "Tag v0.1.0 signé posé sur b2c43b6 (CI verte sur les sept jobs) et poussé, avec l'accord de l'humain ; le workflow Release (39774217270) construit et publie. Reste : suivre sa fin, vérifier le Marketplace et la release GitHub, mettre à jour PLAN.md 9.7.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Suivre la publication (workflow Release du tag v0.1.0), vérifier le Marketplace et la release GitHub, mettre à jour PLAN.md 9.7",
+      "task": "T-109",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 4,
+    "input": 10,
+    "output": 1123,
+    "cache_read": 3766555,
+    "cache_creation": 2085,
+    "cost_usd_micros": 792491
+  }
+}

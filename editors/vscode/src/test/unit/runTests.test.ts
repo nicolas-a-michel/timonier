@@ -28,6 +28,13 @@ describe("the Performances panel's « Run the tests »", () => {
     assert.equal(recordedCommands(dir), null);
   });
 
+  it("has no command for a project set up without a runner", () => {
+    const project = path.join(dir, "set-up");
+    mkdirSync(path.join(project, ".timonier"), { recursive: true });
+    writeFileSync(path.join(project, ".timonier", "init.json"), "{}");
+    assert.deepEqual(recordedCommands(project), []);
+  });
+
   it("approves what it showed and installs what is missing", () => {
     assert.deepEqual(TEST_ARGS, ["test", "--approve", "--install"]);
   });

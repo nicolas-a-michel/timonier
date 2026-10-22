@@ -2199,7 +2199,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -2231,7 +2231,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proptest",
  "schemars",
@@ -2243,7 +2243,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-daemon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "cyclonedx-bom",
@@ -2271,7 +2271,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-index"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "globset",
@@ -2303,7 +2303,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rmcp",
  "serde_json",
@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-otlp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "flate2",
@@ -2334,7 +2334,7 @@ dependencies = [
 
 [[package]]
 name = "timonier-store"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proptest",
  "rusqlite",

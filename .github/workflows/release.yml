@@ -90,9 +90,23 @@ jobs:
       - name: Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        # The Marketplace dropped the packages sent while it was still verifying the first one
+        # (v0.1.0: only darwin-arm64 was kept, although vsce said all six were published). Each
+        # package is therefore sent once the previous one is served, for at most an hour each.
         run: |
+          version=$(node -p "require('./editors/vscode/package.json').version")
+          served() {
+            curl -s -X POST https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery \
+              -H 'Content-Type: application/json' -H 'Accept: application/json;api-version=7.2-preview.1' \
+              -d '{"filters":[{"criteria":[{"filterType":7,"value":"NicolasMichel.timonier"}]}],"flags":914}' \
+              | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const e=JSON.parse(s).results[0].extensions[0];process.exit(e.versions.some(v=>v.version==='$version'&&v.targetPlatform==='$1')?0:1)})"
+          }
           for package in timonier-*.vsix; do
+            target=${package#timonier-}; target=${target%.vsix}
+            if served "$target"; then echo "$target $version is already served"; continue; fi
             npx vsce publish --pre-release --packagePath "$package"
+            for attempt in $(seq 60); do served "$target" && break; sleep 60; done
+            served "$target" || { echo "::error::$target $version is not served after an hour"; exit 1; }
           done
       - name: GitHub release
         if: startsWith(github.ref, 'refs/tags/v')

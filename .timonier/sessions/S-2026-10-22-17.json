@@ -6,9 +6,31 @@
   "tasks": [
     "T-109"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T11:31:57Z",
+  "ended_at": "2026-10-22T11:41:40Z",
   "snapshots": {
-    "start": 143
+    "start": 143,
+    "end": 145
+  },
+  "summary": "Fiche Marketplace et icônes commitées et poussées (b2c43b6, CI en cours). Interrompu par l'humain avant le suivi de la CI : le tag v0.1.0 n'est pas posé, rien n'est publié. Reste : la suite que l'humain indiquera (CI de b2c43b6, puis le tag).",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 4,
+    "input": 12,
+    "output": 1527,
+    "cache_read": 3742287,
+    "cache_creation": 2390,
+    "cost_usd_micros": 798165
   }
 }

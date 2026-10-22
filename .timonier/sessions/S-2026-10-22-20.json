@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-20",
+  "agent": "claude-code",
+  "objective": "Run the tests of a Python project without a manifest: init detects its .py files, and the extension no longer says \"set up first\" to a project that is set up.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T13:54:32Z",
+  "ended_at": "2026-10-22T13:58:15Z",
+  "snapshots": {
+    "start": 150,
+    "end": 151
+  },
+  "summary": "init now detects a Python project without a manifest from its .py files at the root (pytest runner, no SDK), with a unit test; the extension treats a set-up project (init.json) without tests.json as having no test command instead of asking to set it up, with a unit test. Checked end to end: one test measured as R-1; no test gives pytest's \"no tests ran\". Not released: the user's installed 0.1.0 still has the bug; not committed.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "init: a Python project without a manifest, its .py files at the root, gets the pytest runner",
+      "task": "T-109",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "extension: a set-up project without tests.json is told no test runner was found, not to set up",
+      "task": "T-109",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "check end to end on a folder with a .py and a test, and on one with no test",
+      "task": "T-109",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 3,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/editors/vscode/src/commandLine.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 14,
+    "input": 32,
+    "output": 6030,
+    "cache_read": 1886315,
+    "cache_creation": 11359,
+    "cost_usd_micros": 588866
+  }
+}

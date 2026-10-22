@@ -3798,7 +3798,26 @@ Statut : à faire
     `v*` ;
   - icône PNG 256 px (`media/icon.svg`, `scripts/icon.mjs`), `CHANGELOG.md`, README de
     l'extension en anglais, `preview` ;
-  - Windows (9.9) fait le 2026-10-22 ; reste le tag `v0.1.0`, qui publie, puis le critère.
+  - Windows (9.9) fait le 2026-10-22 ;
+  - publié le 2026-10-22 avec l'accord de l'humain : tag `v0.1.0` signé sur b2c43b6 (CI verte
+    sur les sept jobs) ; les six paquets publiés en préversion sur le Marketplace
+    (`NicolasMichel.timonier`, darwin-arm64 et x64, linux-arm64 et x64, win32-arm64 et x64) et
+    joints à la release GitHub v0.1.0 ; la première publication a échoué faute de droits du
+    jeton sur l'éditeur, corrigée par un nouveau jeton, puis le seul job de publication relancé ;
+  - la Marketplace n'a gardé que darwin-arm64, le premier paquet envoyé, bien que `vsce` ait
+    annoncé les six publiés : les paquets arrivés pendant la vérification du premier sont perdus.
+    Les cinq autres sont renvoyés à la main depuis la release, chacun une fois le précédent
+    servi ; `release.yml` fait désormais de même (attente d'une heure au plus par paquet, et un
+    paquet déjà servi n'est pas renvoyé) ;
+  - essai de l'humain sur un dossier d'un seul `.py` : « Run the tests » demandait de configurer
+    un projet configuré. `init` ne reconnaissait Python qu'à un manifeste, n'écrivait donc pas
+    `tests.json`, et l'extension prenait son absence pour un projet non configuré. Corrigé :
+    des `.py` à la racine sans autre langage font un projet Python lancé par pytest (sans SDK,
+    comme un projet qui n'a que ses `requirements.txt`) ; un projet configuré (`init.json`)
+    sans `tests.json` n'a aucune commande de test, comme le dit l'extension ; vérifié de bout
+    en bout (un test : R-1 mesuré ; aucun test : pytest « no tests ran ») ;
+  - reste le critère : l'extension installée depuis la Marketplace configure un projet et montre
+    sa carte, sans rien installer à part.
 
 Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de l'IA).
 Écarts : —

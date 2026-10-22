@@ -258,6 +258,13 @@ pub fn detect(root: &Path, environment: &Environment) -> Detection {
             .ok()
             .and_then(|m| m["scripts"]["test"].as_str().map(str::to_owned));
     }
+    // Python again: a folder of scripts without a manifest, when nothing else was found. Its
+    // runner is pytest, as for a project with only its requirements (no SDK without a
+    // `pyproject.toml`).
+    if languages.is_empty() && python_files(root) {
+        languages.push("python");
+        package_managers.push("pip");
+    }
     Detection {
         runners: runners(root, &languages, test_script.as_deref()),
         languages,
@@ -265,6 +272,18 @@ pub fn detect(root: &Path, environment: &Environment) -> Detection {
         agents: agents(root, environment),
         git: git(root),
     }
+}
+
+/// A Python file at the root.
+fn python_files(root: &Path) -> bool {
+    std::fs::read_dir(root)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|entry| {
+            entry.path().extension().is_some_and(|e| e == "py")
+                && entry.file_type().is_ok_and(|t| t.is_file())
+        })
 }
 
 /// A .NET solution (`.sln`, `.slnx`) or project (`.csproj`) at the root, or a project one
@@ -396,7 +415,8 @@ fn runners(root: &Path, languages: &[&str], test_script: Option<&str>) -> Vec<Ru
         .filter(|pack| {
             let manifests: &[&str] = match pack.manifest.ecosystem.as_str() {
                 "cargo" => &["Cargo.toml"],
-                "pypi" => &["pyproject.toml", "requirements.txt", "setup.py"],
+                // Python was found by its manifest or, without one, by its files.
+                "pypi" => return true,
                 "gomod" => &["go.mod"],
                 "cmake" => &["CMakeLists.txt"],
                 "swiftpm" => &["Package.swift"],
@@ -593,5 +613,22 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let found = detect(root.path(), &Environment::default());
         assert!(found.languages.is_empty() && found.agents.is_empty());
+    }
+
+    /// A folder of Python scripts without a manifest is a Python project run by pytest; a
+    /// script beside another language's manifest is not.
+    #[test]
+    fn python_files_without_a_manifest_are_a_python_project() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("main.py"), "print(1)\n").unwrap();
+        let found = detect(root.path(), &Environment::default());
+        assert_eq!(found.languages, ["python"]);
+        assert_eq!(found.package_managers, ["pip"]);
+        let runners: Vec<&str> = found.runners.iter().map(|r| r.rule.name.as_str()).collect();
+        assert_eq!(runners, ["pytest"]);
+
+        std::fs::write(root.path().join("go.mod"), "module example.com/x\n").unwrap();
+        let found = detect(root.path(), &Environment::default());
+        assert_eq!(found.languages, ["go"]);
     }
 }

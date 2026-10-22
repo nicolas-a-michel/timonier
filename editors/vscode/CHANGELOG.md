@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — pre-release
+
+- A Python project without `pyproject.toml` or `requirements.txt`, only its `.py` files, is now
+  recognised by « Set up », and its tests run with pytest.
+- « Run the tests » no longer asks to set up a project that is set up but has no test runner.
+- The six platforms are published one after another, each once the Marketplace serves the
+  previous one: 0.1.0 first reached only macOS on Apple silicon.
+
 ## 0.1.0 — pre-release
 
 The first public version, to try Timonier on real projects. Linux (x64, arm64), macOS (Intel,
