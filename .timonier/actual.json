@@ -422,6 +422,13 @@
       "parent": "component:external/other"
     },
     {
+      "id": "pkg:cargo/getrandom",
+      "kind": "package",
+      "name": "getrandom",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:cargo/globset",
       "kind": "package",
       "name": "globset",
@@ -3274,6 +3281,14 @@
     {
       "from": "pkg:cargo/timonier-daemon",
       "to": "pkg:cargo/cyclonedx-bom",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/getrandom",
       "kinds": [
         "depends_on"
       ],

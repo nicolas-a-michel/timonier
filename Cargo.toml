@@ -16,6 +16,8 @@ publish = false
 ureq = { version = "3.4.2" }
 # gzip of OTLP/HTTP on the agents' port (ADR 0058); already in the tree through png and ureq.
 flate2 = { version = "1.1.10" }
+# The run tokens on every system (/dev/urandom is not on Windows); already in the tree through uuid.
+getrandom = { version = "0.4.3" }
 cyclonedx-bom = { version = "0.8.1" }
 # Internal crates. Dependency direction: docs/adr/0003-decoupage-des-crates.md
 timonier-core = { path = "crates/timonier-core" }

@@ -17,6 +17,7 @@ timonier-index = { workspace = true }
 timonier-otlp = { workspace = true }
 # The parsing pool of a whole indexing, sized by the daemon (T-119).
 rayon = { workspace = true }
+getrandom = { workspace = true }
 blake3 = { workspace = true }
 notify-debouncer-full = { workspace = true }
 serde = { workspace = true }

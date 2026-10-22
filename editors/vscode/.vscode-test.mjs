@@ -40,7 +40,13 @@ const temp = mkdtempSync(path.join(os.tmpdir(), "timonier-it-"));
 // what « Extension Tests » of launch.json does before it opens VSCode on the project): the
 // project must outlive the listing (review n° 9, I9-1).
 if (!process.argv.includes("--list-configuration")) {
-  process.on("exit", () => rmSync(temp, { recursive: true, force: true }));
+  process.on("exit", () => {
+    try {
+      rmSync(temp, { recursive: true, force: true });
+    } catch {
+      // Windows keeps the files a process holds open (EPERM): the next run removes them (T-125).
+    }
+  });
 }
 const project = path.join(temp, "project");
 mkdirSync(path.join(project, "src"), { recursive: true });

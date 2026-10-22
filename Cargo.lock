@@ -2236,6 +2236,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "cyclonedx-bom",
+ "getrandom 0.4.3",
  "ignore",
  "notify-debouncer-full",
  "rayon",

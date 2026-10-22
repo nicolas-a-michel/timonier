@@ -6,20 +6,127 @@
   "tasks": [
     "T-125"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-21T20:04:42Z",
+  "ended_at": "2026-10-22T02:48:11Z",
   "snapshots": {
-    "start": 99
+    "start": 99,
+    "end": 102
+  },
+  "summary": "Windows CI rounds 1 and 2 (ef3736d, adfb60a): LF on every system, init's paths with /, the Windows client on tokio's overlapped named pipe (it deadlocked), Windows-safe tests, 45-minute job limits; README languages line, Q88. Round 3 in progress (not pushed): a failed pipe instance is replaced (clients could no longer connect after one that came and went), run tokens from getrandom (no /dev/urandom on Windows), the stale-socket step gated; found but not fixed yet: git's top folder in / form against the canonical root, so the ignore files above the root are not watched on Windows; the extension's integration failures on Windows not looked at yet. Ubuntu and macOS green.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Lot 1 poussé (ef3736d) : .gitattributes LF, chemins d'init.json en /, --no-fail-fast, test a11y attendant la carte",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Lire la CI de ef3736d et corriger les échecs Windows suivants, jusqu'au vert",
+      "task": "T-125",
+      "status": "open"
+    },
+    {
+      "id": "D-3",
+      "text": "Mettre à jour README.md, README.fr.md et docs/features.md (état au 21 octobre, Windows, coût de l'IA, inventaire, processus)",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 7,
+    "added": [
+      {
+        "id": "pkg:cargo/getrandom",
+        "name": "getrandom",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/webview/src/map/layout.perf.test.ts",
+        "name": "layout",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
   },
   "agent_sessions": [
     "aecaf227-545b-4dee-974e-0b31c20f99ca"
   ],
   "usage": {
-    "requests": 25,
-    "input": 58,
-    "output": 14379,
-    "cache_read": 15795699,
-    "cache_creation": 21533,
-    "cost_usd_micros": 3619218
+    "requests": 42,
+    "input": 92,
+    "output": 24002,
+    "cache_read": 26246312,
+    "cache_creation": 660100,
+    "cost_usd_micros": 11010473
   }
 }

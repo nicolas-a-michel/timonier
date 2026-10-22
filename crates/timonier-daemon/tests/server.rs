@@ -1175,9 +1175,10 @@ fn subscriptions_belong_to_their_connection() {
 fn one_daemon_serves_a_project() {
     let repo = project();
     let runtime = tempfile::tempdir().unwrap();
-    // A socket left by a daemon that died is replaced.
+    // A socket left by a daemon that died is replaced (a named pipe leaves nothing behind).
     let paths = Paths::in_runtime(repo.path(), &run_dir(runtime.path())).unwrap();
     assert!(Lock::acquire(&paths).unwrap().is_some());
+    #[cfg(unix)]
     std::fs::write(&paths.socket, "stale").unwrap();
     let daemon = Running::start(repo.path(), runtime.path(), Duration::from_secs(600));
     let mut client = daemon.client();

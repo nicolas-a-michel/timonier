@@ -29,11 +29,8 @@ pub(crate) struct Runs {
 
 /// 16 bytes of the system's randomness, in hexadecimal; `None` when it cannot be read.
 fn random_token() -> Option<String> {
-    use std::io::Read;
     let mut bytes = [0_u8; 16];
-    std::fs::File::open("/dev/urandom")
-        .and_then(|mut f| f.read_exact(&mut bytes))
-        .ok()?;
+    getrandom::fill(&mut bytes).ok()?;
     Some(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 

@@ -78,9 +78,14 @@ pub(crate) fn places(root: &Path) -> Option<Places> {
         .and_then(text)
         .and_then(|common| std::fs::canonicalize(root.join(common)).ok())
         .unwrap_or_else(|| dir.clone());
+    // Canonical, as the root is: git writes `C:/…` on Windows, the root is `\\?\C:\…` (T-125).
     let top = git(root, &["rev-parse", "--show-toplevel"])
         .and_then(text)
-        .map_or_else(|| root.to_path_buf(), PathBuf::from);
+        .map(PathBuf::from)
+        .map_or_else(
+            || root.to_path_buf(),
+            |top| std::fs::canonicalize(&top).unwrap_or(top),
+        );
     Some(Places { dir, common, top })
 }
 

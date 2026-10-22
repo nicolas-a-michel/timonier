@@ -85,9 +85,12 @@ pub(crate) type Connection = NamedPipeServer;
 #[cfg(windows)]
 impl Listener {
     pub(crate) async fn accept(&mut self) -> std::io::Result<Connection> {
-        self.next.connect().await?;
+        let connected = self.next.connect().await;
+        // A failed instance (a client that came and went before `connect`, `ERROR_NO_DATA`)
+        // serves no one again: a fresh one takes its place either way.
         let next = ServerOptions::new().create(&self.name)?;
-        Ok(std::mem::replace(&mut self.next, next))
+        let instance = std::mem::replace(&mut self.next, next);
+        connected.map(|()| instance)
     }
 }
 

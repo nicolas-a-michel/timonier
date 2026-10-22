@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-1",
+  "agent": "claude-code",
+  "objective": "9.9 Windows, lot 3 : instance de pipe remplacée, jetons par getrandom, dossier git du haut canonique, échecs d'intégration de l'extension sous Windows.",
+  "tasks": [
+    "T-125"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T02:48:20Z",
+  "snapshots": {
+    "start": 103
+  }
+}

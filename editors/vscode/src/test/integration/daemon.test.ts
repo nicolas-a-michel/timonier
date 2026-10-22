@@ -1,6 +1,6 @@
 import * as assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { rmSync, writeFileSync } from "node:fs";
+import { realpathSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import * as vscode from "vscode";
@@ -30,6 +30,15 @@ function fixture(): string {
   const project = process.env.TIMONIER_FIXTURE;
   assert.ok(project, "TIMONIER_FIXTURE is not set: run the tests through .vscode-test.mjs");
   return project;
+}
+
+/**
+ * A path as the file system names it: Windows gives the temporary folder by its short name
+ * (`RUNNER~1`) and VSCode by its long one, with another case (T-125).
+ */
+function samePath(file: string): string {
+  const real = realpathSync.native(file);
+  return process.platform === "win32" ? real.toLowerCase() : real;
 }
 
 describe("Timonier daemon (ADR 0019)", () => {
@@ -398,13 +407,14 @@ describe("Timonier daemon (ADR 0019)", () => {
     const run = view.nodes.find((node) => node.name === "run");
     assert.ok(run?.span, "no span for run");
     await timonier.mapCommand({ name: "openCode", target: run.id });
-    const main = path.join(fixture(), "src", "main.ts");
+    const main = samePath(path.join(fixture(), "src", "main.ts"));
     // The editor of `main.ts` may be open already (the previous test showed it): wait for the
     // cursor, which only the command moves. Among the visible editors: without the focus of
     // its window (a locked session), VSCode does not change the active one (review n° 9, m9-3).
     const atSymbol = () =>
       vscode.window.visibleTextEditors.find(
-        (editor) => editor.document.uri.fsPath === main && editor.selection.active.line === run.span?.start.line,
+        (editor) =>
+          samePath(editor.document.uri.fsPath) === main && editor.selection.active.line === run.span?.start.line,
       );
     await waitFor("the editor at the symbol", () => atSymbol() !== undefined);
     const editor = atSymbol();

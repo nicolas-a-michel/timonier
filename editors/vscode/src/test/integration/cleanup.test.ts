@@ -10,5 +10,11 @@ after(() => {
   if (!project) return;
   const temp = path.dirname(project);
   // Only the directory `.vscode-test.mjs` made.
-  if (path.basename(temp).startsWith("timonier-it-")) rmSync(temp, { recursive: true, force: true });
+  if (!path.basename(temp).startsWith("timonier-it-")) return;
+  try {
+    rmSync(temp, { recursive: true, force: true });
+  } catch {
+    // Windows keeps the files a process holds open (EPERM): the next run removes what is a day
+    // old (T-125).
+  }
 });
