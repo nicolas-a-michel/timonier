@@ -1422,3 +1422,59 @@ fn an_sbt_build_links_its_files() {
         assert!(suite.contains(&edge.to_owned()), "{edge}: {suite:?}");
     }
 }
+
+/// A pack's skipped folders are skipped beside a manifest of its ecosystem only: an npm
+/// workspace's `packages/` and a crate's `src/bin/` are code, a .NET project's `bin/` is not.
+#[test]
+fn skipped_folders_belong_to_their_ecosystem() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(
+        root,
+        "package.json",
+        r#"{"name": "root", "workspaces": ["packages/*"]}"#,
+    );
+    write(
+        root,
+        "packages/core/package.json",
+        r#"{"name": "@shop/core"}"#,
+    );
+    write(root, "packages/core/src/index.ts", "export const k = 1;\n");
+    write(
+        root,
+        "crate/Cargo.toml",
+        "[package]\nname = \"tool\"\nversion = \"0.1.0\"\n",
+    );
+    write(root, "crate/src/lib.rs", "pub fn f() {}\n");
+    write(root, "crate/src/bin/tool.rs", "fn main() {}\n");
+    write(
+        root,
+        "dotnet/Shop.csproj",
+        "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>\n",
+    );
+    write(root, "dotnet/Cart.cs", "class Cart {}\n");
+    write(
+        root,
+        "dotnet/bin/Debug/Generated.cs",
+        "class Generated {}\n",
+    );
+    write(
+        root,
+        "packages/core/node_modules/dep/index.ts",
+        "export const x = 1;\n",
+    );
+    let batch = indexer(root).index_all(&HashMap::new(), &[], None).unwrap();
+    let files: Vec<String> = scopes(&batch)
+        .into_iter()
+        .filter(|s| s.starts_with("file:"))
+        .collect();
+    assert_eq!(
+        files,
+        [
+            "file:crate/src/bin/tool.rs",
+            "file:crate/src/lib.rs",
+            "file:dotnet/Cart.cs",
+            "file:packages/core/src/index.ts"
+        ]
+    );
+}

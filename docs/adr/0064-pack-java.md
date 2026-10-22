@@ -42,7 +42,8 @@ module. Kotlin (10.6) partage ces outils.
 - **Tests** : dans l'ordre, l'enveloppe Gradle (`when = "gradlew"`,
   `./gradlew test --rerun --continue`), l'enveloppe Maven (`mvnw`), Maven (`pom.xml`), Gradle.
   Le champ `junit` peut nommer un dossier de rapports (finissant par `/`), et `**/` le cherche
-  dans chaque module, à quatre niveaux au plus : `timonier test` lit chaque XML que la passe a
+  dans chaque module, à sept niveaux au plus (quatre d'abord, sept depuis sbt 2, ADR 0071) :
+  `timonier test` lit chaque XML que la passe a
   écrit. Sous Windows, une commande qui commence par `./` passe à `cmd` en `.\`.
 - **SDK** (`init`) : `io.opentelemetry:opentelemetry-api` à la compilation ;
   `opentelemetry-sdk`, `opentelemetry-exporter-otlp` et
@@ -52,8 +53,9 @@ module. Kotlin (10.6) partage ces outils.
   projet (jamais de `<dependencyManagement>`), ou un `<dependencies>` à lui avant
   `</project>`. Dans un `build.gradle(.kts)` racine, un bloc `dependencies { }` à lui à la fin,
   entre `// >>> timonier >>>` et `// <<< timonier <<<`, que Gradle ajoute aux autres. Un build
-  Gradle sans fichier racine (celui de `gradle init`, tout dans `app/`) : `init` le dit, le SDK
-  s'ajoute à la main. Classe `timonier.TimonierOtel` et test de fumée JUnit 5 dans
+  Gradle sans fichier racine (celui de `gradle init`, tout dans `app/`) : le build de son seul
+  sous-projet reçoit le SDK (ADR 0066) ; avec plusieurs, `init` le dit et le SDK s'ajoute à la
+  main. Classe `timonier.TimonierOtel` et test de fumée JUnit 5 dans
   `src/test/java/timonier/` ; l'autoconfiguration du SDK lit les variables de la passe.
 - **Inventaire** : les dépendances du `pom.xml` racine et de ses modules, versions écrites ou
   par `${propriété}` ; celles des builds Gradle, versions écrites ou du catalogue. Une version

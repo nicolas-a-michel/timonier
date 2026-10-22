@@ -3780,8 +3780,8 @@ Statut : à faire
     `wall_time` (clés étrangères coupées pendant les migrations, puis vérifiées) ;
   - la CI de publication, lancée sans publier, construit les six paquets (`.vsix` win32-x64 et
     arm64 compris ; celui de Linux vérifié : `bin/timonier` exécutable, préversion) ;
-  - reste : le `.vsix` win32-x64 essayé sur une vraie machine Windows (la seconde moitié du
-    critère).
+  - critère constaté le 2026-10-22 : l'humain a installé le `.vsix` win32-x64 sur une machine
+    Windows neuve, et il fonctionne.
 - 9.7 Publication de l'extension, selon Q58 et Q59, avant la relecture 9.5 : un `.vsix` par
   plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
   le dépôt public (Q2) ; l'éditeur `NicolasMichel` (Q12) — critère : l'extension installée depuis
@@ -3798,7 +3798,7 @@ Statut : à faire
     `v*` ;
   - icône PNG 256 px (`media/icon.svg`, `scripts/icon.mjs`), `CHANGELOG.md`, README de
     l'extension en anglais, `preview` ;
-  - reste : Windows (9.9), puis le tag et le critère.
+  - Windows (9.9) fait le 2026-10-22 ; reste le tag `v0.1.0`, qui publie, puis le critère.
 
 Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de l'IA).
 Écarts : —
@@ -3911,8 +3911,8 @@ tests.
   - mesure : les sources de Guava 33.5.0 (607 fichiers, 179 450 lignes) indexées à froid en
     0,80 s, soit 4,4 ms pour mille lignes, 0,46 s avec le cache ;
   - écarts : les surcharges d'une méthode partagent un symbole ; un build Gradle sans fichier
-    racine ne reçoit pas le SDK par `init` ; une version gérée par un parent ou une BOM reste
-    inconnue de l'inventaire ;
+    racine à plusieurs sous-projets ne reçoit pas le SDK par `init` (celui d'un seul, depuis
+    10.6) ; une version gérée par un parent ou une BOM reste inconnue de l'inventaire ;
   - tests : `java_fixture`, `reformatting_java_changes_no_identity`,
     `a_maven_project_links_its_classes`, `maven_modules_and_their_dependencies`,
     `gradle_projects_and_their_dependencies`, `a_folder_of_reports_is_read_in_every_module`,
@@ -4092,7 +4092,13 @@ crates.io (chargement par tree-sitter 0.27 à vérifier à chaque tâche) :
 
 Décisions : ADR 0061 (JavaScript), 0062 (Python), 0063 (Go), 0064 (Java), 0065 (C++),
 0066 (Kotlin), 0067 (Swift), 0068 (C), 0069 (C#), 0070 (PHP), 0071 (Scala).
-Écarts : —
+Écarts : ceux de chaque tâche ci-dessus. Relecture `phase-reviewer` du 2026-10-22 : corrigés le
+jour même, `[walk] skip` sauté seulement à côté d'un manifeste de son écosystème (il cachait
+`packages/` et `src/bin/` dans tous les projets), `uninit` exact sur un `vcpkg.json` sans
+dépendances, les projets de test .NET comptés comme code de test, les projets Python sans
+`pyproject.toml` ont leur lanceur ; restent pour l'humain le code par langage hors des packs
+(démon, CLI, cœur ; ADR 0012 et spec « un pack, pas le démon ») et le rôle des composants sur
+les petits projets Go, Kotlin, Swift, C# et Scala, restés « utilitaire » ou non cités.
 
 ---
 
@@ -4114,6 +4120,18 @@ avant ajout si plus d'un mois s'est écoulé.
 | tree-sitter-python | 0.25.0 | MIT | Vérifié le 2026-10-22, chargé par tree-sitter 0.27 ; pack `python` (ADR 0062) |
 | opentelemetry-api, -sdk, -exporter-otlp-proto-http (PyPI) / pytest | 1.45.1 / 9.1.1 | Apache-2.0 / MIT | Vérifiés sur PyPI le 2026-10-22 ; ajoutés par `init` aux projets Python (ADR 0062) |
 | tree-sitter-javascript | 0.25.0 | MIT | Vérifié le 2026-10-22 (crates.io), chargé par tree-sitter 0.27 ; pack `javascript` (ADR 0061) |
+| tree-sitter-go | 0.25.0 | MIT | Vérifié le 2026-10-22, chargé par tree-sitter 0.27 ; pack `go` (ADR 0063) |
+| tree-sitter-java | 0.23.5 | MIT | Vérifié le 2026-10-22 ; pack `java` (ADR 0064) |
+| roxmltree | 0.21.1 | MIT OR Apache-2.0 | Vérifié le 2026-10-22, dépend de memchr seul ; `pom.xml`, `.csproj` (ADR 0064, 0069) |
+| tree-sitter-cpp | 0.23.4 | MIT | Vérifié le 2026-10-22 ; pack `cpp` (ADR 0065) |
+| tree-sitter-kotlin-ng | 1.1.0 | MIT | Vérifié le 2026-10-22, ABI 14 ; pack `kotlin` (ADR 0066) |
+| tree-sitter-swift | 0.7.4 | MIT | Vérifié le 2026-10-22, ABI 15 ; pack `swift` (ADR 0067) |
+| tree-sitter-c | 0.24.2 | MIT | Vérifié le 2026-10-22 ; pack `c` (ADR 0068) |
+| tree-sitter-c-sharp | 0.23.5 | MIT | Vérifié le 2026-10-22 ; pack `csharp` (ADR 0069) |
+| tree-sitter-php | 0.25.1 | MIT | Vérifié le 2026-10-22, `LANGUAGE_PHP` ; pack `php` (ADR 0070) |
+| tree-sitter-scala | 0.26.3 | MIT | Vérifié le 2026-10-22 ; pack `scala` (ADR 0071) |
+| SDK OpenTelemetry écrits par `init` | Go 1.47.0 ; Java 1.67.0 ; .NET 1.20.1 ; C++ 1.29.0 ; Swift (core et exportateurs) 2.6.0 ; PHP sdk 1.15, api 1.10, exporter-otlp 1.4 ; Python 1.45.1 | Apache-2.0 | Vérifiés le 2026-10-22 sur leurs registres (proxy Go, Maven Central, NuGet, vcpkg, GitHub, Packagist, PyPI) ; ADR 0062 à 0071 |
+| Lanceurs et enregistreurs écrits par `init` | gotestsum 1.13.0 (Apache-2.0) ; JunitXml.TestLogger 8.0.0 (MIT) ; pytest 9.1.1 (MIT) | — | Vérifiés le 2026-10-22 ; ADR 0062, 0063, 0069 |
 | notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC ; notify vient par le débounceur, qui le réexporte |
 | ignore / globset | 0.4.33 / 0.4.20 | Unlicense OR MIT | Revérifiés le 2026-10-16 |
 | rayon | 1.12.0 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; extraction parallèle (ADR 0013) |

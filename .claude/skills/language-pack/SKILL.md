@@ -30,8 +30,10 @@ What a language still needs outside its pack directory (learnt with JavaScript, 
 - `is_public` in `timonier-core::gaps` for the instrumentation gaps;
 - the map's empty state names the languages read (`webview/src/i18n.ts`).
 
-`[walk] skip` lists the folders never walked, ignored or not: the ecosystem's installed
-dependencies (`node_modules`; for Python `.venv`, for Go `vendor`…). Never vendor a compiler, a
+`[walk] skip` lists folders not walked when a manifest of the pack's ecosystem sits beside
+them (`target/` beside a `pom.xml`, `bin/` beside a `.csproj`); `skip_anywhere` lists names no
+project gives its own code (`node_modules`, `__pycache__`), skipped wherever they are. A plain
+`build` or `bin` in `skip_anywhere` would hide other languages' code (ADR 0061). Never vendor a compiler, a
 SDK or a build tool in the repository (Q88): tests that need one skip when it is missing, and the
 CI installs it.
 

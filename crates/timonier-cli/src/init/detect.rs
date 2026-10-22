@@ -396,7 +396,7 @@ fn runners(root: &Path, languages: &[&str], test_script: Option<&str>) -> Vec<Ru
         .filter(|pack| {
             let manifests: &[&str] = match pack.manifest.ecosystem.as_str() {
                 "cargo" => &["Cargo.toml"],
-                "pypi" => &["pyproject.toml"],
+                "pypi" => &["pyproject.toml", "requirements.txt", "setup.py"],
                 "gomod" => &["go.mod"],
                 "cmake" => &["CMakeLists.txt"],
                 "swiftpm" => &["Package.swift"],

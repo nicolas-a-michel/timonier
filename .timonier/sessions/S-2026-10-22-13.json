@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-13",
+  "agent": "claude-code",
+  "objective": "Corriger les constats de la relecture de la phase 10 (B1 dossiers sautés partout, I4 uninit de vcpkg.json, I5 code de test C#, mineurs), avant la préversion.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T10:23:17Z",
+  "snapshots": {
+    "start": 132
+  }
+}

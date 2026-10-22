@@ -15,7 +15,7 @@ extensions = ["js", "mjs", "cjs", "jsx"]
 
 # npm's installed packages are dependencies, never the project's code, ignored or not.
 [walk]
-skip = ["node_modules"]
+skip_anywhere = ["node_modules"]
 
 [naming]
 module = "/"

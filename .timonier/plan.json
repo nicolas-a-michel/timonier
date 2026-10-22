@@ -1821,7 +1821,8 @@
             "S-2026-10-20-4",
             "S-2026-10-21-30",
             "S-2026-10-21-32",
-            "S-2026-10-21-33"
+            "S-2026-10-21-33",
+            "S-2026-10-22-13"
           ],
           "created": {
             "at": "2026-10-20T13:12:10Z",
@@ -1934,16 +1935,24 @@
           "id": "T-125",
           "title": "9.9 Windows (Q87), avant la publication 9.7",
           "criterion": "Sur un runner Windows de la CI, les tests Rust et les tests d'intégration de l'extension passent, et un .vsix win32-x64 configure un projet et montre sa carte.",
-          "status": "in_progress",
+          "status": "done",
           "sessions": [
             "S-2026-10-21-33",
             "S-2026-10-21-34",
-            "S-2026-10-22-1"
+            "S-2026-10-22-1",
+            "S-2026-10-22-12"
           ],
           "created": {
             "at": "2026-10-21T19:20:55Z",
             "session": "S-2026-10-21-33"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T10:11:29Z",
+              "session": "S-2026-10-22-12",
+              "text": "Critère constaté par l'humain le 2026-10-22 : le .vsix win32-x64 fonctionne sur une machine Windows neuve. La CI Windows était verte (00a06c5)."
+            }
+          ]
         },
         {
           "id": "T-126",

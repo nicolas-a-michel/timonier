@@ -29,9 +29,14 @@ le lanceur de tests d'un `package.json`.
   demande ni vitest ni TypeScript. `timonier test` crée le dossier du JUnit avant de lancer les
   tests (`node --test` ne le crée pas), et lit le JUnit de Node, dont les cas ne sont dans aucun
   `<testsuite>`.
-- **`[walk] skip`**, nouvelle table du format des packs : des noms de dossiers jamais parcourus,
-  ignorés ou non. TypeScript et JavaScript y mettent `node_modules`. La surveillance n'indexe un
-  fichier que dans un dossier parcouru : elle suit d'elle-même.
+- **`[walk]`**, nouvelle table du format des packs, pour des dossiers jamais parcourus, ignorés
+  ou non. `skip` : un dossier de ce nom à côté d'un manifeste de l'écosystème du pack (`bin/` à
+  côté d'un `.csproj`, `target/` à côté d'un `pom.xml`) ; `skip_anywhere` : partout, pour les
+  noms qu'aucun projet ne donne à son code (`node_modules`, `__pycache__`). Une première version
+  sautait les dossiers de `skip` partout et pour tous les langages : `packages/` (C#) cachait
+  les espaces de travail npm, `bin/` les binaires de Rust (relecture de la phase 10, corrigé le
+  2026-10-22). TypeScript et JavaScript mettent `node_modules` dans `skip_anywhere`. La
+  surveillance n'indexe un fichier que dans un dossier parcouru : elle suit d'elle-même.
 - **Guillemets** : un atome de type `string` (JavaScript, TypeScript) entre dans l'empreinte sans
   ses délimiteurs `'` ou `"`. Le pack TypeScript change de version : son cache d'extraction est
   refait.

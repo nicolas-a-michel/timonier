@@ -39,7 +39,7 @@ voient sans import. Une méthode se déclare à côté de son type, pas dans un 
   `gotestsum --junitfile .timonier/runs/junit.xml -- ./...` ; `timonier test --install` le
   pose par `go install gotest.tools/gotestsum@v1.13.0`.
 - **SDK** (`init`) : `go.opentelemetry.io/otel`, `…/otel/trace`, `…/otel/sdk` et
-  `…/otlptrace/otlptracehttp` v1.47.0 (Apache-2.0, vérifiés le 2026-10-02 sur
+  `…/otlptrace/otlptracehttp` v1.47.0 (Apache-2.0, publiés le 2026-10-02, vérifiés le 2026-10-22 sur
   proxy.golang.org), en un bloc `require` entre `// >>> timonier >>>` et `// <<< timonier <<<`
   à la fin de `go.mod`. Un module déjà requis n'est pas ajouté. Quand `go.mod` requiert déjà
   tout, il reste tel quel : `go mod tidy` trie le bloc et y ajoute ses lignes indirectes, et

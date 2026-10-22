@@ -76,9 +76,11 @@ pub fn is_test_code(callable: &Callable) -> bool {
             name.strip_suffix(ext)
                 .is_some_and(|stem| stem.ends_with("_test") || stem.ends_with("_unittest"))
         })
-        || file
-            .split('/')
-            .any(|part| part == "test" || part == "tests");
+        || file.split('/').any(|part| {
+            let part = part.to_lowercase();
+            // A .NET test project: `Shop.Tests/`, `Shop.UnitTests/` (ADR 0069).
+            part == "test" || part == "tests" || part.ends_with(".tests") || part.ends_with(".test") || part.ends_with("unittests")
+        });
     rust_test || test_file
 }
 
@@ -423,6 +425,22 @@ mod tests {
             "cpp:src/cart_test.cpp#check",
             "void check()",
             "src/cart_test.cpp"
+        ));
+        // T-130: a .NET test project is test code, its methods public as they are.
+        assert!(!public(
+            "csharp:Shop.Tests/CartTests#CartTests.Total",
+            "public void Total()",
+            "tests/Shop.Tests/CartTests.cs"
+        ));
+        assert!(!public(
+            "csharp:Shop.Tests/A#A.B",
+            "public void B()",
+            "src/Shop.Tests/A.cs"
+        ));
+        assert!(public(
+            "csharp:Shop/Cart#Cart.Total",
+            "public int Total()",
+            "src/Shop/Cart.cs"
         ));
         // T-123: Java by `public`; `src/test/` is test code.
         assert!(public(

@@ -14,7 +14,7 @@ extensions = ["cs"]
 
 # Build outputs, never the project's code.
 [walk]
-skip = ["bin", "obj", "TestResults", "packages"]
+skip = ["bin", "obj", "TestResults"]
 
 # `csharp:Shop/Model/Item#Shop.Model.Item.Name`: the project, the file's path, then the
 # definitions in it, namespace first (ADR 0069).

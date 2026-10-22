@@ -15,7 +15,8 @@ extensions = ["py", "pyi"]
 # Virtual environments and caches: installed packages and bytecode, never the project's code.
 # `.venv` and `.tox` are hidden already.
 [walk]
-skip = ["__pycache__", "venv", "site-packages"]
+skip = ["venv"]
+skip_anywhere = ["__pycache__", "site-packages"]
 
 # `python:shop.cart#Cart.total`: the module's dotted path, then the definitions in it (ADR 0062).
 [naming]

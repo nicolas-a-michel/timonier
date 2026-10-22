@@ -984,10 +984,17 @@ pub fn vcpkg_without_sdk(text: &str, original: &str, names: &[&str]) -> Result<S
             Some(Json::Array(list)) if list.iter().any(|d| named(d, name)))
     };
     let mut manifest = object(Some(text))?;
+    let mut emptied = false;
     if let Some(Json::Array(dependencies)) =
         manifest.entry("dependencies", || Json::Array(Vec::new()))
     {
         dependencies.retain(|d| !names.iter().any(|n| named(d, n) && !had(n)));
+        emptied = dependencies.is_empty();
+    }
+    // A list `init` made for its port alone goes with it.
+    let made = object(Some(original)).is_ok_and(|o| o.get("dependencies").is_none());
+    if emptied && made {
+        manifest.remove("dependencies");
     }
     Ok(manifest.pretty())
 }
@@ -1654,5 +1661,26 @@ mod tests {
         );
         assert_eq!(sbt_with_sdk(&with, &sdk), with, "twice");
         assert_eq!(gradle_without_sdk(&with), original);
+    }
+
+    /// A `vcpkg.json` without dependencies, indented as its author did, gets its list for
+    /// opentelemetry-cpp, and loses the list again with the port.
+    #[test]
+    fn a_dependency_list_vcpkg_had_not_goes_with_the_port() {
+        let features = ["otlp-http".to_owned()];
+        let sdk = [Sdk {
+            name: "opentelemetry-cpp",
+            version: "1.29.0",
+            features: &features,
+            default_features: true,
+            production: false,
+        }];
+        let original = "{\n    \"name\": \"shop\",\n    \"version\": \"1.0.0\"\n}\n";
+        let with = vcpkg_with_sdk(original, &sdk).unwrap();
+        let back = vcpkg_without_sdk(&with, original, &["opentelemetry-cpp"]).unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&back).unwrap(),
+            serde_json::from_str::<Value>(original).unwrap()
+        );
     }
 }

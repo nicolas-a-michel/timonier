@@ -776,17 +776,35 @@ impl Indexer {
             .unwrap_or_else(|_| self.root.clone())
             .ancestors()
             .any(|d| d.join(".git").exists());
-        // The ecosystems' installed dependencies stay out, ignored or not (`[walk] skip`).
+        // The ecosystems' installed dependencies and build outputs stay out, ignored or not
+        // (`[walk] skip`): a folder of that name beside a manifest of its pack's ecosystem.
         let skipped = self.packs.skipped();
+        let anywhere = self.packs.skipped_anywhere();
         let walker = WalkBuilder::new(&self.root)
             .hidden(true)
             .require_git(in_git)
             .filter_entry(move |entry| {
-                !(entry.file_type().is_some_and(|t| t.is_dir())
-                    && entry
-                        .file_name()
-                        .to_str()
-                        .is_some_and(|name| skipped.contains(name)))
+                if !entry.file_type().is_some_and(|t| t.is_dir()) {
+                    return true;
+                }
+                let Some(name) = entry.file_name().to_str() else {
+                    return true;
+                };
+                if anywhere.contains(name) {
+                    return false;
+                }
+                let ecosystems: Vec<Ecosystem> = skipped
+                    .iter()
+                    .filter(|(skip, _)| skip == name)
+                    .map(|(_, ecosystem)| *ecosystem)
+                    .collect();
+                if ecosystems.is_empty() {
+                    return true;
+                }
+                let Some(parent) = entry.path().parent() else {
+                    return true;
+                };
+                !beside_a_manifest(parent, &ecosystems)
             })
             .build();
         for entry in walker.flatten() {
@@ -905,6 +923,20 @@ pub fn content_hash(bytes: &[u8]) -> ContentHash {
 
 fn file_path(id: &NodeId) -> Option<&str> {
     id.as_str().strip_prefix("file:")
+}
+
+/// Whether `dir` holds a manifest of one of these ecosystems.
+fn beside_a_manifest(dir: &Path, ecosystems: &[Ecosystem]) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        MANIFESTS.iter().any(|(manifest, ecosystem)| {
+            ecosystems.contains(ecosystem) && ecosystem::manifest_named(manifest, &name)
+        })
+    })
 }
 
 /// Whether a path, relative to the root, is a manifest the indexer reads (ADR 0013).

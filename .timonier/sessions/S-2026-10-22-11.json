@@ -8,9 +8,148 @@
     "T-131",
     "T-132"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T09:40:17Z",
+  "ended_at": "2026-10-22T10:10:06Z",
   "snapshots": {
-    "start": 127
+    "start": 127,
+    "end": 129
+  },
+  "summary": "Fait : 10.9 C# (ADR 0069), 10.10 PHP (ADR 0070), 10.11 Scala (ADR 0071), chacun constaté sur un vrai projet ; la phase 10 est complète (treize langages). README, README.fr, docs/features.md, ROADMAP et CHANGELOG à jour ; suite complète verte ; commit 31d55ca signé et poussé. Reste (D-4, T-109) : la CI de 31d55ca en cours, la relecture de la phase 10 par phase-reviewer en cours, puis les paquets de la préversion construits sans publier ; le tag v0.1.0 attend l'accord de l'humain, et l'essai du .vsix win32-x64 sur une vraie machine (9.9).",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "10.10 PHP : pack, Composer, PHPUnit, SDK, critère sur un vrai projet",
+      "task": "T-131",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "10.11 Scala : pack, sbt, rapports JUnit, SDK, critère sur un vrai projet",
+      "task": "T-132",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "README et docs des langages, suite complète, commit et push",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Avancer jusqu'à la préversion (T-109) : relire 9.7, préparer le tag, s'arrêter avant la publication",
+      "task": "T-109",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 18,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-php",
+        "name": "tree-sitter-php",
+        "within": "other"
+      },
+      {
+        "id": "pkg:cargo/tree-sitter-scala",
+        "name": "tree-sitter-scala",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 74,
+    "input": 148,
+    "output": 99551,
+    "cache_read": 52054729,
+    "cache_creation": 177867,
+    "cost_usd_micros": 13670713
   }
 }

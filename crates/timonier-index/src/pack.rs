@@ -95,8 +95,14 @@ pub struct Manifest {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WalkRules {
+    /// Folders not walked when a manifest of the pack's ecosystem sits beside them (`target`
+    /// beside a `pom.xml`, `bin` beside a `.csproj`).
     #[serde(default)]
     pub skip: Vec<String>,
+    /// Folders not walked wherever they are: names no project gives its own code
+    /// (`node_modules`, `__pycache__`).
+    #[serde(default)]
+    pub skip_anywhere: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -953,11 +959,27 @@ impl Packs {
         extensions
     }
 
-    /// The folder names no pack walks into (`[walk] skip`).
-    pub fn skipped(&self) -> BTreeSet<String> {
+    /// The folder names a pack does not walk into (`[walk] skip`), each with the ecosystem
+    /// whose manifest must sit beside it: `bin/` is skipped beside a `.csproj`, not under a
+    /// Rust crate's `src/` (ADR 0061, 0069).
+    pub fn skipped(&self) -> BTreeSet<(String, Ecosystem)> {
         self.packs
             .iter()
-            .flat_map(|p| p.manifest.walk.skip.iter().cloned())
+            .flat_map(|p| {
+                p.manifest
+                    .walk
+                    .skip
+                    .iter()
+                    .map(|name| (name.clone(), p.manifest.ecosystem))
+            })
+            .collect()
+    }
+
+    /// The folder names no pack walks into, wherever they are (`[walk] skip_anywhere`).
+    pub fn skipped_anywhere(&self) -> BTreeSet<String> {
+        self.packs
+            .iter()
+            .flat_map(|p| p.manifest.walk.skip_anywhere.iter().cloned())
             .collect()
     }
 
