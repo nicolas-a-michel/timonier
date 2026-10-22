@@ -470,13 +470,33 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                             false,
                             "the OpenTelemetry SDK",
                         );
-                        // C++ with vcpkg: the port goes into its manifest too (ADR 0065).
+                        // C and C++: the SDK goes into the manifest of vcpkg or of Conan too
+                        // (ADR 0065), each with the version its registry has.
+                        let for_manager = |manager: &str| -> Vec<edits::Sdk<'_>> {
+                            rules
+                                .dependencies
+                                .iter()
+                                .zip(&sdk)
+                                .filter(|(d, _)| d.manager.as_deref().is_none_or(|m| m == manager))
+                                .map(|(_, s)| *s)
+                                .collect()
+                        };
                         if runner.ecosystem == "cmake"
                             && let Some(vcpkg) = read(root, Path::new("vcpkg.json"))
                         {
                             change(
                                 PathBuf::from("vcpkg.json"),
-                                edits::vcpkg_with_sdk(&vcpkg, &sdk),
+                                edits::vcpkg_with_sdk(&vcpkg, &for_manager("vcpkg")),
+                                false,
+                                "the OpenTelemetry SDK",
+                            );
+                        }
+                        if runner.ecosystem == "cmake"
+                            && let Some(conan) = read(root, Path::new("conanfile.txt"))
+                        {
+                            change(
+                                PathBuf::from("conanfile.txt"),
+                                Ok(edits::conanfile_with_sdk(&conan, &for_manager("conan"))),
                                 false,
                                 "the OpenTelemetry SDK",
                             );

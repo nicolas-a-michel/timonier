@@ -215,6 +215,10 @@ pub struct SdkDependency {
     /// Imported by the code that ships, not only by its tests (Q78): in `dependencies`.
     #[serde(default)]
     pub production: bool,
+    /// The package manager it is for, when the ecosystem has several (C and C++: `vcpkg`,
+    /// `conan`; ADR 0065). None: every one.
+    #[serde(default)]
+    pub manager: Option<String>,
 }
 
 fn yes() -> bool {

@@ -3946,9 +3946,18 @@ tests.
     dépendances vcpkg ;
   - mesure : les sources d'opentelemetry-cpp 1.29.0 (1 317 fichiers, 216 604 lignes) indexées à
     froid en 1,41 s, soit 6,5 ms pour mille lignes, 0,78 s avec le cache ;
-  - écarts : Conan n'est pas vérifié sur une vraie machine (pas de Conan ici) ; avec Conan,
-    opentelemetry-cpp s'ajoute à la main ; `.h` est lu comme du C++ jusqu'au pack C (10.8) ;
-    les visibilités `private:` ne sont pas gardées ;
+  - Conan vérifié le 2026-10-22, avant la préversion, à la demande de l'humain (Conan 2.33.0
+    hors dépôt, profil GCC 15) : un projet C++ (fmt, sqlite3) et un projet C (sqlite3) avec
+    `conanfile.txt` : la carte lit leurs dépendances ; `init` ajoute `opentelemetry-cpp/1.26.0`
+    (ConanCenter) dans un bloc des `[requires]` ; nouveaux lanceurs « ctest (conan) » et
+    « ctest (conanfile.py) », par `conan install` vers `.timonier/runs/cmake` puis sa chaîne
+    d'outils ; `timonier test` : « 3 tests, 0 failed » pour les deux ; `doctor` : « the smoke test
+    produced a trace attached to the graph: 1 of 1 spans » pour les deux ; `uninit` rend
+    `conanfile.txt` à l'identique. Corrigé en chemin : le nom de la cible de l'exportateur chez
+    Conan, l'édition de liens de `common`, le `CMakeUserPresets.json` que Conan écrivait dans le
+    projet ; le projet vcpkg passe toujours ;
+  - écarts : avec un `conanfile.py`, opentelemetry-cpp s'ajoute à la main ; `.h` est lu comme
+    du C++ ; les visibilités `private:` ne sont pas gardées ;
   - tests : `cpp_fixture`, `reformatting_cpp_changes_no_identity`,
     `a_cmake_project_links_its_files`, `cmake_projects_and_their_dependencies`,
     `the_cpp_sdk_goes_in_and_out_of_cmake_and_vcpkg`,

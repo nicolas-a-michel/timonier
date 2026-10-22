@@ -1,5 +1,18 @@
 {
   "version": 1,
-  "session": "S-2026-10-22-14",
-  "items": []
+  "session": "S-2026-10-22-15",
+  "items": [
+    {
+      "id": "D-1",
+      "text": "Conan C++ : timonier test (build d'opentelemetry-cpp en cours), doctor, uninit",
+      "task": "T-109",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Conan C : même vérification, puis PLAN.md 10.5/10.8, suite complète, commit et push",
+      "task": "T-109",
+      "status": "open"
+    }
+  ]
 }

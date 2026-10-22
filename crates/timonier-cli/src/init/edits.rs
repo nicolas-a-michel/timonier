@@ -239,6 +239,7 @@ pub const DEPENDENCIES_BEGIN: &str = "# >>> timonier: dependencies >>>";
 pub const DEPENDENCIES_END: &str = "# <<< timonier: dependencies <<<";
 
 /// A package of the SDK, as the pack names it.
+#[derive(Clone, Copy, Debug)]
 pub struct Sdk<'a> {
     pub name: &'a str,
     pub version: &'a str,
@@ -915,6 +916,67 @@ pub fn swift_package_without_sdk(text: &str) -> String {
         .filter(|l| !l.trim_end().ends_with(SWIFT_MARK))
         .collect::<Vec<_>>()
         .join("\n");
+    if text.ends_with('\n') {
+        out.push('\n');
+    }
+    out
+}
+
+/// `conanfile.txt` with the SDK (ADR 0065): the references it does not require yet
+/// (`opentelemetry-cpp/1.26.0`), between markers at the top of `[requires]` (a `[requires]` of
+/// their own at the end when it has none). Taken back by [`conanfile_without_sdk`].
+pub fn conanfile_with_sdk(text: &str, sdk: &[Sdk<'_>]) -> String {
+    let bare = conanfile_without_sdk(text);
+    let missing: Vec<String> = sdk
+        .iter()
+        .filter(|p| {
+            !bare
+                .lines()
+                .any(|l| l.trim().starts_with(&format!("{}/", p.name)))
+        })
+        .map(|p| format!("{}/{}", p.name, p.version))
+        .collect();
+    if missing.is_empty() {
+        return bare;
+    }
+    let mut lines: Vec<String> = bare.lines().map(str::to_owned).collect();
+    match lines.iter().position(|l| l.trim() == "[requires]") {
+        Some(at) => {
+            let mut block = vec![HASH_BEGIN.to_owned()];
+            block.extend(missing);
+            block.push(HASH_END.to_owned());
+            lines.splice(at + 1..at + 1, block);
+        }
+        None => {
+            if lines.last().is_some_and(|l| !l.trim().is_empty()) {
+                lines.push(String::new());
+            }
+            lines.push(HASH_BEGIN.to_owned());
+            lines.push("[requires]".to_owned());
+            lines.extend(missing);
+            lines.push(HASH_END.to_owned());
+        }
+    }
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
+}
+
+/// `conanfile.txt` without the block [`conanfile_with_sdk`] added.
+pub fn conanfile_without_sdk(text: &str) -> String {
+    let lines: Vec<&str> = text.lines().collect();
+    let begin = lines.iter().position(|l| l.trim() == HASH_BEGIN);
+    let end = lines.iter().position(|l| l.trim() == HASH_END);
+    let (Some(begin), Some(end)) = (begin, end) else {
+        return text.to_owned();
+    };
+    let mut kept: Vec<&str> = lines[..begin].to_vec();
+    kept.extend(&lines[end + 1..]);
+    // The `[requires]` block came after a blank line it adds.
+    if begin == kept.len() && kept.last().is_some_and(|l| l.trim().is_empty()) {
+        kept.pop();
+    }
+    let mut out = kept.join("\n");
     if text.ends_with('\n') {
         out.push('\n');
     }
@@ -1682,5 +1744,27 @@ mod tests {
             serde_json::from_str::<Value>(&back).unwrap(),
             serde_json::from_str::<Value>(original).unwrap()
         );
+    }
+
+    /// `conanfile.txt` takes opentelemetry-cpp at the top of `[requires]`, or in a `[requires]`
+    /// of its own, and gives it back as it was.
+    #[test]
+    fn the_cpp_sdk_goes_in_and_out_of_conanfile_txt() {
+        let sdk = [Sdk {
+            name: "opentelemetry-cpp",
+            version: "1.26.0",
+            features: &[],
+            default_features: true,
+            production: false,
+        }];
+        let with_requires = "[requires]\nfmt/12.2.0\n\n[generators]\nCMakeDeps\nCMakeToolchain\n";
+        let without = "[generators]\nCMakeDeps\n";
+        for original in [with_requires, without] {
+            let with = conanfile_with_sdk(original, &sdk);
+            assert!(with.contains("opentelemetry-cpp/1.26.0\n"), "{with}");
+            assert_eq!(conanfile_with_sdk(&with, &sdk), with, "twice");
+            assert_eq!(conanfile_without_sdk(&with), original, "{with}");
+        }
+        assert!(conanfile_with_sdk(with_requires, &sdk).starts_with("[requires]\n# >>> timonier >>>\nopentelemetry-cpp/1.26.0\n# <<< timonier <<<\nfmt/12.2.0\n"));
     }
 }

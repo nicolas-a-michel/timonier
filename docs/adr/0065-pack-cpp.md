@@ -46,14 +46,24 @@ de C++ (opentelemetry-cpp) se compile, avec curl et protobuf pour son exportateu
   développeur : `cmake -S . -B … && cmake --build … && ctest --test-dir … --output-junit
   ../junit.xml` (chemin relatif au dossier de construction, vérifié avec CMake 4.2.3). Avec
   vcpkg, CMake prend sa chaîne d'outils dans `CMAKE_TOOLCHAIN_FILE` (variable d'environnement
-  depuis CMake 3.21) ou dans un preset.
+  depuis CMake 3.21) ou dans un preset. Avec Conan (`conanfile.txt` ou `conanfile.py`), un
+  lanceur à part passe d'abord par `conan install . --output-folder=.timonier/runs/cmake
+  --build=missing -s build_type=Debug`, puis donne à CMake `conan_toolchain.cmake`, que CMake lit
+  dans le dossier de construction, et `-c tools.cmake.cmaketoolchain:user_presets=` l'empêche
+  d'écrire un `CMakeUserPresets.json` dans le projet (vérifié avec Conan 2.33.0).
 - **SDK** (`init`) : opentelemetry-cpp 1.29.0 avec la fonction `otlp-http` (Apache-2.0, vérifié
   sur le registre de vcpkg et bâti par vcpkg 2026.10.16 le 2026-10-22), ajouté à `vcpkg.json`
   quand il existe ; un bloc balisé du `CMakeLists.txt` racine (`enable_testing()`,
   `add_subdirectory(timonier)`) ; le dossier `timonier/` : `timonier_otel.hpp`
   (`timonier::start_telemetry()`), le test de fumée et leur `CMakeLists.txt`, qui ne fait rien
-  quand `find_package(opentelemetry-cpp CONFIG QUIET)` ne le trouve pas. Avec Conan, ou sans
-  gestionnaire, le SDK s'ajoute à la main ; `init` le dit.
+  quand `find_package(opentelemetry-cpp CONFIG QUIET)` ne le trouve pas. Avec Conan,
+  `opentelemetry-cpp/1.26.0` (la plus récente de ConanCenter, son exportateur OTLP/HTTP par
+  défaut) en tête des `[requires]` de `conanfile.txt`, entre marqueurs ; une dépendance de pack
+  dit pour quel gestionnaire elle est (`manager`). Le CMake de `timonier/` prend la cible de
+  l'exportateur sous son nom amont et vcpkg (`otlp_http_exporter`) ou Conan
+  (`exporter_otlp_http`), et lie `opentelemetry-cpp::common` après lui (les bibliothèques
+  statiques de Conan ne déclarent pas ce lien). Avec un `conanfile.py`, ou sans gestionnaire,
+  le SDK s'ajoute à la main ; `init` le dit.
 - **Inventaire** : le projet du `CMakeLists.txt` racine ; les ports de `vcpkg.json` (version des
   `overrides` ou de `version>=`), les références Conan (versions de `conan.lock`), puis
   `find_package` et `FetchContent` (`GIT_TAG`). Trois écosystèmes : Conan (OSV « ConanCenter »,

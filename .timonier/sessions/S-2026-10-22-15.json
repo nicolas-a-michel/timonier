@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-15",
+  "agent": "claude-code",
+  "objective": "Vérifier C/C++ avec Conan sur une vraie machine : carte, init, timonier test, doctor ; corriger ce qui manque (lanceur Conan, SDK par Conan).",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T11:02:03Z",
+  "snapshots": {
+    "start": 138
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 15,
+    "input": 32,
+    "output": 14592,
+    "cache_read": 13336063,
+    "cache_creation": 18647,
+    "cost_usd_micros": 3108356
+  }
+}

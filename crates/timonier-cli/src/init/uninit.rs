@@ -40,6 +40,7 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         "pom.xml" => Ok(Some(edits::pom_without_sdk(text))),
         "build.gradle.kts" | "build.gradle" => Ok(Some(edits::gradle_without_sdk(text))),
         "CMakeLists.txt" => Ok(edits::without_block(text, HASH_BEGIN, HASH_END)),
+        "conanfile.txt" => Ok(Some(edits::conanfile_without_sdk(text))),
         "Package.swift" => Ok(Some(edits::swift_package_without_sdk(text))),
         // The same `//` markers as Gradle's.
         "build.sbt" => Ok(Some(edits::gradle_without_sdk(text))),

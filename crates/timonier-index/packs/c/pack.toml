@@ -94,6 +94,34 @@ outside = [
 # the build folder). The build goes into `.timonier/runs/cmake`, which git ignores, apart from
 # the developer's own. Checked with CMake 4.2.3 and GCC 15. With vcpkg, CMake takes its toolchain
 # from `CMAKE_TOOLCHAIN_FILE` (an environment variable since CMake 3.21) or from a preset.
+# With Conan, its dependencies first: `conan install` writes their CMake files and its toolchain
+# into the build folder, which CMake takes (a relative toolchain is read from the build folder);
+# `user_presets=` keeps it from writing `CMakeUserPresets.json` into the project.
+# Checked with Conan 2.33.0.
+[[tests.runners]]
+name = "ctest (conan)"
+when = "conanfile.txt"
+command = "conan install . --output-folder=.timonier/runs/cmake --build=missing -s build_type=Debug -c tools.cmake.cmaketoolchain:user_presets= && cmake -S . -B .timonier/runs/cmake -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug && ctest --test-dir .timonier/runs/cmake -C Debug --output-junit ../junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "conan"
+note = "Timonier builds and runs the tests with Conan, CMake and CTest: install Conan (https://conan.io/downloads), CMake and a compiler, and a profile (`conan profile detect`)."
+
+[tests.runners.smoke]
+command = "conan install . --output-folder=.timonier/runs/cmake --build=missing -s build_type=Debug -c tools.cmake.cmaketoolchain:user_presets= && cmake -S . -B .timonier/runs/cmake -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug --target timonier_smoke_test && ctest --test-dir .timonier/runs/cmake -C Debug -R timonier_smoke_test --no-tests=error"
+files = [{ path = "timonier/timonier_smoke_test.c", source = "instrumentation/timonier_smoke_test.c" }]
+
+[[tests.runners]]
+name = "ctest (conanfile.py)"
+when = "conanfile.py"
+command = "conan install . --output-folder=.timonier/runs/cmake --build=missing -s build_type=Debug -c tools.cmake.cmaketoolchain:user_presets= && cmake -S . -B .timonier/runs/cmake -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug && ctest --test-dir .timonier/runs/cmake -C Debug --output-junit ../junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "conan"
+note = "Timonier builds and runs the tests with Conan, CMake and CTest: install Conan (https://conan.io/downloads), CMake and a compiler, and a profile (`conan profile detect`)."
+
+[tests.runners.smoke]
+command = "conan install . --output-folder=.timonier/runs/cmake --build=missing -s build_type=Debug -c tools.cmake.cmaketoolchain:user_presets= && cmake -S . -B .timonier/runs/cmake -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug --target timonier_smoke_test && ctest --test-dir .timonier/runs/cmake -C Debug -R timonier_smoke_test --no-tests=error"
+files = [{ path = "timonier/timonier_smoke_test.c", source = "instrumentation/timonier_smoke_test.c" }]
+
 [[tests.runners]]
 name = "ctest"
 command = "cmake -S . -B .timonier/runs/cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug && ctest --test-dir .timonier/runs/cmake -C Debug --output-junit ../junit.xml"
@@ -117,12 +145,19 @@ files = [
   { path = "timonier/timonier_otel.h", source = "instrumentation/timonier_otel.h" },
   { path = "timonier/timonier_otel.cpp", source = "instrumentation/timonier_otel.cpp" },
 ]
-note = "the build takes the folder `timonier/` when CMake finds opentelemetry-cpp (a C++ compiler builds its C API): with vcpkg it is in vcpkg.json; with Conan, add `opentelemetry-cpp` to the conanfile; else install it. Link `timonier_otel` to the tests and call `timonier_start_telemetry()` where they set up, as the conventions say."
+note = "the build takes the folder `timonier/` when CMake finds opentelemetry-cpp (a C++ compiler builds its C API): with vcpkg it is in vcpkg.json; with Conan it is in conanfile.txt (add it to a conanfile.py by hand); else install it. Link `timonier_otel` to the tests and call `timonier_start_telemetry()` where they set up, as the conventions say."
 
 [[instrumentation.dependencies]]
 name = "opentelemetry-cpp"
 version = "1.29.0"
 features = ["otlp-http"]
+manager = "vcpkg"
+
+# ConanCenter's newest, whose OTLP/HTTP exporter is on by default (verified on 2026-10-22).
+[[instrumentation.dependencies]]
+name = "opentelemetry-cpp"
+version = "1.26.0"
+manager = "conan"
 
 # The technology inventory (ADR 0055): frameworks, and the precise function of known libraries:
 # two direct dependencies of the same function are a duplicate.
