@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2 — pre-release
+
+- The map's Performances layer draws a bar of each box's share of the run's own time, with the
+  share in figures: the shares of one level make 100%.
+- A folder of several repositories opens on one box per project, in turquoise with a thicker
+  outline, with the roles inside each.
+  A box's role now counts its libraries too, so that one binary among libraries no longer makes
+  them an entry point; developer tools (`xtask`, `tools/`, `vendor/`…) are never entry points;
+  a group named after its `mod.rs`, `index.ts` or `__init__.py` takes its folder's name.
+- « Set up » waits for the list of agents instead of opening a terminal, and its boxes can be
+  ticked as soon as the list comes.
+
 ## 0.1.1 — pre-release
 
 - A Python project without `pyproject.toml` or `requirements.txt`, only its `.py` files, is now

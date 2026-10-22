@@ -5,6 +5,7 @@ import { NO_REVIEW, type PerfMap, type Role, type ViewEdge, type ViewNode } from
 import { edgeKey, type ViewData } from "../viewModel";
 import { mapContent, roleGroupId } from "./mapModel";
 import { perfMarks } from "./perf";
+import { percent } from "../performance/model";
 
 function node(id: string, role: Role, parent: string | null = null, children = 0): ViewNode {
   return {
@@ -67,9 +68,29 @@ describe("the map's Performances layer", () => {
     const view = data([app, store], [calls]);
     const marks = perfMarks(measured, mapContent(view, groups), view);
     // `ui` is inside `app`: its call from `app` adds nothing to app's 100 ms.
-    expect(marks.items.get("pkg:cargo/app")).toEqual({ calls: 3, totalNs: 100e6, selfNs: 60e6 });
+    // Shares of the 80 ms of own time: they add up, the cumulative times do not.
+    expect(marks.items.get("pkg:cargo/app")).toEqual({
+      calls: 3,
+      totalNs: 100e6,
+      selfNs: 60e6,
+      share: 0.75,
+      largest: true,
+    });
     // The store, entered from another box.
-    expect(marks.items.get("pkg:cargo/store")).toEqual({ calls: 3, totalNs: 20e6, selfNs: 20e6 });
+    expect(marks.items.get("pkg:cargo/store")).toEqual({
+      calls: 3,
+      totalNs: 20e6,
+      selfNs: 20e6,
+      share: 0.25,
+      largest: false,
+    });
     expect(marks.most).toBe(3);
+  });
+
+  it("says shares in words, the small ones too", () => {
+    expect(percent(0.75, "en")).toBe("75%");
+    expect(percent(0.75, "fr")).toBe("75\u00a0%");
+    expect(percent(0.001, "en")).toBe("< 1%");
+    expect(percent(0, "en")).toBe("0%");
   });
 });

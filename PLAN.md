@@ -243,6 +243,25 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q93 — La couleur des dépôts d'un dossier de plusieurs projets** (9.7) — ✅ répondu le
+2026-10-22 : **turquoise** (après l'ocre, jugé laid, puis ardoise, terracotta, sapin et bleu
+électrique montrés en captures). Mêlé à 55 % à la couleur du texte pour tenir 3:1 en thème clair,
+avec un bord de 2 px ; l'icône de dossier et le mot « Projet » le disent sans la couleur.
+
+**Q92 — La part de chaque composant dans les ressources d'un run** (9.7) — ✅ répondu le
+2026-10-22 : une barre par boîte de la carte, la part du **temps propre** du run (ce qu'elle
+contient compris : les parts d'un niveau font 100 %), dans la 0.1.2. La mémoire par composant
+passe par les allocations comptées dans les spans (option B : Rust, JVM, C#, Python d'abord),
+plus tard, dans la feuille de route ; la corrélation avec les échantillons de 100 ms (option A)
+est écartée, trop grossière pour des spans de quelques millisecondes.
+
+**Q91 — Les rôles d'un dossier de plusieurs projets** (9.7) — ✅ répondu le 2026-10-22 : les
+quatre corrections proposées. Sur GPU-Goblin (six dépôts dans un dossier), gg-core, gg-server
+et gg-worker étaient « Point d'entrée ». Chaque dossier du premier niveau qui a son propre dépôt
+devient une boîte « Projet » ; les bibliothèques votent pour le rôle ; `xtask`, `tools`,
+`vendor`… ne sont pas des points d'entrée ; un regroupement nommé d'après un `mod.rs` prend le
+nom de son dossier. ADR 0072.
+
 **Q90 — Les langages ajoutés et la préversion** — ✅ répondu le 2026-10-22 : Kotlin, Swift, C,
 C# et PHP s'ajoutent à la Phase 10 (10.6 à 10.10), puis Scala (10.11). L'humain demande Java, C++ et Kotlin d'abord ;
 la place de la préversion par rapport aux quatre suivants se décidera ensuite.
@@ -3816,6 +3835,23 @@ Statut : à faire
     comme un projet qui n'a que ses `requirements.txt`) ; un projet configuré (`init.json`)
     sans `tests.json` n'a aucune commande de test, comme le dit l'extension ; vérifié de bout
     en bout (un test : R-1 mesuré ; aucun test : pytest « no tests ran ») ;
+  - essai de l'humain en 0.1.1 : « Set up » ouvrait un terminal et les cases à cocher restaient
+    inactives. Le pont ne demandait les agents qu'au premier message du démon, lent à venir sur
+    un gros projet ; sans eux, le bouton lançait `init` dans un terminal et laissait le pont
+    « en cours » pour toujours, cases désactivées. Corrigé : les agents sont demandés à
+    l'ouverture du pont (sauf projet configuré), le bouton les attend (« Recherche des agents
+    sur cette machine… »), et seul un échec de la détection mène au terminal, sans « en cours » ;
+  - Q91, ADR 0072 : rôle `project` pour les dossiers du premier niveau qui ont leur propre
+    dépôt, vote des bibliothèques, outils de développement utilitaires, noms des regroupements
+    d'après leur dossier quand leur fichier central est un `mod.rs` ; vérifié sur GPU-Goblin
+    (gg-core, gg-server, gg-web, gg-worker et gpugoblin en « Projets » au premier niveau,
+    `xtask` et `vendor/…/bin` utilitaires) et par un test d'indexation ;
+  - Q92 : la barre de la part du temps propre sur chaque boîte du calque Performances
+    (`perf.ts`, `elements.tsx`), sa légende, le temps, la part et « le plus de temps » dans
+    l'infobulle et le nom lu par les lecteurs d'écran ; captures vérifiées en anglais et en
+    français, tests d'accessibilité verts (191) ;
+  - Q93 : le rôle `project` en turquoise (`--tim-role-project`), bord de 2 px ; les 191 tests
+    d'accessibilité verts dans les six thèmes ;
   - reste le critère : l'extension installée depuis la Marketplace configure un projet et montre
     sa carte, sans rien installer à part.
 

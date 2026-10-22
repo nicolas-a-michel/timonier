@@ -21,6 +21,12 @@
   --tim-role-wash: var(--tim-role-entry-point-wash);
 }
 
+[data-role="project"] {
+  --tim-role: var(--tim-role-project);
+  --tim-role-tint: var(--tim-role-project-tint);
+  --tim-role-wash: var(--tim-role-project-wash);
+}
+
 [data-role="interface"] {
   --tim-role: var(--tim-role-interface);
   --tim-role-tint: var(--tim-role-interface-tint);

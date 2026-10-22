@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-23",
+  "agent": "claude-code",
+  "objective": "The map's Performances layer: a bar of each box's share of the run's own time (Q92), and the singular label of the project role.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T17:18:46Z",
+  "ended_at": "2026-10-22T17:18:46Z",
+  "snapshots": {
+    "start": 158,
+    "end": 159
+  },
+  "summary": "Each box of the Performances layer shows its cumulative time, a bar and the percentage of the run's own time it holds (its contents included, so a level makes 100%); tooltip and screen-reader name give own time, calls, share and « most time »; legend line added. Project role label made singular. READMEs, features, CHANGELOG 0.1.2, PLAN.md Q92 and the README screenshot updated; memory per component (option B) in the roadmap. Tests: webview 165, extension 101, a11y 191, Rust suite green. Not committed; waiting for the human to validate the screenshots before 0.1.2.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 1,
+    "input": 2,
+    "output": 367,
+    "cache_read": 344628,
+    "cache_creation": 1479,
+    "cost_usd_micros": 88106
+  }
+}

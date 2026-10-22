@@ -5,7 +5,7 @@ export const PROTOCOL_VERSION = 9;
 
 export type NodeKind = "repo" | "component" | "package" | "file" | "module" | "type" | "trait" | "function" | "method" | "field" | "constant";
 
-export type Role = "entry_point" | "data_model" | "persistence" | "interface" | "background_task" | "external_libraries" | "utility";
+export type Role = "entry_point" | "data_model" | "persistence" | "interface" | "background_task" | "external_libraries" | "utility" | "project";
 
 export type EdgeKind = "imports" | "calls" | "references" | "implements" | "inherits" | "depends_on";
 

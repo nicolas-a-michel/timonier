@@ -24,7 +24,7 @@ import { METRICS } from "./layout";
 import type { IntentMark } from "./intent";
 import { trafficWidth, type PerfMark } from "./perf";
 import { performanceMessages } from "../performance/messages";
-import { duration } from "../performance/model";
+import { duration, percent } from "../performance/model";
 import { labelSpot, type Obstacle } from "./labelSpot";
 import { debtLevel, symbolOf, type MapBox, type MapEdge, type MapGroup } from "./mapModel";
 import { LinkBadge, primaryChange, ReviewBadge } from "./review";
@@ -90,14 +90,25 @@ function BudgetFlag({ said, locale }: { said: string[] | undefined; locale: Loca
   );
 }
 
-/** What an item cost in the run (ADR 0051, Q76): its cumulative time; its own time and calls when there is room. */
-function PerfWords({ mark, locale, short }: { mark: PerfMark; locale: Locale; short?: boolean }) {
+/**
+ * What an item cost in the run (ADR 0051, Q76): its cumulative time, and a bar of its share of the
+ * run's own time with the share in figures; its own time, calls and share in words in its tooltip
+ * (and, for screen readers, in its name), where the largest share says so.
+ */
+function PerfWords({ mark, locale }: { mark: PerfMark; locale: Locale }) {
   const t = performanceMessages[locale];
   const time = duration(mark.totalNs, locale);
   const words = t.boxWords(time, duration(mark.selfNs, locale), mark.calls);
+  const share = `${t.shareWords(percent(mark.share, locale))}${mark.largest ? ` (${t.largestShare})` : ""}`;
   return (
-    <span className="tim-perf-words" title={words}>
-      <span className="tim-perf-words__time">{short ? t.boxShort(time) : words}</span>
+    <span className="tim-perf-words" title={`${words} · ${share}`}>
+      <span className="tim-perf-words__time">{t.boxShort(time)}</span>
+      <span className="tim-perf-share" data-largest={mark.largest || undefined}>
+        <span className="tim-perf-share__track" aria-hidden="true">
+          <span className="tim-perf-share__fill" style={{ width: `${Math.round(mark.share * 100)}%` }} />
+        </span>
+        <span className="tim-perf-share__words">{percent(mark.share, locale)}</span>
+      </span>
     </span>
   );
 }
@@ -183,7 +194,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
             )}
             <IntentFlag mark={data.intent} locale={locale} />
             <BudgetFlag said={data.budgets} locale={locale} />
-            {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
+            {data.perf && <PerfWords mark={data.perf} locale={locale} />}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -210,7 +221,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
           )}
           <IntentFlag mark={data.intent} locale={locale} />
           <BudgetFlag said={data.budgets} locale={locale} />
-          {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
+          {data.perf && <PerfWords mark={data.perf} locale={locale} />}
         </div>
         <ul className="tim-map-role__members">
           {shown.map((member) => {
@@ -282,7 +293,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
             {data.debt ? debt && <DebtWords debt={debt} locale={locale} short /> : flag}
             <IntentFlag mark={data.intent} locale={locale} />
             <BudgetFlag said={data.budgets} locale={locale} />
-            {data.perf && <PerfWords mark={data.perf} locale={locale} short />}
+            {data.perf && <PerfWords mark={data.perf} locale={locale} />}
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />

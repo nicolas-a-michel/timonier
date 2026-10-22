@@ -35,7 +35,8 @@ VSCode's Dark Modern theme. The extension follows your theme: light, dark or hig
 ### The architecture map
 
 The map opens on a few boxes named by role: entry point, data model, persistence, interface,
-utility, external libraries. Timonier itself fits in six. A click opens a box on its packages,
+utility, external libraries; in a folder of several repositories, one box per project. Timonier
+itself fits in six. A click opens a box on its packages,
 then on its components, files and symbols. Dashed links are known only from syntax
 (tree-sitter); solid links are declared in a manifest or confirmed by the IDE's language
 servers. The layout stays stable as the code changes, and Shift+Enter opens the code of a box.
@@ -102,10 +103,10 @@ terminal, `timonier doctor` checks and repairs that setup, and `timonier uninit`
 tree on Linux, in a systemd scope; of the largest process on macOS; the wall time only on
 Windows), the duration of each test,
 and the OpenTelemetry traces of the code under test, attached to the boxes of the map. The
-map's Performances layer shows the time spent in each box and in what it called, and draws
-links thicker as more calls go through them.
+map's Performances layer shows the time spent in each box and in what it called, a bar of each
+box's share of the run's own time, and draws links thicker as more calls go through them.
 
-![The map's Performances layer: 13.95 s on Entry point and what it called, 950 ms on Data model, thicker links where more calls were measured](docs/images/performance-layer.png)
+![The map's Performances layer: 13.95 s and 93% of the time on Entry point, 950 ms and 7% on Data model, thicker links where more calls were measured](docs/images/performance-layer.png)
 
 A budget from the whiteboard that the last runs exceed marks its box in red, whether the layer
 is on or not.

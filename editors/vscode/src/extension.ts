@@ -242,7 +242,11 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         openPerformance: () => vscode.commands.executeCommand("timonier.openPerformance"),
         markReviewed: () => vscode.commands.executeCommand("timonier.markReviewed"),
         configure: () => vscode.commands.executeCommand("timonier.configure"),
-        detectAgents: () => (root ? detectAgents(initProgram(), root) : Promise.resolve([])),
+        // A project set up (`init.json`, as the daemon says) shows no setup: nothing to detect.
+        detectAgents: () =>
+          root && !existsSync(path.join(root, ".timonier", "init.json"))
+            ? detectAgents(initProgram(), root)
+            : Promise.resolve([]),
         setUp: async (agents) => {
           if (!root) return { ok: false, detail: vscode.l10n.t("Open a folder: Timonier maps the project it holds.") };
           // The agents call `timonier` by its name: it must be on their PATH first (ADR 0059).

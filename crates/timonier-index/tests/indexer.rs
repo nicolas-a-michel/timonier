@@ -1478,3 +1478,62 @@ fn skipped_folders_belong_to_their_ecosystem() {
         ]
     );
 }
+
+/// A folder of several projects, each its own repository: each is a project at the top of the
+/// map, however many entry points it has; a build task (`xtask`) is no entry point.
+#[test]
+fn a_folder_of_repositories_shows_one_project_each() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let root = dir.path();
+    for (path, text) in [
+        (
+            "engine/Cargo.toml",
+            "[workspace]\nmembers = [\"crates/*\", \"xtask\"]\n",
+        ),
+        (
+            "engine/crates/model/Cargo.toml",
+            "[package]\nname = \"model\"\n",
+        ),
+        ("engine/crates/model/src/lib.rs", "pub struct Job;\n"),
+        (
+            "engine/crates/server/Cargo.toml",
+            "[package]\nname = \"server\"\n[dependencies]\nmodel = { path = \"../model\" }\naxum = \"0.8\"\n",
+        ),
+        (
+            "engine/crates/server/src/main.rs",
+            "use model::Job;\nfn main() { let _ = Job; }\n",
+        ),
+        (
+            "engine/xtask/Cargo.toml",
+            "[package]\nname = \"xtask\"\n[dependencies]\nclap = \"4\"\n",
+        ),
+        ("engine/xtask/src/main.rs", "fn main() {}\n"),
+        (
+            "client/pyproject.toml",
+            "[project]\nname = \"client\"\nversion = \"1\"\n",
+        ),
+        ("client/client/__init__.py", "def run():\n    pass\n"),
+    ] {
+        write(root, path, text);
+    }
+    std::fs::create_dir_all(root.join("engine/.git")).unwrap();
+    std::fs::write(root.join("client/.git"), "gitdir: ../.modules/client\n").unwrap();
+    let mut indexer = indexer(root);
+    let batch = indexer.index_all(&HashMap::new(), &[], None).unwrap();
+    let structure = update(&batch, "structure");
+    let role = |id: &str| {
+        structure
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|n| n.id.as_str() == id)
+            .unwrap_or_else(|| panic!("no node {id}"))
+            .role
+    };
+    use timonier_core::Role;
+    assert_eq!(role("component:dir/engine"), Some(Role::Project));
+    assert_eq!(role("pkg:pypi/client"), Some(Role::Project));
+    assert_eq!(role("pkg:cargo/xtask"), Some(Role::Utility));
+    assert_eq!(role("pkg:cargo/server"), Some(Role::EntryPoint));
+}

@@ -82,6 +82,9 @@ pub struct Project {
     names: HashMap<(Option<usize>, String), BTreeSet<String>>,
     /// Name → files whose imports or references cite it, as any segment.
     citing: HashMap<String, BTreeSet<String>>,
+    /// The folders at the top of the root that hold a repository of their own: in a folder of
+    /// several projects, each is a box of the role `project` at the top of the map.
+    pub(crate) projects: BTreeSet<String>,
 }
 
 /// What the updates of one batch share.
@@ -139,6 +142,7 @@ impl Project {
             basenames: HashMap::new(),
             names: HashMap::new(),
             citing: HashMap::new(),
+            projects: BTreeSet::new(),
         })
     }
 

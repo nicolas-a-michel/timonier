@@ -246,3 +246,10 @@ export function bytes(value: number, locale: Locale): string {
 export function share(part: number, whole: number): number {
   return whole > 0 ? Math.min(Math.max(part / whole, 0), 1) : 0;
 }
+
+/** A share for people: « 34 % », « < 1 % » for a part too small to round to one. */
+export function percent(fraction: number, locale: Locale): string {
+  const format = (value: number) =>
+    new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }).format(value);
+  return fraction > 0 && fraction < 0.005 ? `< ${format(0.01)}` : format(fraction);
+}

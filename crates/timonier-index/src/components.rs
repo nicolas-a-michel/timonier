@@ -302,11 +302,18 @@ fn cluster_loose(
 }
 
 /// `crates/timonier-store/src/write.rs` → `write`; `crates/timonier-store` → `timonier-store`.
+/// A file whose name only says it is a module (`mod.rs`, `index.ts`, `__init__.py`…) takes its
+/// folder's: `src/graph/mod.rs` → `graph`.
 fn stem(path: &str) -> String {
-    let name = path.rsplit('/').next().unwrap_or(path);
-    name.split_once('.')
-        .map_or(name, |(stem, _)| stem)
-        .to_owned()
+    let mut parts = path.rsplit('/');
+    let name = parts.next().unwrap_or(path);
+    let stem = name.split_once('.').map_or(name, |(stem, _)| stem);
+    if matches!(stem, "mod" | "index" | "__init__" | "lib" | "main" | "init")
+        && let Some(folder) = parts.find(|p| !matches!(*p, "src" | ""))
+    {
+        return folder.to_owned();
+    }
+    stem.to_owned()
 }
 
 #[cfg(test)]
@@ -461,6 +468,16 @@ mod tests {
             ["dir/src/tests", "dir/src/views", "dir/tests"]
         );
         assert_eq!(out.components["dir/src/tests"].name, "tests");
+    }
+
+    #[test]
+    fn module_files_take_their_folders_name() {
+        assert_eq!(stem("crates/a/src/graph/exec.rs"), "exec");
+        assert_eq!(stem("crates/a/src/graph/mod.rs"), "graph");
+        assert_eq!(stem("crates/gg-core/src/lib.rs"), "gg-core");
+        assert_eq!(stem("web/src/index.ts"), "web");
+        assert_eq!(stem("gpugoblin/__init__.py"), "gpugoblin");
+        assert_eq!(stem("crates/timonier-store"), "timonier-store");
     }
 
     #[test]

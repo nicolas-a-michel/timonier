@@ -74,6 +74,9 @@ export interface PerformanceMessages {
   /** On a box: the time spent in it and its calls. */
   boxWords: (total: string, own: string, calls: number) => string;
   boxShort: (time: string) => string;
+  /** On a box: its share of the run's own time, « 34 % ». */
+  shareWords: (percent: string) => string;
+  largestShare: string;
   /** On a link: the measured traffic. */
   linkWords: (calls: number) => string;
   /** The regressions of the latest batch (ADR 0053). */
@@ -96,6 +99,7 @@ export interface PerformanceMessages {
   legendTraffic: string;
   legendTime: string;
   legendTimeSample: string;
+  legendShare: string;
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
@@ -162,6 +166,8 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     boxWords: (total, own, calls) =>
       `${total} in it and what it called, ${own} of its own, ${calls} ${plural(calls, "call", "calls")}`,
     boxShort: (time) => time,
+    shareWords: (percent) => `${percent} of the measured time`,
+    largestShare: "most time",
     linkWords: (calls) => `${calls} measured ${plural(calls, "call", "calls")}`,
     regressionsTitle: "Regressions of the last batch, against the main branch",
     regressionStatus: { probable: "Probable", confirmed: "Confirmed" },
@@ -187,6 +193,7 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     legendTraffic: "Thicker: more calls measured",
     legendTime: "time spent in the box and what it called; its own time in its tooltip",
     legendTimeSample: "12 ms",
+    legendShare: "its share of the run's own time, what it holds included: the shares of a level make 100%",
   },
   fr: {
     title: "Performances",
@@ -250,6 +257,8 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     boxWords: (total, own, calls) =>
       `${total} dedans et dans ce qu'elle appelle, ${own} en propre, ${calls} ${plural(calls, "appel", "appels")}`,
     boxShort: (time) => time,
+    shareWords: (percent) => `${percent} du temps mesuré`,
+    largestShare: "le plus de temps",
     linkWords: (calls) => `${calls} ${plural(calls, "appel mesuré", "appels mesurés")}`,
     regressionsTitle: "Régressions du dernier lot, face à la branche principale",
     regressionStatus: { probable: "Probable", confirmed: "Confirmée" },
@@ -275,5 +284,6 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     legendTraffic: "Plus épais : plus d'appels mesurés",
     legendTime: "temps passé dans la boîte et ce qu'elle appelle ; son temps propre dans l'infobulle",
     legendTimeSample: "12 ms",
+    legendShare: "sa part du temps propre du run, ce qu'elle contient compris : les parts d'un niveau font 100 %",
   },
 };

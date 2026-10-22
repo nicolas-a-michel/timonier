@@ -84,7 +84,61 @@ impl Project {
                 }
             }
         }
-        components::layout(&top, &top_weights, Parent::Repo, previous, None, &mut out);
+        // A folder of several projects (folders with their own repository): each project of
+        // more than one element is a component at the top, laid out on its own; the rest of the
+        // top as before.
+        let mut rest: Vec<usize> = (0..top.len()).collect();
+        for project in &self.projects {
+            let under = format!("{project}/");
+            let inside: Vec<usize> = rest
+                .iter()
+                .copied()
+                .filter(|&i| top[i].real == *project || top[i].real.starts_with(&under))
+                .collect();
+            if inside.len() < 2 {
+                continue;
+            }
+            rest.retain(|i| !inside.contains(i));
+            let key = format!("dir/{project}");
+            out.components.insert(
+                key.clone(),
+                components::Component {
+                    name: project.clone(),
+                    parent: Parent::Repo,
+                },
+            );
+            let elements: Vec<Element> = inside
+                .iter()
+                .map(|&i| {
+                    out.assignment.insert(top[i].id.clone(), key.clone());
+                    Element {
+                        id: top[i].id.clone(),
+                        path: top[i]
+                            .path
+                            .strip_prefix(&under)
+                            .unwrap_or_default()
+                            .to_owned(),
+                        real: top[i].real.clone(),
+                    }
+                })
+                .collect();
+            let (elements, weights) = (elements, sub_weights(&top_weights, &inside));
+            components::layout(
+                &elements,
+                &weights,
+                Parent::Component(key),
+                previous,
+                None,
+                &mut out,
+            );
+        }
+        if rest.len() == top.len() {
+            components::layout(&top, &top_weights, Parent::Repo, previous, None, &mut out);
+        } else {
+            let elements: Vec<Element> = rest.iter().map(|&i| top[i].clone()).collect();
+            let weights = sub_weights(&top_weights, &rest);
+            components::layout(&elements, &weights, Parent::Repo, previous, None, &mut out);
+        }
 
         // Inside each package: its files, `src/` being the package itself.
         for &p in &context.kept {
@@ -326,7 +380,11 @@ impl Project {
                 Parent::Package(id) => id.clone(),
                 Parent::Component(parent) => component_id(parent),
             };
-            let role = self.component_role(key, &placed, &package_roles);
+            // A folder of several projects: each of them is a project at the top.
+            let role = match (&component.parent, key.strip_prefix("dir/")) {
+                (Parent::Repo, Some(dir)) if self.projects.contains(dir) => Role::Project,
+                _ => self.component_role(key, &placed, &package_roles),
+            };
             nodes.push(
                 Node::new(
                     component_id(key),
@@ -342,10 +400,16 @@ impl Project {
             let parent = placed
                 .get(&package.id)
                 .map_or_else(|| self.repo.clone(), |k| component_id(k));
+            // A project that is one package hangs from the repo itself.
+            let role = if parent == self.repo && self.projects.contains(&package.dir) {
+                Role::Project
+            } else {
+                *role
+            };
             nodes.push(
                 Node::new(package.id.clone(), NodeKind::Package, package.name.clone())
                     .with_parent(parent)
-                    .with_role(*role),
+                    .with_role(role),
             );
         }
         // External dependencies, grouped by usage category.
@@ -430,6 +494,10 @@ impl Project {
 
     /// A package's role: its libraries, the paths its files import, the signals of its code.
     fn package_role(&self, package: usize) -> Role {
+        // The developers' tools (`xtask`, a vendored copy): no part of the architecture.
+        if is_tooling_path(&self.packages[package].dir) {
+            return Role::Utility;
+        }
         let files: Vec<&FileEntry> = self
             .files
             .values()
@@ -466,9 +534,11 @@ impl Project {
             }
             false
         };
+        // Libraries vote too: a binary among libraries does not make them an entry point. A
+        // tie goes to the role that says more than « utility ».
         let mut votes: BTreeMap<Role, usize> = BTreeMap::new();
         for (p, role) in package_roles {
-            if inside(&self.packages[*p].id) && *role != Role::Utility {
+            if inside(&self.packages[*p].id) {
                 *votes.entry(*role).or_default() += 1;
             }
         }
@@ -484,7 +554,7 @@ impl Project {
     }
 
     /// Scores of each role over a set of files (ADR 0017). Test, example and bench files say
-    /// nothing about the architecture.
+    /// nothing about the architecture, nor do the developers' tools.
     fn scores(
         &self,
         files: &[&FileEntry],
@@ -494,7 +564,7 @@ impl Project {
         let files: Vec<&FileEntry> = files
             .iter()
             .copied()
-            .filter(|f| !is_test_path(&f.path))
+            .filter(|f| !is_test_path(&f.path) && !is_tooling_path(&f.path))
             .collect();
         let languages: BTreeSet<_> = files.iter().map(|f| &f.language).collect();
         let mut scores: BTreeMap<Role, f64> = BTreeMap::new();
@@ -538,6 +608,21 @@ impl Project {
     }
 }
 
+/// The weights between `indices` of a level, renumbered in their order.
+fn sub_weights(
+    weights: &HashMap<(usize, usize), f64>,
+    indices: &[usize],
+) -> HashMap<(usize, usize), f64> {
+    let local: HashMap<usize, usize> = indices.iter().enumerate().map(|(l, &i)| (i, l)).collect();
+    weights
+        .iter()
+        .filter_map(|((a, b), w)| {
+            let (a, b) = (*local.get(a)?, *local.get(b)?);
+            Some(((a.min(b), a.max(b)), *w))
+        })
+        .collect()
+}
+
 fn choose(scores: &BTreeMap<Role, f64>) -> Role {
     let mut best: Option<(Role, f64)> = None;
     for role in ROLE_ORDER {
@@ -569,6 +654,17 @@ pub(crate) fn is_test_path(path: &str) -> bool {
         )
     }) || name.contains(".test.")
         || name.contains(".spec.")
+}
+
+/// A path among the developers' tools: build tasks (`xtask`), scripts and tools, vendored
+/// copies of other projects. Their `main`s are no entry points of the software.
+pub(crate) fn is_tooling_path(path: &str) -> bool {
+    path.split('/').any(|segment| {
+        matches!(
+            segment,
+            "xtask" | "tools" | "scripts" | "vendor" | "third_party" | "third-party"
+        )
+    })
 }
 
 #[cfg(test)]

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-24",
+  "agent": "claude-code",
+  "objective": "A colour of its own for the project role (turquoise, Q93), with a thicker outline, so that the repositories of a folder of several read apart at a glance.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T17:26:10Z",
+  "ended_at": "2026-10-22T17:29:05Z",
+  "snapshots": {
+    "start": 160,
+    "end": 161
+  },
+  "summary": "The project role has its own colour, turquoise (Q93, chosen by the human from screenshots), mixed at 55% with the text colour to keep 3:1 in light themes, and a 2 px outline on its boxes, groups and frames; tokens in tokens.css. Accessibility 191/191 in the six themes, webview tests, lint, typecheck and format pass. Recorded in PLAN.md, ADR 0072 and the 0.1.2 changelog. Not committed.",
+  "changes": {
+    "files": 1,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 6,
+    "input": 12,
+    "output": 3340,
+    "cache_read": 2247540,
+    "cache_creation": 4884,
+    "cost_usd_micros": 555427
+  }
+}

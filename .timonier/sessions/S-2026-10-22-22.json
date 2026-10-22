@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-22",
+  "agent": "claude-code",
+  "objective": "Map of a folder of several projects: one box per project at the top, libraries vote for roles, developer tools are no entry points, cluster names from their main file.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T16:45:24Z",
+  "ended_at": "2026-10-22T17:01:16Z",
+  "snapshots": {
+    "start": 156,
+    "end": 157
+  },
+  "summary": "Q91 / ADR 0072 done: a top folder with its own repository is a component (or package) of the new role `project`, laid out on its own; libraries vote for a top component's role; xtask, tools, scripts, vendor and third_party are no entry points; clusters named after a module file (mod.rs, index.ts, __init__.py…) take their folder's name. Webview: label, icon, group first. Checked on GPU-Goblin and by an indexing test; cargo test, clippy, fmt, npm test pass. Not committed.",
+  "changes": {
+    "files": 13,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/cluster.rs",
+        "name": "components",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/mapModel.test.ts",
+        "name": "mapModel",
+        "within": "map"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 47,
+    "input": 98,
+    "output": 25739,
+    "cache_read": 11133405,
+    "cache_creation": 52469,
+    "cost_usd_micros": 3161606
+  }
+}

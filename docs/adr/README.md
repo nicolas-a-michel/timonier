@@ -76,3 +76,4 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0069 | [Le pack C# : projets `.csproj`, espaces de noms, rapports JUnit par projet de test](0069-pack-csharp.md) | Proposé | 10 |
 | 0070 | [Le pack PHP : noms PSR-4, Composer, PHPUnit](0070-pack-php.md) | Proposé | 10 |
 | 0071 | [Le pack Scala : sbt, imports à sélecteurs, sbt 2 et son cache de tests](0071-pack-scala.md) | Proposé | 10 |
+| 0072 | [Les rôles : un dossier de plusieurs projets, le vote des bibliothèques, les outils](0072-roles-projets-et-outils.md) | Proposé | 9 |

@@ -37,7 +37,8 @@ français. L'extension suit votre thème : clair, sombre ou contraste élevé.
 ### La carte d'architecture
 
 La carte s'ouvre sur quelques boîtes nommées par rôle : point d'entrée, modèle de données,
-persistance, interface, utilitaire, bibliothèques externes. Timonier lui-même tient en six. Un
+persistance, interface, utilitaire, bibliothèques externes ; dans un dossier de plusieurs dépôts,
+une boîte par projet. Timonier lui-même tient en six. Un
 clic ouvre une boîte sur ses paquets, puis sur ses composants, fichiers et symboles. Un lien en
 tirets n'est connu que par la syntaxe (tree-sitter) ; un lien plein est déclaré dans un
 manifeste ou confirmé par les serveurs de langage de l'IDE. La disposition reste stable quand le
@@ -105,10 +106,11 @@ un terminal, `timonier doctor` vérifie et répare cette installation, `timonier
 `timonier test` lance vos tests et les mesure : temps, CPU, mémoire maximale (de tout l'arbre
 de processus sous Linux, dans un scope systemd ; du plus gros processus sous macOS ; la durée
 réelle seule sous Windows), durée de chaque test, et traces OpenTelemetry du code testé, rattachées aux boîtes de la carte. La couche
-Performances de la carte montre le temps passé dans chaque boîte et dans ce qu'elle appelle, et
-épaissit les liens où passent le plus d'appels.
+Performances de la carte montre le temps passé dans chaque boîte et dans ce qu'elle appelle, une
+barre de la part de chaque boîte dans le temps propre du run, et épaissit les liens où passent le
+plus d'appels.
 
-![La couche Performances de la carte : 13,95 s sur Entry point et ce qu'elle appelle, 950 ms sur Data model, des liens plus épais là où plus d'appels ont été mesurés](docs/images/performance-layer.png)
+![La couche Performances de la carte : 13,95 s et 93 % du temps sur Entry point, 950 ms et 7 % sur Data model, des liens plus épais là où plus d'appels ont été mesurés](docs/images/performance-layer.png)
 
 Un budget du tableau blanc que les derniers runs dépassent marque sa boîte en rouge, que la
 couche soit affichée ou non.

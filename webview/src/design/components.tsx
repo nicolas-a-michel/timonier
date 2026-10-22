@@ -204,6 +204,14 @@ export function EdgeLegend({
               </span>
               <span>{performanceMessages[locale].legendTime}</span>
             </li>
+            <li className="tim-legend__item">
+              <span className="tim-perf-share tim-legend__perf" aria-hidden="true">
+                <span className="tim-perf-share__track">
+                  <span className="tim-perf-share__fill tim-legend__share" />
+                </span>
+              </span>
+              <span>{performanceMessages[locale].legendShare}</span>
+            </li>
           </ul>
         </>
       )}

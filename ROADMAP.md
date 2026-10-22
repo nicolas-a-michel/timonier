@@ -20,6 +20,10 @@ criteria). Last updated: 22 October 2026.
   `timonier init`, what is public). The rules that are data move into the pack; the rest goes
   into one module per ecosystem behind a single interface, so that adding a language never
   touches the daemon. No change for users.
+- **Memory per component.** The instrumentation module Timonier adds counts the bytes each span
+  allocates, and the map's Performances layer shows each component's share of them, as it shows
+  its share of the time. First Rust, Java, Kotlin, Scala, C# and Python, whose runtimes count
+  allocations per thread; the other languages' boxes say their memory is not measured.
 
 ## Next (v2: depth)
 

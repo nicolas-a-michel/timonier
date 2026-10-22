@@ -103,12 +103,17 @@
   --tim-role-interface: color-mix(in srgb, var(--vscode-charts-purple, #652d90) 85%, var(--tim-color-fg));
   --tim-role-data-model: color-mix(in srgb, var(--vscode-terminal-ansiMagenta, #bc05bc) 85%, var(--tim-color-fg));
   --tim-role-persistence: color-mix(in srgb, var(--vscode-terminal-ansiCyan, #0598bc) 75%, var(--tim-color-fg));
+  /* A repository of its own in a folder of several (ADR 0072, Q93): turquoise, greener and
+   * lighter than persistence's cyan, with a thicker outline too. */
+  --tim-role-project: color-mix(in srgb, #1abc9c 55%, var(--tim-color-fg));
   --tim-role-neutral: var(--tim-color-outline);
   /* The title bar of a box, tinted by its role; the body below stays neutral. */
   --tim-role-entry-point-tint: color-mix(in srgb, var(--tim-role-entry-point) 22%, var(--tim-color-surface));
   --tim-role-interface-tint: color-mix(in srgb, var(--tim-role-interface) 22%, var(--tim-color-surface));
   --tim-role-data-model-tint: color-mix(in srgb, var(--tim-role-data-model) 22%, var(--tim-color-surface));
   --tim-role-persistence-tint: color-mix(in srgb, var(--tim-role-persistence) 22%, var(--tim-color-surface));
+  --tim-role-project-tint: color-mix(in srgb, var(--tim-role-project) 22%, var(--tim-color-surface));
+  --tim-role-project-outline: color-mix(in srgb, var(--tim-role-project) 60%, var(--tim-color-outline));
   /* The title bar of a neutral box: utilities, external libraries, no role yet. */
   --tim-role-neutral-tint: color-mix(in srgb, var(--tim-color-fg) 8%, var(--tim-color-surface));
   /* An open box or role: a faint wash of its colour, through which its edges show. */
@@ -116,6 +121,7 @@
   --tim-role-interface-wash: color-mix(in srgb, var(--tim-role-interface) 5%, transparent);
   --tim-role-data-model-wash: color-mix(in srgb, var(--tim-role-data-model) 5%, transparent);
   --tim-role-persistence-wash: color-mix(in srgb, var(--tim-role-persistence) 5%, transparent);
+  --tim-role-project-wash: color-mix(in srgb, var(--tim-role-project) 5%, transparent);
   --tim-role-neutral-wash: color-mix(in srgb, var(--tim-color-fg) 3%, transparent);
   /* A box under the pointer: its outline stands out; its background stays opaque. */
   --tim-color-outline-hover: var(--tim-edge-confirmed);

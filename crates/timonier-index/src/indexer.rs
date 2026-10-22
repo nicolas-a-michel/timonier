@@ -180,6 +180,7 @@ impl Indexer {
             .problems
             .extend(problems.iter().map(ToString::to_string));
         self.project = Project::new(&self.repo_name, &self.packs, packages)?;
+        self.project.projects = self.nested_projects();
         self.trees = Trees::default();
         let packs = &self.packs;
         let root = &self.root;
@@ -318,6 +319,7 @@ impl Indexer {
         let mut accepted: Option<BTreeSet<String>> = None;
         if lib_appears || manifest_named || dir_named || new_path || ignore_named {
             let walk = self.walk();
+            self.project.projects = self.nested_projects();
             let found: BTreeSet<String> = walk.manifests.iter().cloned().collect();
             if lib_appears || manifest_named || found != self.manifests {
                 let (mut packages, problems) = ecosystem::discover(&self.root, &walk.manifests);
@@ -832,6 +834,17 @@ impl Indexer {
         walk.sources.sort();
         self.walked = walked;
         walk
+    }
+
+    /// The folders at the top of the root the last walk entered that hold a repository of
+    /// their own (a `.git` folder, or the `.git` file of a submodule or a worktree).
+    fn nested_projects(&self) -> BTreeSet<String> {
+        self.walked
+            .iter()
+            .filter(|dir| !dir.is_empty() && !dir.contains('/'))
+            .filter(|dir| self.root.join(dir).join(".git").exists())
+            .cloned()
+            .collect()
     }
 
     /// A path relative to the root, with `/` separators; `None` outside the root.

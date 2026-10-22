@@ -72,6 +72,12 @@ const ROLE_SHAPES: Record<Role, ReactNode> = {
       <path d="M2.5 5L8 8l5.5-3M8 8v6" />
     </>
   ),
+  // A folder: a project of its own.
+  project: (
+    <>
+      <path d="M2 4.5h4l1.5 1.5H14v6.5H2z" />
+    </>
+  ),
   // A tool.
   utility: (
     <>

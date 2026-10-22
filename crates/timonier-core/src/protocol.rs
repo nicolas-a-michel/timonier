@@ -106,7 +106,7 @@ pub mod errors {
 }
 
 const NODE_KINDS: &str = "\"repo\" | \"component\" | \"package\" | \"file\" | \"module\" | \"type\" | \"trait\" | \"function\" | \"method\" | \"field\" | \"constant\"";
-const ROLES: &str = "\"entry_point\" | \"data_model\" | \"persistence\" | \"interface\" | \"background_task\" | \"external_libraries\" | \"utility\"";
+const ROLES: &str = "\"entry_point\" | \"data_model\" | \"persistence\" | \"interface\" | \"background_task\" | \"external_libraries\" | \"utility\" | \"project\"";
 const EDGE_KINDS: &str =
     "\"imports\" | \"calls\" | \"references\" | \"implements\" | \"inherits\" | \"depends_on\"";
 const PROVENANCES: &str =

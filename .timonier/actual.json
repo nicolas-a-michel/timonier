@@ -1724,7 +1724,7 @@
         "imports",
         "references"
       ],
-      "weight": 42
+      "weight": 44
     },
     {
       "from": "component:cluster/crates/timonier-index/src/cluster.rs",
@@ -2171,7 +2171,7 @@
         "calls",
         "imports"
       ],
-      "weight": 12
+      "weight": 15
     },
     {
       "from": "component:cluster/webview/src/map/MapView.test.ts",
@@ -2270,6 +2270,14 @@
         "references"
       ],
       "weight": 3
+    },
+    {
+      "from": "component:cluster/webview/src/map/mapModel.test.ts",
+      "to": "component:dir/webview/src/performance",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 1
     },
     {
       "from": "component:cluster/webview/src/map/mapModel.test.ts",
@@ -2623,7 +2631,7 @@
         "imports",
         "references"
       ],
-      "weight": 8
+      "weight": 9
     },
     {
       "from": "component:dir/crates/timonier-index/tests",
@@ -2869,7 +2877,7 @@
       "kinds": [
         "calls"
       ],
-      "weight": 42
+      "weight": 43
     },
     {
       "from": "component:dir/webview/src/design",
@@ -2903,7 +2911,7 @@
         "imports",
         "references"
       ],
-      "weight": 17
+      "weight": 18
     },
     {
       "from": "component:dir/webview/src/performance",

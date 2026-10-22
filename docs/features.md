@@ -23,7 +23,9 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 - **Components and roles**: packages are split into components by directory, then by graph
   clustering (Leiden) when a level is too large. Each package and component gets an
   architectural role: entry point, interface, data model, persistence, background task, utility,
-  external libraries. External dependencies are grouped by use.
+  external libraries. External dependencies are grouped by use. In a folder of several
+  projects, each top folder with its own git repository is a project box, with the roles inside
+  it; developer tools (`xtask`, `tools/`, `vendor/`…) are never entry points.
 - **History**: the graph lives in SQLite with a snapshot per commit and a working-tree head. A
   diff between two snapshots is a query, and it detects moved symbols instead of reporting
   « deleted, then added ». A commit's snapshot describes the committed tree, its packages
@@ -214,7 +216,8 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
   `git checkout`, shows on it. `timonier init` puts an empty whiteboard.
 - **Performances** (phase 8, under way). « Timonier: Show the Map's Performances (On or Off) » turns on or
   off a layer of the map: the time spent in each box and in what it called during the last run
-  with traces (its own time and calls in its tooltip), and
+  with traces (its own time and calls in its tooltip), a bar of each box's share of the run's
+  own time (what it holds included, so that the shares of a level make 100%), and
   the links drawn thicker as more calls go through them. « Timonier: Open the Performances Panel »
   opens a panel: a run and its figures, the timeline of each test (its spans by depth, the
   memory and CPU of the process below), the call tree to unfold, with total time, own time,

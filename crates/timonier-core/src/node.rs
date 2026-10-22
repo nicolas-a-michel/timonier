@@ -229,10 +229,13 @@ pub enum Role {
     /// A group of external libraries.
     ExternalLibraries,
     Utility,
+    /// A project of its own, in a folder of several (its own repository): the map's top shows
+    /// one box per project, and the roles start inside it.
+    Project,
 }
 
 impl Role {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::EntryPoint,
         Self::DataModel,
         Self::Persistence,
@@ -240,6 +243,7 @@ impl Role {
         Self::BackgroundTask,
         Self::ExternalLibraries,
         Self::Utility,
+        Self::Project,
     ];
 
     pub const fn as_str(self) -> &'static str {
@@ -251,6 +255,7 @@ impl Role {
             Self::BackgroundTask => "background_task",
             Self::ExternalLibraries => "external_libraries",
             Self::Utility => "utility",
+            Self::Project => "project",
         }
     }
 

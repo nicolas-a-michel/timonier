@@ -22,6 +22,11 @@ Traduction de la version anglaise du 22 octobre 2026.
   des données passent dans le pack ; le reste va dans un module par écosystème derrière une
   seule interface, pour qu'ajouter un langage ne touche jamais le démon. Rien ne change pour
   l'utilisateur.
+- **Mémoire par composant.** Le module d'instrumentation que Timonier ajoute compte les octets
+  alloués pendant chaque span, et le calque Performances de la carte montre la part de chaque
+  composant, comme il montre sa part du temps. D'abord Rust, Java, Kotlin, Scala, C# et Python,
+  dont l'environnement compte les allocations par fil d'exécution ; sur les boîtes des autres
+  langages, la carte dit que leur mémoire n'est pas mesurée.
 
 ## Ensuite (v2 : la profondeur)
 

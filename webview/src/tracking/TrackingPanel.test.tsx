@@ -295,6 +295,25 @@ describe("the bridge (ADR 0032)", () => {
     expect(failed).toContain("La configuration a échoué : cannot write AGENTS.md");
   });
 
+  it("waits for the agents before it sets up, and leaves the terminal to a failed detection", () => {
+    const actions = {
+      onReveal: () => undefined,
+      onOpenMap: () => undefined,
+      onMarkReviewed: () => undefined,
+      onConfigure: () => undefined,
+    };
+    const waiting = renderToStaticMarkup(
+      <TrackingPanel locale="en" panel="bridge" tracking={EMPTY} daemon={undefined} actions={actions} />,
+    );
+    expect(waiting).toMatch(/<button[^>]*disabled=""[^>]*>Set up<\/button>/);
+    expect(waiting).toContain("Looking for the agents on this machine…");
+    const none = renderToStaticMarkup(
+      <TrackingPanel locale="en" panel="bridge" tracking={EMPTY} daemon={undefined} actions={actions} agents={[]} />,
+    );
+    expect(none).not.toMatch(/<button[^>]*disabled=""[^>]*>Set up<\/button>/);
+    expect(none).not.toContain("Looking for the agents");
+  });
+
   it("teaches what comes before the first review, and when nothing is to read", () => {
     const empty = render("bridge", EMPTY);
     expect(empty).toContain("No review yet");

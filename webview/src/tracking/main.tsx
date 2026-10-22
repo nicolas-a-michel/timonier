@@ -33,7 +33,6 @@ let daemon: DaemonInfo | undefined;
 /** The agents to set the project up for, once the host said them, and how the setup goes (T-118). */
 let agents: AgentChoice[] | undefined;
 let setup: Setup = { state: "idle", detail: null };
-let asked = false;
 /** The process, on the settings page (ADR 0056). */
 let workflowView: WorkflowView | undefined;
 let workflowProblem: string | null = null;
@@ -46,8 +45,11 @@ const actions = {
   onOpenPerformance: () => host?.postMessage({ type: "openPerformance" }),
   onMarkReviewed: () => host?.postMessage({ type: "markReviewed" }),
   onConfigure: (chosen?: string[]) => {
-    setup = { state: "running", detail: null };
-    render();
+    // Without agents, init runs in a terminal, which answers nothing back: no « running » then.
+    if (chosen) {
+      setup = { state: "running", detail: null };
+      render();
+    }
     host?.postMessage({ type: "configure", agents: chosen });
   },
 };
@@ -94,11 +96,6 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
   if (event.data.type === "tracking") {
     tracking = event.data.tracking;
     revision = event.data.revision;
-    // Not set up: the agents init would configure, asked once (T-118).
-    if (panel === "bridge" && !tracking.configured && !asked) {
-      asked = true;
-      host?.postMessage({ type: "detectAgents" });
-    }
   } else if (event.data.type === "workflow") {
     workflowView = event.data.view ?? workflowView;
     workflowProblem = event.data.problem;
@@ -113,3 +110,6 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
 });
 
 render();
+// The agents init would configure (T-118), asked at once: the daemon's first view can take long
+// on a large project, and « Set up » waits for them.
+if (panel === "bridge") host?.postMessage({ type: "detectAgents" });

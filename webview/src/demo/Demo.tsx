@@ -33,6 +33,7 @@ const ROLES: Role[] = [
   "background_task",
   "external_libraries",
   "utility",
+  "project",
 ];
 
 export interface DemoProps {

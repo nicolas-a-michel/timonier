@@ -159,6 +159,50 @@
         "crates/timonier-index/tests/indexer.rs",
         "webview/src/i18n.ts"
       ]
+    },
+    {
+      "from": 151,
+      "to": 154,
+      "until": {
+        "at": "2026-10-22T16:41:23Z",
+        "session": "S-2026-10-22-21"
+      },
+      "files": [
+        "editors/vscode/src/extension.ts",
+        "webview/src/tracking/Bridge.tsx",
+        "webview/src/tracking/TrackingPanel.test.tsx",
+        "webview/src/tracking/main.tsx",
+        "webview/src/tracking/messages.ts"
+      ]
+    },
+    {
+      "from": 157,
+      "to": 158,
+      "until": {
+        "at": "2026-10-22T17:18:46Z",
+        "session": "S-2026-10-22-23"
+      },
+      "files": [
+        "webview/src/design/components.tsx",
+        "webview/src/i18n.ts",
+        "webview/src/map/MapView.tsx",
+        "webview/src/map/elements.tsx",
+        "webview/src/map/perf.test.ts",
+        "webview/src/map/perf.ts",
+        "webview/src/performance/messages.ts",
+        "webview/src/performance/model.ts"
+      ]
+    },
+    {
+      "from": 159,
+      "to": 160,
+      "until": {
+        "at": "2026-10-22T17:26:10Z",
+        "session": "S-2026-10-22-24"
+      },
+      "files": [
+        "webview/test/screenshots/validate.shots.ts"
+      ]
     }
   ]
 }

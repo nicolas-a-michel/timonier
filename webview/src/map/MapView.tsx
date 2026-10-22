@@ -23,7 +23,7 @@ import { ArrowIcon } from "../design/icons";
 import { messages, type Locale } from "../i18n";
 import type { BudgetsView, Density, DriftView, MapCommand, NodeDebt, PerfMap, Role, Span } from "../protocol";
 import { performanceMessages } from "../performance/messages";
-import { duration } from "../performance/model";
+import { duration, percent } from "../performance/model";
 import type { ViewData } from "../viewModel";
 import { edgeTypes, nodeTypes, type BoxNode, type LineEdge, type RoleNode, type Sides } from "./elements";
 import { layout, METRICS, ROOT, type Layout, type Pins } from "./layout";
@@ -91,6 +91,7 @@ function perfLine(mark: PerfMark | undefined, locale: Locale): string[] {
   if (!mark) return [];
   return [
     `${performanceMessages[locale].boxWords(duration(mark.totalNs, locale), duration(mark.selfNs, locale), mark.calls)}.`,
+    `${performanceMessages[locale].shareWords(percent(mark.share, locale))}${mark.largest ? ` (${performanceMessages[locale].largestShare})` : ""}.`,
   ];
 }
 

@@ -128,6 +128,7 @@ export interface TrackingMessages {
   /** The agents to set up (T-118). */
   agentsLegend: string;
   agentNotFound: string;
+  findingAgents: string;
   configuring: string;
   configureDone: string;
   configureFailed: (detail: string | null) => string;
@@ -276,6 +277,7 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     workflowAgent: "What the agents do",
     agentsLegend: "Agents to set up",
     agentNotFound: "not found here",
+    findingAgents: "Looking for the agents on this machine…",
     configuring: "Setting up…",
     configureDone: "Set up: the agents read Timonier's instructions at their next session.",
     configureFailed: (detail) =>
@@ -410,6 +412,7 @@ export const trackingMessages: Record<Locale, TrackingMessages> = {
     workflowAgent: "Ce que font les agents",
     agentsLegend: "Agents à configurer",
     agentNotFound: "non trouvé ici",
+    findingAgents: "Recherche des agents sur cette machine…",
     configuring: "Configuration…",
     configureDone: "Configuré : les agents lisent les consignes de Timonier à leur prochaine session.",
     configureFailed: (detail) =>

@@ -59,7 +59,8 @@ export function Bridge({ t, locale, tracking, actions, agents, setup }: BridgePr
 
 /**
  * The agents to set the project up for (T-118): each one a box to tick, those found on this
- * machine ticked; « Set up » runs `timonier init` for them, and says how it went.
+ * machine ticked; « Set up » runs `timonier init` for them, and says how it went. It waits for
+ * the list; without one (the detection failed), it opens `timonier init` in a terminal.
  */
 function SetUp({
   t,
@@ -94,14 +95,20 @@ function SetUp({
         <button
           type="button"
           className="tim-button tim-button--primary"
-          disabled={running || (agents !== undefined && ticked.length === 0)}
-          onClick={() => onConfigure(agents ? ticked : undefined)}
+          disabled={running || agents === undefined || (agents.length > 0 && ticked.length === 0)}
+          onClick={() => onConfigure(agents && agents.length > 0 ? ticked : undefined)}
         >
           {running ? t.configuring : t.configure}
         </button>
       </div>
       <p className="tim-tracking__quiet" role="status">
-        {setup.state === "failed" ? t.configureFailed(setup.detail) : setup.state === "done" ? t.configureDone : ""}
+        {setup.state === "failed"
+          ? t.configureFailed(setup.detail)
+          : setup.state === "done"
+            ? t.configureDone
+            : agents === undefined
+              ? t.findingAgents
+              : ""}
       </p>
     </>
   );

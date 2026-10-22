@@ -66,8 +66,12 @@ export interface MapContent {
   edges: MapEdge[];
 }
 
-/** The order of the role groups: the entry points first, the external libraries last. */
+/**
+ * The order of the role groups: the projects of a folder of several first, then the entry
+ * points; the external libraries last.
+ */
 const ROLE_ORDER: (Role | null)[] = [
+  "project",
   "entry_point",
   "interface",
   "background_task",
