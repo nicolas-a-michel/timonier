@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-17",
+  "agent": "claude-code",
+  "objective": "Publier la préversion 0.1.0 : commit de la fiche Marketplace et des icônes, CI, tag v0.1.0, suivi de la publication.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T11:31:57Z",
+  "snapshots": {
+    "start": 143
+  }
+}

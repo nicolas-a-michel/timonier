@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-16",
+  "agent": "claude-code",
+  "objective": "Préparer la fiche Marketplace à valider (titre, description EN/FR) et décliner l'icône pour le projet (logo des README, image d'aperçu GitHub), avant le tag v0.1.0.",
+  "tasks": [
+    "T-109"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T11:27:52Z",
+  "ended_at": "2026-10-22T11:31:23Z",
+  "snapshots": {
+    "start": 141,
+    "end": 142
+  },
+  "summary": "Fiche Marketplace préparée (titre « Timonier », description EN/FR reprise de la version de l'humain, début de la page de l'extension) ; icône déclinée : logo des README, image d'aperçu GitHub 1280×640 (script icon.mjs). Non commité. Reste : la validation de l'humain sur les deux descriptions, puis commit, push, CI et tag v0.1.0 ; l'humain dépose lui-même l'image d'aperçu dans les réglages du dépôt.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Fiche Marketplace et icônes : attendre la validation de l'humain, puis commit, push, CI et tag v0.1.0",
+      "task": "T-109",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 9,
+    "input": 22,
+    "output": 5777,
+    "cache_read": 8352455,
+    "cache_creation": 10410,
+    "cost_usd_micros": 1869399
+  }
+}

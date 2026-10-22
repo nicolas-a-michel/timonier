@@ -6,20 +6,66 @@
   "tasks": [
     "T-109"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T11:02:03Z",
+  "ended_at": "2026-10-22T11:20:52Z",
   "snapshots": {
-    "start": 138
+    "start": 138,
+    "end": 140
+  },
+  "summary": "C et C++ avec Conan vérifiés sur de vrais projets (Conan 2.33.0) : carte, init (opentelemetry-cpp/1.26.0 dans conanfile.txt), timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée, uninit exact. Corrigé : lanceurs Conan, nom de cible de l'exportateur chez Conan, lien de common, CMakeUserPresets.json évité ; vcpkg vérifié à nouveau. 2e84825 poussé, sa CI en cours (celle de 4094d75 est verte). Reste : le tag v0.1.0 après l'accord de l'humain.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Conan C++ : timonier test (build d'opentelemetry-cpp en cours), doctor, uninit",
+      "task": "T-109",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Conan C : même vérification, puis PLAN.md 10.5/10.8, suite complète, commit et push",
+      "task": "T-109",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 4,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
   },
   "agent_sessions": [
     "aecaf227-545b-4dee-974e-0b31c20f99ca"
   ],
   "usage": {
-    "requests": 15,
-    "input": 32,
-    "output": 14592,
-    "cache_read": 13336063,
-    "cache_creation": 18647,
-    "cost_usd_micros": 3108356
+    "requests": 34,
+    "input": 72,
+    "output": 26067,
+    "cache_read": 30555972,
+    "cache_creation": 36076,
+    "cost_usd_micros": 6921430
   }
 }

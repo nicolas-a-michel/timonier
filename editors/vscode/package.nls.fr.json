@@ -1,5 +1,5 @@
 {
-  "extension.description": "Pilotez des agents IA sans lire tout le code qu'ils produisent : architecture vivante, tableau blanc d'intention, performances mesurées, plan en direct.",
+  "extension.description": "Timonier aide les développeurs à superviser le code généré par les agents IA sans lire chaque ligne : une carte vivante de l'architecture, un tableau blanc pour schématiser l'architecture voulue pour les agents, les mesures de performance des composants du logiciel, le plan et la todo des agents. 13 langages.",
   "command.openMap.title": "Ouvrir la carte",
   "view.home.name": "Vue d'ensemble",
   "command.restartDaemon.title": "Relancer le démon",

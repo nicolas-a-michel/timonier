@@ -1,3 +1,5 @@
+<img src="docs/images/logo.png" width="96" height="96" alt="L'icône de Timonier : une roue de gouvernail">
+
 # Timonier
 
 [English](README.md) · **Français**

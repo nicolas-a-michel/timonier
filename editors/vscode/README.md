@@ -1,10 +1,12 @@
 # Timonier
 
-Steer AI coding agents without reading every line they write. Timonier keeps a live map of your
-code's architecture, compares it with the architecture you drew, shows what changed since your
-last review, and gives your agents the same plan, todo and constraints you see.
+Timonier helps developers supervise their AI coding agents without reading every line they
+write. It keeps a live map of your code's architecture, compares it with the architecture you
+drew, shows what changed since your last review, measures your tests, and gives your agents the
+same plan, todo and constraints you see.
 
-**Pre-release.** Linux, macOS and Windows. Projects in Rust, TypeScript, JavaScript, Python, Go, Java, Kotlin, Scala, C, C++, C#, Swift and PHP. Source, issues and the full feature list:
+**Pre-release.** Linux, macOS and Windows. Projects in Rust, TypeScript, JavaScript, Python, Go,
+Java, Kotlin, Scala, C, C++, C#, Swift and PHP. Source, issues and the full feature list:
 [github.com/nicolas-a-michel/timonier](https://github.com/nicolas-a-michel/timonier).
 
 ![The architecture map: six boxes named by role, with their packages and the dependencies between them](https://raw.githubusercontent.com/nicolas-a-michel/timonier/main/docs/images/map.png)

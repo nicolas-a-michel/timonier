@@ -1,5 +1,5 @@
 {
-  "extension.description": "Steer AI coding agents without reading all the code they produce: living architecture map, intent whiteboard, measured performance, live plan.",
+  "extension.description": "Timonier helps developers supervise the code AI agents generate without reading every line: a live architecture map, a whiteboard to sketch the architecture the agents must follow, the measured performance of the software's components, and the agents' plan and todo. 13 languages.",
   "command.openMap.title": "Open Map",
   "view.home.name": "Overview",
   "command.restartDaemon.title": "Restart the Daemon",
