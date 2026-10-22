@@ -1,6 +1,6 @@
 # 0065 — Le pack C++ : chemins de fichiers, CMake avec vcpkg et Conan, CTest
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88, Q89 ; ADR 0012, 0013 (packs, noms qualifiés), 0034 (lanceurs), 0050 (SDK

@@ -1733,11 +1733,12 @@
           "id": "T-104",
           "title": "9.2 Processus de développement",
           "criterion": "le scénario « Solo discipliné » fonctionne de bout en bout sur un dépôt de test",
-          "status": "blocked",
+          "status": "done",
           "sessions": [
             "S-2026-10-20-2",
             "S-2026-10-21-24",
-            "S-2026-10-21-25"
+            "S-2026-10-21-25",
+            "S-2026-10-22-25"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
@@ -1748,6 +1749,16 @@
               "at": "2026-10-21T17:38:55Z",
               "session": "S-2026-10-21-25",
               "text": "Built and tested (ADR 0056): workflow.json and presets, gh and git, task_start, open_pull_request, link_ticket, session_end's PR, timonier check, the GitHub Actions workflow, the settings panel. Solo disciplined passes end to end with a fake gh and a local remote. Waiting: the real scenario on a GitHub test repository, set aside by the human (Q80)."
+            },
+            {
+              "at": "2026-10-22T17:59:10Z",
+              "session": "S-2026-10-22-25",
+              "text": "Unblocked by the human's choice Q97: close on the current tests."
+            },
+            {
+              "at": "2026-10-22T17:59:10Z",
+              "session": "S-2026-10-22-25",
+              "text": "Closed on the current tests at the human's choice (Q97, 2026-10-22): Solo disciplined passes end to end with a fake gh and a local remote. The run on a real GitHub repository is a recorded deviation."
             }
           ]
         },
@@ -1777,46 +1788,83 @@
           "id": "T-106",
           "title": "9.4 Assistant « Nouveau projet piloté », selon Q8",
           "criterion": "défini avec la réponse",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-22-26"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T18:02:00Z",
+              "session": "S-2026-10-22-26",
+              "text": "Done at the human's decision (2026-10-22): they created a new project and set it up with Timonier, and it works. Deviation: no assistant in VSCode runs the official generator; creating the project stays the developer's step, then « Set up »."
+            }
+          ]
         },
         {
           "id": "T-107",
           "title": "9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage »",
           "criterion": "verdict « prête »",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-22-27",
+            "S-2026-10-22-29",
+            "S-2026-10-22-30"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T18:14:39Z",
+              "session": "S-2026-10-22-27",
+              "text": "First review (2026-10-22): not ready. Blocking: 9.6 not run, and its criterion relied on the 9.4 assistant (rewritten, Q98). I1 to the roadmap, I2 and I3 to Phase 11 (T-11.10), I4 a deviation; Phase 9 section of PLAN.md fixed; palette command timonier.runTests added. To run again after 9.6."
+            },
+            {
+              "at": "2026-10-22T18:19:01Z",
+              "session": "S-2026-10-22-29",
+              "text": "Second review (2026-10-22), after 9.6: ready. B1 and B2 resolved, Q98's deviations recorded; non-blocking points left in PLAN.md 9.5."
+            }
+          ]
         },
         {
           "id": "T-108",
           "title": "9.6 Critère de sortie du MVP selon la spec : un projet réel (Q9) piloté de bout en bout sans lire le code ligne à ligne",
-          "criterion": "constaté avec toi",
-          "status": "todo",
+          "criterion": "Un projet réel et nouveau, créé par le développeur avec son générateur et configuré par « Set up » (Q98), développé de bout en bout par un agent sous Timonier sans lire le code ligne à ligne : constaté avec l'humain.",
+          "status": "done",
           "sessions": [
-            "S-2026-10-20-2"
+            "S-2026-10-20-2",
+            "S-2026-10-22-27",
+            "S-2026-10-22-28"
           ],
           "created": {
             "at": "2026-10-20T09:57:22Z",
             "session": "S-2026-10-20-2"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T18:14:39Z",
+              "session": "S-2026-10-22-27",
+              "text": "Criterion rewritten at the human's answer Q98 (review 9.5, B2): 9.4 was closed without the assistant."
+            },
+            {
+              "at": "2026-10-22T18:16:23Z",
+              "session": "S-2026-10-22-28",
+              "text": "Checked by the human on 2026-10-22: they created a mini game, set it up with Timonier and had an agent develop it end to end; « everything went well ». The project itself was not inspected by Claude (its folder was not found)."
+            }
+          ]
         },
         {
           "id": "T-109",
           "title": "9.7 Publication de l'extension (Q58, Q59), avant la relecture 9.5",
           "criterion": "l'extension installée depuis la Marketplace configure un projet et montre sa carte, sans rien installer à part : un .vsix par plateforme qui embarque timonier, icône PNG, CHANGELOG, dépôt public (Q2), éditeur NicolasMichel (Q12)",
-          "status": "in_progress",
+          "status": "done",
           "sessions": [
             "S-2026-10-20-4",
             "S-2026-10-21-30",
@@ -1833,12 +1881,20 @@
             "S-2026-10-22-21",
             "S-2026-10-22-22",
             "S-2026-10-22-23",
-            "S-2026-10-22-24"
+            "S-2026-10-22-24",
+            "S-2026-10-22-27"
           ],
           "created": {
             "at": "2026-10-20T13:12:10Z",
             "session": "S-2026-10-20-4"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T18:03:07Z",
+              "session": "S-2026-10-22-27",
+              "text": "Criterion checked by the human on 2026-10-22: the extension installed from the Marketplace sets a project up and shows its map, nothing else installed. Published 0.1.0, 0.1.1 and 0.1.2 on six platforms, one at a time."
+            }
+          ]
         },
         {
           "id": "T-115",
@@ -2239,6 +2295,129 @@
           "created": {
             "at": "2026-10-22T10:49:33Z",
             "session": "S-2026-10-22-14"
+          }
+        }
+      ]
+    },
+    {
+      "id": "M-14",
+      "title": "Phase 11 — Une carte fiable",
+      "tasks": [
+        {
+          "id": "T-134",
+          "title": "11.1 Mesurer ce que vaut la carte d'aujourd'hui",
+          "criterion": "Sur six projets réels (Rust, TypeScript, Python, Go, Java, C#), précision et rappel des liens tree-sitter face à l'index SCIP du même commit, par langage, consignés dans PLAN.md.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:14Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-135",
+          "title": "11.2 ADR de l'intégration SCIP",
+          "criterion": "ADR qui fixe quand (au commit, en tâche de fond, annulable, délai maximal), les indexeurs par langage déclarés dans les packs ([scip]), l'identité (Q95 : nos identifiants, occurrences rattachées par plage), la fusion, la mémoire, et le repli quand l'indexeur manque ou échoue.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-136",
+          "title": "11.3 Lire un index SCIP",
+          "criterion": "timonier-index transforme un index.scip en observations Scip (appels, références, Implements, Inherits) ancrées sur le contenu indexé ; range et typed_range ; tests sur des index de trois indexeurs.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-137",
+          "title": "11.4 Lancer les indexeurs SCIP",
+          "criterion": "Au commit, le démon lance l'indexeur de chaque langage sans bloquer la carte ; doctor dit lesquels manquent ; installation approuvée par un clic (Q94) ; temps et mémoire mesurés sur les six projets de 11.1.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-138",
+          "title": "11.5 Le degré de certitude sur la carte",
+          "criterion": "Chaque boîte et chaque lien montrent la part de leurs liens confirmés (manifeste, LSP, SCIP), la carte entière sa part confirmée ; jamais par la couleur seule ; AA dans les six thèmes ; test des cinq secondes.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-139",
+          "title": "11.6 Renommer une boîte et changer son rôle",
+          "criterion": "F2, double clic ou commande renomment une boîte et changent son rôle ; gardés dans .timonier/names.json versionné (Q96) à travers réindexations et commits ; un outil MCP permet à l'agent de proposer, le choix du développeur l'emporte.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-140",
+          "title": "11.8 Mesurer de nouveau avec SCIP",
+          "criterion": "Les six projets de 11.1 : part confirmée des liens avant et après SCIP, consignée dans PLAN.md et le README.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-141",
+          "title": "11.9 Relecture de la Phase 11 par phase-reviewer",
+          "criterion": "Verdict « prête ».",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-25"
+          ],
+          "created": {
+            "at": "2026-10-22T17:59:45Z",
+            "session": "S-2026-10-22-25"
+          }
+        },
+        {
+          "id": "T-142",
+          "title": "11.10 L'agent lit et enrichit la carte",
+          "criterion": "Les outils MCP query_graph et get_component donnent à l'agent le graphe réel ; l'agent propose noms, résumés et rôles des composants par un outil structuré, que le choix du développeur emporte (11.6) ; tests d'intégration MCP → démon.",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-27"
+          ],
+          "created": {
+            "at": "2026-10-22T18:14:39Z",
+            "session": "S-2026-10-22-27"
           }
         }
       ]

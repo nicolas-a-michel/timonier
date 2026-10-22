@@ -1,6 +1,6 @@
 # 0058 — Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : spec « Steering » (coût de l'IA) et « Technical decisions » (mesurer le coût de l'IA) ;

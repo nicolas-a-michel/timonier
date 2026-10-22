@@ -59,21 +59,21 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0052 | [Les budgets de performance vérifiés sur les runs](0052-budgets.md) | Accepté | 8 |
 | 0053 | [La détection des régressions de performances](0053-regressions.md) | Accepté | 8 |
 | 0054 | [Ce que la carte dit d'un symbole : sa sorte et sa signature](0054-symboles-de-la-carte.md) | Accepté | 8 |
-| 0055 | [L'inventaire des technologies](0055-inventaire-des-technologies.md) | Proposé | 9 |
-| 0056 | [Le processus de développement : `workflow.json`, GitHub par `gh`, la CI](0056-processus-de-developpement.md) | Proposé | 9 |
-| 0057 | [Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier](0057-securite-locale.md) | Proposé | 9 |
-| 0058 | [Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine](0058-cout-de-l-ia.md) | Proposé | 9 |
-| 0059 | [Le programme `timonier` livré dans l'extension, et dans le PATH](0059-binaire-embarque.md) | Proposé | 9 |
-| 0060 | [Timonier sous Windows](0060-windows.md) | Proposé | 9 |
-| 0061 | [Le pack JavaScript, et ce que tous les packs ne parcourent pas](0061-pack-javascript.md) | Proposé | 10 |
-| 0062 | [Le pack Python : modules, `pyproject.toml`, pytest](0062-pack-python.md) | Proposé | 10 |
-| 0063 | [Le pack Go : chemins d'import, `go.mod`, gotestsum](0063-pack-go.md) | Proposé | 10 |
-| 0064 | [Le pack Java : paquets pointés, Maven et Gradle, rapports JUnit par dossier](0064-pack-java.md) | Proposé | 10 |
-| 0065 | [Le pack C++ : chemins de fichiers, CMake avec vcpkg et Conan, CTest](0065-pack-cpp.md) | Proposé | 10 |
-| 0066 | [Le pack Kotlin : Gradle partagé avec Java, déclarations de fichier, sous-projet seul](0066-pack-kotlin.md) | Proposé | 10 |
-| 0067 | [Le pack Swift : cibles, extensions, SwiftPM, rapports xUnit](0067-pack-swift.md) | Proposé | 10 |
-| 0068 | [Le pack C : CMake partagé avec C++, en-têtes lus comme du C++, une API C sur opentelemetry-cpp](0068-pack-c.md) | Proposé | 10 |
-| 0069 | [Le pack C# : projets `.csproj`, espaces de noms, rapports JUnit par projet de test](0069-pack-csharp.md) | Proposé | 10 |
-| 0070 | [Le pack PHP : noms PSR-4, Composer, PHPUnit](0070-pack-php.md) | Proposé | 10 |
-| 0071 | [Le pack Scala : sbt, imports à sélecteurs, sbt 2 et son cache de tests](0071-pack-scala.md) | Proposé | 10 |
-| 0072 | [Les rôles : un dossier de plusieurs projets, le vote des bibliothèques, les outils](0072-roles-projets-et-outils.md) | Proposé | 9 |
+| 0055 | [L'inventaire des technologies](0055-inventaire-des-technologies.md) | Accepté | 9 |
+| 0056 | [Le processus de développement : `workflow.json`, GitHub par `gh`, la CI](0056-processus-de-developpement.md) | Accepté | 9 |
+| 0057 | [Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier](0057-securite-locale.md) | Accepté | 9 |
+| 0058 | [Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine](0058-cout-de-l-ia.md) | Accepté | 9 |
+| 0059 | [Le programme `timonier` livré dans l'extension, et dans le PATH](0059-binaire-embarque.md) | Accepté | 9 |
+| 0060 | [Timonier sous Windows](0060-windows.md) | Accepté | 9 |
+| 0061 | [Le pack JavaScript, et ce que tous les packs ne parcourent pas](0061-pack-javascript.md) | Accepté | 10 |
+| 0062 | [Le pack Python : modules, `pyproject.toml`, pytest](0062-pack-python.md) | Accepté | 10 |
+| 0063 | [Le pack Go : chemins d'import, `go.mod`, gotestsum](0063-pack-go.md) | Accepté | 10 |
+| 0064 | [Le pack Java : paquets pointés, Maven et Gradle, rapports JUnit par dossier](0064-pack-java.md) | Accepté | 10 |
+| 0065 | [Le pack C++ : chemins de fichiers, CMake avec vcpkg et Conan, CTest](0065-pack-cpp.md) | Accepté | 10 |
+| 0066 | [Le pack Kotlin : Gradle partagé avec Java, déclarations de fichier, sous-projet seul](0066-pack-kotlin.md) | Accepté | 10 |
+| 0067 | [Le pack Swift : cibles, extensions, SwiftPM, rapports xUnit](0067-pack-swift.md) | Accepté | 10 |
+| 0068 | [Le pack C : CMake partagé avec C++, en-têtes lus comme du C++, une API C sur opentelemetry-cpp](0068-pack-c.md) | Accepté | 10 |
+| 0069 | [Le pack C# : projets `.csproj`, espaces de noms, rapports JUnit par projet de test](0069-pack-csharp.md) | Accepté | 10 |
+| 0070 | [Le pack PHP : noms PSR-4, Composer, PHPUnit](0070-pack-php.md) | Accepté | 10 |
+| 0071 | [Le pack Scala : sbt, imports à sélecteurs, sbt 2 et son cache de tests](0071-pack-scala.md) | Accepté | 10 |
+| 0072 | [Les rôles : un dossier de plusieurs projets, le vote des bibliothèques, les outils](0072-roles-projets-et-outils.md) | Accepté | 9 |

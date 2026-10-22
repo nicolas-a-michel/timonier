@@ -43,6 +43,7 @@
   "command.whiteboard.addBudget.title": "Add a Budget Note to the Whiteboard",
   "command.map.compareIntent.title": "Compare the Map with the Whiteboard (On or Off)",
   "command.openPerformance.title": "Open the Performances Panel",
+  "command.runTests.title": "Run the Tests",
   "command.map.showPerformance.title": "Show the Map's Performances (On or Off)",
   "command.openWorkflow.title": "Development Process: Presets and Settings"
 }

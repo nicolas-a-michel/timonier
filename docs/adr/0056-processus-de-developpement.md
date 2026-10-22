@@ -1,6 +1,6 @@
 # 0056 — Le processus de développement : `workflow.json`, GitHub par `gh`, la CI
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : spec « Processus de développement » ; Q80 à Q83 ; ADR 0027 à 0029 (suivi), 0033

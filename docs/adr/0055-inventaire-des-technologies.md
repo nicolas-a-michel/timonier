@@ -1,6 +1,6 @@
 # 0055 — L'inventaire des technologies
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : spec « Inventaire des technologies et santé des composants », « Surface de sécurité »

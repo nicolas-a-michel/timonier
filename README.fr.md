@@ -157,11 +157,12 @@ nouveau projet de bout en bout. Timonier pilote son propre développement.
 
 La phase 10, faite avant la préversion, a fait passer Timonier de deux langages à treize :
 chacun a été vérifié sur un vrai projet, de la carte à la première trace de ses tests. Timonier
-fonctionne sous Linux, macOS et Windows ; ses tests y passent en CI, et un premier essai sur une
-vraie machine Windows est en cours. Rien n'est encore publié sur crates.io, npm ou le
-Marketplace. Les versions suivantes ajoutent un gestionnaire de skills, l'indexation SCIP,
-plusieurs agents qui travaillent ensemble, et l'usage en équipe : voir la
-[feuille de route](ROADMAP.fr.md).
+fonctionne sous Linux, macOS et Windows ; ses tests y passent en CI, et sur une machine
+Windows neuve. L'extension est publiée en préversion sur le Marketplace VSCode, pour les six
+plateformes (Linux, macOS et Windows, x64 et arm64). La suite porte sur les deux points qui
+comptent le plus pour Timonier, l'architecture et les performances. D'abord une carte fiable
+(SCIP, le degré de certitude de chaque lien, le renommage des boîtes), puis la mémoire par
+composant et un profilage plus fin. La [feuille de route](ROADMAP.fr.md) donne l'ordre.
 
 ## Essayer
 

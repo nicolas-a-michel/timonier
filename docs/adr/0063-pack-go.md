@@ -1,6 +1,6 @@
 # 0063 — Le pack Go : chemins d'import, `go.mod`, gotestsum
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88 ; ADR 0012, 0013 (packs, noms qualifiés), 0034 (lanceurs), 0050 (SDK par

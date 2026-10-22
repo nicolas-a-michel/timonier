@@ -1,6 +1,6 @@
 # 0071 — Le pack Scala : sbt, imports à sélecteurs, sbt 2 et son cache de tests
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88, Q90 ; ADR 0012, 0013, 0034, 0050, 0064 (pack Java), 0066 (pack Kotlin) ;

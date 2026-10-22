@@ -1,6 +1,6 @@
 # 0070 — Le pack PHP : noms PSR-4, Composer, PHPUnit
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88, Q90 ; ADR 0012, 0013, 0034, 0050, 0055 ; tâche PLAN.md 10.10

@@ -1,6 +1,6 @@
 # 0061 — Le pack JavaScript, et ce que tous les packs ne parcourent pas
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88 ; ADR 0012 (format des packs), 0013 (extraction et noms qualifiés), 0034

@@ -1,6 +1,6 @@
 # 0067 — Le pack Swift : cibles, extensions, SwiftPM, rapports xUnit
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88, Q90 ; ADR 0012, 0013, 0034, 0050, 0063 (conteneur), 0064 (dossier de

@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-25",
+  "agent": "claude-code",
+  "objective": "Plan Phase 11 (a map you can trust) after the human's choices Q94–Q97, and close 9.2 on the current tests (Q97).",
+  "tasks": [
+    "T-104",
+    "T-134",
+    "T-135",
+    "T-136",
+    "T-137",
+    "T-138",
+    "T-139",
+    "T-140",
+    "T-141"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T17:59:02Z",
+  "ended_at": "2026-10-22T17:59:59Z",
+  "snapshots": {
+    "start": 163,
+    "end": 164
+  },
+  "summary": "Phase 11 « Une carte fiable » planned in PLAN.md and in the plan (M-14, T-134 to T-141, with T-133 as 11.7), on verified SCIP facts (crate scip 0.10.0, indexers per language, none incremental, Scala and Swift without one). The human answered Q94 (install like test runners), Q95 (keep our ids, map SCIP occurrences by range), Q96 (names.json versioned, role too), Q97 (9.2 closed on the current tests; T-104 done). README status and roadmap refocused on architecture and performance. Left: Phase 9 (9.7 criterion, 9.4, 9.5, 9.6), then Phase 11. Not committed.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 10,
+    "input": 22,
+    "output": 4016,
+    "cache_read": 4306114,
+    "cache_creation": 9978,
+    "cost_usd_micros": 1021456
+  }
+}

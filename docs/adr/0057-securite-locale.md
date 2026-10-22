@@ -1,6 +1,6 @@
 # 0057 — Ce qu'un dépôt cloné et un processus local peuvent faire faire à Timonier
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : audit de sécurité du 2026-10-21 (rapport de l'humain, hors du dépôt) ; Q84 ; ADR 0019

@@ -1,6 +1,6 @@
 # 0068 — Le pack C : CMake partagé avec C++, en-têtes lus comme du C++, une API C sur opentelemetry-cpp
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 10 validée)
 - Date : 2026-10-22
 - Phase : 10
 - Liens : Q86, Q88, Q89 ; ADR 0012, 0013, 0034, 0050, 0065 (pack C++) ; tâche PLAN.md 10.8

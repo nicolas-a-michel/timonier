@@ -243,6 +243,12 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q98 — Les suites de la relecture 9.5** (9.5) — ✅ répondu le 2026-10-22 : le critère de 9.6
+devient un nouveau projet créé par toi avec son générateur et configuré par « Set up » ; les tests
+et l'effet sur les performances dans le journal de session vont à la feuille de route (écart) ;
+la lecture du graphe par MCP et les noms, résumés et rôles proposés par l'agent vont en
+Phase 11 (11.10) ; les tests des cinq secondes manquants sont un écart.
+
 **Q93 — La couleur des dépôts d'un dossier de plusieurs projets** (9.7) — ✅ répondu le
 2026-10-22 : **turquoise** (après l'ocre, jugé laid, puis ardoise, terracotta, sapin et bleu
 électrique montrés en captures). Mêlé à 55 % à la couleur du texte pour tenir 3:1 en thème clair,
@@ -3629,7 +3635,7 @@ Décisions : ADR 0043 à 0054.
 
 ## Phase 9 — Fin du MVP
 
-Statut : à faire
+Statut : validée par toi le 2026-10-22 (« oui je valide ») ; ADR 0055 à 0060 et 0072 acceptées
 
 - 9.1 Inventaire des technologies, exposé par l'outil MCP `get_tech_inventory` — critère :
   sur Timonier, un SBOM valide ; les doublons d'une fixture sont détectés. Contenu :
@@ -3710,8 +3716,9 @@ Statut : à faire
     suivi), `test:a11y` dans six thèmes et au clavier, test d'intégration ;
   - jetons : la connexion de `gh` (Q81), aucun jeton gardé ;
   - critère : « Solo discipliné » de bout en bout sur un démon réel, un faux `gh` et un dépôt
-    distant local (`solo_disciplined_opens_the_issue_the_branch_and_the_pull_request`) ; le
-    scénario sur un vrai dépôt GitHub attend ton feu vert (Q80).
+    distant local (`solo_disciplined_opens_the_issue_the_branch_and_the_pull_request`) ;
+    fermée le 2026-10-22 sur ces tests, à ton choix (Q97) ; écart : le scénario sur un vrai dépôt
+    GitHub n'a pas été joué.
 - 9.3 Coût de l'IA, selon Q7 : la télémétrie OpenTelemetry native de Claude Code est
   pointée par init vers le récepteur, puis les tokens sont comptés par session et par tâche.
   Sans source, la valeur est « non mesuré », jamais une estimation inventée — critère : une
@@ -3740,7 +3747,8 @@ Statut : à faire
     `the_agents_port_takes_claude_code_s_requests_plain_or_gzipped_and_stays_one_s`,
     `init_turns_claude_code_s_telemetry_on_in_the_home_and_uninit_takes_it_back`, vitest du
     panneau, `test:a11y` ;
-  - critère : attend une vraie session de Claude Code, relancé après `tim init` sur un projet.
+  - critère : constaté sur de vraies sessions de Claude Code (le 2026-10-22, 34 sessions de ce
+    dépôt ont leur coût attribué, par exemple S-2026-10-22-9 : 38 requêtes, 49 227 tokens en sortie).
 - 9.8 (T-119, ajoutée le 2026-10-21 par un agent, reprise à la demande de l'humain) Ressources du
   démon — critère : le démon consomme moins en régime permanent et au démarrage qu'avant, tests et
   clippy passent, aucune régression fonctionnelle.
@@ -3764,11 +3772,49 @@ Statut : à faire
 - 9.4 Assistant « Nouveau projet piloté », selon Q8 (en Phase 9) — critère : depuis VSCode, un
   nouveau projet Rust ou TypeScript est créé par le générateur officiel, configuré par `init`,
   et `doctor` voit sa première trace rattachée au graphe.
+
+  Fait (2026-10-22), à ta décision : tu as créé un nouveau projet et l'as configuré avec
+  Timonier, et cela fonctionne. Écart : aucun assistant de VSCode ne lance le générateur
+  officiel ; créer le projet reste ton geste, puis « Set up ».
 - 9.5 Relecture complète du MVP par `phase-reviewer` contre la section « Découpage » —
   critère : verdict « prête ».
-- 9.6 Critère de sortie du MVP selon la spec : un projet réel, nouveau (Q9), créé par
-  l'assistant de 9.4 et piloté de bout en bout
+
+  Première relecture (2026-10-22) : **pas prête**. Contrôles verts (fmt, clippy, 646 tests Rust,
+  lint, typecheck, 165 + 101 + 27 tests unitaires, 191 tests d'accessibilité ; intégration non
+  lancée, elle ouvre une fenêtre). Constats :
+  - bloquants : B1, le critère de sortie 9.6 n'est pas constaté ; B2, son énoncé suppose
+    l'assistant de 9.4, qui n'existe pas ;
+  - importants : I1, le journal de session n'a ni les tests ni l'effet sur les performances
+    (seulement les budgets) ; I2, l'agent ne nomme ni ne confirme les composants (Q6 (a)) ;
+    I3, ni `query_graph` ni `get_component` : l'agent ne lit pas le graphe réel par MCP ; I4,
+    des tests des cinq secondes manquent (tableau blanc, performances, écrans de la Phase 9) ;
+    I5, la section Phase 9 de ce fichier (statut, écarts, décisions), corrigé le 2026-10-22 ;
+  - mineurs : état des tickets réduit à « fermé » (ADR 0056) ; « Lancer les tests » sans
+    commande de palette ; inventaire sans vue dans l'IDE ; `getrandom` non consigné (corrigé) ;
+    README de l'extension et CHANGELOG en anglais ; T-12 et T-53 encore ouvertes ; Journal
+    arrêté au 2026-10-21 ; ADR 0061 à 0072 « Proposé » ; `.timonier/intent.json` non suivi par
+    git (il est à toi).
+
+  Tes réponses (Q98, 2026-10-22) : le critère de 9.6 devient un nouveau projet créé par toi et
+  configuré par « Set up » (B2) ; les tests et l'effet sur les performances dans le journal de
+  session passent à la feuille de route (I1, écart) ; la lecture du graphe par MCP et les noms,
+  résumés et rôles proposés par l'agent vont en Phase 11, tâche 11.10 (I2, I3) ; les tests des
+  cinq secondes manquants sont un écart (I4). « Lancer les tests » a désormais sa commande de
+  palette (`timonier.runTests`). La relecture sera refaite après 9.6.
+
+  Seconde relecture (2026-10-22), après 9.6 : **prête**. B1 et B2 levés, écarts de Q98 consignés,
+  lint, typecheck et les 101 tests de l'extension verts. Restent, non bloquants : T-12 et T-53
+  ouvertes ; ADR 0055 à 0072 « Proposé » jusqu'à ta validation ; état des tickets réduit à
+  « fermé » ; inventaire sans vue dans l'IDE ; README de l'extension et CHANGELOG en anglais ;
+  `.timonier/intent.json` non suivi par git (à toi) ; le mini-jeu de 9.6 non inspecté.
+- 9.6 Critère de sortie du MVP selon la spec : un projet réel, nouveau (Q9), créé par toi avec
+  son générateur et configuré par « Set up » (Q98 ; 9.4 fermée sans assistant), piloté de bout en
+  bout
   sans lire le code ligne à ligne — critère : constaté avec toi.
+
+  Fait (2026-10-22), constaté par toi : tu as créé un mini-jeu, l'as configuré avec Timonier et
+  fait développer de bout en bout par un agent ; « tout s'est bien passé ». Je n'ai pas inspecté
+  ce projet (son dossier n'a pas été trouvé).
 - T-126 (ajoutée le 2026-10-22, à la demande de l'humain, après son essai sous Windows) : lancer
   les premiers tests depuis le panneau Performances. Sans run, le panneau offre « Lancer les
   tests » ; l'extension montre dans une fenêtre les commandes de `.timonier/tests.json`, et le clic
@@ -3783,7 +3829,7 @@ Statut : à faire
   les tests Rust et les tests d'intégration de l'extension passent, et un `.vsix` win32-x64
   configure un projet et montre sa carte.
 
-  En cours (2026-10-21), ADR 0060 :
+  Fait (2026-10-22), ADR 0060 :
   - named pipe `\\.\pipe\timonier-<hash>` (`transport.rs` du démon, le client Rust, le proxy MCP,
     l'extension), réessayé 5 s le temps que le démon le crée ; `%LOCALAPPDATA%\timonier\run` ;
     `%USERPROFILE%` n'est pas un projet ; lancement détaché sans console ; Ctrl-C ;
@@ -3852,17 +3898,30 @@ Statut : à faire
     français, tests d'accessibilité verts (191) ;
   - Q93 : le rôle `project` en turquoise (`--tim-role-project`), bord de 2 px ; les 191 tests
     d'accessibilité verts dans les six thèmes ;
-  - reste le critère : l'extension installée depuis la Marketplace configure un projet et montre
-    sa carte, sans rien installer à part.
+  - critère constaté par toi le 2026-10-22 : l'extension installée depuis la Marketplace
+    configure un projet et montre sa carte, sans rien installer à part.
 
-Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de l'IA).
-Écarts : —
+Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 0058 (coût de
+l'IA), 0059 (le programme dans le paquet), 0060 (Windows), 0072 (rôles, Q91) ; réponses Q91 à
+Q93 (rôles, part du temps, couleur des projets), Q97 (9.2 fermée sur les tests) et Q98 (suites
+de la relecture 9.5).
+Écarts :
+- 9.2 : le scénario « Solo discipliné » n'a pas été joué sur un vrai dépôt GitHub (Q97) ;
+- 9.4 : aucun assistant de VSCode ne lance le générateur officiel ; créer le projet reste le
+  geste du développeur (fermée à ta décision) ;
+- 9.9 : sous Windows, la durée réelle seulement, ni CPU ni mémoire (ADR 0060) ;
+- 9.5 : le journal de session montre les budgets dépassés, ni les tests ni l'effet sur les
+  performances (I1, feuille de route) ; tests des cinq secondes non faits pour le tableau blanc,
+  les vues de performances et les écrans de la Phase 9 (I4) ;
+- 9.7 : la Marketplace n'a gardé que le premier paquet de la 0.1.0 ; les cinq autres renvoyés
+  un par un, et `release.yml` attend désormais chaque plateforme.
 
 ---
 
 ## Phase 10 — Langages
 
-Statut : fait le 2026-10-22, les treize langages (Q86 ; Q88 : avant la publication 9.7)
+Statut : validée par toi le 2026-10-22 avec la Phase 9 (ADR 0061 à 0071 acceptées) ; fait le
+2026-10-22, les treize langages (Q86 ; Q88 : avant la publication 9.7)
 
 Chaque tâche ajoute un pack complet, au niveau de Rust et TypeScript (skill `language-pack`) :
 grammaire tree-sitter vérifiée ; définitions, imports et références ; noms qualifiés et corps
@@ -4181,6 +4240,69 @@ application RealWorld de chaque langage (2026-10-22) :
 
 ---
 
+## Phase 11 — Une carte fiable
+
+Statut : planifiée le 2026-10-22 (Q94 à Q97 répondues), après la fin de la Phase 9
+
+Recentrage décidé par l'humain le 2026-10-22 : l'architecture et les performances d'abord ; une
+carte juste avant d'être riche. Le reste du MVP (suivi, inventaire, processus, coût) est gardé
+tel quel. Ordre : la fin de la Phase 9 d'abord (9.7, 9.4, 9.2, 9.5, 9.6), puis cette phase.
+
+Faits vérifiés le 2026-10-22 (voir « Dépendances vérifiées ») : la crate `scip` 0.10.0
+(Apache-2.0, dépend de `protobuf` =3.7.2, MIT) lit un `index.scip` en entier en mémoire ; aucun
+indexeur n'est incrémental, chaque passage réécrit l'index ; scip-java compile tout le projet,
+scip-clang demande `compile_commands.json` et un build fait, rust-analyzer compile les scripts de
+build et les macros ; Scala n'a plus d'indexeur (retiré de scip-java le 2026-05-27), Swift n'en a
+pas de fiable, PHP n'a que scip-php 0.0.2 (2023).
+
+- 11.1 Mesurer d'abord ce que vaut la carte d'aujourd'hui — critère : sur six projets réels
+  (Rust, TypeScript, Python, Go, Java, C#), la précision et le rappel des liens tree-sitter face
+  à l'index SCIP du même commit, par langage, consignés ici. C'est la référence qui dira si SCIP
+  et l'affichage de la certitude améliorent quelque chose, et de combien.
+- 11.2 ADR de l'intégration SCIP — critère : ADR acceptée qui fixe : quand (au commit, en tâche
+  de fond de basse priorité, annulable, avec un délai maximal) ; quels indexeurs par langage,
+  déclarés dans les packs (`[scip]` : commande, prérequis, installation) ; l'identité (Q95) ; la
+  part de la fusion (ADR 0009 : Scip > Lsp > Manifest > TreeSitter) ; la mémoire (un index décodé
+  en entier) ; ce qui se passe quand l'indexeur manque ou échoue (la carte reste celle de
+  tree-sitter et du LSP, et le dit).
+- 11.3 Lire un index SCIP — critère : `timonier-index` transforme un `index.scip` en
+  observations `Scip` (appels et références symbole → symbole, `Implements`, `Inherits`),
+  ancrées sur le contenu indexé (ADR 0009) ; les deux formes de plage (`range` et
+  `typed_range`) ; tests sur des index produits par trois indexeurs.
+- 11.4 Lancer les indexeurs — critère : au commit, le démon lance l'indexeur de chaque langage
+  présent, sans bloquer la carte ; `doctor` dit lesquels manquent ; l'installation suit Q94 ;
+  temps et mémoire mesurés sur les six projets de 11.1, consignés ici.
+- 11.5 Le degré de certitude sur la carte — critère : chaque boîte et chaque lien montrent la
+  part de leurs liens confirmés (manifeste, LSP, SCIP), et la carte entière dit sa part
+  confirmée ; jamais par la couleur seule ; contraste AA dans les six thèmes ; test des cinq
+  secondes.
+- 11.6 Renommer une boîte — critère : F2, double clic ou commande renomment une boîte ; le nom
+  tient à travers réindexations et commits dans `.timonier/names.json` (Q96), le rôle aussi ;
+  un outil MCP permet à l'agent de proposer un nom, que le nom du développeur emporte
+  (Q6).
+- 11.7 Chaque langage au même endroit (T-133) — critère : ajouter un langage ne touche plus ni
+  le démon, ni le CLI, ni le cœur ; aucun changement visible ; toute la suite verte.
+- 11.10 L'agent lit et enrichit la carte (relecture 9.5, I2 et I3 ; Q6 (a)) — critère : les
+  outils MCP `query_graph` et `get_component` donnent à l'agent le graphe réel que voit le
+  développeur ; l'agent propose noms, résumés et rôles des composants par un outil structuré,
+  que le choix du développeur emporte (11.6) ; tests d'intégration MCP → démon.
+- 11.8 Mesurer de nouveau (11.1) avec SCIP — critère : les mêmes six projets, la part confirmée
+  des liens avant et après, consignée ici et dans le README.
+- 11.9 Relecture de la phase par `phase-reviewer` — critère : verdict « prête ».
+
+Questions (répondues le 2026-10-22) :
+
+- **Q94 — Installer les indexeurs SCIP** — ✅ **comme les lanceurs de tests** : Timonier montre
+  les commandes d'installation, le clic les approuve pour ce poste (Q84).
+- **Q95 — L'identité des symboles** — ✅ **garder les identifiants `<langage>:<nom qualifié>`**
+  et rattacher chaque occurrence SCIP au symbole qui occupe sa plage. Écart assumé à la spec
+  (« le symbole SCIP quand il existe »), pour que l'historique reste continu.
+- **Q96 — Les noms donnés à la main** — ✅ **versionnés** dans `.timonier/names.json`, partagés
+  par git comme le tableau blanc ; le **rôle** d'une boîte se change aussi à la main.
+- **Q97 — 9.2 (T-104)** — ✅ **fermée sur les tests actuels** : le scénario « Solo discipliné »
+  passe de bout en bout avec un faux `gh` et un dépôt distant local ; l'essai sur GitHub réel
+  reste un écart noté.
+
 ## Dépendances vérifiées
 
 Vérifiées le 2026-10-14 sur crates.io, le registre npm et les dépôts officiels. Revérifier
@@ -4189,6 +4311,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | Paquet | Version | Licence | Remarque |
 | ------ | ------- | ------- | -------- |
 | tokio | 1.53.3 | MIT | |
+| getrandom | 0.4.3 | MIT OR Apache-2.0 | 9.9 : le jeton aléatoire de chaque run (`runs.rs`) ; vérifiée le 2026-10-22 |
 | thiserror / anyhow | 2.0.21 / 1.0.104 | MIT OR Apache-2.0 | |
 | tracing / tracing-subscriber | 0.1.44 / 0.3.23 | MIT | |
 | tracing-opentelemetry | 0.34.0 | MIT | Va avec opentelemetry 0.33 |
@@ -4267,6 +4390,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | @types/node / @types/react / @types/react-dom / @types/mocha | 24.19.2 / 19.3.0 / 19.3.0 / 10.0.10 | MIT | `@types/node` 24 = Node 24.21 de VSCode 1.141 |
 | actions/checkout / setup-node / upload-artifact | v7.0.1 / v7.1.0 / v7.0.2 | MIT | Actions GitHub officielles, par tag majeur |
 | Swatinem/rust-cache | v2.9.2 (`6323deb`) | LGPL-3.0 | Action tierce, épinglée par SHA |
+| scip (crate, Phase 11) | 0.10.0 | Apache-2.0 | vérifiée le 2026-10-22 ; dépend de `protobuf` =3.7.2 (MIT, rust-protobuf, pas le `protobuf` 4.x de Google) ; pas de lecture en flux |
+| Indexeurs SCIP (Phase 11) | rust-analyzer 2026-10-19 ; scip-typescript 0.5.2 ; scip-python 0.6.8 ; scip-go 0.2.9 ; scip-java 0.13.2 ; scip-clang 0.4.1 ; scip-dotnet 0.2.16 ; scip-php 0.0.2 | MIT OR Apache-2.0 ; Apache-2.0 ; MIT ; Apache-2.0 ; Apache-2.0 ; Apache-2.0 ; Apache-2.0 ; MIT | vérifiés le 2026-10-22, à revérifier avant de figer ; Scala sans indexeur depuis le 2026-05-27, Swift sans indexeur fiable |
 
 Toolchain : Rust stable 1.99.1 (installée en local le 2026-10-16 ; 1.96 reste pour la MSRV), édition 2024 stable depuis 1.85 ;
 Node 24 LTS (26 devient LTS le 2026-10-28) ; VSCode 1.142.0 pour les tests d'intégration et la
@@ -4555,3 +4680,15 @@ capture des thèmes.
   fichier Lua) : la carte disait « aucun fichier source qu'il sait lire pour l'instant », comme
   s'il fallait attendre. Elle dit désormais quels langages Timonier lit, et que la carte
   apparaît dès qu'il en trouve.
+- 2026-10-22 — Phases 9 et 10 :
+  - treize langages (Phase 10), Windows (9.9), publication 0.1.0, 0.1.1, 0.1.2 sur six plateformes
+    (9.7, la Marketplace ne garde qu'un paquet à la fois pour une extension neuve) ;
+  - trouvés par l'humain à l'usage : un projet Python sans manifeste, « Set up » qui ouvrait un
+    terminal, une session écrite dans le mauvais dossier, des rôles trompeurs sur un dossier de
+    plusieurs dépôts (Q91, ADR 0072), corrigés ;
+  - la part du temps de chaque boîte sur la carte (Q92), les projets en turquoise (Q93) ;
+  - recentrage sur l'architecture et les performances, Phase 11 « Une carte fiable » planifiée
+    (Q94 à Q97) ; 9.2 et 9.4 fermées à ta décision ; 9.6 constatée par toi ; relecture 9.5
+    « pas prête » puis « prête » (Q98).
+- 2026-10-22 — Phases 9 et 10 validées par toi (« oui je valide ») : ADR 0055 à 0072 acceptées.
+  Prochaine : Phase 11, « Une carte fiable », à ton signal.

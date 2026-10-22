@@ -1,6 +1,6 @@
 # 0059 — Le programme `timonier` livré dans l'extension, et dans le PATH
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : Q58, Q59, Q12 ; ADR 0019 (lancement du démon), 0033 (init), 0057 (dossier de données) ;

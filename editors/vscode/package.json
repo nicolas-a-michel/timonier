@@ -99,6 +99,11 @@
         "category": "Timonier"
       },
       {
+        "command": "timonier.runTests",
+        "title": "%command.runTests.title%",
+        "category": "Timonier"
+      },
+      {
         "command": "timonier.openWorkflow",
         "title": "%command.openWorkflow.title%",
         "category": "Timonier"

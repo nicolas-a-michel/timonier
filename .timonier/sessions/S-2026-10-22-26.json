@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-26",
+  "agent": "claude-code",
+  "objective": "Record 9.4 as done at the human's decision: a new project created by hand and set up by Timonier works; the assistant itself is not built.",
+  "tasks": [
+    "T-106"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T18:02:00Z",
+  "ended_at": "2026-10-22T18:02:00Z",
+  "snapshots": {
+    "start": 165,
+    "end": 166
+  },
+  "summary": "T-106 (9.4) done at the human's decision: a new project created by hand and set up with Timonier works. Deviation recorded in PLAN.md: no assistant in VSCode runs the official generator. Left in Phase 9: 9.7 criterion, 9.5 review, 9.6 exit criterion.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 1,
+    "input": 2,
+    "output": 1217,
+    "cache_read": 438401,
+    "cache_creation": 715,
+    "cost_usd_micros": 117748
+  }
+}

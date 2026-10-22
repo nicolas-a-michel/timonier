@@ -1,6 +1,6 @@
 # 0072 — Les rôles : un dossier de plusieurs projets, le vote des bibliothèques, les outils
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-22
 - Phase : 9
 - Liens : Q91 ; ADR 0016 (composants), 0017 (rôles) ; tâche PLAN.md 9.7

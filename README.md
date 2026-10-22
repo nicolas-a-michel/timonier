@@ -151,10 +151,12 @@ end. Timonier steers its own development.
 
 Phase 10, done before the pre-release, took Timonier from two languages to thirteen: each one
 was checked on a real project, from the map to the first trace of its tests. Timonier runs on
-Linux, macOS and Windows; its tests pass there in CI, and a first try on a real Windows machine
-is under way. Nothing is published on crates.io, npm or the Marketplace yet. Later versions
-add a skills manager, SCIP indexing, several agents working together, and team use: see the
-[roadmap](ROADMAP.md).
+Linux, macOS and Windows; its tests pass there in CI, and on a new Windows machine. The
+extension is published as a pre-release on the VSCode Marketplace, for the six platforms
+(Linux, macOS and Windows, x64 and arm64). What comes next is about the two things Timonier
+cares most for, the architecture and the performance. First a map you can trust (SCIP, how sure
+each link is, renaming boxes), then memory per component and deeper profiling. The
+[roadmap](ROADMAP.md) gives the order.
 
 ## Try it
 

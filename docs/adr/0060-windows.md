@@ -1,6 +1,6 @@
 # 0060 — Timonier sous Windows
 
-- Statut : Proposé
+- Statut : Accepté (2026-10-22, Phase 9 validée)
 - Date : 2026-10-21
 - Phase : 9
 - Liens : spec « Technical decisions » (protocole démon ↔ extension) ; Q87 ; ADR 0019 (socket),

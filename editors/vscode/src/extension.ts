@@ -405,6 +405,8 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         }
       }),
     ),
+    // The Performances panel's « Run the tests », from the command palette too (review 9.5, m2).
+    vscode.commands.registerCommand("timonier.runTests", () => runTestsNow(root)),
     // The Performances panel (ADR 0051).
     vscode.commands.registerCommand("timonier.openPerformance", () => {
       try {
