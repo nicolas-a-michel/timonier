@@ -48,7 +48,8 @@ describe("paths", () => {
 });
 
 describe("a file named by the webview", () => {
-  const root = path.join(path.sep, "work", "project");
+  // Resolved: on Windows it takes the drive letter, as `path.resolve` gives it (T-125).
+  const root = path.resolve(path.sep, "work", "project");
 
   it("resolves inside the root", () => {
     assert.equal(resolveInside(root, "src/a.ts"), path.join(root, "src", "a.ts"));

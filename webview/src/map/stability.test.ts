@@ -80,5 +80,6 @@ describe("layout stability", () => {
     }
     console.log(`${before.items.length} items, first layout ${settled.toFixed(0)} ms\n${report.join("\n")}`);
     for (const moved of kept) expect(moved).toBeLessThan(THRESHOLD);
-  });
+    // A dozen layouts of elkjs: more than vitest's 5 s on a slower runner (Windows CI).
+  }, 30_000);
 });

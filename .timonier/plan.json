@@ -1936,7 +1936,8 @@
           "criterion": "Sur un runner Windows de la CI, les tests Rust et les tests d'intégration de l'extension passent, et un .vsix win32-x64 configure un projet et montre sa carte.",
           "status": "in_progress",
           "sessions": [
-            "S-2026-10-21-33"
+            "S-2026-10-21-33",
+            "S-2026-10-21-34"
           ],
           "created": {
             "at": "2026-10-21T19:20:55Z",

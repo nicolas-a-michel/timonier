@@ -2,7 +2,9 @@
 //! extension has its own, on vscode-jsonrpc.
 
 use std::collections::VecDeque;
-use std::io::{ErrorKind, Read, Write};
+use std::io::ErrorKind;
+#[cfg(unix)]
+use std::io::{Read, Write};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -233,13 +235,13 @@ impl Stream {
     }
 }
 
-/// A named pipe opened as a file has no read timeout: a thread reads it, and the client waits
-/// on what it hands over.
+/// A named pipe, through tokio's overlapped I/O on a runtime of the client's own: a pipe opened
+/// as a plain file serialises its reads and writes, and a read waiting for the daemon would hold
+/// back the request it waits for (T-125).
 #[cfg(windows)]
 struct Stream {
-    pipe: std::fs::File,
-    chunks: std::sync::mpsc::Receiver<std::io::Result<Vec<u8>>>,
-    pending: Vec<u8>,
+    runtime: tokio::runtime::Runtime,
+    pipe: tokio::net::windows::named_pipe::NamedPipeClient,
 }
 
 #[cfg(windows)]
@@ -249,13 +251,16 @@ impl Stream {
         const PIPE_BUSY: i32 = 231;
         /// `ERROR_FILE_NOT_FOUND`: the daemon announced itself and makes its pipe right after.
         const NOT_YET: i32 = 2;
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
+            .enable_time()
+            .build()?;
         let deadline = Instant::now() + Duration::from_secs(5);
         let pipe = loop {
-            match std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(socket)
-            {
+            let opened = runtime.block_on(async {
+                tokio::net::windows::named_pipe::ClientOptions::new().open(socket)
+            });
+            match opened {
                 Err(e)
                     if matches!(e.raw_os_error(), Some(PIPE_BUSY | NOT_YET))
                         && Instant::now() < deadline =>
@@ -265,44 +270,19 @@ impl Stream {
                 opened => break opened?,
             }
         };
-        let mut reader = pipe.try_clone()?;
-        let (send, chunks) = std::sync::mpsc::channel();
-        std::thread::Builder::new()
-            .name("timonier-client".into())
-            .spawn(move || {
-                let mut buffer = vec![0; 64 << 10];
-                loop {
-                    let read = reader.read(&mut buffer).map(|n| buffer[..n].to_vec());
-                    let end = !matches!(&read, Ok(chunk) if !chunk.is_empty());
-                    if send.send(read).is_err() || end {
-                        return;
-                    }
-                }
-            })?;
-        Ok(Self {
-            pipe,
-            chunks,
-            pending: Vec::new(),
-        })
+        Ok(Self { runtime, pipe })
     }
 
     fn write_all(&mut self, bytes: &[u8]) -> std::io::Result<()> {
-        self.pipe.write_all(bytes)
+        use tokio::io::AsyncWriteExt;
+        self.runtime.block_on(self.pipe.write_all(bytes))
     }
 
     fn read_within(&mut self, left: Duration, buffer: &mut [u8]) -> std::io::Result<usize> {
-        if self.pending.is_empty() {
-            match self.chunks.recv_timeout(left) {
-                Ok(chunk) => self.pending = chunk?,
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    return Err(ErrorKind::TimedOut.into());
-                }
-                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Ok(0),
-            }
-        }
-        let n = self.pending.len().min(buffer.len());
-        buffer[..n].copy_from_slice(&self.pending[..n]);
-        self.pending.drain(..n);
-        Ok(n)
+        use tokio::io::AsyncReadExt;
+        let pipe = &mut self.pipe;
+        self.runtime
+            .block_on(async { tokio::time::timeout(left, pipe.read(buffer)).await })
+            .unwrap_or_else(|_| Err(ErrorKind::TimedOut.into()))
     }
 }

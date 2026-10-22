@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "S-2026-10-21-34",
+  "agent": "claude-code",
+  "objective": "9.9 Windows : faire passer la CI sous Windows, lot par lot (fins de ligne, chemins d'init, tests), avec l'accord de pousser chaque correction.",
+  "tasks": [
+    "T-125"
+  ],
+  "status": "open",
+  "started_at": "2026-10-21T20:04:42Z",
+  "snapshots": {
+    "start": 99
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 25,
+    "input": 58,
+    "output": 14379,
+    "cache_read": 15795699,
+    "cache_creation": 21533,
+    "cost_usd_micros": 3619218
+  }
+}

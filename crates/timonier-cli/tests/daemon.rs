@@ -159,6 +159,8 @@ fn exited(child: &mut Child, within: Duration) -> Option<std::process::ExitStatu
 }
 
 #[test]
+// SIGINT through `kill`: Unix.
+#[cfg(unix)]
 fn run_serves_in_the_foreground_until_a_signal() {
     let project = Project::new();
     let mut child = Command::new(cargo_bin("tim"))

@@ -1,4 +1,23 @@
 {
   "version": 1,
-  "items": []
+  "session": "S-2026-10-21-34",
+  "items": [
+    {
+      "id": "D-1",
+      "text": "Lot 1 poussé (ef3736d) : .gitattributes LF, chemins d'init.json en /, --no-fail-fast, test a11y attendant la carte",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Lire la CI de ef3736d et corriger les échecs Windows suivants, jusqu'au vert",
+      "task": "T-125",
+      "status": "open"
+    },
+    {
+      "id": "D-3",
+      "text": "Mettre à jour README.md, README.fr.md et docs/features.md (état au 21 octobre, Windows, coût de l'IA, inventaire, processus)",
+      "status": "done"
+    }
+  ]
 }

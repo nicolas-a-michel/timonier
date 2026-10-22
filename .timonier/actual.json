@@ -1585,6 +1585,14 @@
       "weight": 31
     },
     {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "pkg:cargo/tokio",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 2
+    },
+    {
       "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
       "to": "component:cluster/crates/timonier-core/src/actual.rs",
       "kinds": [
@@ -3005,10 +3013,9 @@
       "from": "component:dir/webview/test",
       "to": "component:dir/webview/test/production",
       "kinds": [
-        "calls",
         "imports"
       ],
-      "weight": 2
+      "weight": 1
     },
     {
       "from": "component:dir/webview/test/a11y",

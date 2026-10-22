@@ -243,6 +243,14 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q88 — Les langages avant la préversion** — ✅ répondu le 2026-10-21 : **la Phase 10 se fait
+avant de publier**. La préversion (9.7) attend Windows (Q87) et les cinq packs de la Phase 10.
+Le dépôt garde ce qu'il faut pour lire ces langages, sans leurs outils : les packs, les
+grammaires tree-sitter comme dépendances Cargo, de petits projets d'exemple pour les tests ;
+jamais un compilateur, un SDK ou un outil de build. La CI installe sur ses runners ceux dont les
+tests ont besoin (Python, Go, JDK, CMake…), et un test qui en demande un absent de la machine se
+passe en le disant.
+
 **Q87 — Windows** (9.7) — ✅ répondu le 2026-10-21 : **avant de publier**. La préversion attend
 que Timonier marche sous Windows : le démon et ses clients sur un named pipe (que la spec
 prévoit : « socket local, Unix ou named pipe »), la mesure des tests, les commandes de test, le
@@ -3771,7 +3779,7 @@ Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 
 
 ## Phase 10 — Langages
 
-Statut : à faire (Q86 ; après la validation de la Phase 9)
+Statut : à faire (Q86 ; Q88 : avant la publication 9.7)
 
 Chaque tâche ajoute un pack complet, au niveau de Rust et TypeScript (skill `language-pack`) :
 grammaire tree-sitter vérifiée ; définitions, imports et références ; noms qualifiés et corps

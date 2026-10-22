@@ -122,6 +122,17 @@
         "crates/timonier-daemon/src/tracking.rs",
         "crates/timonier-daemon/tests/server.rs"
       ]
+    },
+    {
+      "from": 96,
+      "to": 99,
+      "until": {
+        "at": "2026-10-21T20:04:42Z",
+        "session": "S-2026-10-21-34"
+      },
+      "files": [
+        "crates/timonier-cli/src/init/plan.rs"
+      ]
     }
   ]
 }

@@ -31,7 +31,8 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 
 ## Daemon and CLI
 
-- One daemon per project, found through a lock and a Unix socket in a private runtime directory.
+- One daemon per project, found through a lock and a Unix socket in a private runtime directory
+  (a named pipe on Windows). The home folder and `/` are never a project.
 - JSON-RPC 2.0 protocol: views subscribed to by clients, versioned deltas, a full snapshot when a
   client misses one. The daemon stops on its own after 15 minutes without clients.
 - `timonier daemon start | stop | status | run` (also installed as `tim`).
@@ -65,10 +66,11 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
   `package.json`; it writes an initialisation module (`src/timonier_otel.rs`,
   `timonier.otel.ts`) and a smoke test. Timonier instruments itself the same way, behind its own
   `otel` feature (on by default).
-- `timonier test -- <command>` runs the tests and measures them (phase 8, under way): wall
-  time, CPU, peak memory and block I/O of the command and all its processes, and the duration of
-  each test from the runner's JUnit XML. On Linux, a transient systemd user scope gives the
-  memory of the whole process tree and a resource curve; elsewhere, the largest process.
+- `timonier test -- <command>` runs the tests and measures them: wall time, CPU, peak memory
+  and block I/O of the command and all its processes, and the duration of each test from the
+  runner's JUnit XML. On Linux, a transient systemd user scope gives the memory of the whole
+  process tree and a resource curve; on macOS, the largest process; on Windows, the wall time
+  only (CPU and memory « not measured »), and runs are compared on it.
   Without a command, it runs the runners `timonier init` recorded. The tests get
   `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_RESOURCE_ATTRIBUTES` (`timonier.run_id`,
   `timonier.snapshot`), and each test of the JUnit XML becomes a root span of the run. The
@@ -135,6 +137,10 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 
 - Launches the project's daemon, and launches it again if it dies (backoff from 1 s to 30 s).
   Its log is in the « Timonier » output channel.
+- Ships the `timonier` program for its platform (phase 9, under way: one package each for
+  Linux, macOS and Windows, x64 and arm64). « Timonier: Install the Command Line for the
+  Agents », and **Set up** when `timonier` is missing, puts a copy on the agents' PATH
+  (`~/.local/bin`, or the user's PATH on Windows) that follows the extension's updates.
 - **Architecture map**:
   - it opens on a few boxes named by role, each with a title bar in the role's colour.
     Timonier itself fits in six boxes;

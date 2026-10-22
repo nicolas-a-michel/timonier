@@ -7,6 +7,9 @@ reading every line they write. It keeps a live map of your code's architecture, 
 with the architecture you drew, shows what changed since your last review, and gives the agents
 the same plan, todo and constraints you see.
 
+**Languages:** Rust and TypeScript today. JavaScript, Python, Go, Java and C++ are planned next
+(phase 10).
+
 ![The architecture map of Timonier itself: six boxes named by role, with their packages and the dependencies between them](docs/images/map.png)
 
 ## The problem
@@ -69,7 +72,10 @@ missing.
 
 Agents work through Timonier's tools: they open a session for each task, split it into a todo,
 and update the plan as they go. A side panel shows it live, with each session's journal: its
-objective, the components it touched, its summary.
+objective, the components it touched, its summary, and its AI cost: the tokens Claude Code
+reports in its own telemetry while the session was open, the dollars as its estimate.
+`timonier init` turns that telemetry on in `~/.claude/settings.json` when you agree; without it,
+the session says « not measured ».
 
 ![The tracking panel: milestones with progress bars and task states, the open session's todo, and the journal of sessions](docs/images/tracking.png)
 
@@ -82,14 +88,18 @@ what happened since your last review, and where to look first.
 
 `timonier mcp` is an MCP server for coding agents (Claude Code, GitHub Copilot, Cursor, Codex).
 Besides the tracking tools, it gives the agent the whiteboard (with an image of the sketch),
-the drift of the code from it, the performance budgets and their violations, and the
-instrumentation conventions. `timonier init` sets a project up for the agents it finds on the
-machine; `timonier doctor` checks and repairs that setup; `timonier uninit` takes it back.
+the drift of the code from it, the performance budgets and their violations, the
+instrumentation conventions, the technology inventory (licences, duplicates by function, known
+vulnerabilities from OSV.dev) and the project's development process: Solo fast, Solo
+disciplined (an issue, a branch and a pull request per task, through `gh`) or Team. The
+bridge's **Set up** configures the agents you tick; `timonier init` does the same from a
+terminal, `timonier doctor` checks and repairs that setup, and `timonier uninit` takes it back.
 
 ### Performances
 
 `timonier test` runs your tests and measures them: time, CPU, peak memory (of the whole process
-tree on Linux, in a systemd scope; of the largest process elsewhere), the duration of each test,
+tree on Linux, in a systemd scope; of the largest process on macOS; the wall time only on
+Windows), the duration of each test,
 and the OpenTelemetry traces of the code under test, attached to the boxes of the map. The
 map's Performances layer shows the time spent in each box and in what it called, and draws
 links thicker as more calls go through them.
@@ -126,19 +136,21 @@ The full list of what works, with the figures measured on Timonier itself, is in
 - **Tests** send their OpenTelemetry traces to a receiver in the daemon, which attaches each
   span to its node of the graph.
 
-The specification ([docs/spec.md](docs/spec.md)) and the decision records
-([docs/adr/](docs/adr/README.md)) are in French.
+The specification is [docs/spec.md](docs/spec.md); the plan ([PLAN.md](PLAN.md)) and the
+decision records ([docs/adr/](docs/adr/README.md)) are in French.
 
 ## Status
 
-Early development, not released (October 2026). The MVP is planned in nine phases
-([PLAN.md](PLAN.md)): phases 0 to 7 are done, phase 8 (performances) is under way, phase 9 will
-steer a real project end to end. Timonier steers its own development. It runs on Linux and
-macOS; Windows is not supported yet. Nothing is published on crates.io, npm or the VSCode
-Marketplace.
+Early development, not released yet (21 October 2026). The MVP is planned in phases 0 to 9
+([PLAN.md](PLAN.md)): phases 0 to 8 are done. Phase 9, under way, has added the technology
+inventory, the development process and the AI cost; it is porting Timonier to Windows, then
+publishes a pre-release on the VSCode Marketplace, and ends by steering a new project end to
+end. Timonier steers its own development.
 
-Later versions add SCIP indexing, more languages, several agents working together, and team
-use.
+It reads Rust and TypeScript, and runs on Linux and macOS; Windows builds, but its tests have
+not passed yet. Nothing is published on crates.io, npm or the Marketplace. Phase 10 adds
+JavaScript, Python, Go, Java and C++ after the MVP. Later versions add SCIP indexing, several agents working
+together, and team use.
 
 ## Try it
 
@@ -161,6 +173,7 @@ tim init --dry-run   # shows what it would change
 tim init             # --yes to ask nothing
 tim doctor           # checks the setup and repairs it
 tim test             # runs the tests init recorded, and measures them
+tim inventory        # dependencies, licences, duplicates, known vulnerabilities
 ```
 
 ## Develop
