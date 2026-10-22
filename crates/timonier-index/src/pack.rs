@@ -1,7 +1,7 @@
 //! Language packs (ADR 0012): a manifest and tree-sitter queries whose capture names form a
 //! contract. The built-in packs are embedded in the binary.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde::Deserialize;
 use timonier_core::{Language, Role, SymbolKind};
@@ -59,10 +59,22 @@ pub struct Manifest {
     /// What the technology inventory needs of the ecosystem (ADR 0055).
     #[serde(default)]
     pub inventory: InventoryRules,
+    /// Folders never walked, whatever the ignore files say: the ecosystem's installed
+    /// dependencies (`node_modules`), which are packages, not the project's code (T-120).
+    #[serde(default)]
+    pub walk: WalkRules,
 }
 
 /// `[inventory]`: the frameworks among the dependencies, and the precise function of known
 /// packages, by which two dependencies are duplicates (ADR 0055).
+/// `[walk]`: folder names the walk never enters.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WalkRules {
+    #[serde(default)]
+    pub skip: Vec<String>,
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InventoryRules {
@@ -679,7 +691,7 @@ macro_rules! pack_files {
     };
 }
 
-const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
+const BUILTIN: [(&str, &[(&str, &str)]); 3] = [
     pack_files!(
         "rust",
         [
@@ -705,10 +717,22 @@ const BUILTIN: [(&str, &[(&str, &str)]); 2] = [
             "instrumentation/timonier.smoke.test.ts"
         ]
     ),
+    pack_files!(
+        "javascript",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/timonier.otel.mjs",
+            "instrumentation/timonier.smoke.test.mjs"
+        ]
+    ),
 ];
 
 impl Packs {
-    /// The packs embedded in this build: Rust and TypeScript.
+    /// The packs embedded in this build: Rust, TypeScript and JavaScript.
     pub fn builtin() -> Result<Self> {
         let packs = BUILTIN
             .iter()
@@ -771,6 +795,14 @@ impl Packs {
         extensions
     }
 
+    /// The folder names no pack walks into (`[walk] skip`).
+    pub fn skipped(&self) -> BTreeSet<String> {
+        self.packs
+            .iter()
+            .flat_map(|p| p.manifest.walk.skip.iter().cloned())
+            .collect()
+    }
+
     /// Whether some pack reads this file.
     pub fn reads(&self, path: &str) -> bool {
         self.for_path(path).is_some()
@@ -821,7 +853,7 @@ mod tests {
             typescript,
             ["npm workspaces", "vitest", "node:test", "jest"]
         );
-        for name in ["rust", "typescript"] {
+        for name in ["rust", "typescript", "javascript"] {
             let conventions = &pack(name).conventions;
             assert!(conventions["instrumentation.md"].contains("code.function.name"));
         }
@@ -831,13 +863,17 @@ mod tests {
     fn builtin_packs_load_and_compile_for_every_grammar() {
         let packs = Packs::builtin().unwrap();
         let languages: Vec<_> = packs.iter().map(|p| p.language.as_str()).collect();
-        assert_eq!(languages, ["rust", "typescript"]);
+        assert_eq!(languages, ["rust", "typescript", "javascript"]);
         for (path, language, grammar) in [
             ("src/lib.rs", "rust", "rust"),
             ("src/App.tsx", "typescript", "tsx"),
             ("src/host.ts", "typescript", "typescript"),
             ("types/vscode.d.ts", "typescript", "typescript"),
             ("a.mts", "typescript", "typescript"),
+            ("src/x.js", "javascript", "javascript"),
+            ("src/App.jsx", "javascript", "javascript"),
+            ("eslint.config.mjs", "javascript", "javascript"),
+            ("webpack.config.cjs", "javascript", "javascript"),
         ] {
             let (pack, g) = packs.for_path(path).unwrap();
             assert_eq!(
@@ -846,7 +882,7 @@ mod tests {
                 "{path}"
             );
         }
-        for path in ["README.md", "Makefile", "src/x.js", ".rs/x"] {
+        for path in ["README.md", "Makefile", "src/x.py", ".rs/x"] {
             assert!(!packs.reads(path), "{path}");
         }
         for pack in packs.iter() {

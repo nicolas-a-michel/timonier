@@ -416,3 +416,106 @@ fn a_whole_indexing_gives_up_when_cancelled() {
         Err(timonier_index::Error::Cancelled)
     ));
 }
+
+/// T-120: a JavaScript package, ES modules and CommonJS, with a TypeScript file among its
+/// modules: its files link to one another, its symbols carry the `javascript` language, and
+/// its runtime dependency is a package.
+#[test]
+fn a_javascript_package_links_its_modules() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(
+        root,
+        "package.json",
+        "{\"name\": \"shop\", \"dependencies\": {\"express\": \"^5.0.0\"}}\n",
+    );
+    write(
+        root,
+        "src/server.js",
+        "import express from \"express\";\nimport { total } from \"./cart.mjs\";\nconst { price } = require(\"./prices\");\nexport function start() {\n  express().listen(total(price(1)));\n}\n",
+    );
+    write(
+        root,
+        "src/cart.mjs",
+        "export function total(x) {\n  return x;\n}\n",
+    );
+    write(
+        root,
+        "src/prices/index.js",
+        "exports.price = (n) => n * 2;\nfunction price(n) {\n  return n;\n}\n",
+    );
+    write(root, "src/money.ts", "export const euro = 1;\n");
+    write(
+        root,
+        "src/ui/App.jsx",
+        "import { euro } from \"../money\";\nexport function App() {\n  return <span>{euro}</span>;\n}\n",
+    );
+    let mut indexer = indexer(root);
+    let batch = indexer.index_all(&HashMap::new(), &[], None).unwrap();
+    let edges = |scope: &str| -> Vec<String> {
+        update(&batch, scope)
+            .observations
+            .as_ref()
+            .unwrap()
+            .observations
+            .iter()
+            .map(|o| format!("{} {}", o.kind, o.dst))
+            .collect()
+    };
+    let server = edges("file:src/server.js");
+    for edge in [
+        "imports file:src/cart.mjs",
+        "calls file:src/cart.mjs",
+        "imports file:src/prices/index.js",
+    ] {
+        assert!(server.contains(&edge.to_owned()), "{edge}: {server:?}");
+    }
+    let app = edges("file:src/ui/App.jsx");
+    assert!(
+        app.contains(&"imports file:src/money.ts".to_owned()),
+        "{app:?}"
+    );
+    let symbols: Vec<String> = update(&batch, "file:src/server.js")
+        .nodes
+        .iter()
+        .flatten()
+        .map(|n| n.id.as_str().to_owned())
+        .collect();
+    assert_eq!(symbols, ["javascript:shop/src/server#start"]);
+    let structure: Vec<String> = update(&batch, "structure")
+        .nodes
+        .iter()
+        .flatten()
+        .map(|n| n.id.as_str().to_owned())
+        .filter(|id| id.starts_with("pkg:"))
+        .collect();
+    assert!(
+        structure.contains(&"pkg:npm/express".to_owned()),
+        "{structure:?}"
+    );
+}
+
+/// T-120: `node_modules` is never walked, even in a project that does not ignore it.
+#[test]
+fn installed_npm_packages_are_never_indexed() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(root, "package.json", "{\"name\": \"app\"}\n");
+    write(root, "src/a.js", "export function a() {}\n");
+    write(
+        root,
+        "node_modules/left-pad/index.js",
+        "module.exports = function () {};\n",
+    );
+    write(
+        root,
+        "packages/x/node_modules/y/index.ts",
+        "export const y = 1;\n",
+    );
+    let batch = indexer(root).index_all(&HashMap::new(), &[], None).unwrap();
+    let files: Vec<String> = scopes(&batch)
+        .into_iter()
+        .filter(|s| s.starts_with("file:"))
+        .collect();
+    assert_eq!(files, ["file:src/a.js"]);
+}

@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-2",
+  "agent": "claude-code",
+  "objective": "10.1 Pack JavaScript (.js, .mjs, .cjs, .jsx) : grammaire, définitions, imports, références, noms qualifiés, rôles, npm, inventaire, tests en JUnit, SDK OpenTelemetry et test de fumée.",
+  "tasks": [
+    "T-120"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T05:36:02Z",
+  "ended_at": "2026-10-22T05:52:28Z",
+  "snapshots": {
+    "start": 108,
+    "end": 109
+  },
+  "summary": "10.1 JavaScript done (ADR 0061): pack javascript (tree-sitter-javascript 0.25.0), ES and CommonJS imports, JSX, npm resolution to JS files, names without extension; [walk] skip = node_modules for the npm packs; quotes normalised in fingerprints; init takes the runner of the detected language only; timonier test creates the JUnit folder and reads node --test's JUnit; JavaScript in the instrumentation gaps; map empty state, READMEs, features, skill updated. Criterion verified on a real JS workspace. Not committed. Next: 10.2 Python.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Pack JavaScript, résolution, [walk] skip, guillemets, lanceur par langage, JUnit de node --test, critère sur un vrai projet, ADR 0061, docs",
+      "task": "T-120",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 15,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-javascript",
+        "name": "tree-sitter-javascript",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 80,
+    "input": 162,
+    "output": 53039,
+    "cache_read": 61394646,
+    "cache_creation": 794126,
+    "cost_usd_micros": 19693367
+  }
+}

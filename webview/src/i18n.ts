@@ -171,9 +171,9 @@ export const messages: Record<Locale, Messages> = {
     progressFinding: "Finding the source files…",
     progressReading: (done, total) => `Files read: ${done} of ${total}`,
     progressWriting: "All files read; writing the graph…",
-    indexingTitle: "No Rust or TypeScript file here",
+    indexingTitle: "No Rust, TypeScript or JavaScript file here",
     indexingText:
-      "Timonier reads Rust and TypeScript today. When this folder has some, the map appears as soon as they are indexed; other languages will come with their packs.",
+      "Timonier reads Rust, TypeScript and JavaScript today. When this folder has some, the map appears as soon as they are indexed; other languages will come with their packs.",
     roles: {
       entry_point: "Entry point",
       data_model: "Data model",
@@ -313,9 +313,9 @@ export const messages: Record<Locale, Messages> = {
     progressFinding: "Recherche des fichiers source…",
     progressReading: (done, total) => `Fichiers lus : ${done} sur ${total}`,
     progressWriting: "Tous les fichiers sont lus ; écriture du graphe…",
-    indexingTitle: "Aucun fichier Rust ou TypeScript ici",
+    indexingTitle: "Aucun fichier Rust, TypeScript ou JavaScript ici",
     indexingText:
-      "Timonier lit aujourd'hui le Rust et le TypeScript. Quand ce dossier en contient, la carte apparaît dès qu'ils sont indexés ; les autres langages viendront avec leurs packs.",
+      "Timonier lit aujourd'hui le Rust, le TypeScript et le JavaScript. Quand ce dossier en contient, la carte apparaît dès qu'ils sont indexés ; les autres langages viendront avec leurs packs.",
     roles: {
       entry_point: "Point d'entrée",
       data_model: "Modèle de données",

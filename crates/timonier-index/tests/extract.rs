@@ -432,3 +432,85 @@ fn a_path_is_asked_about_at_its_name() {
     assert!(named(Implements, &["crate", "a", "Long"]).starts_with("Long<Q, Q>"));
     assert!(named(References, &["Option"]).starts_with("Option<Q>"));
 }
+
+const JS: &str = r#"import { a, b as c } from "./host.js";
+import * as ns from "../x";
+import React from "react";
+export { z } from "./z.mjs";
+const { readFile, join: j } = require("node:fs");
+const lodash = require("lodash");
+
+export const K = 1;
+const f = (x) => x + 1;
+var legacy = function (y) {
+  return y;
+};
+
+export function g(a) {
+  h(a);
+  ns.k();
+  new Foo();
+}
+
+export default class Foo extends Bar {
+  x = 1;
+  m(a) {
+    return this.n(a);
+  }
+}
+
+function* gen() {
+  yield 1;
+}
+
+export function App() {
+  return <Panel title="t" />;
+}
+"#;
+
+/// T-120: ES modules and CommonJS, classes, fields, generators and JSX, in one JavaScript file.
+#[test]
+fn javascript_fixture() {
+    insta::assert_snapshot!(render(&extract("src/host.jsx", JS)));
+}
+
+/// T-120: a reformatting (quotes, semicolons, line breaks) keeps every identity, signature and
+/// body hash of a JavaScript file.
+#[test]
+fn reformatting_javascript_changes_no_identity() {
+    let reformatted = JS
+        .replace('"', "'")
+        .replace(";\n", "\n")
+        .replace("export function g(a) {", "export function g(\n  a,\n) {");
+    let identity = |facts: &FileFacts| -> Vec<(String, String, String)> {
+        facts
+            .symbols
+            .iter()
+            .map(|s| (s.path.join("/"), s.signature.clone(), s.body_hash.to_hex()))
+            .collect()
+    };
+    assert_eq!(
+        identity(&extract("src/host.js", &reformatted)),
+        identity(&extract("src/host.js", JS))
+    );
+}
+
+/// T-120: a JavaScript server is seen in the code, as a TypeScript one is.
+#[test]
+fn a_javascript_server_is_seen_in_the_code() {
+    let servers = |source: &str| -> u32 {
+        extract("src/server.js", source)
+            .signals
+            .iter()
+            .filter(|s| s.role == timonier_core::Role::EntryPoint)
+            .map(|s| s.count)
+            .sum()
+    };
+    assert_eq!(
+        servers("const net = require(\"node:net\");\nnet.connect(1);\n"),
+        0
+    );
+    assert!(
+        servers("const http = require(\"node:http\");\nhttp.createServer().listen(8080);\n") > 0
+    );
+}

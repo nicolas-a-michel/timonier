@@ -65,3 +65,4 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0058 | [Le coût de l'IA : la télémétrie de Claude Code, reçue sur un port de la machine](0058-cout-de-l-ia.md) | Proposé | 9 |
 | 0059 | [Le programme `timonier` livré dans l'extension, et dans le PATH](0059-binaire-embarque.md) | Proposé | 9 |
 | 0060 | [Timonier sous Windows](0060-windows.md) | Proposé | 9 |
+| 0061 | [Le pack JavaScript, et ce que tous les packs ne parcourent pas](0061-pack-javascript.md) | Proposé | 10 |

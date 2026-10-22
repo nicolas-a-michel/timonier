@@ -1,0 +1,27 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/host.jsx\", JS))"
+---
+constant lodash                                   under -                        at 5:6  `lodash =`  #e2ab703b
+constant K                                        under -                        at 7:13  `K =`  #a2a6f221
+function f                                        under -                        at 8:6  `f = (x) =>`  #ed8fb7e7
+function legacy                                   under -                        at 9:4  `legacy = function(y)`  #2697e90a
+function g                                        under -                        at 13:7  `function g(a)`  #fd43c60c
+type     Foo                                      under -                        at 19:15  `class Foo extends Bar`  #91f30afb
+field    Foo/x                                    under Foo                      at 20:2  `x = 1`  #d0f5679b
+method   Foo/m                                    under Foo                      at 21:2  `m(a)`  #878b32da
+function gen                                      under -                        at 26:0  `function * gen()`  #96fe67f4
+function App                                      under -                        at 30:7  `function App()`  #cddb737c
+import   ./host.js binds ["a", "c"]
+import   ../x binds ["ns"]
+import   react binds ["React"]
+import   ./z.mjs binds ["z"]
+import   node:fs binds ["readFile", "j"]
+import   lodash binds ["lodash"]
+calls Foo ×1 at 16:6
+calls Panel ×1 at 31:10
+calls h ×1 at 14:2
+calls ns·k ×1 at 15:5 on a receiver
+calls this·n ×1 at 22:16 on a receiver
+inherits Bar ×1 at 19:33 from Foo
+errors   false

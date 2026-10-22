@@ -1,0 +1,172 @@
+# JavaScript language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "javascript"
+version = "1.0.0"
+ecosystem = "npm"
+
+# JSX is part of this grammar: `.jsx` and `.js` alike (verified on 2026-10-22).
+[[grammars]]
+name = "javascript"
+crate = "tree-sitter-javascript"
+version = "0.25.0"
+license = "MIT"
+extensions = ["js", "mjs", "cjs", "jsx"]
+
+# npm's installed packages are dependencies, never the project's code, ignored or not.
+[walk]
+skip = ["node_modules"]
+
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# Imports name a module (`"./host"`); the names they bind are captured separately.
+bind = "captures"
+
+[fingerprint]
+atoms = ["string", "template_string", "regex"]
+# Semicolons are optional; formatters add or remove them.
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "<", ":", ",", "=>"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ":", ".", "?", "!"]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "...", "@"]
+
+[dependencies]
+async = ["rxjs", "p-limit", "p-queue"]
+network = [
+  "express", "fastify", "koa", "hono", "axios", "undici", "ws", "socket.io", "node-fetch",
+  "vscode-jsonrpc", "@modelcontextprotocol/sdk",
+]
+serialization = ["zod", "yaml", "protobufjs", "superjson", "msgpackr"]
+database = ["pg", "mysql2", "better-sqlite3", "sqlite3", "prisma", "@prisma/client", "typeorm", "mongoose", "drizzle-orm", "redis", "ioredis"]
+cli = ["commander", "yargs", "cac"]
+observability = ["@opentelemetry/api", "@opentelemetry/sdk-node", "pino", "winston"]
+ui = [
+  "react", "react-dom", "vue", "svelte", "@xyflow/react", "elkjs", "uplot", "pixi.js",
+  "@vscode-elements/elements",
+]
+
+# Importing `http` or `net` says nothing: a client imports them too. A server is seen in the
+# code (roles.scm: `createServer`, `listen`).
+[[roles]]
+role = "entry_point"
+libraries = ["express", "fastify", "koa", "hono", "commander", "yargs"]
+confidence = 0.8
+
+[[roles]]
+role = "interface"
+libraries = ["react", "react-dom", "vue", "svelte"]
+paths = ["vscode"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["pg", "mysql2", "better-sqlite3", "sqlite3", "prisma", "@prisma/client", "typeorm", "mongoose", "drizzle-orm"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+libraries = ["zod"]
+confidence = 0.5
+
+[[roles]]
+role = "background_task"
+paths = ["worker_threads", "node:worker_threads", "child_process", "node:child_process"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# Globals of the language and of its usual runtimes: a name tree-sitter cannot resolve that is
+# one of them is defined outside the repository, and the language server is not asked.
+outside = [
+  "Array", "ArrayBuffer", "Boolean", "Date", "Error", "Function", "JSON", "Map", "Math", "Number",
+  "Object", "Promise", "Proxy", "Reflect", "RegExp", "Set", "String", "Symbol", "BigInt",
+  "TypeError", "RangeError", "WeakMap", "WeakSet", "Uint8Array", "Iterable", "Iterator",
+  "console", "globalThis", "window",
+  "document", "navigator", "HTMLElement", "Element", "Event", "KeyboardEvent", "MouseEvent",
+  "FocusEvent", "CustomEvent", "MessageEvent", "URL", "Response", "Request", "Headers",
+  "AbortController", "AbortSignal", "TextEncoder", "TextDecoder", "setTimeout", "clearTimeout",
+  "setInterval", "clearInterval", "requestAnimationFrame", "queueMicrotask", "fetch",
+  "structuredClone", "Buffer", "process", "require", "module", "exports", "__dirname",
+  "__filename",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): the first runner the `test` script of
+# package.json names. Checked with vitest 5.0.4 and Node 24.18.
+[[tests.runners]]
+name = "npm workspaces"
+uses = "--workspaces"
+info = "the tests run in several workspaces, each with its runner: `timonier test` (Phase 8) wraps each of them; for now no single command writes their JUnit XML."
+
+[[tests.runners]]
+name = "vitest"
+uses = "vitest"
+command = "npx vitest run --reporter=default --reporter=junit --outputFile.junit=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs: under
+# Node's own runner, whatever runs the project's tests.
+[tests.runners.smoke]
+command = "node --test timonier.smoke.test.mjs"
+files = [{ path = "timonier.smoke.test.mjs", source = "instrumentation/timonier.smoke.test.mjs" }]
+
+[[tests.runners]]
+name = "node:test"
+uses = "node --test"
+command = "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+
+[tests.runners.smoke]
+command = "node --test timonier.smoke.test.mjs"
+files = [{ path = "timonier.smoke.test.mjs", source = "instrumentation/timonier.smoke.test.mjs" }]
+
+[[tests.runners]]
+name = "jest"
+uses = "jest"
+note = "jest writes JUnit XML through the jest-junit package: add it as a development dependency."
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050):
+# development dependencies (the API a production one, Q78), and the initialisation module. Verified on 2026-10-21: sdk-node
+# 0.223.0 brings the OTLP exporters and reads OTEL_SDK_DISABLED; the 0.300 line, out the day
+# before, waits.
+[instrumentation]
+files = [{ path = "timonier.otel.mjs", source = "instrumentation/timonier.otel.mjs" }]
+note = "run `npm install` for the OpenTelemetry SDK; the module `timonier.otel.mjs` starts it: call `startTelemetry()` where the tests set up, as the conventions say."
+
+# The module of the code that ships imports the API (Q78): a production dependency, inert
+# without an SDK.
+[[instrumentation.dependencies]]
+name = "@opentelemetry/api"
+version = "1.9.1"
+production = true
+
+[[instrumentation.dependencies]]
+name = "@opentelemetry/sdk-node"
+version = "0.223.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["react", "vue", "svelte", "@angular/core", "next", "nuxt", "express", "fastify", "koa", "@nestjs/core", "solid-js", "preact"]
+
+[inventory.functions]
+http-client = ["axios", "node-fetch", "got", "superagent", "ky", "undici"]
+http-server = ["express", "fastify", "koa", "hapi", "@nestjs/core"]
+ui = ["react", "vue", "svelte", "@angular/core", "solid-js", "preact"]
+date-time = ["moment", "dayjs", "date-fns", "luxon"]
+utilities = ["lodash", "underscore", "ramda", "lodash-es"]
+test-runner = ["vitest", "jest", "mocha", "ava", "jasmine"]
+bundler = ["vite", "webpack", "rollup", "parcel", "esbuild"]
+state = ["redux", "@reduxjs/toolkit", "mobx", "zustand", "jotai", "recoil"]
+validation = ["zod", "yup", "joi", "ajv", "valibot"]
+css-in-js = ["styled-components", "@emotion/react", "@emotion/styled"]
+logging = ["winston", "pino", "bunyan"]

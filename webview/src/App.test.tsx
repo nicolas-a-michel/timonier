@@ -81,7 +81,9 @@ describe("teaching states", () => {
   });
 
   it("draws the map once the daemon has sent boxes, and says when it reconnects", () => {
-    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain("No Rust or TypeScript file here");
+    expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain(
+      "No Rust, TypeScript or JavaScript file here",
+    );
     const map = renderToStaticMarkup(<App locale="fr" model={withBoxes(5)} />);
     expect(map).toContain('aria-label="Carte d&#x27;architecture"');
     expect(map).not.toContain('role="status"');

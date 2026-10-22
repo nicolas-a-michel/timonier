@@ -6,20 +6,108 @@
   "tasks": [
     "T-125"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T02:48:20Z",
+  "ended_at": "2026-10-22T04:10:07Z",
   "snapshots": {
-    "start": 103
+    "start": 103,
+    "end": 107
+  },
+  "summary": "Windows CI green (00a06c5, all seven jobs) after batches 3 to 5: failed pipe instance replaced, getrandom tokens, git top canonical, Windows-safe integration tests, the launcher's standard handles not inherited by the daemon (the workspace's one unsafe function, ADR 0060), perf migration 0004 for wall_time with foreign keys off while migrating. The release workflow, run without publishing, builds the six packages; the Linux one checked. Left for T-125: the win32-x64 .vsix tried on a real Windows machine (the human's).",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Lot 3 poussé (b6f0fc0) : instance de pipe remplacée, jetons getrandom, dossier git canonique, tests d'intégration Windows",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Lire la CI de b6f0fc0 et corriger les échecs Windows restants, jusqu'au vert",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Construire les six paquets par la CI de publication, sans publier, pour essayer le .vsix Windows",
+      "task": "T-125",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 6,
+    "added": [
+      {
+        "id": "pkg:cargo/windows-sys",
+        "name": "windows-sys",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/integration",
+        "name": "integration",
+        "within": "test"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-store",
+        "name": "timonier-store",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
   },
   "agent_sessions": [
     "aecaf227-545b-4dee-974e-0b31c20f99ca"
   ],
   "usage": {
-    "requests": 9,
-    "input": 18,
-    "output": 5291,
-    "cache_read": 6142700,
-    "cache_creation": 10498,
-    "cost_usd_micros": 1418417
+    "requests": 43,
+    "input": 92,
+    "output": 30391,
+    "cache_read": 30198461,
+    "cache_creation": 47411,
+    "cost_usd_micros": 7027166
   }
 }

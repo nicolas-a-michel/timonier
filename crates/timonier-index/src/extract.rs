@@ -377,7 +377,10 @@ impl<'a> Extraction<'a> {
                         continue;
                     }
                     Some(Capture::ImportPath) => {
-                        import_paths.push((c.node, alias.clone()));
+                        // Once per node: a destructuring `require` matches once per name.
+                        if !import_paths.iter().any(|(n, _)| n.id() == c.node.id()) {
+                            import_paths.push((c.node, alias.clone()));
+                        }
                         continue;
                     }
                     Some(Capture::ImportName) => {

@@ -9,6 +9,7 @@ pub(crate) fn by_name(name: &str) -> Option<Language> {
         "rust" => Some(tree_sitter_rust::LANGUAGE.into()),
         "typescript" => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
         "tsx" => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
+        "javascript" => Some(tree_sitter_javascript::LANGUAGE.into()),
         _ => None,
     }
 }
@@ -19,7 +20,7 @@ mod tests {
 
     #[test]
     fn every_grammar_loads_into_a_parser() {
-        for name in ["rust", "typescript", "tsx"] {
+        for name in ["rust", "typescript", "tsx", "javascript"] {
             let language = by_name(name).unwrap();
             let mut parser = tree_sitter::Parser::new();
             parser.set_language(&language).unwrap();

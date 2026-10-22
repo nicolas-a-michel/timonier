@@ -22,6 +22,7 @@ toml = { workspace = true }
 tree-sitter = { workspace = true }
 tree-sitter-rust = { workspace = true }
 tree-sitter-typescript = { workspace = true }
+tree-sitter-javascript = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }

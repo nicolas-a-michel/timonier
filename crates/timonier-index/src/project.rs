@@ -987,12 +987,14 @@ impl Project {
         }
     }
 
+    /// The file an npm module specifier names: TypeScript first, then JavaScript (T-120), as
+    /// TypeScript's resolution does with `allowJs`.
     fn ts_file(&self, stem: &str) -> Option<String> {
         let mut candidates = vec![stem.to_owned()];
-        for extension in ["ts", "tsx", "mts", "cts", "d.ts"] {
+        for extension in ["ts", "tsx", "mts", "cts", "d.ts", "js", "jsx", "mjs", "cjs"] {
             candidates.push(format!("{stem}.{extension}"));
         }
-        for index in ["index.ts", "index.tsx"] {
+        for index in ["index.ts", "index.tsx", "index.js", "index.jsx"] {
             candidates.push(format!("{stem}/{index}"));
         }
         // ESM imports name the emitted `.js`: `./host.js` is `./host.ts`.

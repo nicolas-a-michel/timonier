@@ -55,7 +55,15 @@ fn collect<'s>(
         let range = node.start_byte()..node.end_byte().min(end);
         if let Ok(text) = std::str::from_utf8(&source[range]) {
             let text = text.trim();
-            if !text.is_empty() {
+            // A JavaScript or TypeScript string keeps its hash whatever its quotes: formatters
+            // turn `'a'` into `"a"` (T-120).
+            let quoted = node.kind() == "string"
+                && text.len() >= 2
+                && (text.starts_with('"') || text.starts_with('\''))
+                && text.ends_with(&text[..1]);
+            if quoted {
+                out.extend(["\"", &text[1..text.len() - 1], "\""]);
+            } else if !text.is_empty() {
                 out.push(text);
             }
         }

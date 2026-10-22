@@ -1955,14 +1955,22 @@
           "id": "T-120",
           "title": "10.1 Pack JavaScript (.js, .mjs, .cjs, .jsx)",
           "criterion": "Sur un petit projet JavaScript réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-21-28"
+            "S-2026-10-21-28",
+            "S-2026-10-22-2"
           ],
           "created": {
             "at": "2026-10-21T18:08:04Z",
             "session": "S-2026-10-21-28"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T05:52:28Z",
+              "session": "S-2026-10-22-2",
+              "text": "Criterion verified on 2026-10-22 on a real npm workspace (Express API, zod model, node --test): the map shows @shop/api entry point and @shop/model data model; init, npm install, doctor: the smoke trace attached to the graph (1 of 1 spans); timonier test: 2 tests measured. ADR 0061. 588 Rust tests, 162 vitest, 98+27 node:test green; clippy clean for Linux and Windows."
+            }
+          ]
         },
         {
           "id": "T-121",

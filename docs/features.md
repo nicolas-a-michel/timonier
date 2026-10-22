@@ -5,7 +5,7 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 
 ## Code graph
 
-- **Indexing with tree-sitter** for Rust and TypeScript (including TSX), through versioned
+- **Indexing with tree-sitter** for Rust, TypeScript (including TSX) and JavaScript (including JSX), through versioned
   language packs. Symbols, imports, calls and references, with a stable identity for each symbol
   (crate or package, path, qualified name) and a hash of its normalised body.
 - **Incremental updates**: a file watcher with a 300 ms debounce re-indexes what changed, with

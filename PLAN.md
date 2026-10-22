@@ -3753,7 +3753,16 @@ Statut : à faire
     mémoire non mesurés » ; `cmd /C` pour les commandes de test ;
   - `cargo check` et `clippy -D warnings` du workspace pour `x86_64-pc-windows-gnu` propres sur
     Linux ; la CI ajoute `windows-latest` aux jobs Rust et extension ;
-  - reste : faire passer la CI sous Windows, puis le `.vsix` win32-x64 sur une vraie machine.
+  - CI verte sur Windows le 2026-10-22 (00a06c5, les sept jobs), après cinq lots trouvés par la
+    CI : fins de ligne (`.gitattributes`), chemins d'`init.json` en `/`, client Rust sur le
+    `NamedPipeClient` de tokio (un pipe ouvert comme fichier sérialise lectures et écritures),
+    instance de pipe ratée remplacée, jetons par `getrandom`, haut du dépôt git canonique, handles
+    du lanceur non héritables (seul `unsafe` du workspace, ADR 0060), migration `perf/0004` pour
+    `wall_time` (clés étrangères coupées pendant les migrations, puis vérifiées) ;
+  - la CI de publication, lancée sans publier, construit les six paquets (`.vsix` win32-x64 et
+    arm64 compris ; celui de Linux vérifié : `bin/timonier` exécutable, préversion) ;
+  - reste : le `.vsix` win32-x64 essayé sur une vraie machine Windows (la seconde moitié du
+    critère).
 - 9.7 Publication de l'extension, selon Q58 et Q59, avant la relecture 9.5 : un `.vsix` par
   plateforme qui embarque `timonier`, construit par la CI ; une icône PNG et un `CHANGELOG.md` ;
   le dépôt public (Q2) ; l'éditeur `NicolasMichel` (Q12) — critère : l'extension installée depuis
@@ -3793,6 +3802,22 @@ tests.
 
 - 10.1 JavaScript (`.js`, `.mjs`, `.cjs`, `.jsx`) : grammaire `tree-sitter-javascript` 0.25.0
   (MIT, vérifiée le 2026-10-21) ; npm comme TypeScript.
+
+  Fait (2026-10-22), ADR 0061 :
+  - pack `javascript` (définitions, imports ES et CommonJS, appels, JSX, héritage, rôles,
+    inventaire), résolution npm vers les fichiers JavaScript, noms sans extension ;
+  - `[walk] skip = ["node_modules"]` pour TypeScript et JavaScript ; guillemets normalisés dans
+    l'empreinte ; `init` prend le lanceur du seul langage détecté ; `timonier test` crée le
+    dossier du JUnit et lit celui de `node --test` ; JavaScript compté dans les trous ;
+  - critère constaté sur un vrai projet (espace de travail npm, Express et zod, tests
+    `node --test`) : la carte montre `@shop/api` point d'entrée, `@shop/model` modèle de données,
+    express et zod dans les bibliothèques externes ; `init` puis `npm install` puis `doctor` :
+    « the smoke test (javascript) produced a trace attached to the graph: 1 of 1 spans » ;
+    `timonier test` : « 2 tests, 0 failed », mesurés ;
+  - tests : `javascript_fixture` (instantané), `reformatting_javascript_changes_no_identity`,
+    `a_javascript_server_is_seen_in_the_code`, `a_javascript_package_links_its_modules`,
+    `installed_npm_packages_are_never_indexed`, `init_configures_a_javascript_project`,
+    `node_test_s_junit_is_read`.
 - 10.2 Python : `tree-sitter-python` 0.25.0 (MIT) ; `pyproject.toml`, `uv.lock` ou
   `requirements.txt` ; pytest (`--junitxml`).
 - 10.3 Go : `tree-sitter-go` 0.25.0 (MIT) ; `go.mod`, `go.sum` ; `go test` en JUnit (outil à
@@ -3823,6 +3848,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | rusqlite | 0.40.2 | MIT | |
 | rusqlite_migration / refinery | 2.6.0 / 0.10.0 | Apache-2.0 / MIT | rusqlite_migration retenu (ADR 0011) ; refinery écarté |
 | tree-sitter / -rust / -typescript | 0.27.1 / 0.24.2 / 0.23.2 | MIT | Revérifiés le 2026-10-16 ; utilisés (ADR 0012) |
+| tree-sitter-javascript | 0.25.0 | MIT | Vérifié le 2026-10-22 (crates.io), chargé par tree-sitter 0.27 ; pack `javascript` (ADR 0061) |
 | notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC ; notify vient par le débounceur, qui le réexporte |
 | ignore / globset | 0.4.33 / 0.4.20 | Unlicense OR MIT | Revérifiés le 2026-10-16 |
 | rayon | 1.12.0 | MIT OR Apache-2.0 | Vérifié le 2026-10-16 ; extraction parallèle (ADR 0013) |

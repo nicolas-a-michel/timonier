@@ -3,7 +3,7 @@
 ## 0.1.0 — pre-release
 
 The first public version, to try Timonier on real projects. Linux (x64, arm64), macOS (Intel,
-Apple silicon) and Windows (x64, arm64); Rust and TypeScript projects.
+Apple silicon) and Windows (x64, arm64); Rust, TypeScript and JavaScript projects.
 
 - The architecture map: boxes named by role, opened down to files and symbols; links from
   syntax drawn apart from links confirmed by a manifest or a language server; a stable layout.

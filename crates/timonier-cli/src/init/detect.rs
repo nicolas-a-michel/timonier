@@ -178,7 +178,7 @@ pub fn detect(root: &Path, environment: &Environment) -> Detection {
             .and_then(|m| m["scripts"]["test"].as_str().map(str::to_owned));
     }
     Detection {
-        runners: runners(root, test_script.as_deref()),
+        runners: runners(root, &languages, test_script.as_deref()),
         languages,
         package_managers,
         agents: agents(root, environment),
@@ -188,12 +188,15 @@ pub fn detect(root: &Path, environment: &Environment) -> Detection {
 
 /// The first runner of each pack whose ecosystem the project uses, and that the `test` script
 /// names when the rule asks for a word.
-fn runners(root: &Path, test_script: Option<&str>) -> Vec<Runner> {
+/// The test runner of each language found: a TypeScript project and a JavaScript one share
+/// `package.json`, and only the language detected takes it (T-120).
+fn runners(root: &Path, languages: &[&str], test_script: Option<&str>) -> Vec<Runner> {
     let Ok(packs) = timonier_daemon::Packs::builtin() else {
         return Vec::new();
     };
     packs
         .iter()
+        .filter(|pack| languages.contains(&pack.language.as_str()))
         .filter(|pack| {
             root.join(match pack.manifest.ecosystem.as_str() {
                 "cargo" => "Cargo.toml",

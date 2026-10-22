@@ -674,6 +674,13 @@
       "parent": "component:external/parsing"
     },
     {
+      "id": "pkg:cargo/tree-sitter-javascript",
+      "kind": "package",
+      "name": "tree-sitter-javascript",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:cargo/tree-sitter-rust",
       "kind": "package",
       "name": "tree-sitter-rust",
@@ -806,7 +813,7 @@
         "imports",
         "references"
       ],
-      "weight": 46
+      "weight": 47
     },
     {
       "from": "component:cluster/crates/timonier-cli/src/approval.rs",
@@ -2542,7 +2549,7 @@
         "imports",
         "references"
       ],
-      "weight": 7
+      "weight": 8
     },
     {
       "from": "component:dir/crates/timonier-index/tests",
@@ -2561,7 +2568,7 @@
         "imports",
         "references"
       ],
-      "weight": 19
+      "weight": 20
     },
     {
       "from": "component:dir/crates/timonier-store/examples",
@@ -3504,6 +3511,14 @@
     {
       "from": "pkg:cargo/timonier-index",
       "to": "pkg:cargo/tree-sitter",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-javascript",
       "kinds": [
         "depends_on"
       ],

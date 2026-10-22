@@ -519,6 +519,52 @@ fn the_home_folder_is_no_project() {
     );
 }
 
+/// T-120: a JavaScript project (no TypeScript) gets the JavaScript pack's runner, conventions,
+/// OpenTelemetry module and smoke test, and only those.
+#[test]
+fn init_configures_a_javascript_project() {
+    let project = Fixture::new(&[
+        (
+            "package.json",
+            "{\"name\": \"shop\", \"type\": \"module\", \"scripts\": {\"test\": \"node --test\"}}\n",
+        ),
+        (
+            "src/cart.js",
+            "export function total(xs) {\n  return xs.length;\n}\n",
+        ),
+    ]);
+    project.tim(&[
+        "init",
+        "--yes",
+        "--agents",
+        "claude",
+        "--no-agent-telemetry",
+    ]);
+    let tests = project.json(".timonier/tests.json");
+    assert_eq!(tests["runners"].as_array().unwrap().len(), 1, "{tests}");
+    assert_eq!(tests["runners"][0]["language"], "javascript");
+    assert_eq!(tests["runners"][0]["runner"], "node:test");
+    assert_eq!(
+        tests["runners"][0]["smoke"],
+        "node --test timonier.smoke.test.mjs"
+    );
+    assert!(project.root().join("timonier.otel.mjs").is_file());
+    assert!(project.root().join("timonier.smoke.test.mjs").is_file());
+    assert!(
+        project
+            .read(".timonier/conventions/javascript/instrumentation.md")
+            .contains("JavaScript")
+    );
+    assert!(
+        !project
+            .root()
+            .join(".timonier/conventions/typescript")
+            .exists()
+    );
+    let manifest = project.json("package.json");
+    assert_eq!(manifest["dependencies"]["@opentelemetry/api"], "1.9.1");
+}
+
 /// What the developer added since `init` stays when `uninit` takes Timonier's part back.
 #[test]
 fn uninit_keeps_what_the_developer_added() {

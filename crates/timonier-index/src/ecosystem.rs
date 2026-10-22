@@ -495,10 +495,11 @@ pub(crate) fn npm_module(package: Option<&PackageInfo>, relative: &str) -> Modul
     ModulePath { segments, root_len }
 }
 
-/// `src/App.tsx` → `src/App`; `types/vscode.d.ts` → `types/vscode`.
+/// `src/App.tsx` → `src/App`; `types/vscode.d.ts` → `types/vscode`; `src/cart.mjs` → `src/cart`.
 pub(crate) fn without_extension(path: &str) -> &str {
     for extension in [
-        ".d.ts", ".d.mts", ".d.cts", ".tsx", ".ts", ".mts", ".cts", ".rs",
+        ".d.ts", ".d.mts", ".d.cts", ".tsx", ".ts", ".mts", ".cts", ".jsx", ".js", ".mjs", ".cjs",
+        ".rs",
     ] {
         if let Some(stem) = path.strip_suffix(extension) {
             return stem;

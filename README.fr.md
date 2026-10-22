@@ -8,7 +8,7 @@ votre code, la compare avec l'architecture que vous avez dessinée, montre ce qu
 depuis votre dernière relecture, et donne aux agents le même plan, la même todo et les mêmes
 contraintes que vous.
 
-**Langages :** Rust et TypeScript aujourd'hui. JavaScript, Python, Go, Java et C++ sont prévus
+**Langages :** Rust, TypeScript et JavaScript aujourd'hui. Python, Go, Java et C++ sont prévus
 ensuite (phase 10).
 
 ![La carte d'architecture de Timonier lui-même : six boîtes nommées par rôle, avec leurs paquets et les dépendances entre elles](docs/images/map.png)
@@ -131,7 +131,7 @@ dans [docs/features.md](docs/features.md) (en anglais).
 
 ## Fonctionnement
 
-- Un **démon** en Rust, un par projet, indexe Rust et TypeScript avec tree-sitter, affine les
+- Un **démon** en Rust, un par projet, indexe Rust, TypeScript et JavaScript avec tree-sitter, affine les
   appels avec les serveurs de langage de l'IDE, et garde le graphe et son historique dans
   SQLite.
 - L'**extension VSCode** s'abonne à des vues de ce graphe en JSON-RPC et les dessine avec React
@@ -152,10 +152,11 @@ des technologies, le processus de développement et le coût de l'IA ; elle por
 Windows, publie ensuite une préversion sur le Marketplace VSCode, et se termine en pilotant un
 nouveau projet de bout en bout. Timonier pilote son propre développement.
 
-Il lit Rust et TypeScript, et fonctionne sous Linux et macOS ; Windows compile, mais ses tests ne
-passent pas encore. Rien n'est publié sur crates.io, npm ou le Marketplace. La phase 10 ajoutera
-JavaScript, Python, Go, Java et C++ après le MVP. Les versions suivantes ajoutent l'indexation
-SCIP, plusieurs agents qui travaillent ensemble, et l'usage en équipe.
+Il lit Rust, TypeScript et JavaScript, et fonctionne sous Linux, macOS et Windows (ses tests y
+passent en CI ; un premier essai sur une vraie machine Windows est en cours). Rien n'est encore
+publié sur crates.io, npm ou le Marketplace. La phase 10, avant la préversion, a ajouté
+JavaScript et ajoute Python, Go, Java et C++. Les versions suivantes ajoutent l'indexation SCIP,
+plusieurs agents qui travaillent ensemble, et l'usage en équipe.
 
 ## Essayer
 
@@ -168,7 +169,7 @@ cargo install --path crates/timonier-cli   # met timonier et tim dans le PATH
 ```
 
 Ouvrez ce dépôt dans VSCode et appuyez sur F5 (« Run Extension »). Dans la fenêtre qui s'ouvre,
-ouvrez un projet Rust ou TypeScript, cliquez sur l'icône de Timonier (une barre de navire) dans
+ouvrez un projet Rust, TypeScript ou JavaScript, cliquez sur l'icône de Timonier (une barre de navire) dans
 la barre d'activité, puis **Open Map**.
 
 Pour préparer un projet pour vos agents, dans le projet :

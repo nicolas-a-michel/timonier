@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "typescript"
-version = "1.2.0"
+version = "1.3.0"
 ecosystem = "npm"
 
 [[grammars]]
@@ -18,6 +18,10 @@ crate = "tree-sitter-typescript"
 version = "0.23.2"
 license = "MIT"
 extensions = ["tsx"]
+
+# npm's installed packages are dependencies, never the project's code, ignored or not.
+[walk]
+skip = ["node_modules"]
 
 [naming]
 module = "/"

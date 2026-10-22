@@ -327,6 +327,10 @@ fn run_once(
     batch: Option<&str>,
     smoke: bool,
 ) -> Outcome {
+    // Some runners write their JUnit XML only into a folder that exists (`node --test`, T-120).
+    if let Some(folder) = planned.junit.as_deref().and_then(Path::parent) {
+        let _ = std::fs::create_dir_all(folder);
+    }
     let started = SystemTime::now();
     let begun = begin(
         paths,
@@ -538,14 +542,39 @@ fn read_junit(path: &Path, started: SystemTime) -> Result<Vec<TestCase>, String>
             "{shown} is older than the run: the runner did not write it"
         ));
     }
-    let file = std::fs::File::open(path).map_err(|e| format!("{shown}: {e}"))?;
-    let suites =
-        junit_parser::from_reader(BufReader::new(file)).map_err(|e| format!("{shown}: {e}"))?;
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?;
+    let suites = junit_parser::from_reader(BufReader::new(within_a_suite(&text).as_bytes()))
+        .map_err(|e| format!("{shown}: {e}"))?;
     let mut cases = Vec::new();
     for suite in &suites.suites {
         collect(suite, &mut cases);
     }
     Ok(cases)
+}
+
+/// `node --test` writes its test cases straight under `<testsuites>`, with no `<testsuite>`
+/// around them, which the parser does not read: they get one (T-120).
+fn within_a_suite(text: &str) -> std::borrow::Cow<'_, str> {
+    let bare = text.contains("<testsuites")
+        && !text.contains("<testsuite ")
+        && !text.contains("<testsuite>")
+        && text.contains("<testcase");
+    let (Some(open), Some(close)) = (text.find("<testsuites"), text.rfind("</testsuites>")) else {
+        return text.into();
+    };
+    let Some(end) = text[open..].find('>').map(|i| open + i + 1) else {
+        return text.into();
+    };
+    if !bare || end > close {
+        return text.into();
+    }
+    format!(
+        "{}<testsuite name=\"tests\">{}</testsuite>{}",
+        &text[..end],
+        &text[end..close],
+        &text[close..]
+    )
+    .into()
 }
 
 fn collect(suite: &junit_parser::TestSuite, cases: &mut Vec<TestCase>) {
@@ -742,6 +771,30 @@ mod tests {
   </testsuite>
 </testsuites>
 "#;
+
+    /// T-120: `node --test` writes its cases with no `<testsuite>`; they are read all the same.
+    #[test]
+    fn node_test_s_junit_is_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("junit.xml");
+        let started = SystemTime::now() - std::time::Duration::from_secs(5);
+        std::fs::write(
+            &path,
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<testsuites>\n\t<testcase name=\"adds\" time=\"0.0005\" classname=\"test\" file=\"/p/a.test.js\"/>\n\t<testcase name=\"fails\" time=\"0.001\" classname=\"test\"><failure message=\"no\"/></testcase>\n\t<!-- tests 2 -->\n</testsuites>\n",
+        )
+        .unwrap();
+        let cases = read_junit(&path, started).unwrap();
+        let read: Vec<(&str, TestStatus)> =
+            cases.iter().map(|c| (c.name.as_str(), c.status)).collect();
+        assert_eq!(
+            read,
+            [("adds", TestStatus::Passed), ("fails", TestStatus::Failed)]
+        );
+        // A file that has its suites is left as it is.
+        let suited =
+            "<testsuites><testsuite name=\"s\"><testcase name=\"x\"/></testsuite></testsuites>";
+        assert_eq!(within_a_suite(suited), suited);
+    }
 
     #[test]
     fn a_junit_report_gives_each_test_and_its_duration() {

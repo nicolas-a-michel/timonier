@@ -75,7 +75,8 @@ pub fn is_test_code(callable: &Callable) -> bool {
 }
 
 /// Whether the function is a boundary the conventions instrument (ADR 0049): `pub` in Rust;
-/// every one in TypeScript, but private methods, as the graph does not keep `export`.
+/// every one in TypeScript and JavaScript, but private methods (`private`, `#name`), as the
+/// graph does not keep `export`.
 pub fn is_public(callable: &Callable) -> bool {
     if is_test_code(callable) {
         return false;
@@ -87,8 +88,10 @@ pub fn is_public(callable: &Callable) -> bool {
         .trim_start();
     if callable.id.starts_with("rust:") {
         signature.starts_with("pub ") || signature.starts_with("pub(")
-    } else if callable.id.starts_with("typescript:") {
-        !(signature.starts_with("private ") || callable.name.starts_with('#'))
+    } else if callable.id.starts_with("typescript:") || callable.id.starts_with("javascript:") {
+        !(signature.starts_with("private ")
+            || signature.starts_with('#')
+            || callable.name.starts_with('#'))
     } else {
         false
     }
@@ -250,6 +253,13 @@ pub fn report(facts: Facts<'_>, cursor: usize, limit: usize) -> InstrumentationG
                 .to_owned(),
         );
     }
+    if public.iter().any(|c| c.id.starts_with("javascript:")) {
+        approximations.push(
+            "JavaScript: every function and method but `#private` ones counts as public, the \
+             graph does not keep `export` yet"
+                .to_owned(),
+        );
+    }
     let (overhead, overhead_unknown) = match facts.overhead {
         Ok(overhead) => (Some(overhead), None),
         Err(why) => (None, Some(why)),
@@ -296,6 +306,17 @@ mod tests {
             "src/lib.rs"
         ));
         assert!(!public("rust:demo::p", "fn p()", "src/lib.rs"));
+        // T-120: JavaScript as TypeScript; a `#private` method is not a boundary.
+        assert!(public(
+            "javascript:shop/src/cart#total",
+            "function total(items)",
+            "src/cart.js"
+        ));
+        assert!(!public(
+            "javascript:shop/src/cart#Cart.#sum",
+            "#sum(a)",
+            "src/cart.js"
+        ));
         assert!(!public(
             "rust:demo::tests::helper",
             "pub fn helper()",

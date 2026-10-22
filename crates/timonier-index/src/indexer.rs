@@ -764,7 +764,8 @@ impl Indexer {
     }
 
     /// The manifests and the source files a pack reads, relative to the root, sorted. The walk
-    /// respects `.gitignore`, skips hidden directories, and rejects paths that make no file id.
+    /// respects `.gitignore`, skips hidden directories and the packs' `[walk] skip` folders, and
+    /// rejects paths that make no file id.
     fn walk(&mut self) -> Walk {
         let mut walk = Walk::default();
         let mut walked = BTreeSet::from([String::new()]);
@@ -775,9 +776,18 @@ impl Indexer {
             .unwrap_or_else(|_| self.root.clone())
             .ancestors()
             .any(|d| d.join(".git").exists());
+        // The ecosystems' installed dependencies stay out, ignored or not (`[walk] skip`).
+        let skipped = self.packs.skipped();
         let walker = WalkBuilder::new(&self.root)
             .hidden(true)
             .require_git(in_git)
+            .filter_entry(move |entry| {
+                !(entry.file_type().is_some_and(|t| t.is_dir())
+                    && entry
+                        .file_name()
+                        .to_str()
+                        .is_some_and(|name| skipped.contains(name)))
+            })
             .build();
         for entry in walker.flatten() {
             if entry.file_type().is_some_and(|t| t.is_dir()) {

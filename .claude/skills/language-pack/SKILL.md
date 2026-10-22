@@ -12,8 +12,25 @@ From the spec, two principles apply:
 - Everything language-dependent lives in a **versioned, extensible pack**. Adding a language
   means writing a pack, never modifying the daemon.
 
-The MVP ships two packs, Rust and TypeScript, so that Timonier can index itself. The format is
-fixed by ADR 0012, the extraction and resolution by ADR 0013: read them before changing a pack.
+Built-in packs: Rust and TypeScript (the MVP, so that Timonier can index itself), JavaScript
+(Phase 10, ADR 0061); Python, Go, Java and C++ follow (PLAN.md Phase 10). The format is fixed by
+ADR 0012, the extraction and resolution by ADR 0013: read them before changing a pack.
+
+What a language still needs outside its pack directory (learnt with JavaScript, ADR 0061):
+- its grammar in `src/grammar.rs` (the one place a grammar is compiled in), the crate in the
+  workspace `Cargo.toml`, and the pack in `BUILTIN` of `src/pack.rs`;
+- its ecosystem's manifests and module resolution in `src/ecosystem.rs` and `src/project.rs`
+  when it is not Cargo or npm, and its extensions in `without_extension`;
+- its lockfile in the daemon's `inventory.rs`;
+- `init`'s detection of the language (`crates/timonier-cli/src/init/detect.rs`): a runner is
+  taken only for a language detected;
+- `is_public` in `timonier-core::gaps` for the instrumentation gaps;
+- the map's empty state names the languages read (`webview/src/i18n.ts`).
+
+`[walk] skip` lists the folders never walked, ignored or not: the ecosystem's installed
+dependencies (`node_modules`; for Python `.venv`, for Go `vendor`…). Never vendor a compiler, a
+SDK or a build tool in the repository (Q88): tests that need one skip when it is missing, and the
+CI installs it.
 
 ## Format (ADR 0012)
 
