@@ -79,6 +79,10 @@ pub enum Error {
     #[error("the database refused WAL mode (journal mode is {0})")]
     NotWal(String),
 
+    /// After the migrations, rows reference rows that are gone.
+    #[error("the migrations broke the database: {0}")]
+    MigrationBroke(String),
+
     #[error("the writer thread has stopped")]
     WriterStopped,
 

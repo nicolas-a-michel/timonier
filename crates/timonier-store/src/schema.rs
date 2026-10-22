@@ -26,6 +26,7 @@ const PERF_MIGRATION_SLICE: &[M<'_>] = &[
         "../migrations/perf/0002_worktree_and_aggregates.sql"
     )),
     M::up(include_str!("../migrations/perf/0003_smoke.sql")),
+    M::up(include_str!("../migrations/perf/0004_wall_time.sql")),
 ];
 
 pub(crate) const PERF_MIGRATIONS: Migrations<'_> = Migrations::from_slice(PERF_MIGRATION_SLICE);
@@ -48,8 +49,21 @@ pub(crate) fn open_writer_with(path: &Path, migrations: &Migrations<'_>) -> Resu
     }
     // Safe with WAL; the database is a rebuildable cache (ADR 0011).
     connection.pragma_update(None, "synchronous", "NORMAL")?;
-    connection.pragma_update(None, "foreign_keys", "ON")?;
+    // Off while migrating: a table rebuilt to change a constraint is dropped, and its rows
+    // must not take the rows that reference it along (SQLite, « ALTER TABLE », other changes).
+    // Checked once done, then on for good.
+    connection.pragma_update(None, "foreign_keys", "OFF")?;
     migrations.to_latest(&mut connection)?;
+    let broken: i64 =
+        connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })?;
+    if broken > 0 {
+        return Err(Error::MigrationBroke(format!(
+            "{broken} rows reference rows the migration lost"
+        )));
+    }
+    connection.pragma_update(None, "foreign_keys", "ON")?;
     Ok(connection)
 }
 
@@ -128,6 +142,61 @@ mod tests {
             .query_row("SELECT count(*) FROM extraction", [], |r| r.get(0))
             .unwrap();
         assert_eq!(cached, 0);
+    }
+
+    /// T-125: the runs' table rebuilt for the wall time keeps every run, and the rows that
+    /// reference them (a drop with the foreign keys on would have taken them along).
+    #[test]
+    fn the_runs_rebuilt_for_the_wall_time_keep_their_tests_and_aggregates() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("perf.sqlite");
+        {
+            let mut connection = Connection::open(&path).unwrap();
+            connection
+                .pragma_update(None, "foreign_keys", "ON")
+                .unwrap();
+            Migrations::from_slice(&PERF_MIGRATION_SLICE[..3])
+                .to_latest(&mut connection)
+                .unwrap();
+            connection
+                .execute_batch(
+                    "INSERT INTO run (id, started_at_ms, command, snapshot, cpu_source, worktree)
+                       VALUES (1, 10, '[\"true\"]', 3, 'cpu_time', 'w');
+                     INSERT INTO test (run, ord, name, status, duration_us)
+                       VALUES (1, 0, 'parses', 'passed', 12);
+                     INSERT INTO aggregate (run, node, calls, self_ns, entered_ns)
+                       VALUES (1, 'rust:demo::run', 2, 5, 7);",
+                )
+                .unwrap();
+        }
+        let connection = open_writer_with(&path, &PERF_MIGRATIONS).unwrap();
+        let count = |table: &str| -> i64 {
+            connection
+                .query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
+                .unwrap()
+        };
+        assert_eq!((count("run"), count("test"), count("aggregate")), (1, 1, 1));
+        let worktree: String = connection
+            .query_row("SELECT worktree FROM run WHERE id = 1", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(worktree, "w");
+        connection
+            .execute(
+                "INSERT INTO run (id, started_at_ms, command, snapshot, cpu_source, accounting)
+                   VALUES (2, 20, '[]', 4, 'wall_time', 'wall_time')",
+                [],
+            )
+            .unwrap();
+        // The foreign keys are on again: a test of no run is refused.
+        assert!(
+            connection
+                .execute(
+                    "INSERT INTO test (run, ord, name, status, duration_us)
+                       VALUES (9, 0, 'x', 'passed', 1)",
+                    [],
+                )
+                .is_err()
+        );
     }
 
     /// Review n° 9, I9-2: a database of the previous schema keeps its rows, and owes nothing.
