@@ -1822,7 +1822,8 @@
             "S-2026-10-21-30",
             "S-2026-10-21-32",
             "S-2026-10-21-33",
-            "S-2026-10-22-13"
+            "S-2026-10-22-13",
+            "S-2026-10-22-14"
           ],
           "created": {
             "at": "2026-10-20T13:12:10Z",
@@ -2210,6 +2211,25 @@
               "text": "Critère constaté (sbt 2.0.11 et JDK 25 hors dépôt) sur un build sbt (Scala 3.10, munit) : carte, init (build.sbt), timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans), après trois corrections pour sbt 2 (testFull, --server, vidage attendu). ADR 0071."
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "M-13",
+      "title": "Après la préversion",
+      "tasks": [
+        {
+          "id": "T-133",
+          "title": "Le code de chaque langage au même endroit : règles de pack.toml (public, code de test) et un module d'écosystème par langage dans timonier-index, derrière une interface",
+          "criterion": "Le démon, la CLI et le cœur ne nomment plus aucun langage ni écosystème : la publicité et le code de test se lisent dans pack.toml, les manifestes, verrous et éditions d'init/uninit passent par une interface de timonier-index ; tous les tests passent sans changement de comportement (relecture de la phase 10, I1).",
+          "status": "todo",
+          "sessions": [
+            "S-2026-10-22-14"
+          ],
+          "created": {
+            "at": "2026-10-22T10:49:33Z",
+            "session": "S-2026-10-22-14"
+          }
         }
       ]
     }

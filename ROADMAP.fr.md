@@ -23,7 +23,16 @@ reste, avant une première version publique :
 - **Critère de sortie** : un vrai projet piloté de bout en bout sans en lire le code ligne à
   ligne.
 
-## Ensuite (v2 : la profondeur)
+## Juste après la préversion
+
+- **Chaque langage au même endroit.** Aujourd'hui, un langage est son pack (grammaire,
+  requêtes, règles) plus du code réparti dans le démon, la ligne de commande et le cœur
+  (manifestes, inventaire, éditions de `timonier init`, ce qui est public). Les règles qui sont
+  des données passent dans le pack ; le reste va dans un module par écosystème derrière une
+  seule interface, pour qu'ajouter un langage ne touche jamais le démon. Rien ne change pour
+  l'utilisateur.
+
+## Ensuite (v2 : la profondeur)
 
 - **Gestionnaire de skills** : voir, installer et mettre à jour, depuis l'IDE, les skills et les
   instructions que chaque agent utilise dans un projet (skills de Claude Code, instructions de

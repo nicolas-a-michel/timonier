@@ -4096,9 +4096,24 @@ Décisions : ADR 0061 (JavaScript), 0062 (Python), 0063 (Go), 0064 (Java), 0065 
 jour même, `[walk] skip` sauté seulement à côté d'un manifeste de son écosystème (il cachait
 `packages/` et `src/bin/` dans tous les projets), `uninit` exact sur un `vcpkg.json` sans
 dépendances, les projets de test .NET comptés comme code de test, les projets Python sans
-`pyproject.toml` ont leur lanceur ; restent pour l'humain le code par langage hors des packs
-(démon, CLI, cœur ; ADR 0012 et spec « un pack, pas le démon ») et le rôle des composants sur
-les petits projets Go, Kotlin, Swift, C# et Scala, restés « utilitaire » ou non cités.
+`pyproject.toml` ont leur lanceur ; décidé par l'humain : le code par langage hors des packs
+(démon, CLI, cœur ; ADR 0012 et spec « un pack, pas le démon ») attend la refonte T-133, juste
+après la préversion (feuille de route) ; les rôles sont vérifiés avant la préversion sur une
+application RealWorld de chaque langage (2026-10-22) :
+  - golang-gin-realworld-example-app : le module en point d'entrée, `articles`, `users` et
+    `common` aussi (gin y est, avec gorm, dans chaque paquet de fonction) ;
+  - kotlin-ktor-realworld-example-app (Rudge) : `web` et `config` en point d'entrée, `domain` en
+    persistance, `utils` utilitaire ;
+  - swift-vapor-layered-realworld-example-app : `Presentation` en point d'entrée,
+    `Infrastructure` et `Domain/Repository` en persistance, `Domain/Model` en modèle de données ;
+  - aspnetcore-realworld-example-app : `Features` en point d'entrée, `Domain` en modèle de
+    données, `Infrastructure` en persistance ;
+  - scala-play-realworld-example-app : les `controllers` en point d'entrée, `models`,
+    `repositories` et `services` en persistance ;
+  - pour y arriver : les chemins d'import des cadres web et des bases de données de Go, Kotlin,
+    Java et Scala dans les règles de rôle (le rôle d'un composant lit les chemins importés, pas
+    les dépendances du paquet) ; pour Swift, `import Vapor` ne dit plus rien, les routes
+    (`.get`, `.grouped`, `RouteCollection`), `Model` de Fluent et `Content` disent le rôle.
 
 ---
 

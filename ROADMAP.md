@@ -22,6 +22,14 @@ remains before a first public version:
 - **Full review of the MVP** against the specification ([docs/spec.md](docs/spec.md)).
 - **Exit criterion**: a real project steered end to end without reading its code line by line.
 
+## Right after the pre-release
+
+- **Each language in one place.** Today a language is its pack (grammar, queries, rules) plus
+  code spread over the daemon, the command line and the core (manifests, inventory, the edits of
+  `timonier init`, what is public). The rules that are data move into the pack; the rest goes
+  into one module per ecosystem behind a single interface, so that adding a language never
+  touches the daemon. No change for users.
+
 ## Next (v2: depth)
 
 - **Skills manager**: see, install and update the skills and instructions each agent uses in a

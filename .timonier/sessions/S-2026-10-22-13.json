@@ -6,9 +6,75 @@
   "tasks": [
     "T-109"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T10:23:17Z",
+  "ended_at": "2026-10-22T10:34:20Z",
   "snapshots": {
-    "start": 132
+    "start": 132,
+    "end": 134
+  },
+  "summary": "Constats de la relecture de la phase 10 corrigés (e0c93e7 poussé) : [walk] skip seulement à côté d'un manifeste de son écosystème (plus skip_anywhere), uninit exact de vcpkg.json, projets de test .NET, lanceur Python sans pyproject, ADR et PLAN.md à jour. CI de 31d55ca verte. Reste : le build de release sans publier et la CI de e0c93e7 en cours ; l'humain doit trancher I1 (code par langage hors des packs) et I2 (rôles des petits projets), et donner l'accord pour le tag v0.1.0.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Release (sans publier) et CI de e0c93e7 en cours ; ensuite demander à l'humain le tag v0.1.0 et ses deux questions (I1, I2)",
+      "task": "T-109",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 6,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 19,
+    "input": 38,
+    "output": 17459,
+    "cache_read": 16046307,
+    "cache_creation": 25459,
+    "cost_usd_micros": 3762268
   }
 }

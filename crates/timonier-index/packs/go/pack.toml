@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "go"
-version = "1.0.0"
+version = "1.0.1"
 ecosystem = "gomod"
 
 [[grammars]]
@@ -73,6 +73,12 @@ libraries = [
   "github.com/go-chi/chi/v5", "github.com/gorilla/mux", "github.com/spf13/cobra",
   "github.com/urfave/cli/v2",
 ]
+# A component's role reads the paths its files import: the web frameworks' (RealWorld check,
+# 2026-10-22).
+paths = [
+  "github.com/gin-gonic/gin", "github.com/labstack/echo", "github.com/gofiber/fiber",
+  "github.com/go-chi/chi", "github.com/gorilla/mux", "google.golang.org/grpc",
+]
 confidence = 0.8
 
 [[roles]]
@@ -82,7 +88,10 @@ libraries = [
   "github.com/mattn/go-sqlite3", "modernc.org/sqlite", "go.mongodb.org/mongo-driver",
   "github.com/redis/go-redis/v9", "github.com/jmoiron/sqlx", "entgo.io/ent",
 ]
-paths = ["database/sql"]
+paths = [
+  "database/sql", "gorm.io/gorm", "github.com/jinzhu/gorm", "github.com/jackc/pgx",
+  "github.com/jmoiron/sqlx", "go.mongodb.org/mongo-driver", "github.com/redis/go-redis",
+]
 confidence = 0.8
 
 [[roles]]

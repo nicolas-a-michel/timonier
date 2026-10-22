@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "java"
-version = "1.0.0"
+version = "1.0.1"
 ecosystem = "maven"
 
 [[grammars]]
@@ -71,7 +71,7 @@ libraries = [
   "org.springframework.boot:spring-boot-starter-web", "org.springframework.boot:spring-boot-starter-webflux",
   "io.javalin:javalin", "io.vertx:vertx-web", "io.quarkus:quarkus-rest", "info.picocli:picocli",
 ]
-paths = ["com.sun.net.httpserver", "jakarta.servlet", "javax.servlet"]
+paths = ["com.sun.net.httpserver", "jakarta.servlet", "javax.servlet", "io.javalin", "org.springframework.web.bind.annotation"]
 confidence = 0.8
 
 [[roles]]

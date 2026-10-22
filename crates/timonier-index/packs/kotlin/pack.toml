@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "kotlin"
-version = "1.0.0"
+version = "1.0.1"
 ecosystem = "maven"
 
 # `tree-sitter-kotlin-ng` (tree-sitter-grammars) is maintained; `tree-sitter-kotlin` 0.3.8 dates
@@ -77,7 +77,10 @@ libraries = [
   "io.javalin:javalin", "io.vertx:vertx-web", "io.quarkus:quarkus-rest", "info.picocli:picocli",
   "io.ktor:ktor-server-core", "io.ktor:ktor-server-netty", "com.github.ajalt.clikt:clikt",
 ]
-paths = ["com.sun.net.httpserver", "jakarta.servlet", "javax.servlet"]
+paths = [
+  "com.sun.net.httpserver", "jakarta.servlet", "javax.servlet", "io.ktor.server", "io.ktor.application",
+  "io.ktor.routing", "io.javalin", "org.springframework.web.bind.annotation",
+]
 confidence = 0.8
 
 [[roles]]

@@ -2,7 +2,7 @@
 # Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
 format = 1
 language = "swift"
-version = "1.0.0"
+version = "1.0.1"
 ecosystem = "swiftpm"
 
 [[grammars]]
@@ -64,7 +64,8 @@ role = "entry_point"
 libraries = [
   "github.com/vapor/vapor", "github.com/hummingbird-project/hummingbird", "github.com/apple/swift-argument-parser",
 ]
-paths = ["Vapor", "Hummingbird", "ArgumentParser"]
+# Every file of a Vapor app imports Vapor: routes are seen in the code (roles.scm).
+paths = ["ArgumentParser"]
 confidence = 0.8
 
 [[roles]]
@@ -73,7 +74,10 @@ libraries = [
   "github.com/vapor/fluent", "github.com/vapor/postgres-nio", "github.com/groue/grdb.swift",
   "github.com/stephencelis/sqlite.swift", "github.com/realm/realm-swift",
 ]
-paths = ["Fluent", "GRDB", "SQLite", "CoreData", "SwiftData", "RealmSwift"]
+paths = [
+  "Fluent", "FluentKit", "MySQLNIO", "PostgresNIO", "SQLiteNIO", "MySQLKit", "PostgresKit",
+  "GRDB", "SQLite", "CoreData", "SwiftData", "RealmSwift",
+]
 confidence = 0.8
 
 [[roles]]

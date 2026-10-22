@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-14",
+  "agent": "claude-code",
+  "objective": "Avant la préversion : vérifier les rôles des composants sur de vrais projets Go, Kotlin, Swift, C# et Scala ; inscrire la refonte « tout le code d'un langage au même endroit » dans la feuille de route et le plan.",
+  "tasks": [
+    "T-109",
+    "T-133"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T10:49:33Z",
+  "snapshots": {
+    "start": 135
+  }
+}
