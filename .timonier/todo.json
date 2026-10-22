@@ -1,5 +1,18 @@
 {
   "version": 1,
   "session": "S-2026-10-22-1",
-  "items": []
+  "items": [
+    {
+      "id": "D-1",
+      "text": "Lot 3 poussé (b6f0fc0) : instance de pipe remplacée, jetons getrandom, dossier git canonique, tests d'intégration Windows",
+      "task": "T-125",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Lire la CI de b6f0fc0 et corriger les échecs Windows restants, jusqu'au vert",
+      "task": "T-125",
+      "status": "open"
+    }
+  ]
 }

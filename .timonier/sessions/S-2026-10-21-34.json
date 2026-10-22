@@ -122,11 +122,11 @@
     "aecaf227-545b-4dee-974e-0b31c20f99ca"
   ],
   "usage": {
-    "requests": 42,
-    "input": 92,
-    "output": 24002,
-    "cache_read": 26246312,
-    "cache_creation": 660100,
-    "cost_usd_micros": 11010473
+    "requests": 57,
+    "input": 124,
+    "output": 33164,
+    "cache_read": 36251793,
+    "cache_creation": 676733,
+    "cost_usd_micros": 13328002
   }
 }

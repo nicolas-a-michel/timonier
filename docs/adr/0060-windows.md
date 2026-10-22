@@ -13,15 +13,16 @@ parlaient par un socket Unix ; le dossier d'exécution était vérifié par son 
 mode ; la mesure des tests lisait `getrusage` et les cgroups de systemd ; les commandes de test
 passaient par `sh -c` ; le démon se détachait par un groupe de processus Unix. La spec a décidé
 le canal : « JSON-RPC 2.0 sur un socket local (Unix ou named pipe) ». Le code du workspace
-n'emploie pas `unsafe` (ADR 0004).
+n'employait pas `unsafe` (ADR 0004).
 
 ## Décision
 
 - **Canal** : sous Windows, le named pipe `\\.\pipe\timonier-<16 chiffres hex>`, le même nom
   dérivé de la racine que le socket. Côté démon, `tokio::net::windows::named_pipe` (une instance
-  par client, la suivante créée dès qu'un client se connecte ; module `transport.rs`) ; côté
-  client Rust, le pipe ouvert comme un fichier, lu par un thread pour garder les délais d'attente ;
-  côté proxy MCP, `ClientOptions` de tokio ; côté extension, `net.createConnection` de Node, qui
+  par client, la suivante créée dès qu'un client se connecte, ou à la place d'une instance qui
+  échoue ; module `transport.rs`) ; côté client Rust bloquant, `NamedPipeClient` de tokio sur un
+  runtime à lui (un pipe ouvert comme un simple fichier sérialise lectures et écritures : une
+  lecture en attente bloquait la requête) ; côté proxy MCP, `ClientOptions` de tokio ; côté extension, `net.createConnection` de Node, qui
   ouvre les pipes. Le pipe n'existe qu'une fois sa première instance créée dans le runtime : les
   trois clients réessaient 5 s sur « pipe absent » ou « pipe occupé ».
 - **Dossier d'exécution** : `%LOCALAPPDATA%\timonier\run` (le verrou, le journal) ; pas de
@@ -30,9 +31,19 @@ n'emploie pas `unsafe` (ADR 0004).
   comme `~` ailleurs.
 - **Lancement en arrière-plan** : `CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW` ; Ctrl-C (et la
   fermeture de console) arrête le démon au premier plan.
+- **Les handles du lanceur** : Windows donne à un nouveau processus tous les handles héritables de
+  son parent, et la bibliothèque standard le demande toujours. Le démon lancé par `timonier
+  daemon start`, `timonier mcp` ou un hook gardait ainsi les pipes de qui avait lancé la commande
+  (git, l'agent, un test qui lit la sortie), qui attendaient leur fermeture jusqu'à l'arrêt du
+  démon (constaté en CI : `start` ne revenait qu'après 15 min). Avant de lancer le démon, la CLI
+  marque ses propres handles standard comme non héritables (`SetHandleInformation` de
+  `windows-sys` 0.61.2, MIT OR Apache-2.0, déjà dans l'arbre par clap et tokio, vérifié le
+  2026-10-22). C'est le seul code `unsafe` du workspace : la règle passe de `forbid` à `deny`
+  (ADR 0004), et une seule fonction, `daemon::private_handles`, l'autorise, sous Windows.
 - **Mesure des tests** : sous Windows, la durée réelle seulement, et la durée de chaque test par
   le JUnit. Le CPU et la mémoire d'un arbre de processus ne s'obtiennent que par des appels
-  système non sûrs : la run dit `Accounting::WallTime`, « CPU et mémoire non mesurés », et compare
+  système non sûrs, que le workspace ne s'autorise qu'au cas des handles ci-dessus : la run dit
+  `Accounting::WallTime`, « CPU et mémoire non mesurés », et compare
   les runs entre elles sur la durée réelle (`CpuSource::WallTime`), jamais sur des zéros.
 - **Commandes de test** : `cmd /C` au lieu de `sh -c`. Le hook git reste un script shell : Git
   pour Windows exécute ses hooks avec son propre shell.

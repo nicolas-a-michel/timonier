@@ -10,5 +10,16 @@
   "started_at": "2026-10-22T02:48:20Z",
   "snapshots": {
     "start": 103
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 9,
+    "input": 18,
+    "output": 5291,
+    "cache_read": 6142700,
+    "cache_creation": 10498,
+    "cost_usd_micros": 1418417
   }
 }

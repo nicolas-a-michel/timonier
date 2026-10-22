@@ -156,6 +156,32 @@ pub enum Launched {
     Started(u32),
 }
 
+/// Marks this process's standard handles as not inheritable (ADR 0060). Windows gives a new
+/// process every inheritable handle of its parent, and the standard library always asks it to:
+/// the daemon started in the background would keep, until it stops, the pipes of whoever ran
+/// this command (`git` for a hook, an agent for `timonier mcp`, a test reading the output),
+/// which would wait for them to close. The standard library hands each child the handles it
+/// gives it on its own, duplicated: clearing the flag changes nothing else.
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn private_handles() {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
+    let handles = [
+        std::io::stdin().as_raw_handle(),
+        std::io::stdout().as_raw_handle(),
+        std::io::stderr().as_raw_handle(),
+    ];
+    for handle in handles {
+        // SAFETY: the handles are this process's standard handles, open for its whole life;
+        // the call only changes a flag of the handle, never closes or moves it. A null or
+        // invalid handle (no console) makes the call fail, which changes nothing.
+        unsafe {
+            SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+        }
+    }
+}
+
 #[cfg(windows)]
 const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
 #[cfg(windows)]
@@ -188,9 +214,13 @@ pub fn launch(paths: &Paths) -> Result<Launched> {
     // Its own process group: a terminal closed or a Ctrl-C here does not reach it.
     #[cfg(unix)]
     command.process_group(0);
-    // Windows: a group of its own too, and no console window (T-125).
+    // Windows: a group of its own too, and no console window (T-125); and none of this
+    // process's own standard handles, which the daemon would otherwise keep open (ADR 0060).
     #[cfg(windows)]
-    command.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+    {
+        command.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+        private_handles();
+    }
     let mut child = command.spawn().context("cannot start the daemon")?;
     let deadline = Instant::now() + WAIT;
     while Instant::now() < deadline {

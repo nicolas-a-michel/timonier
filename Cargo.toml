@@ -18,6 +18,9 @@ ureq = { version = "3.4.2" }
 flate2 = { version = "1.1.10" }
 # The run tokens on every system (/dev/urandom is not on Windows); already in the tree through uuid.
 getrandom = { version = "0.4.3" }
+# SetHandleInformation, for the daemon started in the background on Windows (ADR 0060); already
+# in the tree through clap and tokio.
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation"] }
 cyclonedx-bom = { version = "0.8.1" }
 # Internal crates. Dependency direction: docs/adr/0003-decoupage-des-crates.md
 timonier-core = { path = "crates/timonier-core" }
@@ -76,7 +79,8 @@ opentelemetry-otlp = { version = "0.33.1", default-features = false, features = 
 tracing-opentelemetry = { version = "0.34.0", default-features = false }
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# Denied, not forbidden: one Windows function may allow it (ADR 0060, `daemon::private_handles`).
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 dbg_macro = "warn"

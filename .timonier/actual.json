@@ -702,6 +702,13 @@
       "parent": "component:external/network"
     },
     {
+      "id": "pkg:cargo/windows-sys",
+      "kind": "package",
+      "name": "windows-sys",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:npm/@timonier/webview",
       "kind": "package",
       "name": "@timonier/webview",
@@ -1046,6 +1053,14 @@
       "kinds": [
         "calls",
         "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/check.rs",
+      "to": "pkg:cargo/windows-sys",
+      "kinds": [
+        "imports"
       ],
       "weight": 2
     },
@@ -3225,6 +3240,14 @@
     {
       "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/tracing-subscriber",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/windows-sys",
       "kinds": [
         "depends_on"
       ],
