@@ -1,0 +1,209 @@
+# Java language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "java"
+version = "1.0.0"
+ecosystem = "maven"
+
+[[grammars]]
+name = "java"
+crate = "tree-sitter-java"
+version = "0.23.5"
+license = "MIT"
+extensions = ["java"]
+
+# Build outputs: compiled classes, generated sources and reports, never the project's code.
+[walk]
+skip = ["target", "build", "out"]
+
+# `java:com.shop.Cart#Cart.total`: the class's dotted path from the source root, then the
+# definitions in it (ADR 0064).
+[naming]
+module = "."
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# An import binds its last segment, the class (`com.shop.Cart` → `Cart`) or the static member.
+bind = "last_segment"
+
+[fingerprint]
+atoms = ["string_literal", "character_literal", "text_block"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "{", "<", ":", ",", "->"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ".", "("]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "@"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+# Dependencies are `group:artifact`.
+[dependencies]
+async = ["io.projectreactor:reactor-core", "io.reactivex.rxjava3:rxjava", "org.jetbrains.kotlinx:kotlinx-coroutines-core"]
+network = [
+  "org.springframework.boot:spring-boot-starter-web", "org.springframework.boot:spring-boot-starter-webflux",
+  "io.netty:netty-all", "com.squareup.okhttp3:okhttp", "org.apache.httpcomponents.client5:httpclient5",
+  "io.vertx:vertx-core", "io.javalin:javalin", "io.grpc:grpc-netty", "io.quarkus:quarkus-rest",
+]
+serialization = [
+  "com.fasterxml.jackson.core:jackson-databind", "com.google.code.gson:gson",
+  "com.google.protobuf:protobuf-java", "org.yaml:snakeyaml",
+]
+database = [
+  "org.springframework.boot:spring-boot-starter-data-jpa", "org.hibernate.orm:hibernate-core",
+  "org.postgresql:postgresql", "com.mysql:mysql-connector-j", "com.h2database:h2",
+  "org.xerial:sqlite-jdbc", "org.mongodb:mongodb-driver-sync", "redis.clients:jedis",
+  "org.jooq:jooq", "org.mybatis:mybatis", "org.flywaydb:flyway-core", "org.liquibase:liquibase-core",
+]
+cli = ["info.picocli:picocli", "commons-cli:commons-cli", "com.beust:jcommander"]
+observability = [
+  "io.opentelemetry:opentelemetry-api", "io.opentelemetry:opentelemetry-sdk", "org.slf4j:slf4j-api",
+  "ch.qos.logback:logback-classic", "org.apache.logging.log4j:log4j-core", "io.micrometer:micrometer-core",
+]
+
+[[roles]]
+role = "entry_point"
+libraries = [
+  "org.springframework.boot:spring-boot-starter-web", "org.springframework.boot:spring-boot-starter-webflux",
+  "io.javalin:javalin", "io.vertx:vertx-web", "io.quarkus:quarkus-rest", "info.picocli:picocli",
+]
+paths = ["com.sun.net.httpserver", "jakarta.servlet", "javax.servlet"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = [
+  "org.springframework.boot:spring-boot-starter-data-jpa", "org.hibernate.orm:hibernate-core",
+  "org.postgresql:postgresql", "com.mysql:mysql-connector-j", "org.xerial:sqlite-jdbc",
+  "org.mongodb:mongodb-driver-sync", "redis.clients:jedis", "org.jooq:jooq", "org.mybatis:mybatis",
+]
+paths = ["java.sql", "javax.sql", "jakarta.persistence", "javax.persistence"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+libraries = ["com.fasterxml.jackson.core:jackson-databind", "com.google.code.gson:gson"]
+paths = ["com.fasterxml.jackson.annotation"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["org.openjfx:javafx-controls"]
+paths = ["javax.swing", "java.awt", "javafx"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+paths = ["java.util.concurrent"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# `java.lang`, imported by every file: a name tree-sitter cannot resolve that is one of them is
+# defined outside the repository, and the language server is not asked.
+outside = [
+  "String", "Object", "Integer", "Long", "Double", "Float", "Boolean", "Character", "Byte",
+  "Short", "Math", "System", "Thread", "Runnable", "Exception", "RuntimeException",
+  "IllegalArgumentException", "IllegalStateException", "NullPointerException", "Override",
+  "Deprecated", "SuppressWarnings", "FunctionalInterface", "Iterable", "Comparable",
+  "StringBuilder", "Class", "Enum", "Record", "Void", "Number", "Error", "Throwable",
+  "this", "super",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): Maven's Surefire and Gradle write it, one
+# file per class and per module; `junit` names the folder, `**/` under any module (ADR 0064).
+# Checked with Maven 3.9.16, Gradle 9.8.2 and JDK 25. A wrapper in the project comes first.
+[[tests.runners]]
+name = "gradle (wrapper)"
+when = "gradlew"
+command = "./gradlew test --rerun --continue"
+junit = "**/build/test-results/test/"
+program = "java"
+note = "Timonier runs the tests with the project's Gradle wrapper, which needs a JDK: install one (https://adoptium.net/)."
+
+[tests.runners.smoke]
+command = "./gradlew test --rerun --tests timonier.TimonierSmokeTest"
+files = [{ path = "src/test/java/timonier/TimonierSmokeTest.java", source = "instrumentation/TimonierSmokeTest.java" }]
+
+[[tests.runners]]
+name = "maven (wrapper)"
+when = "mvnw"
+command = "./mvnw -B test -Dmaven.test.failure.ignore=true"
+junit = "**/target/surefire-reports/"
+program = "java"
+note = "Timonier runs the tests with the project's Maven wrapper, which needs a JDK: install one (https://adoptium.net/)."
+
+[tests.runners.smoke]
+command = "./mvnw -B test -Dtest=TimonierSmokeTest -Dsurefire.failIfNoSpecifiedTests=false"
+files = [{ path = "src/test/java/timonier/TimonierSmokeTest.java", source = "instrumentation/TimonierSmokeTest.java" }]
+
+[[tests.runners]]
+name = "maven"
+when = "pom.xml"
+command = "mvn -B test -Dmaven.test.failure.ignore=true"
+junit = "**/target/surefire-reports/"
+program = "mvn"
+note = "Timonier runs the tests with Maven: install it (https://maven.apache.org/install.html), with a JDK."
+
+[tests.runners.smoke]
+command = "mvn -B test -Dtest=TimonierSmokeTest -Dsurefire.failIfNoSpecifiedTests=false"
+files = [{ path = "src/test/java/timonier/TimonierSmokeTest.java", source = "instrumentation/TimonierSmokeTest.java" }]
+
+[[tests.runners]]
+name = "gradle"
+command = "gradle test --rerun --continue"
+junit = "**/build/test-results/test/"
+program = "gradle"
+note = "Timonier runs the tests with Gradle: install it (https://gradle.org/install/), with a JDK, or add the Gradle wrapper to the project (`gradle wrapper`)."
+
+[tests.runners.smoke]
+command = "gradle test --rerun --tests timonier.TimonierSmokeTest"
+files = [{ path = "src/test/java/timonier/TimonierSmokeTest.java", source = "instrumentation/TimonierSmokeTest.java" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0064): the
+# API among the project's dependencies (the code that ships uses it, Q78), the SDK, its OTLP
+# exporter and its autoconfiguration for the tests. Verified on Maven Central on 2026-10-22,
+# upgraded together.
+[instrumentation]
+files = [{ path = "src/test/java/timonier/TimonierOtel.java", source = "instrumentation/TimonierOtel.java" }]
+note = "the class `timonier.TimonierOtel` starts the export: call `TimonierOtel.start()` where the tests set up (a JUnit extension, or a `@BeforeAll`), as the conventions say. The smoke test is written for JUnit 5."
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-api"
+version = "1.67.0"
+production = true
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-sdk"
+version = "1.67.0"
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-exporter-otlp"
+version = "1.67.0"
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure"
+version = "1.67.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known libraries:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = [
+  "org.springframework.boot:spring-boot-starter", "org.springframework.boot:spring-boot-starter-web",
+  "io.quarkus:quarkus-core", "io.micronaut:micronaut-core", "io.javalin:javalin", "io.vertx:vertx-core",
+]
+
+[inventory.functions]
+http-client = ["com.squareup.okhttp3:okhttp", "org.apache.httpcomponents.client5:httpclient5", "org.apache.httpcomponents:httpclient", "com.squareup.retrofit2:retrofit"]
+json = ["com.fasterxml.jackson.core:jackson-databind", "com.google.code.gson:gson", "org.json:json", "com.squareup.moshi:moshi"]
+logging = ["ch.qos.logback:logback-classic", "org.apache.logging.log4j:log4j-core", "org.slf4j:slf4j-simple"]
+test-framework = ["org.junit.jupiter:junit-jupiter", "junit:junit", "org.testng:testng"]
+assertions = ["org.assertj:assertj-core", "org.hamcrest:hamcrest", "com.google.truth:truth"]
+mocking = ["org.mockito:mockito-core", "io.mockk:mockk", "org.easymock:easymock"]
+orm = ["org.hibernate.orm:hibernate-core", "org.jooq:jooq", "org.mybatis:mybatis", "org.eclipse.persistence:eclipselink"]
+migrations = ["org.flywaydb:flyway-core", "org.liquibase:liquibase-core"]
+cli-parser = ["info.picocli:picocli", "commons-cli:commons-cli", "com.beust:jcommander"]

@@ -1,0 +1,50 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/cart.cpp\", CPP))"
+---
+module   shop                                     under -                        at 6:0  `namespace shop`  #5e619a82
+constant shop/kTax                                under shop                     at 8:0  `constexpr double kTax = 0.2`  #49d4cef8
+type     shop/Kind                                under shop                     at 10:0  `enum class Kind`  #9a321647
+constant shop/Kind/Small                          under shop/Kind                at 10:18  `Small`  #cf10b6f0
+constant shop/Kind/Large                          under shop/Kind                at 10:25  `Large`  #3781df23
+type     shop/Prices                              under shop                     at 12:0  `using Prices =`  #3e5ece9d
+type     shop/Line                                under shop                     at 14:0  `struct Line`  #3e72e416
+field    shop/Line/name                           under shop/Line                at 15:4  `std::string name`  #6c48cb07
+field    shop/Line/price                          under shop/Line                at 16:4  `int price`  #a189b8f4
+type     shop/Cart                                under shop                     at 19:0  `class Cart : public Base, public Printable<Cart>`  #f12d2c0e
+method   shop/Cart/add                            under shop/Cart                at 22:4  `void add(const Item & item)`  #e8a49f34
+method   shop/Cart/total                          under shop/Cart                at 23:4  `int total() const`  #080df5e8
+field    shop/Cart/prices_                        under shop/Cart                at 28:4  `Prices prices_`  #55d1a69d
+method   shop/Cart/helper                         under shop/Cart                at 31:0  `int Cart::helper() const`  #ee5b4854
+method   shop/Cart/make                           under shop/Cart                at 35:0  `Cart * Cart::make()`  #8eb7b577
+function shop/price                               under shop                     at 39:0  `int price(const Item & item)`  #bff6ff41
+function main                                     under -                        at 43:0  `int main()`  #b668ff87
+import   cart.hpp binds []
+import   model/item.hpp binds []
+import   fmt/core.h binds []
+import   thread binds []
+import   vector binds []
+calls Cart ×1 at 36:15
+calls cart·add ×1 at 45:9 on a receiver
+calls helper ×1 at 23:31
+calls shop·price ×1 at 46:34
+calls size ×1 at 32:32 on a receiver
+calls sum ×1 at 23:42
+calls total ×1 at 48:31 on a receiver
+calls worker·join ×1 at 47:11 on a receiver
+references Cart ×3 at 19:6
+references Cart·helper ×1 at 31:10
+references Cart·make ×1 at 35:12
+references Item ×4 at 22:19
+references Kind ×1 at 10:11
+references Line ×1 at 14:7
+references Prices ×2 at 12:6
+references shop·Cart ×1 at 44:10
+references std·string ×1 at 15:9
+references std·thread ×1 at 46:9
+references std·vector ×1 at 12:20
+inherits Base ×1 at 19:20 from shop/Cart
+inherits Printable ×1 at 19:33 from shop/Cart
+signal   entry_point ×1
+signal   background_task ×1
+errors   false

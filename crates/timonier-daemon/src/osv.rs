@@ -41,7 +41,7 @@ struct Detail {
 fn key(dependency: &Dependency, version: &str) -> String {
     format!(
         "{}/{}@{version}",
-        dependency.ecosystem.osv(),
+        dependency.ecosystem.osv().unwrap_or("-"),
         dependency.name
     )
 }
@@ -60,8 +60,18 @@ pub fn check(
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
     let fresh = |at: i64| now_ms - at < KEPT_MS;
+    // Dependencies of ecosystems OSV does not know (vcpkg, CMake) alone: unknown, not absent.
+    if !dependencies.is_empty() && dependencies.iter().all(|d| d.ecosystem.osv().is_none()) {
+        return (
+            Vec::new(),
+            CveCheck::NotChecked {
+                reason: "OSV knows none of these ecosystems (vcpkg, CMake)".to_owned(),
+            },
+        );
+    }
     let versioned: Vec<(&Dependency, &str)> = dependencies
         .iter()
+        .filter(|d| d.ecosystem.osv().is_some())
         .filter_map(|d| d.version.as_deref().map(|v| (d, v)))
         .collect();
     let missing: Vec<(&Dependency, &str)> = versioned
@@ -320,5 +330,19 @@ mod tests {
                 reason: "OSV did not answer: timed out".to_owned()
             }
         );
+    }
+
+    /// T-124: vcpkg's ports alone are not checked, and OSV is not asked.
+    #[test]
+    fn ecosystems_osv_does_not_know_are_not_checked() {
+        let dir = tempfile::tempdir().unwrap();
+        let fetch = |_: &str, _: Option<&Value>| -> Result<Value, String> {
+            panic!("OSV must not be asked")
+        };
+        let mut fmt = dep("fmt", "12.2.0");
+        fmt.ecosystem = Ecosystem::Vcpkg;
+        let (found, state) = check(&[fmt], &dir.path().join("osv.json"), 0, true, &fetch);
+        assert!(found.is_empty());
+        assert!(matches!(state, CveCheck::NotChecked { .. }), "{state:?}");
     }
 }

@@ -30,15 +30,40 @@ pub struct GetTechInventory {
 pub enum Ecosystem {
     Cargo,
     Npm,
+    /// Python packages (ADR 0062).
+    Pypi,
+    /// Go modules (ADR 0063).
+    Go,
+    /// Maven coordinates, `group:artifact`, for Maven and Gradle (ADR 0064).
+    Maven,
+    /// C++ (ADR 0065, Q89): Conan's packages, vcpkg's ports, and what CMake alone finds
+    /// (`find_package`, `FetchContent`).
+    Conan,
+    Vcpkg,
+    Cmake,
+    /// Swift packages, by their location (ADR 0067).
+    Swift,
+    /// NuGet packages of .NET projects (ADR 0069).
+    Nuget,
+    /// Composer packages, `vendor/package` (ADR 0070).
+    Composer,
 }
 
 impl Ecosystem {
-    /// Its name in OSV's queries.
-    pub const fn osv(self) -> &'static str {
-        match self {
+    /// Its name in OSV's queries; `None` for the ones OSV does not know (vcpkg, CMake).
+    pub const fn osv(self) -> Option<&'static str> {
+        Some(match self {
             Self::Cargo => "crates.io",
             Self::Npm => "npm",
-        }
+            Self::Pypi => "PyPI",
+            Self::Go => "Go",
+            Self::Maven => "Maven",
+            Self::Conan => "ConanCenter",
+            Self::Swift => "SwiftURL",
+            Self::Nuget => "NuGet",
+            Self::Composer => "Packagist",
+            Self::Vcpkg | Self::Cmake => return None,
+        })
     }
 
     /// Its type in a package URL (purl).
@@ -46,6 +71,15 @@ impl Ecosystem {
         match self {
             Self::Cargo => "cargo",
             Self::Npm => "npm",
+            Self::Pypi => "pypi",
+            Self::Go => "golang",
+            Self::Maven => "maven",
+            Self::Conan => "conan",
+            Self::Swift => "swift",
+            Self::Nuget => "nuget",
+            Self::Composer => "composer",
+            // No purl type of their own.
+            Self::Vcpkg | Self::Cmake => "generic",
         }
     }
 }

@@ -34,5 +34,11 @@
   "Timonier added its folder to your PATH: restart VSCode and your agents so that they find it.": "Timonier a ajouté son dossier à votre PATH : redémarrez VSCode et vos agents pour qu'ils le trouvent.",
   "Timonier could not install its command line: {0}": "Timonier n'a pas pu installer sa ligne de commande : {0}",
   "The timonier command is installed for your agents.": "La commande timonier est installée pour vos agents.",
-  "~/.local/bin is not on your PATH: add it in your shell's profile, then restart VSCode.": "~/.local/bin n'est pas dans votre PATH : ajoutez-le dans le profil de votre shell, puis redémarrez VSCode."
+  "~/.local/bin is not on your PATH: add it in your shell's profile, then restart VSCode.": "~/.local/bin n'est pas dans votre PATH : ajoutez-le dans le profil de votre shell, puis redémarrez VSCode.",
+  "Set the project up first, with « Set up » in the Overview: it records how its tests run.": "Configurez d'abord le projet, avec « Configurer » dans la vue d'ensemble : c'est là qu'il retient comment ses tests se lancent.",
+  "No test command is recorded for this project's languages yet.": "Aucune commande de test n'est encore retenue pour les langages de ce projet.",
+  "Run the tests": "Lancer les tests",
+  "Run the project's tests on this machine?": "Lancer les tests du projet sur ce poste ?",
+  "Timonier tests": "Tests Timonier",
+  "Timonier runs these commands, and installs first what they need and this machine lacks (cargo-nextest, say):": "Timonier lance ces commandes, et installe d'abord ce dont elles ont besoin et qui manque à ce poste (cargo-nextest, par exemple) :"
 }

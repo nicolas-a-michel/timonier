@@ -1,0 +1,156 @@
+# Scala language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "scala"
+version = "1.0.0"
+ecosystem = "sbt"
+
+[[grammars]]
+name = "scala"
+crate = "tree-sitter-scala"
+version = "0.26.3"
+license = "MIT"
+extensions = ["scala", "sc"]
+
+# Build outputs, never the project's code; `.bsp` and `.metals` are hidden already.
+[walk]
+skip = ["target", "out"]
+
+# `scala:com.shop.Cart#Cart.total`: the file's dotted path from the source root, then the
+# definitions in it, as Java (ADR 0064, 0071).
+[naming]
+module = "."
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# `import a.b.{C, D}` is written `a`, `b` and the selectors: the `path` children before a name
+# prefix it.
+prefix_field = "path"
+bind = "last_segment"
+
+[fingerprint]
+atoms = ["string", "interpolated_string_expression", "character_literal"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}"]
+opening = ["=", "(", "[", "{", ":", ",", "=>"]
+
+[signature]
+no_space_before = [")", "]", ",", ";", ".", "(", "[", ":"]
+tight_after_word = ["(", "["]
+no_space_after = ["(", "[", ".", "@"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+# Dependencies are `group:artifact`, the Scala suffix included (`cats-core_3`).
+[dependencies]
+async = ["org.typelevel:cats-effect_3", "dev.zio:zio_3", "org.apache.pekko:pekko-actor_3", "com.typesafe.akka:akka-actor_3"]
+network = [
+  "org.http4s:http4s-ember-server_3", "org.http4s:http4s-dsl_3", "com.softwaremill.sttp.client4:core_3",
+  "com.lihaoyi:cask_3", "com.lihaoyi:requests_3", "dev.zio:zio-http_3", "org.apache.pekko:pekko-http_3",
+]
+serialization = ["com.lihaoyi:upickle_3", "io.circe:circe-core_3", "io.circe:circe-generic_3", "dev.zio:zio-json_3"]
+database = ["org.tpolecat:doobie-core_3", "com.typesafe.slick:slick_3", "io.getquill:quill-jdbc_3", "org.postgresql:postgresql"]
+cli = ["com.monovore:decline_3", "com.github.scopt:scopt_3", "com.lihaoyi:mainargs_3"]
+observability = ["io.opentelemetry:opentelemetry-api", "org.typelevel:otel4s-core_3", "ch.qos.logback:logback-classic"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["org.http4s:http4s-ember-server_3", "com.lihaoyi:cask_3", "dev.zio:zio-http_3", "org.apache.pekko:pekko-http_3", "com.monovore:decline_3"]
+paths = ["org.http4s.server", "cask", "zio.http", "org.apache.pekko.http"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["org.tpolecat:doobie-core_3", "com.typesafe.slick:slick_3", "io.getquill:quill-jdbc_3"]
+paths = ["doobie", "slick", "io.getquill", "java.sql"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+libraries = ["io.circe:circe-generic_3"]
+paths = ["upickle.default", "io.circe.generic"]
+confidence = 0.5
+
+[[roles]]
+role = "background_task"
+libraries = ["org.typelevel:cats-effect_3", "dev.zio:zio_3", "org.apache.pekko:pekko-actor_3"]
+paths = ["scala.concurrent", "cats.effect", "zio", "org.apache.pekko.actor"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# `scala.*` and `Predef`: a name tree-sitter cannot resolve that is one of them is defined
+# outside the repository, and the language server is not asked.
+outside = [
+  "String", "Int", "Long", "Double", "Boolean", "Unit", "Any", "Nothing", "Option", "Some",
+  "None", "List", "Nil", "Seq", "Vector", "Map", "Set", "Array", "Either", "Left", "Right",
+  "println", "require", "assert", "this", "super",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): sbt writes it into `test-reports/` under each
+# project's target, one file per suite; Timonier reads that folder anywhere (ADR 0071). sbt 2
+# reruns only what changed with `test`; `testFull` runs every test. Checked with sbt 2.0.11,
+# Scala 3.10 and munit 1.3.6. sbt 2 runs through a server that outlives the command and keeps the
+# environment it started with: `--server` runs it in the foreground, where the run's variables
+# reach the tests.
+[[tests.runners]]
+name = "sbt 2"
+when = "project/build.properties"
+when_text = "sbt.version=2"
+command = "sbt --server -batch testFull"
+junit = "**/test-reports/"
+program = "sbt"
+note = "Timonier runs the tests with sbt: install it (https://www.scala-sbt.org/download), with a JDK."
+
+# sbt 2 replays `testOnly` from its cache: the smoke test runs with all the others.
+[tests.runners.smoke]
+command = "sbt --server -batch testFull"
+files = [{ path = "src/test/scala/timonier/TimonierSmokeSuite.scala", source = "instrumentation/TimonierSmokeSuite.scala" }]
+
+[[tests.runners]]
+name = "sbt"
+command = "sbt -batch test"
+junit = "**/test-reports/"
+program = "sbt"
+note = "Timonier runs the tests with sbt: install it (https://www.scala-sbt.org/download), with a JDK."
+
+[tests.runners.smoke]
+command = "sbt -batch \"testOnly timonier.*\""
+files = [{ path = "src/test/scala/timonier/TimonierSmokeSuite.scala", source = "instrumentation/TimonierSmokeSuite.scala" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0071): Java's
+# OpenTelemetry, the API for the code, the SDK, its OTLP exporter and its autoconfiguration for
+# the tests, in a block at the end of `build.sbt`, as Java's (ADR 0064).
+[instrumentation]
+files = [{ path = "src/test/scala/timonier/TimonierOtel.scala", source = "instrumentation/TimonierOtel.scala" }]
+note = "the object `timonier.TimonierOtel` starts the export: call `TimonierOtel.start()` where the tests set up (a fixture), as the conventions say. The smoke test is written for munit; in a build of several projects, move the block of `build.sbt` into the settings of the one that runs the tests."
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-api"
+version = "1.67.0"
+production = true
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-sdk"
+version = "1.67.0"
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-exporter-otlp"
+version = "1.67.0"
+
+[[instrumentation.dependencies]]
+name = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure"
+version = "1.67.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known libraries:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["org.typelevel:cats-effect_3", "dev.zio:zio_3", "org.http4s:http4s-dsl_3", "org.playframework:play_3"]
+
+[inventory.functions]
+json = ["com.lihaoyi:upickle_3", "io.circe:circe-core_3", "dev.zio:zio-json_3", "org.json4s:json4s-native_3"]
+test-framework = ["org.scalameta:munit_3", "org.scalatest:scalatest_3", "com.lihaoyi:utest_3", "dev.zio:zio-test_3"]
+effects = ["org.typelevel:cats-effect_3", "dev.zio:zio_3"]
+http-client = ["com.softwaremill.sttp.client4:core_3", "com.lihaoyi:requests_3", "org.http4s:http4s-ember-client_3"]

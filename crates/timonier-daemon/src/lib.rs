@@ -32,6 +32,7 @@ pub use error::{Error, Result};
 pub use indexing::{Consolidated, Consolidation, Pipeline, Refinement, Report};
 pub use runtime::{Lock, Paths};
 pub use server::{Daemon, Options};
+pub use timonier_index::ecosystem::cmake_commands;
 /// The language packs, for the CLI's `init` (ADR 0034): the CLI depends on the daemon, not on
 /// the indexer (ADR 0003).
 pub use timonier_index::pack::{

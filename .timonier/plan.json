@@ -1944,6 +1944,26 @@
             "at": "2026-10-21T19:20:55Z",
             "session": "S-2026-10-21-33"
           }
+        },
+        {
+          "id": "T-126",
+          "title": "Lancer les tests depuis le panneau Performances, et installer l'outil de test manquant",
+          "criterion": "Sans run, le panneau Performances offre « Lancer les tests » ; les commandes s'affichent avant de partir ; timonier test installe d'abord le programme manquant d'un lanceur (cargo-nextest) ; testé.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-3"
+          ],
+          "created": {
+            "at": "2026-10-22T06:50:41Z",
+            "session": "S-2026-10-22-3"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T06:50:52Z",
+              "session": "S-2026-10-22-3",
+              "text": "Built and tested: the empty Performances panel's « Run the tests » shows the recorded commands in a modal, then runs timonier test --approve --install in a terminal; --install installs cargo-nextest when missing. 589 Rust, 163 vitest, 100+27 node:test, 191 a11y, 28 integration green; clippy clean for Linux and Windows."
+            }
+          ]
         }
       ]
     },
@@ -1976,53 +1996,211 @@
           "id": "T-121",
           "title": "10.2 Pack Python",
           "criterion": "Sur un petit projet Python réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests (pytest, JUnit).",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-21-28"
+            "S-2026-10-21-28",
+            "S-2026-10-22-4"
           ],
           "created": {
             "at": "2026-10-21T18:08:13Z",
             "session": "S-2026-10-21-28"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T07:06:11Z",
+              "session": "S-2026-10-22-4",
+              "text": "Criterion verified on 2026-10-22 on a real project made by uv init --package (FastAPI, pydantic, pytest): pydemo entry point, fastapi and pydantic as external libraries; init, uv sync --group timonier, doctor: the smoke trace attached (1 of 1 spans); timonier test: 2 tests measured; inventory: 30 dependencies from uv.lock. ADR 0062. 593 Rust tests, 163 vitest, 100+27 node:test green; clippy clean for Linux and Windows."
+            }
+          ]
         },
         {
           "id": "T-122",
           "title": "10.3 Pack Go",
           "criterion": "Sur un petit projet Go réel : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-21-28"
+            "S-2026-10-21-28",
+            "S-2026-10-22-5"
           ],
           "created": {
             "at": "2026-10-21T18:08:13Z",
             "session": "S-2026-10-21-28"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T07:58:50Z",
+              "session": "S-2026-10-22-5",
+              "text": "Critère constaté sur un vrai module Go (go mod init, Go 1.27.3 hors dépôt) : init, go mod tidy, timonier test --install (gotestsum installé, 2 tests mesurés), doctor : trace de fumée rattachée au graphe (1 of 1 spans). ADR 0063."
+            }
+          ]
         },
         {
           "id": "T-123",
           "title": "10.4 Pack Java",
           "criterion": "Sur un petit projet Java réel (Maven ou Gradle) : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-21-28"
+            "S-2026-10-21-28",
+            "S-2026-10-22-6"
           ],
           "created": {
             "at": "2026-10-21T18:08:13Z",
             "session": "S-2026-10-21-28"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T08:17:45Z",
+              "session": "S-2026-10-22-6",
+              "text": "Critère constaté (JDK 25, Maven 3.9.16, Gradle 9.8.2 hors dépôt) sur un projet maven-archetype-quickstart : carte (point d'entrée), init, timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans). Projet gradle init : catalogue, enveloppe, rapports de app/. ADR 0064."
+            }
+          ]
         },
         {
           "id": "T-124",
           "title": "10.5 Pack C++",
           "criterion": "Sur un petit projet C++ réel (CMake) : la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, timonier test mesure ses tests (CTest).",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-21-28"
+            "S-2026-10-21-28",
+            "S-2026-10-22-7"
           ],
           "created": {
             "at": "2026-10-21T18:08:13Z",
             "session": "S-2026-10-21-28"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T08:40:40Z",
+              "session": "S-2026-10-22-7",
+              "text": "Critère constaté (CMake 4.2.3, GCC 15, vcpkg et opentelemetry-cpp 1.29.0 hors dépôt) sur un projet CMake + vcpkg (fmt, sqlite3) : carte (sqlite3 en bases de données, paquet en persistance), init, timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans). Q89 : CMake + vcpkg + Conan. ADR 0065."
+            }
+          ]
+        },
+        {
+          "id": "T-127",
+          "title": "10.6 Pack Kotlin",
+          "criterion": "Sur un petit projet Kotlin réel (Gradle), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.6).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-5",
+            "S-2026-10-22-8"
+          ],
+          "created": {
+            "at": "2026-10-22T07:58:50Z",
+            "session": "S-2026-10-22-5"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T08:50:57Z",
+              "session": "S-2026-10-22-8",
+              "text": "Critère constaté (JDK 25, Gradle 9.8.2 hors dépôt) sur un projet gradle init kotlin-application : carte (import d'une fonction de fichier résolu, guava externe), init dans app/build.gradle.kts, timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans). Suite complète verte. ADR 0066."
+            }
+          ]
+        },
+        {
+          "id": "T-128",
+          "title": "10.7 Pack Swift",
+          "criterion": "Sur un petit projet Swift réel (SwiftPM), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.7).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-5",
+            "S-2026-10-22-9"
+          ],
+          "created": {
+            "at": "2026-10-22T07:58:50Z",
+            "session": "S-2026-10-22-5"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T09:08:25Z",
+              "session": "S-2026-10-22-9",
+              "text": "Critère constaté (Swift 6.4.1 hors dépôt) sur un paquet SwiftPM : carte, init (Package.swift + cible TimonierTests), timonier test « 3 tests, 0 failed » (XCTest et Swift Testing), doctor : trace de fumée rattachée (1 of 1 spans). Suite complète verte. ADR 0067."
+            }
+          ]
+        },
+        {
+          "id": "T-129",
+          "title": "10.8 Pack C",
+          "criterion": "Sur un petit projet C réel (CMake, CTest), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.8).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-5",
+            "S-2026-10-22-10"
+          ],
+          "created": {
+            "at": "2026-10-22T07:58:50Z",
+            "session": "S-2026-10-22-5"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T09:24:20Z",
+              "session": "S-2026-10-22-10",
+              "text": "Critère constaté (CMake 4.2.3, GCC 15, vcpkg et opentelemetry-cpp hors dépôt) sur un projet CMake en C avec vcpkg : carte, init (API C sur opentelemetry-cpp), timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans). Suite complète verte. ADR 0068."
+            }
+          ]
+        },
+        {
+          "id": "T-130",
+          "title": "10.9 Pack C#",
+          "criterion": "Sur un petit projet C# réel (.csproj, dotnet test), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.9).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-5",
+            "S-2026-10-22-11"
+          ],
+          "created": {
+            "at": "2026-10-22T07:58:50Z",
+            "session": "S-2026-10-22-5"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T09:40:27Z",
+              "session": "S-2026-10-22-11",
+              "text": "Critère constaté (SDK .NET 10.0.402 hors dépôt) sur une solution dotnet new : carte, init dans le projet de test, timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans). ADR 0069."
+            }
+          ]
+        },
+        {
+          "id": "T-131",
+          "title": "10.10 Pack PHP",
+          "criterion": "Sur un petit projet PHP réel (Composer, PHPUnit), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.10).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-5",
+            "S-2026-10-22-11"
+          ],
+          "created": {
+            "at": "2026-10-22T07:58:50Z",
+            "session": "S-2026-10-22-5"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T09:47:34Z",
+              "session": "S-2026-10-22-11",
+              "text": "Critère constaté (PHP 8.5.8 et Composer 2.10.3 hors dépôt) sur un projet Composer : carte, init (composer.json), timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans), inventaire avec licences. ADR 0070."
+            }
+          ]
+        },
+        {
+          "id": "T-132",
+          "title": "10.11 Pack Scala",
+          "criterion": "Sur un petit projet Scala réel (sbt ou Gradle), la carte montre ses composants par rôle, init puis doctor voient la première trace rattachée au graphe, et timonier test mesure ses tests (PLAN.md 10.11).",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-22-8",
+            "S-2026-10-22-11"
+          ],
+          "created": {
+            "at": "2026-10-22T08:44:17Z",
+            "session": "S-2026-10-22-8"
+          },
+          "notes": [
+            {
+              "at": "2026-10-22T10:08:29Z",
+              "session": "S-2026-10-22-11",
+              "text": "Critère constaté (sbt 2.0.11 et JDK 25 hors dépôt) sur un build sbt (Scala 3.10, munit) : carte, init (build.sbt), timonier test « 3 tests, 0 failed », doctor : trace de fumée rattachée (1 of 1 spans), après trois corrections pour sbt 2 (testFull, --server, vidage attendu). ADR 0071."
+            }
+          ]
         }
       ]
     }

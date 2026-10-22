@@ -1,0 +1,138 @@
+# C language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "c"
+version = "1.0.0"
+ecosystem = "cmake"
+
+# Headers (`.h`) stay with the C++ pack, whose grammar reads C's too (ADR 0068).
+[[grammars]]
+name = "c"
+crate = "tree-sitter-c"
+version = "0.24.2"
+license = "MIT"
+extensions = ["c"]
+
+# Build folders and installed dependencies, never the project's code.
+[walk]
+skip = ["build", "cmake-build-debug", "cmake-build-release", "out", "vcpkg_installed", "third_party", "_deps"]
+
+# `c:src/cart.c#cart_total`: the file's path, extension included, then the definitions in it
+# (ADR 0065, 0068).
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+[paths]
+separators = [".", "->"]
+# An include binds no name.
+bind = "captures"
+
+[fingerprint]
+atoms = ["string_literal", "char_literal", "system_lib_string"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "{", "<", ":", ",", "->"]
+
+[signature]
+no_space_before = [")", "]", ",", ";", ".", "->", "("]
+tight_after_word = ["(", "["]
+no_space_after = ["(", "[", ".", "->", "~", "!", "*", "&"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+# Names as vcpkg, Conan or `find_package` write them.
+[dependencies]
+async = ["libuv", "libevent", "libev"]
+network = ["curl", "CURL", "libcurl", "libmicrohttpd", "mongoose", "civetweb", "nghttp2", "openssl", "OpenSSL"]
+serialization = ["cjson", "cJSON", "jansson", "json-c", "protobuf-c", "msgpack", "libyaml", "libxml2", "LibXml2"]
+database = ["sqlite3", "SQLite3", "unofficial-sqlite3", "libpq", "PostgreSQL", "hiredis", "lmdb", "mariadb", "libmysql"]
+cli = ["argtable3", "getopt"]
+observability = ["opentelemetry-cpp", "zlog", "log-c"]
+ui = ["gtk", "GTK3", "gtk4", "ncurses", "Curses", "sdl2", "SDL2", "raylib", "glfw3"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["libmicrohttpd", "mongoose", "civetweb"]
+paths = ["microhttpd.h", "mongoose.h", "civetweb.h", "sys/socket.h"]
+confidence = 0.5
+
+[[roles]]
+role = "persistence"
+libraries = ["sqlite3", "SQLite3", "unofficial-sqlite3", "libpq", "PostgreSQL", "hiredis", "lmdb", "mariadb"]
+paths = ["sqlite3.h", "libpq-fe.h", "mysql/mysql.h", "hiredis/hiredis.h", "lmdb.h"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+paths = ["cjson/cJSON.h", "cJSON.h", "jansson.h", "json-c/json.h"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["gtk", "GTK3", "gtk4", "ncurses", "Curses", "sdl2", "SDL2", "raylib", "glfw3"]
+paths = ["gtk/gtk.h", "ncurses.h", "curses.h", "SDL2/SDL.h", "raylib.h", "GLFW/glfw3.h"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+paths = ["pthread.h", "threads.h"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# The standard library and the language's keywords: a name tree-sitter cannot resolve that is
+# one of them is defined outside the repository, and the language server is not asked.
+outside = [
+  "size_t", "printf", "fprintf", "snprintf", "malloc", "calloc", "realloc", "free", "memcpy",
+  "memset", "strlen", "strcmp", "strcpy", "assert", "sizeof", "NULL", "FILE", "stdin", "stdout",
+  "stderr", "exit", "abort",
+]
+
+# How the tests run and write JUnit XML (ADR 0034), as for C++: CTest writes it (`--output-junit`, relative to
+# the build folder). The build goes into `.timonier/runs/cmake`, which git ignores, apart from
+# the developer's own. Checked with CMake 4.2.3 and GCC 15. With vcpkg, CMake takes its toolchain
+# from `CMAKE_TOOLCHAIN_FILE` (an environment variable since CMake 3.21) or from a preset.
+[[tests.runners]]
+name = "ctest"
+command = "cmake -S . -B .timonier/runs/cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug && ctest --test-dir .timonier/runs/cmake -C Debug --output-junit ../junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "cmake"
+note = "Timonier builds and runs the tests with CMake and CTest: install CMake (https://cmake.org/download/) and a C++ compiler. With vcpkg, set CMAKE_TOOLCHAIN_FILE to vcpkg's scripts/buildsystems/vcpkg.cmake."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs: the same
+# build, then the one test.
+[tests.runners.smoke]
+command = "cmake -S . -B .timonier/runs/cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug --target timonier_smoke_test && ctest --test-dir .timonier/runs/cmake -C Debug -R timonier_smoke_test --no-tests=error"
+files = [{ path = "timonier/timonier_smoke_test.c", source = "instrumentation/timonier_smoke_test.c" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0068):
+# OpenTelemetry has no C SDK; the folder `timonier/` holds a C API (`timonier_otel.h`)
+# implemented in C++ on opentelemetry-cpp, which goes into `vcpkg.json` when the project has
+# one, as for C++. Verified on vcpkg's registry on 2026-10-22.
+[instrumentation]
+files = [
+  { path = "timonier/CMakeLists.txt", source = "instrumentation/CMakeLists.txt" },
+  { path = "timonier/timonier_otel.h", source = "instrumentation/timonier_otel.h" },
+  { path = "timonier/timonier_otel.cpp", source = "instrumentation/timonier_otel.cpp" },
+]
+note = "the build takes the folder `timonier/` when CMake finds opentelemetry-cpp (a C++ compiler builds its C API): with vcpkg it is in vcpkg.json; with Conan, add `opentelemetry-cpp` to the conanfile; else install it. Link `timonier_otel` to the tests and call `timonier_start_telemetry()` where they set up, as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-cpp"
+version = "1.29.0"
+features = ["otlp-http"]
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known libraries:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["gtk", "gtk4", "libuv", "sdl2", "raylib"]
+
+[inventory.functions]
+json = ["cjson", "cJSON", "jansson", "json-c", "parson"]
+http-client = ["curl", "libcurl"]
+http-server = ["libmicrohttpd", "mongoose", "civetweb"]
+test-framework = ["cmocka", "check", "unity", "criterion", "gtest", "GTest"]
+tls = ["openssl", "OpenSSL", "mbedtls", "wolfssl"]
+compression = ["zlib", "ZLIB", "zstd", "lz4", "bzip2"]

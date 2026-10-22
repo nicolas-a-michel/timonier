@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-8",
+  "agent": "claude-code",
+  "objective": "10.6 Pack Kotlin : grammaire, définitions, imports, noms qualifiés, Gradle (écosystème maven partagé avec Java), rôles, inventaire, tests JUnit de Gradle, SDK OpenTelemetry et test de fumée.",
+  "tasks": [
+    "T-127",
+    "T-132"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T08:40:40Z",
+  "ended_at": "2026-10-22T08:50:57Z",
+  "snapshots": {
+    "start": 121,
+    "end": 122
+  },
+  "summary": "10.6 Kotlin fait (ADR 0066) : pack kotlin sur l'écosystème maven, imports de fonctions de fichier, Java et Kotlin dans les deux sens, détection Kotlin d'un build Gradle, SDK écrit dans un sous-projet seul (gradle init). Critère constaté sur un vrai projet ; suite complète verte (Rust, webview, clippy Linux et Windows). Scala ajouté au plan (T-132). Reste : Swift, C, C#, PHP, Scala. Rien n'est commité.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Vérifier la suite complète (Rust, Node, clippy Linux et Windows) avant de clore 10.6 Kotlin",
+      "task": "T-127",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 12,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-kotlin-ng",
+        "name": "tree-sitter-kotlin-ng",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 38,
+    "input": 78,
+    "output": 46051,
+    "cache_read": 18517357,
+    "cache_creation": 61876,
+    "cost_usd_micros": 5119814
+  }
+}

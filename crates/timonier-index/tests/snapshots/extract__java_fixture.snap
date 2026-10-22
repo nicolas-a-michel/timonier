@@ -1,0 +1,40 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/main/java/com/shop/Cart.java\", JAVA))"
+---
+type     Cart                                     under -                        at 7:0  `@Service public class Cart extends Base implements Comparable<Cart>, java.io.Serializable`  #a1108abf
+field    Cart/TAX                                 under Cart                     at 9:4  `public static final double TAX = 0.2`  #6a7a33f3
+field    Cart/items                               under Cart                     at 10:4  `private final List<Item> items = new ArrayList<>()`  #504d34fa
+method   Cart/Cart                                under Cart                     at 12:4  `public Cart()`  #c7ee7c96
+method   Cart/add                                 under Cart                     at 14:4  `public void add(Item item)`  #c18ba8f0
+method   Cart/total                               under Cart                     at 19:4  `public int total()`  #d37d3bb2
+method   Cart/helper                              under Cart                     at 27:4  `private int helper()`  #698c23ec
+type     Cart/Kind                                under Cart                     at 31:4  `enum Kind`  #4e36a7ec
+constant Cart/Kind/SMALL                          under Cart/Kind                at 31:16  `SMALL`  #16ebbc5f
+constant Cart/Kind/LARGE                          under Cart/Kind                at 31:23  `LARGE`  #c38f44fd
+type     Cart/Line                                under Cart                     at 33:4  `record Line(String name, int price)`  #c7ee7c96
+method   Cart/main                                under Cart                     at 35:4  `public static void main(String[] args)`  #6f2f655c
+trait    Shape                                    under -                        at 40:0  `interface Shape extends Comparable<Shape>`  #4d0f4d2c
+method   Shape/area                               under Shape                    at 41:4  `double area()`  #dfa095c0
+import   java.util.List binds ["List"]
+import   java.util.concurrent binds []
+import   com.shop.Prices.priceOf binds ["priceOf"]
+import   com.shop.model.Item binds ["Item"]
+calls ArrayList ×1 at 10:41
+calls Prices ×1 at 16:8
+calls Thread ×1 at 36:12
+calls helper ×1 at 20:34
+calls items ×1 at 15:8
+calls priceOf ×1 at 20:15
+calls total ×1 at 24:15
+references Item ×2 at 10:23
+references List ×1 at 10:18
+references Service ×1 at 7:1
+references String ×2 at 33:16
+implements Comparable ×1 at 8:42 from Cart
+implements java·io·Serializable ×1 at 8:68 from Cart
+inherits Base ×1 at 8:26 from Cart
+inherits Comparable ×1 at 40:24 from Shape
+signal   entry_point ×1
+signal   background_task ×1
+errors   false

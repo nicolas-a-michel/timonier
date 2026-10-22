@@ -60,11 +60,22 @@ test("the evolution lists the latest batch's regressions, probable and confirmed
   await expect(list).toContainText("test renders_the_view: +16.7 %");
 });
 
-test("before any run, the panel says how to have one", async ({ page }) => {
+test("before any run, the panel offers to run the tests, by keyboard too", async ({ page }) => {
   await open(page, { extra: "&empty=1" });
   await expect(page.getByText("No run yet")).toBeVisible();
-  await expect(page.getByText(/timonier test -- <command>/)).toBeVisible();
+  const run = page.getByRole("button", { name: "Run the tests" });
+  await expect(run).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(run).toBeFocused();
 });
+
+for (const theme of themes) {
+  test(`${theme}: the panel before any run at WCAG AA`, async ({ page }) => {
+    await open(page, { theme, extra: "&empty=1" });
+    await expect(page.getByRole("button", { name: "Run the tests" })).toBeVisible();
+    expect((await axeFindings(page)).violations).toEqual([]);
+  });
+}
 
 for (const theme of themes) {
   for (const tab of ["timeline", "tree", "evolution"]) {

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-10",
+  "agent": "claude-code",
+  "objective": "10.8 Pack C : grammaire, définitions, includes, noms, CMake partagé avec C++, rôles, inventaire, CTest, OpenTelemetry par une petite API C au-dessus d'opentelemetry-cpp, test de fumée. Aussi : la feuille de route demandée (ROADMAP.md, lien depuis le README).",
+  "tasks": [
+    "T-129"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T09:09:29Z",
+  "ended_at": "2026-10-22T09:24:20Z",
+  "snapshots": {
+    "start": 125,
+    "end": 126
+  },
+  "summary": "10.8 C fait (ADR 0068) : pack c sur l'écosystème cmake de C++, déclarations sous les gardes d'inclusion et includes suivis sur quatre niveaux (aussi pour C++), détection C/C++, API C écrite en C++ sur opentelemetry-cpp. Critère constaté ; Redis indexé à 8,0 ms pour mille lignes ; suite complète verte. Feuille de route ROADMAP.md / ROADMAP.fr.md écrite et liée depuis les README. Reste : C#, PHP, Scala. Rien n'est commité.",
+  "changes": {
+    "files": 11,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-c",
+        "name": "tree-sitter-c",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 23,
+    "input": 48,
+    "output": 33826,
+    "cache_read": 14290957,
+    "cache_creation": 41293,
+    "cost_usd_micros": 3865247
+  }
+}

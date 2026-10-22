@@ -1,0 +1,147 @@
+# C++ language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "cpp"
+version = "1.0.1"
+ecosystem = "cmake"
+
+# `.h` is read as C++ until a C pack exists (ADR 0065).
+[[grammars]]
+name = "cpp"
+crate = "tree-sitter-cpp"
+version = "0.23.4"
+license = "MIT"
+extensions = ["cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "h++", "ipp", "tpp", "h"]
+
+# Build folders and installed dependencies, never the project's code.
+[walk]
+skip = ["build", "cmake-build-debug", "cmake-build-release", "out", "vcpkg_installed", "third_party", "_deps"]
+
+# `cpp:src/cart.cpp#shop::Cart::total`: the file's path, extension included, then the
+# definitions in it (ADR 0065).
+[naming]
+module = "/"
+join = "#"
+member = "::"
+
+[paths]
+separators = ["::", ".", "->"]
+# An include binds no name.
+bind = "captures"
+
+[fingerprint]
+atoms = ["string_literal", "raw_string_literal", "char_literal", "system_lib_string"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "{", "<", ":", ",", "->"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ".", "::", "->", "("]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "::", "->", "~", "!"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+# Names as vcpkg, Conan or `find_package` write them.
+[dependencies]
+async = ["boost-asio", "asio", "libuv", "folly", "taskflow", "TBB", "tbb"]
+network = [
+  "boost-beast", "cpp-httplib", "httplib", "drogon", "Drogon", "crow", "Crow", "oatpp", "curl",
+  "CURL", "libcurl", "cpr", "grpc", "gRPC", "websocketpp", "poco", "Poco", "civetweb", "uwebsockets",
+]
+serialization = [
+  "nlohmann-json", "nlohmann_json", "rapidjson", "RapidJSON", "protobuf", "Protobuf", "flatbuffers",
+  "yaml-cpp", "cereal", "msgpack", "simdjson", "tomlplusplus", "glaze",
+]
+database = [
+  "sqlite3", "SQLite3", "unofficial-sqlite3", "libpqxx", "pqxx", "libpq", "PostgreSQL",
+  "soci", "sqlpp11", "hiredis", "redis-plus-plus", "mongo-cxx-driver", "leveldb", "rocksdb",
+]
+cli = ["cli11", "CLI11", "cxxopts", "argparse", "gflags", "boost-program-options"]
+observability = ["opentelemetry-cpp", "spdlog", "glog", "fmt", "prometheus-cpp"]
+ui = ["qt", "Qt5", "Qt6", "qtbase", "imgui", "wxwidgets", "wxWidgets", "glfw3", "sdl2", "SDL2", "sfml", "SFML"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["boost-beast", "cpp-httplib", "drogon", "Drogon", "crow", "Crow", "oatpp", "cli11", "CLI11", "cxxopts"]
+paths = ["httplib.h", "crow.h", "crow_all.h", "drogon/drogon.h", "boost/beast", "oatpp/web/server", "CLI/CLI.hpp", "cxxopts.hpp"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["sqlite3", "SQLite3", "unofficial-sqlite3", "libpqxx", "pqxx", "soci", "sqlpp11", "hiredis", "redis-plus-plus", "mongo-cxx-driver", "leveldb", "rocksdb"]
+paths = ["sqlite3.h", "pqxx/pqxx", "libpq-fe.h", "mysql/mysql.h", "hiredis/hiredis.h", "leveldb/db.h", "rocksdb/db.h"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+paths = ["nlohmann/json.hpp", "rapidjson/document.h", "cereal/cereal.hpp"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["qt", "Qt5", "Qt6", "qtbase", "imgui", "wxwidgets", "wxWidgets", "glfw3", "sdl2", "SDL2", "sfml", "SFML"]
+paths = ["QApplication", "QtWidgets", "imgui.h", "wx/wx.h", "GLFW/glfw3.h", "SDL2/SDL.h", "SFML/Graphics.hpp"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+paths = ["thread", "future", "boost/asio/thread_pool.hpp", "taskflow/taskflow.hpp"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# The standard library and the language's keywords: a name tree-sitter cannot resolve that is
+# one of them is defined outside the repository, and the language server is not asked.
+outside = [
+  "std", "size_t", "printf", "malloc", "free", "memcpy", "strlen", "assert", "this", "nullptr",
+  "static_cast", "dynamic_cast", "reinterpret_cast", "const_cast", "sizeof", "decltype",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): CTest writes it (`--output-junit`, relative to
+# the build folder). The build goes into `.timonier/runs/cmake`, which git ignores, apart from
+# the developer's own. Checked with CMake 4.2.3 and GCC 15. With vcpkg, CMake takes its toolchain
+# from `CMAKE_TOOLCHAIN_FILE` (an environment variable since CMake 3.21) or from a preset.
+[[tests.runners]]
+name = "ctest"
+command = "cmake -S . -B .timonier/runs/cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug && ctest --test-dir .timonier/runs/cmake -C Debug --output-junit ../junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "cmake"
+note = "Timonier builds and runs the tests with CMake and CTest: install CMake (https://cmake.org/download/) and a C++ compiler. With vcpkg, set CMAKE_TOOLCHAIN_FILE to vcpkg's scripts/buildsystems/vcpkg.cmake."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs: the same
+# build, then the one test.
+[tests.runners.smoke]
+command = "cmake -S . -B .timonier/runs/cmake -DCMAKE_BUILD_TYPE=Debug && cmake --build .timonier/runs/cmake --config Debug --target timonier_smoke_test && ctest --test-dir .timonier/runs/cmake -C Debug -R timonier_smoke_test --no-tests=error"
+files = [{ path = "timonier/timonier_smoke_test.cpp", source = "instrumentation/timonier_smoke_test.cpp" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0065):
+# opentelemetry-cpp with its OTLP/HTTP exporter, in `vcpkg.json` when the project has one;
+# the folder `timonier/` (the starter, the smoke test, their CMake), added to the build by a
+# block of the root `CMakeLists.txt`. Verified on vcpkg's registry on 2026-10-22.
+[instrumentation]
+files = [
+  { path = "timonier/CMakeLists.txt", source = "instrumentation/CMakeLists.txt" },
+  { path = "timonier/timonier_otel.hpp", source = "instrumentation/timonier_otel.hpp" },
+]
+note = "the build takes the folder `timonier/` when CMake finds opentelemetry-cpp: with vcpkg it is in vcpkg.json; with Conan, add `opentelemetry-cpp` to the conanfile; else install it. Link `timonier_otel` to the tests and call `timonier::start_telemetry()` where they set up, as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-cpp"
+version = "1.29.0"
+features = ["otlp-http"]
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known libraries:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["qtbase", "Qt6", "Qt5", "boost", "drogon", "oatpp", "poco", "folly", "abseil"]
+
+[inventory.functions]
+json = ["nlohmann-json", "nlohmann_json", "rapidjson", "RapidJSON", "simdjson", "jsoncpp", "glaze", "boost-json"]
+http-client = ["curl", "cpr", "cpp-httplib", "boost-beast", "poco"]
+http-server = ["drogon", "crow", "oatpp", "cpp-httplib", "civetweb", "boost-beast"]
+logging = ["spdlog", "glog", "plog", "easyloggingpp", "boost-log"]
+formatting = ["fmt", "std-format"]
+test-framework = ["gtest", "GTest", "catch2", "Catch2", "doctest", "boost-test"]
+cli-parser = ["cli11", "CLI11", "cxxopts", "argparse", "gflags", "boost-program-options"]
+yaml = ["yaml-cpp", "rapidyaml"]

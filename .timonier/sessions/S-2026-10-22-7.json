@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-7",
+  "agent": "claude-code",
+  "objective": "10.5 Pack C++ : grammaire, définitions, includes, noms qualifiés, CMake avec vcpkg et Conan (Q89), rôles, inventaire, CTest en JUnit, SDK opentelemetry-cpp et test de fumée.",
+  "tasks": [
+    "T-124"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T08:24:38Z",
+  "ended_at": "2026-10-22T08:40:40Z",
+  "snapshots": {
+    "start": 119,
+    "end": 120
+  },
+  "summary": "10.5 C++ fait (ADR 0065, Q89) : pack cpp, écosystème cmake (CMakeLists, vcpkg.json, Conan), noms par chemin avec extension, méthodes hors classe rangées sous leur classe, includes résolus (dossier, include/, src/, fin de chemin, dépendance), en-tête préféré pour un nom déclaré et défini ailleurs ; CTest dans .timonier/runs/cmake ; init : bloc CMake, opentelemetry-cpp[otlp-http] 1.29.0 dans vcpkg.json, dossier timonier/ ; inventaire vcpkg, Conan, CMake, « non vérifié » quand OSV ne connaît pas l'écosystème. Critère constaté sur un vrai projet ; opentelemetry-cpp indexé à 6,5 ms pour mille lignes. Reste : Kotlin (T-127). Rien n'est commité ; Conan non essayé sur une machine.",
+  "changes": {
+    "files": 18,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-cpp",
+        "name": "tree-sitter-cpp",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 57,
+    "input": 114,
+    "output": 72205,
+    "cache_read": 23286334,
+    "cache_creation": 96603,
+    "cost_usd_micros": 6874650
+  }
+}

@@ -40,6 +40,7 @@ function render() {
         run={run}
         chosen={chosen}
         onChoose={choose}
+        onRunTests={() => host?.postMessage({ type: "runTests" })}
         now={Date.now()}
         regressions={regressions}
       />

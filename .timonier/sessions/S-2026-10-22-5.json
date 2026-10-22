@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-5",
+  "agent": "claude-code",
+  "objective": "10.3 Pack Go : grammaire, définitions, imports, noms qualifiés, écosystème go.mod, rôles, inventaire, tests en JUnit (gotestsum), SDK OpenTelemetry et test de fumée.",
+  "tasks": [
+    "T-122",
+    "T-127",
+    "T-128",
+    "T-129",
+    "T-130",
+    "T-131"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T07:40:16Z",
+  "ended_at": "2026-10-22T07:58:54Z",
+  "snapshots": {
+    "start": 115,
+    "end": 116
+  },
+  "summary": "10.3 Go fait (ADR 0063) : pack go, écosystème gomod, méthodes rangées sous leur récepteur, résolution des chemins d'import, init (bloc require balisé dans go.mod, toléré après go mod tidy), gotestsum installé par --install, inventaire go.mod, trous d'instrumentation. Critère constaté sur un vrai module ; x/tools indexé à 4,9 ms pour mille lignes. Ajout au plan des packs Kotlin, Swift, C, C#, PHP (T-127 à T-131). Reste : Java (T-123), C++ (T-124), puis les nouveaux. Rien n'est commité.",
+  "changes": {
+    "files": 16,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-go",
+        "name": "tree-sitter-go",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 107,
+    "input": 2594,
+    "output": 83297,
+    "cache_read": 24978689,
+    "cache_creation": 216997,
+    "cost_usd_micros": 8400825
+  }
+}

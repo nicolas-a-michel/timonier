@@ -1221,6 +1221,9 @@ pub enum WebviewMessage {
     OpenPerformance,
     /// The Performances panel shows this run (`R-…`).
     ChooseRun { run: String },
+    /// The Performances panel's « Run the tests »: the host shows the commands, then runs
+    /// `timonier test` in a terminal once approved.
+    RunTests,
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]

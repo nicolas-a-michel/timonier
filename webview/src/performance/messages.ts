@@ -61,6 +61,8 @@ export interface PerformanceMessages {
   leftOut: (count: number) => string;
   emptyTitle: string;
   emptyText: string;
+  /** The empty panel's button. */
+  runTests: string;
   noDaemonTitle: string;
   noDaemonText: string;
   gone: string;
@@ -147,7 +149,9 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     points: { run: "Run", commit: "Commit", wall: "Duration", cpu: "CPU time", failed: "Failed" },
     leftOut: (count) => `${count} more spans are not shown: the panel takes the first 20,000.`,
     emptyTitle: "No run yet",
-    emptyText: "Run the tests with `timonier test -- <command>`: their duration, CPU, memory and traces show here.",
+    emptyText:
+      "Run the project's tests through Timonier: their duration, CPU, memory and traces show here. You see the commands before they run.",
+    runTests: "Run the tests",
     noDaemonTitle: "No daemon",
     noDaemonText: "The Timonier daemon does not answer: the panel fills once it is back.",
     gone: "This run is no longer kept.",
@@ -234,7 +238,8 @@ export const performanceMessages: Record<Locale, PerformanceMessages> = {
     leftOut: (count) => `${count} spans de plus ne sont pas montrés : le panneau prend les 20 000 premiers.`,
     emptyTitle: "Aucun run pour l'instant",
     emptyText:
-      "Lancez les tests avec `timonier test -- <commande>` : leur durée, leur CPU, leur mémoire et leurs traces s'affichent ici.",
+      "Lancez les tests du projet par Timonier : leur durée, leur CPU, leur mémoire et leurs traces s'affichent ici. Vous voyez les commandes avant qu'elles partent.",
+    runTests: "Lancer les tests",
     noDaemonTitle: "Pas de démon",
     noDaemonText: "Le démon Timonier ne répond pas : le panneau se remplit dès son retour.",
     gone: "Ce run n'est plus gardé.",

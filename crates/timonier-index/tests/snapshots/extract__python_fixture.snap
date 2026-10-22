@@ -1,0 +1,28 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/shop/orders.py\", PY))"
+---
+constant TAX                                      under -                        at 7:0  `TAX =`  #666059e3
+type     Order                                    under -                        at 11:0  `class Order(Base, models.Mixin):`  #66727968
+field    Order/total                              under Order                    at 12:4  `total: int = 0`  #000af472
+method   Order/add                                under Order                    at 14:4  `def add(self, item: Item) -> None:`  #45773d01
+method   Order/count                              under Order                    at 19:4  `def count(self):`  #934b79cb
+function checkout                                 under -                        at 23:0  `def checkout(order):`  #b042d39d
+import   os binds ["os"]
+import   shop.prices binds ["shop"]
+import   numpy binds ["np"]
+import   . binds ["cart"]
+import   .models binds ["Item", "B"]
+import   ..util binds ["helper"]
+calls Order ×1 at 25:11
+calls checkout ×1 at 29:4
+calls helper ×1 at 16:8
+calls len ×1 at 20:15
+calls self·items·append ×1 at 15:19 on a receiver
+calls shop·prices·price_of ×1 at 24:16 on a receiver
+references Item ×1 at 14:24
+references int ×1 at 12:11
+inherits Base ×1 at 11:12 from Order
+inherits models·Mixin ×1 at 11:25 from Order
+signal   entry_point ×1
+errors   false

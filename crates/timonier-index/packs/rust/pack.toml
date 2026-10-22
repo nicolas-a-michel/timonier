@@ -104,6 +104,7 @@ name = "cargo-nextest"
 command = "cargo nextest run --profile timonier"
 junit = "target/nextest/timonier/junit.xml"
 program = "cargo-nextest"
+install = "cargo install cargo-nextest --locked"
 note = "Timonier reads the tests' JUnit XML through cargo-nextest: install it (`cargo install cargo-nextest --locked`)."
 
 # Timonier's smoke test (spec « Initialisation », 7): `timonier doctor` runs it under

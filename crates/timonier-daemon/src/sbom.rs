@@ -15,6 +15,26 @@ use cyclonedx_bom::models::vulnerability_target::{VulnerabilityTarget, Vulnerabi
 use cyclonedx_bom::validation::Validate;
 use timonier_core::inventory::{Dependency, Ecosystem, Vulnerability as Found};
 
+/// A package URL. Maven's `group:artifact` and Go's module paths carry a namespace, which the
+/// purl writes with `/` (`pkg:maven/io.opentelemetry/opentelemetry-api@1.67.0`).
+fn purl(ecosystem: Ecosystem, name: &str, version: &str) -> Option<Purl> {
+    let namespaced = match ecosystem {
+        Ecosystem::Maven => name.split_once(':').map(|(g, a)| format!("{g}/{a}")),
+        // `pkg:swift/github.com/apple/swift-log@1.6.0`, as Go's.
+        // `pkg:composer/monolog/monolog@3.9.0`: the vendor is the namespace.
+        Ecosystem::Go | Ecosystem::Swift | Ecosystem::Composer => Some(name.to_owned()),
+        // `pkg:generic/fmt@11.2.0`: no namespace, and no type of their own.
+        Ecosystem::Vcpkg | Ecosystem::Cmake => None,
+        _ => None,
+    };
+    match namespaced {
+        Some(path) => format!("pkg:{}/{path}@{version}", ecosystem.purl())
+            .parse()
+            .ok(),
+        None => Purl::new(ecosystem.purl(), name, version).ok(),
+    }
+}
+
 /// The SBOM as JSON, or why it is not valid.
 pub fn sbom(
     packages: &[(String, Option<String>, Ecosystem)],
@@ -33,7 +53,7 @@ pub fn sbom(
             version,
             Some(format!("repo:{}", reference(*ecosystem, name, version))),
         );
-        component.purl = Purl::new(ecosystem.purl(), name, version).ok();
+        component.purl = purl(*ecosystem, name, version);
         components.push(component);
     }
     for dependency in dependencies {
@@ -44,7 +64,7 @@ pub fn sbom(
             version,
             Some(reference(dependency.ecosystem, &dependency.name, version)),
         );
-        component.purl = Purl::new(dependency.ecosystem.purl(), &dependency.name, version).ok();
+        component.purl = purl(dependency.ecosystem, &dependency.name, version);
         component.licenses = dependency.license.as_deref().map(|license| {
             // `MIT/Apache-2.0`, as older crates write it, is `MIT OR Apache-2.0`; an expression
             // SPDX cannot read stays a named licence.
@@ -96,6 +116,29 @@ mod tests {
     use timonier_core::inventory::Scope;
 
     use super::*;
+
+    /// T-123: Maven's group and Go's module path are the purl's namespace.
+    #[test]
+    fn purls_carry_the_namespace_of_maven_and_go() {
+        let shown = |e, name, version| purl(e, name, version).map(|p| p.to_string());
+        assert_eq!(
+            shown(
+                Ecosystem::Maven,
+                "io.opentelemetry:opentelemetry-api",
+                "1.67.0"
+            )
+            .as_deref(),
+            Some("pkg:maven/io.opentelemetry/opentelemetry-api@1.67.0")
+        );
+        assert_eq!(
+            shown(Ecosystem::Go, "github.com/gin-gonic/gin", "v1.11.0").as_deref(),
+            Some("pkg:golang/github.com/gin-gonic/gin@v1.11.0")
+        );
+        assert_eq!(
+            shown(Ecosystem::Cargo, "serde", "1.0.228").as_deref(),
+            Some("pkg:cargo/serde@1.0.228")
+        );
+    }
 
     #[test]
     fn the_sbom_is_valid_cyclonedx_with_licences_purls_and_vulnerabilities() {

@@ -5,7 +5,7 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
 
 ## Code graph
 
-- **Indexing with tree-sitter** for Rust, TypeScript (including TSX) and JavaScript (including JSX), through versioned
+- **Indexing with tree-sitter** for Rust, TypeScript (including TSX), JavaScript (including JSX), Python, Go, Java, Kotlin, Scala, C, C++, C#, Swift and PHP, through versioned
   language packs. Symbols, imports, calls and references, with a stable identity for each symbol
   (crate or package, path, qualified name) and a hash of its normalised body.
 - **Incremental updates**: a file watcher with a 300 ms debounce re-indexes what changed, with
@@ -49,7 +49,7 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
     code, into each commit;
   - a plan with an « Initialisation » milestone and a first session;
   - the test runner, set to write JUnit XML (cargo-nextest for Rust; vitest, `node --test` or
-    jest for TypeScript), and the instrumentation conventions of each language in
+    jest for TypeScript and JavaScript; pytest for Python; gotestsum for Go; Maven or Gradle, their wrappers first, for Java; Gradle for Kotlin; sbt for Scala; CMake and CTest for C and C++; `dotnet test` for C#; `swift test` for Swift; PHPUnit for PHP), and the instrumentation conventions of each language in
     `.timonier/conventions/`.
 
   `--dry-run` shows the exact diff and changes nothing; a second run changes nothing.
@@ -71,7 +71,10 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
   runner's JUnit XML. On Linux, a transient systemd user scope gives the memory of the whole
   process tree and a resource curve; on macOS, the largest process; on Windows, the wall time
   only (CPU and memory « not measured »), and runs are compared on it.
-  Without a command, it runs the runners `timonier init` recorded. The tests get
+  Without a command, it runs the runners `timonier init` recorded; `--install` first installs
+  a program a runner needs and the machine lacks (`cargo install cargo-nextest --locked` for
+  Rust, `go install gotest.tools/gotestsum@v1.13.0` for Go). Before any run, the Performances panel offers « Run the tests »: it shows the commands,
+  then runs them in a terminal. The tests get
   `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_RESOURCE_ATTRIBUTES` (`timonier.run_id`,
   `timonier.snapshot`), and each test of the JUnit XML becomes a root span of the run. The
   daemon receives their OpenTelemetry traces and metrics (OTLP over gRPC or HTTP, on 4317 and

@@ -82,7 +82,7 @@ describe("teaching states", () => {
 
   it("draws the map once the daemon has sent boxes, and says when it reconnects", () => {
     expect(renderToStaticMarkup(<App locale="en" model={withBoxes(0)} />)).toContain(
-      "No Rust, TypeScript or JavaScript file here",
+      "No Rust, TypeScript, JavaScript, Python, Go, Java, C, C++, C#, Kotlin, Swift, PHP or Scala file here",
     );
     const map = renderToStaticMarkup(<App locale="fr" model={withBoxes(5)} />);
     expect(map).toContain('aria-label="Carte d&#x27;architecture"');

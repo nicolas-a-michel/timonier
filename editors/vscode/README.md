@@ -4,15 +4,14 @@ Steer AI coding agents without reading every line they write. Timonier keeps a l
 code's architecture, compares it with the architecture you drew, shows what changed since your
 last review, and gives your agents the same plan, todo and constraints you see.
 
-**Pre-release.** Linux, macOS and Windows. Rust, TypeScript and JavaScript projects; Python, Go,
-Java and C++ are coming. Source, issues and the full feature list:
+**Pre-release.** Linux, macOS and Windows. Projects in Rust, TypeScript, JavaScript, Python, Go, Java, Kotlin, Scala, C, C++, C#, Swift and PHP. Source, issues and the full feature list:
 [github.com/nicolas-a-michel/timonier](https://github.com/nicolas-a-michel/timonier).
 
 ![The architecture map: six boxes named by role, with their packages and the dependencies between them](https://raw.githubusercontent.com/nicolas-a-michel/timonier/main/docs/images/map.png)
 
 ## Getting started
 
-1. Open a Rust, TypeScript or JavaScript project in VSCode, then the Timonier icon (a ship's
+1. Open a project in one of these languages in VSCode, then the Timonier icon (a ship's
    wheel) in the activity bar.
 2. In the Overview, tick the agents to configure (Claude Code, GitHub Copilot, Cursor, Codex)
    and click **Set up**. Timonier writes their instructions, its MCP server and its hooks into

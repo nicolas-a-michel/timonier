@@ -1,0 +1,169 @@
+# Python language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "python"
+version = "1.0.0"
+ecosystem = "pypi"
+
+[[grammars]]
+name = "python"
+crate = "tree-sitter-python"
+version = "0.25.0"
+license = "MIT"
+extensions = ["py", "pyi"]
+
+# Virtual environments and caches: installed packages and bytecode, never the project's code.
+# `.venv` and `.tox` are hidden already.
+[walk]
+skip = ["__pycache__", "venv", "site-packages"]
+
+# `python:shop.cart#Cart.total`: the module's dotted path, then the definitions in it (ADR 0062).
+[naming]
+module = "."
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# Imports name a module (`a.b`, `.cart`); the names they bind are captured separately.
+bind = "captures"
+
+[fingerprint]
+# Strings and f-strings are kept whole: their content is meaning, not layout.
+atoms = ["string", "concatenated_string"]
+drop = []
+drop_before_closing = [","]
+closing = [")", "]", "}"]
+opening = ["=", "(", "[", "{", ":", ",", "->"]
+
+[signature]
+no_space_before = [")", "]", ",", ":", ".", "("]
+tight_after_word = ["(", "["]
+no_space_after = ["(", "[", ".", "*", "**", "@"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+[dependencies]
+async = ["asyncio", "anyio", "trio", "uvloop", "gevent"]
+network = [
+  "requests", "httpx", "aiohttp", "urllib3", "fastapi", "flask", "django", "starlette", "uvicorn",
+  "gunicorn", "grpcio", "websockets", "tornado",
+]
+serialization = ["pydantic", "marshmallow", "msgpack", "protobuf", "orjson", "pyyaml", "attrs"]
+database = [
+  "sqlalchemy", "psycopg", "psycopg2", "psycopg2-binary", "pymongo", "redis", "asyncpg", "peewee",
+  "alembic", "django",
+]
+cli = ["click", "typer", "argparse", "fire"]
+observability = ["opentelemetry-api", "opentelemetry-sdk", "structlog", "loguru", "sentry-sdk"]
+data = ["numpy", "pandas", "polars", "scipy", "scikit-learn", "torch", "tensorflow", "pyarrow"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["fastapi", "flask", "django", "starlette", "click", "typer", "aiohttp", "tornado"]
+paths = ["http.server", "socketserver", "uvicorn"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["sqlalchemy", "psycopg", "psycopg2", "psycopg2-binary", "pymongo", "redis", "asyncpg", "peewee", "alembic"]
+paths = ["sqlite3", "shelve"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+libraries = ["pydantic", "marshmallow", "attrs"]
+paths = ["dataclasses"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["streamlit", "gradio", "dash", "tkinter", "pyqt5", "pyside6"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+libraries = ["celery", "rq", "dramatiq", "apscheduler"]
+paths = ["threading", "multiprocessing", "concurrent.futures"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# Builtins: a name tree-sitter cannot resolve that is one of them is defined outside the
+# repository, and the language server is not asked.
+outside = [
+  "print", "len", "range", "str", "int", "float", "bool", "list", "dict", "set", "tuple", "bytes",
+  "object", "type", "super", "isinstance", "issubclass", "hasattr", "getattr", "setattr", "open",
+  "enumerate", "zip", "map", "filter", "sorted", "reversed", "sum", "min", "max", "abs", "round",
+  "any", "all", "iter", "next", "repr", "format", "id", "hash", "callable", "vars", "dir",
+  "Exception", "ValueError", "TypeError", "KeyError", "IndexError", "RuntimeError",
+  "NotImplementedError", "StopIteration", "AttributeError", "OSError", "self", "cls",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): pytest writes it itself. Checked with
+# pytest 9.1.1 and Python 3.14. A uv project runs it in its own environment, which uv makes.
+[[tests.runners]]
+name = "pytest (uv)"
+when = "uv.lock"
+command = "uv run --group timonier pytest --junit-xml=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "uv"
+note = "Timonier runs the tests with uv: install it (https://docs.astral.sh/uv/)."
+
+[tests.runners.smoke]
+command = "uv run --group timonier pytest timonier_smoke_test.py"
+files = [{ path = "timonier_smoke_test.py", source = "instrumentation/timonier_smoke_test.py" }]
+
+[[tests.runners]]
+name = "pytest"
+command = "pytest --junit-xml=.timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "pytest"
+note = "Timonier runs the tests with pytest: install it in the project's environment (`pip install pytest`, or `uv add --dev pytest`)."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs.
+[tests.runners.smoke]
+command = "pytest timonier_smoke_test.py"
+files = [{ path = "timonier_smoke_test.py", source = "instrumentation/timonier_smoke_test.py" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0062): the
+# API among the project's dependencies (the code that ships imports it, Q78), the SDK and its
+# OTLP exporter in a dependency group `timonier` (PEP 735). Verified on PyPI on 2026-10-22.
+[instrumentation]
+files = [{ path = "timonier_otel.py", source = "instrumentation/timonier_otel.py" }]
+note = "install the dependency group `timonier` (`uv sync --group timonier`, or `pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http`); the module `timonier_otel.py` starts the export: call `start_telemetry()` where the tests set up (a `conftest.py`), as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-api"
+version = "1.45.1"
+production = true
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-sdk"
+version = "1.45.1"
+
+[[instrumentation.dependencies]]
+name = "opentelemetry-exporter-otlp-proto-http"
+version = "1.45.1"
+
+# The runner itself, in the same group: `uv run --group timonier` has it.
+[[instrumentation.dependencies]]
+name = "pytest"
+version = "9.1.1"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["django", "flask", "fastapi", "starlette", "tornado", "pyramid", "streamlit", "pytorch", "torch", "tensorflow"]
+
+[inventory.functions]
+http-client = ["requests", "httpx", "aiohttp", "urllib3", "pycurl"]
+http-server = ["fastapi", "flask", "django", "starlette", "tornado", "sanic", "bottle"]
+cli-parser = ["click", "typer", "fire", "docopt"]
+validation = ["pydantic", "marshmallow", "cerberus", "voluptuous"]
+orm = ["sqlalchemy", "peewee", "pony", "tortoise-orm"]
+test-runner = ["pytest", "nose2", "unittest2"]
+date-time = ["arrow", "pendulum", "python-dateutil"]
+json = ["orjson", "ujson", "simplejson", "rapidjson"]
+task-queue = ["celery", "rq", "dramatiq", "huey"]
+logging = ["loguru", "structlog"]
+dataframe = ["pandas", "polars"]

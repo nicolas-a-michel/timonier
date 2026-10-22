@@ -1,0 +1,152 @@
+# C# language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "csharp"
+version = "1.0.0"
+ecosystem = "nuget"
+
+[[grammars]]
+name = "c_sharp"
+crate = "tree-sitter-c-sharp"
+version = "0.23.5"
+license = "MIT"
+extensions = ["cs"]
+
+# Build outputs, never the project's code.
+[walk]
+skip = ["bin", "obj", "TestResults", "packages"]
+
+# `csharp:Shop/Model/Item#Shop.Model.Item.Name`: the project, the file's path, then the
+# definitions in it, namespace first (ADR 0069).
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# A `using` brings a namespace; its names are resolved in the repository.
+bind = "captures"
+
+[fingerprint]
+atoms = ["string_literal", "verbatim_string_literal", "raw_string_literal", "interpolated_string_expression", "character_literal"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "{", "<", ":", ",", "=>"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ".", "(", "?"]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "!"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+[dependencies]
+async = ["System.Threading.Channels", "System.Reactive", "Polly"]
+network = [
+  "Microsoft.AspNetCore.App", "Microsoft.AspNetCore.OpenApi", "Grpc.AspNetCore", "Grpc.Net.Client",
+  "RestSharp", "Refit", "Flurl.Http", "SignalR", "Microsoft.AspNetCore.SignalR.Client",
+]
+serialization = ["Newtonsoft.Json", "System.Text.Json", "Google.Protobuf", "YamlDotNet", "MessagePack", "CsvHelper"]
+database = [
+  "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.SqlServer", "Npgsql",
+  "Npgsql.EntityFrameworkCore.PostgreSQL", "Microsoft.Data.Sqlite", "Dapper", "MongoDB.Driver",
+  "StackExchange.Redis", "MySqlConnector",
+]
+cli = ["System.CommandLine", "CommandLineParser", "Spectre.Console.Cli"]
+observability = ["OpenTelemetry", "OpenTelemetry.Api", "Serilog", "NLog", "Microsoft.Extensions.Logging"]
+ui = ["Avalonia", "Microsoft.Maui.Controls", "Microsoft.WindowsAppSDK"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["Microsoft.AspNetCore.OpenApi", "Grpc.AspNetCore", "System.CommandLine", "Spectre.Console.Cli"]
+paths = ["Microsoft.AspNetCore", "System.Net.Sockets"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = [
+  "Microsoft.EntityFrameworkCore", "Microsoft.EntityFrameworkCore.SqlServer", "Npgsql",
+  "Npgsql.EntityFrameworkCore.PostgreSQL", "Microsoft.Data.Sqlite", "Dapper", "MongoDB.Driver",
+  "StackExchange.Redis", "MySqlConnector",
+]
+paths = ["Microsoft.EntityFrameworkCore", "System.Data", "Microsoft.Data.Sqlite", "Npgsql", "Dapper"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+paths = ["System.ComponentModel.DataAnnotations", "System.Text.Json.Serialization"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["Avalonia", "Microsoft.Maui.Controls", "Microsoft.WindowsAppSDK"]
+paths = ["Avalonia", "Microsoft.Maui", "System.Windows", "Microsoft.UI.Xaml"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+paths = ["Microsoft.Extensions.Hosting", "System.Threading"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# The base library: a name tree-sitter cannot resolve that is one of them is defined outside
+# the repository, and the language server is not asked.
+outside = [
+  "System", "Console", "Math", "String", "Object", "Exception", "ArgumentException",
+  "InvalidOperationException", "Task", "List", "Dictionary", "HashSet", "IEnumerable", "IList",
+  "Func", "Action", "Guid", "DateTime", "TimeSpan", "Environment", "Enumerable", "nameof",
+  "this", "base",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): `dotnet test` with the JUnit logger of
+# JunitXml.TestLogger, which `init` adds to the test project. The logger writes beside each test
+# project (`TestResults/`, which .NET projects ignore); Timonier reads that folder in every
+# project (ADR 0064, 0069). Checked with the .NET SDK 10.0.402.
+[[tests.runners]]
+name = "dotnet test"
+command = "dotnet test --logger \"junit;LogFilePath=TestResults/timonier/{assembly}.xml\""
+junit = "**/TestResults/timonier/"
+program = "dotnet"
+note = "Timonier runs the tests with the .NET SDK: install it (https://dotnet.microsoft.com/download)."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs.
+[tests.runners.smoke]
+command = "dotnet test --filter \"FullyQualifiedName~Timonier.TimonierSmokeTest\""
+files = [{ path = "Timonier/TimonierSmokeTest.cs", source = "instrumentation/TimonierSmokeTest.cs" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0069): the
+# SDK and its OTLP exporter, and the JUnit logger, in the test project (the one that references
+# Microsoft.NET.Test.Sdk), between markers. Verified on NuGet on 2026-10-22.
+[instrumentation]
+files = [{ path = "Timonier/TimonierOtel.cs", source = "instrumentation/TimonierOtel.cs" }]
+note = "the test project holds `Timonier.TimonierOtel`, which starts the export of every ActivitySource: call `TimonierOtel.Start()` where the tests set up (a fixture), as the conventions say; to measure the code's own spans, give its projects `OpenTelemetry.Api` or use System.Diagnostics' ActivitySource. The smoke test is written for xUnit."
+
+[[instrumentation.dependencies]]
+name = "OpenTelemetry"
+version = "1.20.1"
+
+[[instrumentation.dependencies]]
+name = "OpenTelemetry.Exporter.OpenTelemetryProtocol"
+version = "1.20.1"
+
+[[instrumentation.dependencies]]
+name = "JunitXml.TestLogger"
+version = "8.0.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["Microsoft.AspNetCore.App", "Avalonia", "Microsoft.Maui.Controls", "Microsoft.EntityFrameworkCore"]
+
+[inventory.functions]
+json = ["Newtonsoft.Json", "System.Text.Json", "Utf8Json", "Jil"]
+logging = ["Serilog", "NLog", "log4net"]
+test-framework = ["xunit", "xunit.v3", "NUnit", "MSTest.TestFramework", "MSTest"]
+assertions = ["FluentAssertions", "Shouldly", "AwesomeAssertions"]
+mocking = ["Moq", "NSubstitute", "FakeItEasy"]
+orm = ["Microsoft.EntityFrameworkCore", "Dapper", "NHibernate", "linq2db"]
+http-client = ["RestSharp", "Refit", "Flurl.Http"]
+mapping = ["AutoMapper", "Mapster"]
+validation = ["FluentValidation"]

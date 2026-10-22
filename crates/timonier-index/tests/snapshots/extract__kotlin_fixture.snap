@@ -1,0 +1,50 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/main/kotlin/com/shop/Cart.kt\", KOTLIN))"
+---
+constant TAX                                      under -                        at 6:0  `const val TAX = 0.2`  #9c64df21
+type     Cart                                     under -                        at 8:0  `class Cart(val owner: String, count: Int): Base(), Printable<Cart>`  #f16cad77
+field    Cart/owner                               under Cart                     at 8:11  `val owner: String`  #0ba6df92
+field    Cart/items                               under Cart                     at 9:4  `private val items = mutableListOf<Item>()`  #528164e6
+method   Cart/add                                 under Cart                     at 11:4  `fun add(item: Item)`  #c5600581
+method   Cart/total                               under Cart                     at 16:4  `fun total(): Int`  #0720164f
+method   Cart/Companion/create                    under Cart                     at 19:8  `fun create()`  #9e9a502d
+trait    Shape                                    under -                        at 23:0  `interface Shape: Comparable<Shape>`  #a023c594
+method   Shape/area                               under Shape                    at 24:4  `fun area(): Double`  #745510a1
+type     Line                                     under -                        at 27:0  `data class Line(val name: String, val price: Int)`  #c8452925
+field    Line/name                                under Line                     at 27:16  `val name: String`  #9929b4e1
+field    Line/price                               under Line                     at 27:34  `val price: Int`  #b0b072d2
+type     Registry                                 under -                        at 29:0  `object Registry`  #377dcbbf
+field    Registry/carts                           under Registry                 at 30:4  `val carts = listOf<Cart>()`  #76362e18
+type     Prices                                   under -                        at 33:0  `typealias Prices = List<Int>`  #4d49244b
+type     Kind                                     under -                        at 35:0  `enum class Kind`  #4e36a7ec
+constant Kind/SMALL                               under Kind                     at 36:4  `SMALL`  #16ebbc5f
+constant Kind/LARGE                               under Kind                     at 37:4  `LARGE`  #c38f44fd
+function main                                     under -                        at 40:0  `fun main()`  #8caa73c1
+import   com.shop.model.Item binds ["Item"]
+import   com.shop.util binds []
+import   java.time.Instant binds ["Now"]
+calls Cart ×2 at 19:23
+calls Now ×1 at 43:13
+calls Registry ×1 at 42:4
+calls helper ×1 at 16:50
+calls it ×1 at 16:37
+calls item ×1 at 13:12
+calls items ×2 at 12:8
+calls listOf ×1 at 30:16
+calls log ×1 at 13:8
+calls mutableListOf ×1 at 9:24
+calls thread ×1 at 43:4
+references Cart ×2 at 8:62
+references Double ×1 at 24:16
+references Int ×4 at 8:37
+references Item ×2 at 9:38
+references List ×1 at 33:19
+references Shape ×1 at 23:29
+references String ×2 at 8:22
+implements Comparable ×1 at 23:18 from Shape
+implements Printable ×1 at 8:52 from Cart
+inherits Base ×1 at 8:44 from Cart
+signal   entry_point ×1
+signal   background_task ×1
+errors   false

@@ -65,3 +65,36 @@ describe("the Performances panel", () => {
     expect(html).toMatch(/<option value="R-12" selected="">/);
   });
 });
+
+describe("the Performances panel before any run", () => {
+  it("offers to run the tests, and says the commands show first", () => {
+    const empty = { runs: [] };
+    const html = renderToStaticMarkup(
+      <Performance
+        locale="en"
+        runs={empty}
+        run={null}
+        chosen={null}
+        onChoose={() => undefined}
+        onRunTests={() => undefined}
+        now={SAMPLE_NOW}
+      />,
+    );
+    expect(html).toContain("No run yet");
+    expect(html).toContain(">Run the tests</button>");
+    expect(html).toContain("You see the commands before they run.");
+    const fr = renderToStaticMarkup(
+      <Performance
+        locale="fr"
+        runs={empty}
+        run={null}
+        chosen={null}
+        onChoose={() => undefined}
+        onRunTests={() => undefined}
+        now={SAMPLE_NOW}
+      />,
+    );
+    expect(fr).toContain(">Lancer les tests</button>");
+    expect(performanceMessages.fr.runTests).toBe("Lancer les tests");
+  });
+});

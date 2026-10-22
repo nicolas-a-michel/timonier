@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-9",
+  "agent": "claude-code",
+  "objective": "10.7 Pack Swift : grammaire, définitions, imports, noms qualifiés, Swift Package Manager (Package.swift, Package.resolved), rôles, inventaire, tests xUnit de swift test, SDK opentelemetry-swift et test de fumée.",
+  "tasks": [
+    "T-128"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T08:52:34Z",
+  "ended_at": "2026-10-22T09:08:25Z",
+  "snapshots": {
+    "start": 123,
+    "end": 124
+  },
+  "summary": "10.7 Swift fait (ADR 0067) : pack swift, écosystème swiftpm, extensions sous leur type, noms vus dans leur cible et celles importées, rapports xUnit de XCTest et Swift Testing lus dans un dossier, init dans Package.swift (lignes // timonier), inventaire Package.resolved. Critère constaté ; swift-nio indexé à 8,3 ms pour mille lignes ; suite complète verte. Reste : C, C#, PHP, Scala. Rien n'est commité.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Constater le critère Swift : timonier test puis doctor sur le projet SwiftPM (build d'opentelemetry-swift en cours)",
+      "task": "T-128",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Mesurer l'indexation Swift, mettre à jour PLAN.md 10.7 et la doc, suite complète",
+      "task": "T-128",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 17,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-swift",
+        "name": "tree-sitter-swift",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 38,
+    "input": 80,
+    "output": 49227,
+    "cache_read": 21235692,
+    "cache_creation": 68139,
+    "cost_usd_micros": 5777112
+  }
+}

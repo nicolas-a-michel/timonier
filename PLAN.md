@@ -243,6 +243,15 @@ l'as laissée quand le code change.
   versionné et partagé.
 - À trancher : garder ces choix, ou changer l'un d'eux.
 
+**Q90 — Les langages ajoutés et la préversion** — ✅ répondu le 2026-10-22 : Kotlin, Swift, C,
+C# et PHP s'ajoutent à la Phase 10 (10.6 à 10.10), puis Scala (10.11). L'humain demande Java, C++ et Kotlin d'abord ;
+la place de la préversion par rapport aux quatre suivants se décidera ensuite.
+
+**Q89 — Les dépendances de C++** (10.5) — ✅ répondu le 2026-10-22 : **CMake, vcpkg et Conan**.
+La carte et l'inventaire lisent les `find_package` et `FetchContent` de `CMakeLists.txt`, le
+manifeste `vcpkg.json` et les `conanfile.txt` / `conanfile.py` (versions de `conan.lock`) quand
+ils sont là.
+
 **Q88 — Les langages avant la préversion** — ✅ répondu le 2026-10-21 : **la Phase 10 se fait
 avant de publier**. La préversion (9.7) attend Windows (Q87) et les cinq packs de la Phase 10.
 Le dépôt garde ce qu'il faut pour lire ces langages, sans leurs outils : les packs, les
@@ -3741,6 +3750,16 @@ Statut : à faire
 - 9.6 Critère de sortie du MVP selon la spec : un projet réel, nouveau (Q9), créé par
   l'assistant de 9.4 et piloté de bout en bout
   sans lire le code ligne à ligne — critère : constaté avec toi.
+- T-126 (ajoutée le 2026-10-22, à la demande de l'humain, après son essai sous Windows) : lancer
+  les premiers tests depuis le panneau Performances. Sans run, le panneau offre « Lancer les
+  tests » ; l'extension montre dans une fenêtre les commandes de `.timonier/tests.json`, et le clic
+  vaut approbation pour ce poste (Q84) ; `timonier test --approve --install` tourne dans un
+  terminal où sa sortie se lit ; `--install` installe d'abord le programme qui manque à un
+  lanceur, par la commande que son pack donne (`install = "cargo install cargo-nextest --locked"`
+  pour Rust). Les terminaux de l'extension lancent le programme lui-même (`shellPath`), sans shell
+  à citer : « Configurer » dans un terminal marchait mal sous PowerShell. Tests :
+  `a_missing_runner_program_is_installed_first` (faux `cargo`), `runTests.test.ts`, vitest du
+  panneau vide, `test:a11y` (le bouton, au clavier et dans six thèmes).
 - 9.9 Windows, selon Q87, avant la publication 9.7 — critère : sur un runner Windows de la CI,
   les tests Rust et les tests d'intégration de l'extension passent, et un `.vsix` win32-x64
   configure un projet et montre sa carte.
@@ -3788,7 +3807,7 @@ Décisions : ADR 0055 (inventaire), 0056 (processus), 0057 (sécurité locale), 
 
 ## Phase 10 — Langages
 
-Statut : à faire (Q86 ; Q88 : avant la publication 9.7)
+Statut : fait le 2026-10-22, les treize langages (Q86 ; Q88 : avant la publication 9.7)
 
 Chaque tâche ajoute un pack complet, au niveau de Rust et TypeScript (skill `language-pack`) :
 grammaire tree-sitter vérifiée ; définitions, imports et références ; noms qualifiés et corps
@@ -3820,15 +3839,259 @@ tests.
     `node_test_s_junit_is_read`.
 - 10.2 Python : `tree-sitter-python` 0.25.0 (MIT) ; `pyproject.toml`, `uv.lock` ou
   `requirements.txt` ; pytest (`--junitxml`).
+
+  Fait (2026-10-22), ADR 0062 :
+  - pack `python`, écosystème `pypi` (`pyproject.toml` PEP 621, Poetry, espaces de travail uv,
+    PEP 503), racine `src/`, noms `python:<module>#<définition>`, imports absolus, relatifs et de
+    sous-modules ; `[walk] skip` des caches et environnements ;
+  - `init` : l'API dans `[project]`, le SDK et pytest dans le groupe `timonier`, lignes marquées,
+    `uninit` exact ; lanceur `pytest (uv)` quand `uv.lock` (champ `when`), sinon `pytest` ;
+    inventaire par `uv.lock` ; trous d'instrumentation par le `_` ;
+  - critère constaté sur un vrai projet fait par `uv init --package` (FastAPI, pydantic,
+    pytest) : `pydemo` point d'entrée, fastapi et pydantic en bibliothèques externes ; `init`,
+    `uv sync --group timonier`, `doctor` : « the smoke test (python) produced a trace attached to
+    the graph: 1 of 1 spans » ; `timonier test` : « 2 tests, 0 failed » ; inventaire : 30
+    dépendances ;
+  - tests : `python_fixture`, `reformatting_python_changes_no_identity`,
+    `a_python_package_links_its_modules`, `the_python_sdk_goes_in_and_out_of_pyproject`, les
+    fonctions publiques de Python.
 - 10.3 Go : `tree-sitter-go` 0.25.0 (MIT) ; `go.mod`, `go.sum` ; `go test` en JUnit (outil à
   choisir).
+
+  Fait (2026-10-22), ADR 0063 :
+  - pack `go`, écosystème `gomod` (`go.mod`, membres d'un `go.work`, `// indirect` hors
+    exécution), noms `go:<chemin d'import>/<fichier>#<définition>`, méthodes rangées sous le
+    type de leur récepteur (un nœud peut être à la fois conteneur et définition), imports liés
+    par leur dernier segment ou leur alias, résolus vers le fichier du paquet qui définit le nom
+    cité, sinon une dépendance par le plus long préfixe ; un nom seul, dans son propre dossier ;
+    plongement (`struct { cart.Store }`) compté comme héritage ; `[walk] skip = ["vendor"]` ;
+  - `init` : un bloc `require` balisé dans `go.mod`, laissé tel quel une fois `go mod tidy`
+    passé, `uninit` le retire ; module `timonier/otel.go` et test de fumée
+    `timonier/timonier_smoke_test.go` ; lanceur gotestsum 1.13.0, que `timonier test --install`
+    installe (`go install`) ; inventaire par `go.mod` ; publiques, les fonctions à majuscule ;
+    `_test.go` est du code de test ;
+  - critère constaté sur un vrai projet fait par `go mod init` (Go 1.27.3 hors dépôt, Q88) :
+    `init`, `go mod tidy`, `go vet` passe sur le module de Timonier ; `timonier test --install`
+    installe gotestsum puis « 2 tests, 0 failed », mesurés, « 4 of 4 public functions never
+    seen » ; `doctor` : « the smoke test (go) produced a trace attached to the graph: 1 of 1
+    spans », puis « in order » ;
+  - mesure : golang.org/x/tools v0.36.0 (1 216 fichiers, 237 125 lignes) indexé à froid en
+    1,17 s, soit 4,9 ms pour mille lignes, 0,53 s avec le cache ;
+  - écart : les rôles d'un tout petit module à un seul paquet restent « utilitaire » (aucun
+    composant, score sous le seuil), comme pour les autres langages ; un appel chaîné
+    (`New().Total()`) ne garde que son chemin extérieur, règle commune à tous les packs ;
+  - tests : `go_fixture`, `reformatting_go_changes_no_identity`,
+    `a_go_method_is_named_by_its_receiver`, `go_modules_and_their_requirements`,
+    `a_go_module_links_its_packages`, `go_mod_gives_the_requirements_and_their_versions`,
+    `the_go_sdk_goes_in_and_out_of_go_mod`, les fonctions publiques de Go.
 - 10.4 Java : `tree-sitter-java` 0.23.5 (MIT) ; Maven (`pom.xml`) et Gradle ; rapports JUnit de
   Surefire ou de Gradle.
+
+  Fait (2026-10-22), ADR 0064 :
+  - pack `java`, écosystème `maven` pour Maven et Gradle (`pom.xml` par `roxmltree` 0.21.1,
+    groupe hérité du parent, `<modules>` ; builds Gradle, catalogue de versions, `include` des
+    settings), noms `java:<paquet>.<Classe>#<définition>` depuis la racine de sources, imports
+    de classe, de paquet (`*`) et statiques, même paquet sans import d'une racine à l'autre ;
+  - `timonier test` lit un dossier de rapports (`**/target/surefire-reports/`,
+    `**/build/test-results/test/`) dans chaque module ; `./gradlew` et `./mvnw` passent à `cmd`
+    en `.\` sous Windows ; lanceurs : enveloppes Gradle et Maven, puis Maven, puis Gradle ;
+  - `init` : un bloc balisé dans les `<dependencies>` du `pom.xml` (jamais le
+    `<dependencyManagement>`) ou un bloc `dependencies { }` à la fin du build Gradle racine ;
+    l'API à la compilation, le SDK, l'exportateur et l'autoconfiguration 1.67.0 pour les tests ;
+    classe `timonier.TimonierOtel` et test de fumée JUnit 5 ; inventaire Maven et Gradle ; purl
+    Maven et Go avec leur espace de noms ; publiques, les méthodes `public` ;
+  - critère constaté (JDK Temurin 25.0.4, Maven 3.9.16 et Gradle 9.8.2 hors dépôt, sommes
+    vérifiées, Q88) sur un projet de `maven-archetype-quickstart` 1.5 complété d'un modèle,
+    d'un stockage JDBC et d'un serveur HTTP : la carte montre le paquet en point d'entrée ;
+    `init`, puis `timonier test` : « 3 tests, 0 failed », mesurés ; `doctor` : « the smoke test
+    (java) produced a trace attached to the graph: 1 of 1 spans », « in order » ; inventaire :
+    6 dépendances Maven. Sur un projet de `gradle init` (catalogue, `app/`, enveloppe) : guava
+    sur la carte par le catalogue, « 1 tests, 0 failed » lus dans `app/build/test-results/test`,
+    et `init` dit que le SDK s'ajoute au sous-projet à la main ;
+  - mesure : les sources de Guava 33.5.0 (607 fichiers, 179 450 lignes) indexées à froid en
+    0,80 s, soit 4,4 ms pour mille lignes, 0,46 s avec le cache ;
+  - écarts : les surcharges d'une méthode partagent un symbole ; un build Gradle sans fichier
+    racine ne reçoit pas le SDK par `init` ; une version gérée par un parent ou une BOM reste
+    inconnue de l'inventaire ;
+  - tests : `java_fixture`, `reformatting_java_changes_no_identity`,
+    `a_maven_project_links_its_classes`, `maven_modules_and_their_dependencies`,
+    `gradle_projects_and_their_dependencies`, `a_folder_of_reports_is_read_in_every_module`,
+    `the_java_sdk_goes_in_and_out_of_pom_xml`, `the_java_sdk_goes_in_and_out_of_a_gradle_build`,
+    les méthodes publiques de Java.
 - 10.5 C++ (a minima) : `tree-sitter-cpp` 0.23.4 (MIT) ; CMake ; pas de gestionnaire de paquets
   standard : périmètre des manifestes et de l'inventaire à fixer (question à poser) ; CTest
   (`--output-junit`).
 
-Décisions : —
+  Fait (2026-10-22), ADR 0065, Q89 :
+  - pack `cpp` (`.cpp`, `.cc`, `.cxx`, `.hpp`, `.h`…), écosystème `cmake` : un paquet par
+    `CMakeLists.txt` qui déclare un `project()`, ses `add_subdirectory` membres, ses
+    dépendances de `find_package`, `FetchContent`, `vcpkg.json` et Conan, une par dossier
+    d'en-têtes (`nlohmann-json` → `nlohmann`, `unofficial-sqlite3` → `sqlite3`) ; noms
+    `cpp:<chemin avec extension>#<espace::Classe::membre>`, une méthode définie hors de sa
+    classe rangée sous elle ; includes résolus depuis le dossier du fichier, puis `include/` et
+    `src/`, puis la fin de chemin, puis la dépendance ; un nom déclaré dans un en-tête et défini
+    ailleurs mène à l'en-tête inclus ;
+  - CTest dans `.timonier/runs/cmake` (ignoré par git), JUnit par `--output-junit` ; `init` :
+    un bloc dans le `CMakeLists.txt` racine (`enable_testing()`, `add_subdirectory(timonier)`),
+    opentelemetry-cpp 1.29.0 `[otlp-http]` dans `vcpkg.json` quand il existe, dossier
+    `timonier/` (le démarreur `timonier_otel.hpp`, le test de fumée, leur CMake, qui ne fait
+    rien sans le SDK) ; inventaire vcpkg, Conan et CMake ; OSV pour Conan seulement, et un
+    inventaire sans écosystème connu d'OSV dit « non vérifié » ; publiques, les fonctions non
+    `static` ; `_test.cpp` est du code de test ;
+  - critère constaté (CMake 4.2.3, GCC 15, vcpkg 2026.10.16 et opentelemetry-cpp 1.29.0 bâti
+    par vcpkg hors dépôt, Q88) sur un projet CMake et vcpkg (fmt, sqlite3) : la carte montre
+    sqlite3 dans les bases de données et le paquet en persistance ; `init`, puis
+    `timonier test` : « 3 tests, 0 failed », mesurés ; `doctor` : « the smoke test (cpp)
+    produced a trace attached to the graph: 1 of 1 spans », « in order » ; inventaire : 3
+    dépendances vcpkg ;
+  - mesure : les sources d'opentelemetry-cpp 1.29.0 (1 317 fichiers, 216 604 lignes) indexées à
+    froid en 1,41 s, soit 6,5 ms pour mille lignes, 0,78 s avec le cache ;
+  - écarts : Conan n'est pas vérifié sur une vraie machine (pas de Conan ici) ; avec Conan,
+    opentelemetry-cpp s'ajoute à la main ; `.h` est lu comme du C++ jusqu'au pack C (10.8) ;
+    les visibilités `private:` ne sont pas gardées ;
+  - tests : `cpp_fixture`, `reformatting_cpp_changes_no_identity`,
+    `a_cmake_project_links_its_files`, `cmake_projects_and_their_dependencies`,
+    `the_cpp_sdk_goes_in_and_out_of_cmake_and_vcpkg`,
+    `ecosystems_osv_does_not_know_are_not_checked`, les fonctions publiques de C++.
+
+Ajoutés à la demande de l'humain (2026-10-22). Grammaires vérifiées le 2026-10-22 sur
+crates.io (chargement par tree-sitter 0.27 à vérifier à chaque tâche) :
+
+- 10.6 Kotlin : `tree-sitter-kotlin-ng` 1.1.0 (MIT, tree-sitter-grammars ; `tree-sitter-kotlin`
+  0.3.8 date de 2024) ; Gradle (`build.gradle.kts`) ; rapports JUnit de Gradle.
+
+  Fait (2026-10-22), ADR 0066 :
+  - pack `kotlin` sur l'écosystème `maven` de Java ; noms `kotlin:<paquet>.<Fichier>#…` ;
+    classes, interfaces, objets et compagnons, propriétés du constructeur ; imports d'une
+    fonction de fichier par son nom, alias, `*` ; Java et Kotlin se voient dans les deux sens ;
+  - `init` : un build Gradle qui applique Kotlin est Kotlin ; un build sans racine à un seul
+    projet (`gradle init`) reçoit le SDK dans ce projet, et les fichiers sous son dossier, avec
+    leur `code.file.path` ajusté (Java en profite) ; publiques, les fonctions sans `private`,
+    `internal`, `protected` ;
+  - critère constaté (JDK 25, Gradle 9.8.2 hors dépôt) sur un projet de `gradle init --type
+    kotlin-application` (Kotlin 2.4.10) complété d'un modèle, d'un stockage et d'une fonction
+    de fichier : la carte relie l'import `com.shop.pricing.total` à `Pricing.kt` et met guava
+    dans les bibliothèques externes ; `init` écrit dans `app/build.gradle.kts`, puis
+    `timonier test` : « 3 tests, 0 failed », mesurés ; `doctor` : « the smoke test (kotlin)
+    produced a trace attached to the graph: 1 of 1 spans », « in order » ; `uninit` rend le
+    build ;
+  - mesure : kotlinx-coroutines-core 1.11.0 (170 fichiers, 34 248 lignes) indexé à froid en
+    0,40 s, dont 0,22 s fixes, soit environ 5 ms pour mille lignes, 0,29 s avec le cache ;
+  - écarts : la grammaire ne lit pas les membres sur la ligne de leur accolade ; le paquet d'un
+    tout petit projet reste « utilitaire » ;
+  - tests : `kotlin_fixture`, `reformatting_kotlin_changes_no_identity`,
+    `a_kotlin_project_links_its_files_and_java`, `a_lone_gradle_subproject_is_found`, les
+    fonctions publiques de Kotlin.
+- 10.7 Swift : `tree-sitter-swift` 0.7.4 (MIT) ; Swift Package Manager (`Package.swift`,
+  `Package.resolved`) ; `swift test --xunit-output`.
+
+  Fait (2026-10-22), ADR 0067 :
+  - pack `swift`, écosystème `swiftpm` (`Package.swift` lu comme du texte : nom, paquets par
+    emplacement, modules pris par les cibles), noms `swift:<Cible>/<fichier>#…`, extensions
+    rangées sous leur type, un nom seul vu dans sa cible et celles qu'on importe ;
+  - `swift test --parallel --xunit-output` dans `.timonier/runs/xunit/`, dossier que
+    `timonier test` crée et lit (XCTest et Swift Testing) ; `init` : les paquets
+    opentelemetry-swift-core et opentelemetry-swift 2.6.0 et une cible `TimonierTests`, lignes
+    marquées `// timonier` ; inventaire par `Package.resolved`, OSV « SwiftURL » ; publiques,
+    les fonctions `public` ou `open` ;
+  - critère constaté (Swift 6.4.1 hors dépôt, signature vérifiée) sur un paquet SwiftPM
+    (bibliothèque, exécutable avec swift-log, tests XCTest et Swift Testing) : la carte relie
+    l'exécutable et les tests à la bibliothèque, swift-log en observabilité ; `init`, puis
+    `timonier test` : « 3 tests, 0 failed » des deux rapports ; `doctor` : « the smoke test
+    (swift) produced a trace attached to the graph: 1 of 1 spans », « in order » ; inventaire :
+    24 paquets ;
+  - mesure : swift-nio 2.104.0 (555 fichiers, 208 386 lignes) indexé à froid en 1,73 s, soit
+    8,3 ms pour mille lignes, 1,09 s avec le cache ;
+  - écarts : `main.swift` n'est pas reconnu comme point d'entrée (seul `@main`) ; le paquet
+    d'un petit projet reste « utilitaire » ;
+  - tests : `swift_fixture`, `reformatting_swift_changes_no_identity`,
+    `a_swift_package_links_its_targets`, `swift_packages_and_their_products`,
+    `the_swift_sdk_goes_in_and_out_of_package_swift`, les fonctions publiques de Swift.
+- 10.8 C : `tree-sitter-c` 0.24.2 (MIT) ; mêmes manifestes et CTest que C++ (10.5).
+
+  Fait (2026-10-22), ADR 0068 :
+  - pack `c` (`.c` ; les `.h` restent au pack C++), écosystème `cmake` partagé, noms
+    `c:<chemin>#…`, typedefs de structures anonymes, macros ; pour C et C++, les déclarations
+    sous les gardes d'inclusion, et un nom mène à l'en-tête inclus directement ou à travers
+    d'autres (quatre niveaux) ;
+  - `init` : un projet CMake en C est détecté (`project(… LANGUAGES C)`, ou des `.c` sans
+    C++) ; une API C (`timonier_otel.h`) écrite en C++ sur opentelemetry-cpp, test de fumée en
+    C ; les règles d'inventaire de C et C++ s'additionnent ; publiques, les fonctions non
+    `static` ;
+  - critère constaté (CMake 4.2.3, GCC 15, vcpkg et opentelemetry-cpp hors dépôt) sur un projet
+    CMake en C avec vcpkg (sqlite3) : la carte met sqlite3 dans les bases de données et le
+    paquet en persistance, les appels mènent aux en-têtes ; `init`, puis `timonier test` :
+    « 3 tests, 0 failed » ; `doctor` : « the smoke test (c) produced a trace attached to the
+    graph: 1 of 1 spans », « in order » ;
+  - mesure : Redis 8.10.2 (843 fichiers `.c` et `.h`, 374 531 lignes) indexé à froid en 2,98 s,
+    soit 8,0 ms pour mille lignes, 1,80 s avec le cache ;
+  - écarts : un en-tête de C est nommé `cpp:` ; l'API C demande un compilateur C++ ;
+  - tests : `c_fixture`, `reformatting_c_changes_no_identity`, `a_c_project_links_its_files`,
+    les fonctions publiques de C.
+- 10.9 C# : `tree-sitter-c-sharp` 0.23.5 (MIT) ; `.csproj`, `packages.lock.json` (NuGet) ;
+  `dotnet test` avec un enregistreur JUnit.
+
+  Fait (2026-10-22), ADR 0069 :
+  - pack `csharp`, écosystème `nuget` (manifestes à motif `*.csproj`), noms
+    `csharp:<projet>/<chemin>#…`, `using` résolu vers les fichiers de l'espace de noms ou le
+    paquet NuGet, noms cherchés dans tout le dépôt ;
+  - `dotnet test` avec JunitXml.TestLogger 8.0.0, rapports lus dans
+    `**/TestResults/timonier/` ; `init` écrit dans le projet de test (OpenTelemetry 1.20.1,
+    exportateur OTLP forcé en HTTP) ; inventaire des `.csproj` et de
+    `Directory.Packages.props`, OSV « NuGet » ;
+  - critère constaté (SDK .NET 10.0.402 hors dépôt, somme vérifiée) sur une solution
+    `dotnet new` (bibliothèque, tests xUnit) : la carte relie les tests à la bibliothèque par
+    ses espaces de noms ; `init`, `timonier test` : « 3 tests, 0 failed » ; `doctor` : « the
+    smoke test (csharp) produced a trace attached to the graph: 1 of 1 spans », « in order » ;
+  - mesure : Newtonsoft.Json 13.0.4 (944 fichiers, 191 969 lignes) indexé à froid en 1,73 s,
+    soit 9,0 ms pour mille lignes, 1,19 s avec le cache ;
+  - écarts : test de fumée pour xUnit seulement ; `packages.lock.json` n'est pas lu ;
+  - tests : `csharp_fixture`, `reformatting_csharp_changes_no_identity`,
+    `a_dotnet_solution_links_its_projects`, `the_csharp_sdk_goes_in_and_out_of_a_csproj`.
+- 10.10 PHP : `tree-sitter-php` 0.25.1 (MIT) ; Composer (`composer.json`, `composer.lock`) ;
+  PHPUnit (`--log-junit`).
+
+  Fait (2026-10-22), ADR 0070 :
+  - pack `php`, écosystème `composer`, noms PSR-4 (`php:Shop\Model\Item#…`), `use` résolu
+    vers la classe ou le paquet qui autocharge l'espace (par `composer.lock`) ;
+  - PHPUnit par `php vendor/bin/phpunit --log-junit` ; `init` : l'API en `require`, le SDK,
+    l'exportateur OTLP et Guzzle en `require-dev` ; inventaire de `composer.lock` avec ses
+    licences, OSV « Packagist » ;
+  - critère constaté (PHP 8.5.8 statique et Composer 2.10.3 hors dépôt, l'installeur vérifié
+    par sa signature) sur un projet Composer (monolog, PDO, PHPUnit 13.4) : la carte met
+    monolog en observabilité et le paquet en persistance ; `init`, `composer update`,
+    `timonier test` : « 3 tests, 0 failed » ; `doctor` : « the smoke test (php) produced a trace
+    attached to the graph: 1 of 1 spans », « in order » ; inventaire : 53 paquets, licences
+    connues ;
+  - mesure : laravel/framework v13.38.0 (1 760 fichiers, 277 581 lignes) indexé à froid en
+    2,00 s, soit 7,2 ms pour mille lignes, 1,43 s avec le cache ;
+  - écarts : la propriété promue par un constructeur est rangée sous le constructeur ;
+  - tests : `php_fixture`, `reformatting_php_changes_no_identity`,
+    `a_composer_project_links_its_classes`, `the_php_sdk_goes_in_and_out_of_composer_json`.
+- 10.11 Scala (demandé le 2026-10-22) : `tree-sitter-scala` 0.26.3 (MIT, vérifiée le 2026-10-22) ;
+  sbt (`build.sbt`) et Gradle ; rapports JUnit de sbt (`target/test-reports/`).
+
+  Fait (2026-10-22), ADR 0071 :
+  - pack `scala`, écosystème `sbt` (`build.sbt` : organisation, nom, dépendances avec le
+    suffixe de `%%`), noms comme Java, imports à sélecteurs (le préfixe d'une liste prend tous
+    les `path` qui précèdent), Java, Kotlin et Scala se voient, dépendance trouvée aussi par son
+    artefact ;
+  - lanceurs : `sbt --server -batch testFull` pour sbt 2 (nouveau champ `when_text`), `sbt -batch
+    test` sinon ; rapports `**/test-reports/` cherchés sur sept niveaux ; `init` : un bloc à la
+    fin de `build.sbt` ; le démarreur attend son vidage ;
+  - critère constaté (sbt 2.0.11, somme vérifiée, et JDK 25 hors dépôt) sur un build sbt
+    (Scala 3.10.0, upickle, munit 1.3.6) : la carte relie les tests au code, upickle en
+    sérialisation ; `init`, `timonier test` : « 3 tests, 0 failed » ; `doctor` : « the smoke
+    test (scala) produced a trace attached to the graph: 1 of 1 spans », « in order » ;
+  - mesure : Cats v2.13.0 (835 fichiers, 96 507 lignes) indexé à froid en 1,73 s, soit
+    17,9 ms pour mille lignes, 1,33 s avec le cache : le plus lent des packs ;
+  - écarts : le bloc de `build.sbt` vaut pour le projet racine ; test de fumée pour munit ;
+  - tests : `scala_fixture`, `reformatting_scala_changes_no_identity`,
+    `an_sbt_build_links_its_files`, `sbt_builds_and_their_dependencies`,
+    `the_scala_sdk_goes_in_and_out_of_build_sbt`.
+
+Décisions : ADR 0061 (JavaScript), 0062 (Python), 0063 (Go), 0064 (Java), 0065 (C++),
+0066 (Kotlin), 0067 (Swift), 0068 (C), 0069 (C#), 0070 (PHP), 0071 (Scala).
 Écarts : —
 
 ---
@@ -3848,6 +4111,8 @@ avant ajout si plus d'un mois s'est écoulé.
 | rusqlite | 0.40.2 | MIT | |
 | rusqlite_migration / refinery | 2.6.0 / 0.10.0 | Apache-2.0 / MIT | rusqlite_migration retenu (ADR 0011) ; refinery écarté |
 | tree-sitter / -rust / -typescript | 0.27.1 / 0.24.2 / 0.23.2 | MIT | Revérifiés le 2026-10-16 ; utilisés (ADR 0012) |
+| tree-sitter-python | 0.25.0 | MIT | Vérifié le 2026-10-22, chargé par tree-sitter 0.27 ; pack `python` (ADR 0062) |
+| opentelemetry-api, -sdk, -exporter-otlp-proto-http (PyPI) / pytest | 1.45.1 / 9.1.1 | Apache-2.0 / MIT | Vérifiés sur PyPI le 2026-10-22 ; ajoutés par `init` aux projets Python (ADR 0062) |
 | tree-sitter-javascript | 0.25.0 | MIT | Vérifié le 2026-10-22 (crates.io), chargé par tree-sitter 0.27 ; pack `javascript` (ADR 0061) |
 | notify / notify-debouncer-full | 8.2.0 / 0.7.0 | CC0-1.0 / MIT OR Apache-2.0 | notify 9 encore en RC ; notify vient par le débounceur, qui le réexporte |
 | ignore / globset | 0.4.33 / 0.4.20 | Unlicense OR MIT | Revérifiés le 2026-10-16 |

@@ -1,0 +1,43 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"cart/cart.go\", GO))"
+---
+constant Tax                                      under -                        at 11:6  `Tax = 0.2`  #82108a4e
+constant Default                                  under -                        at 14:1  `Default = New()`  #96ef6271
+constant limit                                    under -                        at 15:1  `limit int`  #40408c26
+type     Cart                                     under -                        at 19:5  `Cart`  #6738e657
+field    Cart/Items                               under Cart                     at 21:1  `Items[] Item`  #161443e8
+field    Cart/total                               under Cart                     at 22:1  `total int`  #76f19499
+type     Item                                     under -                        at 25:5  `Item`  #613aa8ee
+field    Item/Name                                under Item                     at 26:1  `Name string `json:"name"``  #79cdf3ae
+field    Item/Price                               under Item                     at 27:1  `Price int`  #cb8f2f00
+trait    Shape                                    under -                        at 30:5  `Shape`  #187557b8
+method   Shape/Area                               under Shape                    at 32:1  `Area() float64`  #5526154d
+type     ID                                       under -                        at 35:5  `ID =`  #3857e731
+function New                                      under -                        at 37:0  `func New() *Cart`  #2856afb1
+method   Cart/Add                                 under Cart                     at 41:0  `func(c *Cart) Add(item Item)`  #46fda777
+method   Cart/Total                               under Cart                     at 46:0  `func(c Cart) Total() int`  #c7505ad9
+function main                                     under -                        at 50:0  `func main()`  #ed7f6638
+import   fmt binds ["fmt"]
+import   net/http binds ["http"]
+import   strings binds ["str"]
+import   embed binds []
+import   example.com/shop/prices binds ["prices"]
+calls New ×1 at 14:11
+calls append ×1 at 42:11
+calls fmt·Println ×1 at 51:8 on a receiver
+calls http·ListenAndServe ×1 at 52:6 on a receiver
+calls prices·PriceOf ×1 at 43:19 on a receiver
+calls str·ToUpper ×1 at 51:20 on a receiver
+references Cart ×5 at 19:5
+references ID ×1 at 35:5
+references Item ×3 at 21:9
+references Shape ×1 at 30:5
+references float64 ×1 at 32:8
+references int ×4 at 15:9
+references string ×2 at 26:7
+inherits fmt·Stringer ×1 at 31:5 from Shape
+inherits prices·Store ×1 at 20:8 from Cart
+signal   entry_point ×2
+signal   background_task ×1
+errors   false

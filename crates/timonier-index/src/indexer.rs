@@ -910,7 +910,9 @@ fn file_path(id: &NodeId) -> Option<&str> {
 /// Whether a path, relative to the root, is a manifest the indexer reads (ADR 0013).
 pub fn is_manifest(path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
-    MANIFESTS.iter().any(|(file, _)| *file == name)
+    MANIFESTS
+        .iter()
+        .any(|(file, _)| ecosystem::manifest_named(file, name))
 }
 
 /// A file of the repository that says which files the walk skips (ADR 0023). Those outside

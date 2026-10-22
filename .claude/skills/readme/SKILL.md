@@ -19,6 +19,7 @@ slogans, nothing that is not true today.
 | `README.md`        | Any developer, in English (the reference) | Purpose, tour with screenshots, status, try it, develop  |
 | `README.fr.md`     | French-speaking developers                | The same page, translated by hand, same order and images |
 | `docs/features.md` | Someone evaluating in depth, in English   | Every feature that works today, with its figures         |
+| `ROADMAP.md`, `ROADMAP.fr.md` | Someone deciding whether to wait or contribute | What comes next, in order, without dates; linked from « Status » |
 | `docs/images/*.png`| Both READMEs                              | One screenshot per feature, in English                   |
 
 - Both READMEs start with a language line: `**English** · [Français](README.fr.md)`.
@@ -56,6 +57,13 @@ Keep the README under about 250 lines. Detail (figures, edge cases, every flag) 
   (for example the debt layer needs `review=1&debt=1`). Crop the viewport to the content.
 - Each image has alt text that says what it shows, not "screenshot".
 - Images are sample data: say so once, near the tour.
+
+## The roadmap
+
+`ROADMAP.md` (English, the reference) and `ROADMAP.fr.md` list what comes next, in order: what
+remains before the pre-release, the end of the MVP, v2 and v3 of the spec's scope, and what is
+not planned. No dates. When a step lands, move it out of the roadmap and into the READMEs and
+`docs/features.md`; when the human adds an item, add it in both files.
 
 ## Checks before handing over
 

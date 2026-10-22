@@ -1,0 +1,34 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/cart.c\", C))"
+---
+constant MAX_ITEMS                                under -                        at 5:0  `#define MAX_ITEMS 16`  #ebedfef8
+function SQUARE                                   under -                        at 6:0  `#define SQUARE(x) ((x) * (x))`  #7e8b52e4
+type     item                                     under -                        at 8:8  `struct item`  #54ec9667
+field    item/name                                under item                     at 9:4  `const char *name`  #2bc92ce0
+field    item/price                               under item                     at 10:4  `int price`  #a189b8f4
+type     cart                                     under -                        at 13:0  `struct cart`  #d43cf353
+field    cart/items                               under cart                     at 14:4  `item items[MAX_ITEMS]`  #f2a617a2
+field    cart/count                               under cart                     at 15:4  `int count`  #fc3c24af
+type     kind                                     under -                        at 18:0  `enum kind`  #4e36a7ec
+constant kind/SMALL                               under kind                     at 18:12  `SMALL`  #16ebbc5f
+constant kind/LARGE                               under kind                     at 18:19  `LARGE`  #c38f44fd
+function round_up                                 under -                        at 20:0  `static int round_up(int x)`  #dae9303d
+function cart_total                               under -                        at 22:0  `int cart_total(const struct cart *c)`  #9576dcb7
+function worker                                   under -                        at 28:0  `void *worker(void *arg)`  #f2111eb3
+function main                                     under -                        at 30:0  `int main(void)`  #f5b572de
+import   cart.h binds []
+import   stdlib.h binds []
+import   sqlite3.h binds []
+import   pthread.h binds []
+calls calloc ×1 at 33:21
+calls cart_total ×1 at 34:11
+calls pthread_create ×1 at 32:4
+calls round_up ×1 at 25:11
+references cart ×3 at 13:7
+references item ×3 at 8:15
+references kind ×1 at 18:5
+references pthread_t ×1 at 31:4
+signal   entry_point ×1
+signal   background_task ×1
+errors   false

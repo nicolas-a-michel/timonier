@@ -953,3 +953,47 @@ fn a_regression_on_a_modified_tree_is_confirmed_by_the_same_changes_only() {
         "{same}"
     );
 }
+
+/// `timonier test --install` (the Performances panel's « Run the tests »): a runner's program
+/// missing from the PATH is installed first, with the command its pack gives
+/// (`cargo install cargo-nextest --locked`), here through a fake `cargo`.
+#[test]
+fn a_missing_runner_program_is_installed_first() {
+    let project = Project::new();
+    std::fs::write(
+        project.root().join(".timonier/tests.json"),
+        r#"{"version": 1, "runners": [{"language": "rust", "runner": "cargo-nextest",
+            "command": "sh run-tests.sh", "junit": "reports/junit.xml"}]}"#,
+    )
+    .unwrap();
+    let tools = tempfile::tempdir().unwrap();
+    let cargo = tools.path().join("cargo");
+    std::fs::write(
+        &cargo,
+        format!(
+            "#!/bin/sh\necho \"$@\" > \"{0}/asked\"\nprintf '#!/bin/sh\\n' > \"{0}/cargo-nextest\"\nchmod +x \"{0}/cargo-nextest\"\n",
+            tools.path().display()
+        ),
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&cargo, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let path = format!("{}:/usr/bin:/bin", tools.path().display());
+    let output = project.tim_with(
+        &["test", "--approve", "--install"],
+        true,
+        &[("PATH", path.as_str())],
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("installing cargo-nextest: cargo install cargo-nextest --locked"),
+        "{stderr}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(tools.path().join("asked")).unwrap(),
+        "install cargo-nextest --locked\n"
+    );
+    assert!(tools.path().join("cargo-nextest").is_file());
+    // The tests then ran, and the run was kept.
+    assert!(stderr.contains("3 tests, 1 failed"), "{stderr}");
+}

@@ -36,6 +36,10 @@ pub struct TestArgs {
     /// (Q84): a command this machine has not approved does not run
     #[arg(long)]
     approve: bool,
+    /// Install first a program a runner needs and the machine lacks, as its pack says
+    /// (`cargo install cargo-nextest --locked`)
+    #[arg(long)]
+    install: bool,
     #[command(flatten)]
     target: daemon::Target,
     /// The command that runs the tests; without one, those of `.timonier/tests.json`
@@ -67,9 +71,14 @@ const CLIENT: &str = "timonier-test";
 /// How long a run waits for a daemon it started to index the project.
 const INDEXING: Duration = Duration::from_secs(30);
 
-/// A command line run by the system's shell: `sh -c`, or `cmd /C` on Windows (T-125).
+/// A command line run by the system's shell: `sh -c`, or `cmd /C` on Windows (T-125), where
+/// a wrapper of the project (`./gradlew`, `./mvnw`) is written `.\gradlew` (ADR 0064).
 fn shell(command: String) -> Vec<String> {
     if cfg!(windows) {
+        let command = match command.strip_prefix("./") {
+            Some(rest) => format!(".\\{rest}"),
+            None => command,
+        };
         vec!["cmd".to_owned(), "/C".to_owned(), command]
     } else {
         vec!["sh".to_owned(), "-c".to_owned(), command]
@@ -184,7 +193,41 @@ fn plan(args: &TestArgs) -> Result<(Paths, Vec<Planned>)> {
             .into());
         }
     }
+    if args.install {
+        install_missing(&runners)?;
+    }
     Ok((paths, planned))
+}
+
+/// Installs the programs the runners need and the `PATH` lacks, with the commands their packs
+/// give; says what it runs. A missing program no pack knows how to install is said.
+fn install_missing(runners: &[crate::init::plan::TestRunner]) -> anyhow::Result<()> {
+    let packs = timonier_daemon::Packs::builtin()?;
+    let environment = crate::init::detect::Environment::from_process();
+    for runner in runners {
+        let rule = packs
+            .iter()
+            .filter(|p| p.language.as_str() == runner.language)
+            .flat_map(|p| p.manifest.tests.runners.iter())
+            .find(|r| r.name == runner.runner);
+        let Some(program) = rule.and_then(|r| r.program.as_deref()) else {
+            continue;
+        };
+        if environment.on_path(program) {
+            continue;
+        }
+        let Some(install) = rule.and_then(|r| r.install.as_deref()) else {
+            anyhow::bail!("{program} is missing, and no pack says how to install it");
+        };
+        eprintln!("timonier: installing {program}: {install}");
+        let mut words = shell(install.to_owned());
+        let status = std::process::Command::new(words.remove(0))
+            .args(&words)
+            .status()
+            .with_context(|| format!("cannot run `{install}`"))?;
+        anyhow::ensure!(status.success(), "`{install}` failed ({status})");
+    }
+    Ok(())
 }
 
 /// Runs one command `runs` times, one batch, then says the regressions the daemon finds in it
@@ -327,8 +370,15 @@ fn run_once(
     batch: Option<&str>,
     smoke: bool,
 ) -> Outcome {
-    // Some runners write their JUnit XML only into a folder that exists (`node --test`, T-120).
-    if let Some(folder) = planned.junit.as_deref().and_then(Path::parent) {
+    // Some runners write their JUnit XML only into a folder that exists (`node --test`, T-120;
+    // `swift test` for its folder of reports, ADR 0067); folders under every module are the
+    // runner's to make.
+    let folder = planned.junit.as_deref().and_then(|p| match reports(p) {
+        None => p.parent().map(Path::to_path_buf),
+        Some((base, None)) => Some(base),
+        Some((_, Some(_))) => None,
+    });
+    if let Some(folder) = folder {
         let _ = std::fs::create_dir_all(folder);
     }
     let started = SystemTime::now();
@@ -533,6 +583,9 @@ fn user_manager() -> Option<PathBuf> {
 /// The test cases of a JUnit XML that this run wrote: one older than the run is someone
 /// else's report.
 fn read_junit(path: &Path, started: SystemTime) -> Result<Vec<TestCase>, String> {
+    if let Some((base, under)) = reports(path) {
+        return read_reports(path, &base, under.as_deref(), started);
+    }
     let shown = path.display();
     let modified = std::fs::metadata(path)
         .and_then(|m| m.modified())
@@ -548,6 +601,86 @@ fn read_junit(path: &Path, started: SystemTime) -> Result<Vec<TestCase>, String>
     let mut cases = Vec::new();
     for suite in &suites.suites {
         collect(suite, &mut cases);
+    }
+    Ok(cases)
+}
+
+/// A folder of reports, one XML file per class (Surefire's, Gradle's; ADR 0064): its path ends
+/// with `/`, and `**/` before it finds it in every module. The base to search from, and the
+/// folder to find under each module (`None`: the base itself).
+fn reports(path: &Path) -> Option<(PathBuf, Option<PathBuf>)> {
+    let text = path.to_string_lossy();
+    if let Some((base, under)) = text.split_once("**") {
+        let under = under.trim_matches(['/', '\\']);
+        return Some((PathBuf::from(base), Some(PathBuf::from(under))));
+    }
+    (text.ends_with('/') || text.ends_with('\\')).then(|| (path.to_path_buf(), None))
+}
+
+/// The XML reports this run wrote in a folder of reports, or in that folder of every module
+/// under `base` (a few levels deep; hidden folders and installed dependencies aside).
+fn read_reports(
+    shown: &Path,
+    base: &Path,
+    under: Option<&Path>,
+    started: SystemTime,
+) -> Result<Vec<TestCase>, String> {
+    let mut folders = Vec::new();
+    match under {
+        None => folders.push(base.to_path_buf()),
+        Some(under) => {
+            let mut pending = vec![(base.to_path_buf(), 0)];
+            while let Some((dir, depth)) = pending.pop() {
+                let candidate = dir.join(under);
+                if candidate.is_dir() {
+                    folders.push(candidate);
+                }
+                // sbt 2 writes into `target/out/jvm/scala-<version>/<project>/test-reports`.
+                if depth >= 7 {
+                    continue;
+                }
+                let Ok(entries) = std::fs::read_dir(&dir) else {
+                    continue;
+                };
+                for entry in entries.flatten() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    let skipped = name.starts_with('.') || name == "node_modules";
+                    if !skipped && entry.file_type().is_ok_and(|t| t.is_dir()) {
+                        pending.push((entry.path(), depth + 1));
+                    }
+                }
+            }
+        }
+    }
+    let mut cases = Vec::new();
+    let mut read = 0;
+    folders.sort();
+    for folder in folders {
+        let Ok(entries) = std::fs::read_dir(&folder) else {
+            continue;
+        };
+        let mut files: Vec<PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.extension().is_some_and(|e| e == "xml"))
+            .filter(|p| {
+                std::fs::metadata(p)
+                    .and_then(|m| m.modified())
+                    .is_ok_and(|m| m >= started)
+            })
+            .collect();
+        files.sort();
+        for file in files {
+            cases.extend(read_junit(&file, started)?);
+            read += 1;
+        }
+    }
+    if read == 0 {
+        return Err(format!(
+            "no JUnit XML written in {}: the runner wrote none",
+            shown.display()
+        ));
     }
     Ok(cases)
 }
@@ -794,6 +927,43 @@ mod tests {
         let suited =
             "<testsuites><testsuite name=\"s\"><testcase name=\"x\"/></testsuite></testsuites>";
         assert_eq!(within_a_suite(suited), suited);
+    }
+
+    /// T-123: a folder of reports per module, as Gradle and Surefire write them: every report
+    /// this run wrote, in every module, and none of an earlier run.
+    #[test]
+    fn a_folder_of_reports_is_read_in_every_module() {
+        let dir = tempfile::tempdir().unwrap();
+        let class = |name: &str| {
+            format!(
+                "<?xml version=\"1.0\"?>\n<testsuite name=\"com.shop.{name}\" tests=\"1\"><testcase name=\"works\" classname=\"com.shop.{name}\" time=\"0.01\"/></testsuite>\n"
+            )
+        };
+        let before = SystemTime::now() - Duration::from_secs(1);
+        for (module, name) in [("app", "AppTest"), ("libs/core", "CoreTest")] {
+            let folder = dir.path().join(module).join("build/test-results/test");
+            std::fs::create_dir_all(&folder).unwrap();
+            std::fs::write(
+                folder.join(format!("TEST-com.shop.{name}.xml")),
+                class(name),
+            )
+            .unwrap();
+        }
+        let pattern = dir.path().join("**/build/test-results/test/");
+        let tests = read_junit(&pattern, before).unwrap();
+        let classes: Vec<_> = tests
+            .iter()
+            .filter_map(|t| t.classname.as_deref())
+            .collect();
+        assert_eq!(classes, ["com.shop.AppTest", "com.shop.CoreTest"]);
+        let later = SystemTime::now() + Duration::from_secs(60);
+        assert!(
+            read_junit(&pattern, later)
+                .unwrap_err()
+                .contains("wrote none")
+        );
+        let one = dir.path().join("app/build/test-results/test/");
+        assert_eq!(read_junit(&one, before).unwrap().len(), 1);
     }
 
     #[test]

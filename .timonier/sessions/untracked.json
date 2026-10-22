@@ -133,6 +133,32 @@
       "files": [
         "crates/timonier-cli/src/init/plan.rs"
       ]
+    },
+    {
+      "from": 126,
+      "to": 127,
+      "until": {
+        "at": "2026-10-22T09:40:17Z",
+        "session": "S-2026-10-22-11"
+      },
+      "files": [
+        "crates/timonier-cli/src/init/detect.rs",
+        "crates/timonier-cli/src/init/edits.rs",
+        "crates/timonier-cli/src/init/plan.rs",
+        "crates/timonier-cli/src/init/uninit.rs",
+        "crates/timonier-cli/src/test.rs",
+        "crates/timonier-core/src/gaps.rs",
+        "crates/timonier-core/src/inventory.rs",
+        "crates/timonier-daemon/src/inventory.rs",
+        "crates/timonier-index/src/ecosystem.rs",
+        "crates/timonier-index/src/grammar.rs",
+        "crates/timonier-index/src/indexer.rs",
+        "crates/timonier-index/src/pack.rs",
+        "crates/timonier-index/src/project.rs",
+        "crates/timonier-index/tests/extract.rs",
+        "crates/timonier-index/tests/indexer.rs",
+        "webview/src/i18n.ts"
+      ]
     }
   ]
 }

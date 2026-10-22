@@ -1,0 +1,144 @@
+# Swift language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "swift"
+version = "1.0.0"
+ecosystem = "swiftpm"
+
+[[grammars]]
+name = "swift"
+crate = "tree-sitter-swift"
+version = "0.7.4"
+license = "MIT"
+extensions = ["swift"]
+
+# SwiftPM's build folder (`.build`) is hidden already; Xcode's derived data is not the code.
+[walk]
+skip = ["DerivedData", "Pods", "Carthage"]
+
+# `swift:Shop/Model/Item#Item.name`: the target, the folders and the file's stem, then the
+# definitions in it (ADR 0067).
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+[paths]
+separators = ["."]
+# An import names a module; its names are resolved in the package.
+bind = "last_segment"
+
+[fingerprint]
+atoms = ["line_string_literal", "multi_line_string_literal", "raw_string_literal"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}", ">"]
+opening = ["=", "(", "[", "{", "<", ":", ",", "->"]
+
+[signature]
+no_space_before = [")", "]", ">", ",", ";", ".", "(", "?", "!", ":"]
+tight_after_word = ["(", "<", "["]
+no_space_after = ["(", "[", "<", ".", "@", "\\"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+# Dependencies are named by their location, `github.com/apple/swift-nio`.
+[dependencies]
+async = ["github.com/apple/swift-async-algorithms", "github.com/apple/swift-atomics"]
+network = [
+  "github.com/vapor/vapor", "github.com/hummingbird-project/hummingbird", "github.com/apple/swift-nio",
+  "github.com/swift-server/async-http-client", "github.com/alamofire/alamofire", "github.com/grpc/grpc-swift",
+]
+serialization = ["github.com/apple/swift-protobuf", "github.com/jpsim/yams", "github.com/flight-school/messagepack"]
+database = [
+  "github.com/vapor/fluent", "github.com/vapor/fluent-postgres-driver", "github.com/vapor/postgres-nio",
+  "github.com/groue/grdb.swift", "github.com/stephencelis/sqlite.swift", "github.com/realm/realm-swift",
+]
+cli = ["github.com/apple/swift-argument-parser"]
+observability = [
+  "github.com/apple/swift-log", "github.com/apple/swift-metrics", "github.com/apple/swift-distributed-tracing",
+  "github.com/open-telemetry/opentelemetry-swift", "github.com/open-telemetry/opentelemetry-swift-core",
+]
+
+[[roles]]
+role = "entry_point"
+libraries = [
+  "github.com/vapor/vapor", "github.com/hummingbird-project/hummingbird", "github.com/apple/swift-argument-parser",
+]
+paths = ["Vapor", "Hummingbird", "ArgumentParser"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = [
+  "github.com/vapor/fluent", "github.com/vapor/postgres-nio", "github.com/groue/grdb.swift",
+  "github.com/stephencelis/sqlite.swift", "github.com/realm/realm-swift",
+]
+paths = ["Fluent", "GRDB", "SQLite", "CoreData", "SwiftData", "RealmSwift"]
+confidence = 0.8
+
+[[roles]]
+role = "interface"
+paths = ["SwiftUI", "UIKit", "AppKit"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+paths = ["Dispatch"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# The standard library: a name tree-sitter cannot resolve that is one of them is defined
+# outside the repository, and the language server is not asked.
+outside = [
+  "String", "Int", "Double", "Float", "Bool", "Character", "Array", "Dictionary", "Set",
+  "Optional", "Result", "Error", "Void", "Any", "AnyObject", "Never", "print", "max", "min",
+  "abs", "zip", "stride", "fatalError", "precondition", "assert", "Codable", "Equatable",
+  "Hashable", "Comparable", "Identifiable", "Sendable", "self", "Self", "super",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): `swift test` writes one report for XCTest
+# (with `--parallel`) and one for Swift Testing (`tests-swift-testing.xml`), into a folder that
+# must exist; Timonier reads the folder (ADR 0067). Checked with Swift 6.4.1 on Linux.
+[[tests.runners]]
+name = "swift test"
+command = "swift test --parallel --xunit-output .timonier/runs/xunit/tests.xml"
+junit = ".timonier/runs/xunit/"
+program = "swift"
+note = "Timonier runs the tests with SwiftPM: install Swift (https://www.swift.org/install/)."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs.
+[tests.runners.smoke]
+command = "swift test --filter TimonierTests"
+files = [{ path = "Tests/TimonierTests/TimonierSmokeTests.swift", source = "instrumentation/TimonierSmokeTests.swift" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0067): the
+# API and the SDK of opentelemetry-swift-core, the OTLP/HTTP exporter of opentelemetry-swift, in
+# a test target `TimonierTests` of `Package.swift`. A dependency names a package by its URL and
+# the products the target takes (`features`). Verified on GitHub on 2026-10-22 (2.6.0).
+[instrumentation]
+files = [{ path = "Tests/TimonierTests/TimonierOtel.swift", source = "instrumentation/TimonierOtel.swift" }]
+note = "the test target `TimonierTests` holds `TimonierOtel.start()`, which starts the export; to measure the code's own spans, add `OpenTelemetryApi` (opentelemetry-swift-core) to its targets and start the export where the tests set up, as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "https://github.com/open-telemetry/opentelemetry-swift-core.git"
+version = "2.6.0"
+features = ["OpenTelemetryApi", "OpenTelemetrySdk"]
+
+[[instrumentation.dependencies]]
+name = "https://github.com/open-telemetry/opentelemetry-swift.git"
+version = "2.6.0"
+features = ["OpenTelemetryProtocolExporterHTTP"]
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["github.com/vapor/vapor", "github.com/hummingbird-project/hummingbird", "github.com/pointfreeco/swift-composable-architecture"]
+
+[inventory.functions]
+http-client = ["github.com/alamofire/alamofire", "github.com/swift-server/async-http-client", "github.com/moya/moya"]
+http-server = ["github.com/vapor/vapor", "github.com/hummingbird-project/hummingbird"]
+database = ["github.com/groue/grdb.swift", "github.com/stephencelis/sqlite.swift", "github.com/realm/realm-swift"]
+logging = ["github.com/apple/swift-log", "github.com/cocoalumberjack/cocoalumberjack", "github.com/sushichop/puppy"]
+yaml = ["github.com/jpsim/yams"]
+testing = ["github.com/quick/quick", "github.com/quick/nimble", "github.com/pointfreeco/swift-snapshot-testing"]

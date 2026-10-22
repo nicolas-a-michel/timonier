@@ -63,6 +63,7 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
       return typeof message.on === "boolean";
     case "openWhiteboard":
     case "openPerformance":
+    case "runTests":
       return true;
     case "showPerformance":
       return typeof message.on === "boolean";

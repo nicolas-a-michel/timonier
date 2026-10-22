@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-4",
+  "agent": "claude-code",
+  "objective": "10.2 Pack Python : grammaire, définitions, imports, noms qualifiés, écosystème pyproject.toml, rôles, inventaire, pytest en JUnit, SDK OpenTelemetry et test de fumée.",
+  "tasks": [
+    "T-121"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T06:52:22Z",
+  "ended_at": "2026-10-22T07:06:11Z",
+  "snapshots": {
+    "start": 113,
+    "end": 114
+  },
+  "summary": "10.2 Python done (ADR 0062): pack python (tree-sitter-python 0.25.0), ecosystem pypi (pyproject.toml, Poetry fallback, uv workspaces, PEP 503 names, src layout), dotted module names, absolute, relative and submodule imports; init adds the API to [project] and the SDK and pytest to a PEP 735 group timonier, marked lines, exact uninit; runner pytest (uv) when uv.lock (new when field), else pytest; inventory from uv.lock; Python in the gaps and the empty map. Criterion verified on a real uv project. Not committed (nor T-126). Next: 10.3 Go.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Pack Python, écosystème pypi, résolution, SDK dans pyproject, lanceur uv, inventaire uv.lock, critère sur un vrai projet, ADR 0062, docs",
+      "task": "T-121",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 15,
+    "added": [
+      {
+        "id": "pkg:cargo/tree-sitter-python",
+        "name": "tree-sitter-python",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 46,
+    "input": 94,
+    "output": 56027,
+    "cache_read": 41838322,
+    "cache_creation": 84735,
+    "cost_usd_micros": 10166461
+  }
+}

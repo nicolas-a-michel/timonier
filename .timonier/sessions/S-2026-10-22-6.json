@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-6",
+  "agent": "claude-code",
+  "objective": "10.4 Pack Java : grammaire, définitions, imports, noms qualifiés, Maven et Gradle, rôles, inventaire, tests en JUnit (Surefire, Gradle), SDK OpenTelemetry et test de fumée.",
+  "tasks": [
+    "T-123"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T08:00:56Z",
+  "ended_at": "2026-10-22T08:17:45Z",
+  "snapshots": {
+    "start": 117,
+    "end": 118
+  },
+  "summary": "10.4 Java fait (ADR 0064) : pack java, écosystème maven pour Maven et Gradle (pom.xml, catalogue, settings), noms par paquet pointé, imports de classe, de paquet et statiques ; timonier test lit les dossiers de rapports de chaque module, ./gradlew et ./mvnw sous Windows ; init édite pom.xml ou le build Gradle racine (OTel 1.67.0) ; inventaire Maven et Gradle, purl avec espace de noms. Critère constaté sur un vrai projet Maven et un projet gradle init ; Guava indexé à 4,4 ms pour mille lignes. Reste : C++ (T-124), puis Kotlin (T-127). Rien n'est commité.",
+  "changes": {
+    "files": 18,
+    "added": [
+      {
+        "id": "pkg:cargo/roxmltree",
+        "name": "roxmltree",
+        "within": "other"
+      },
+      {
+        "id": "pkg:cargo/tree-sitter-java",
+        "name": "tree-sitter-java",
+        "within": "other"
+      }
+    ],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:external",
+        "name": "external",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:external/other",
+        "name": "other",
+        "within": "external"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 64,
+    "input": 128,
+    "output": 80017,
+    "cache_read": 18828110,
+    "cache_creation": 116197,
+    "cost_usd_micros": 6296053
+  }
+}

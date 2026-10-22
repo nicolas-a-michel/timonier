@@ -1,0 +1,175 @@
+# Go language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "go"
+version = "1.0.0"
+ecosystem = "gomod"
+
+[[grammars]]
+name = "go"
+crate = "tree-sitter-go"
+version = "0.25.0"
+license = "MIT"
+extensions = ["go"]
+
+# `go mod vendor` copies the dependencies into `vendor/`: never the project's code.
+[walk]
+skip = ["vendor"]
+
+# `go:example.com/shop/cart/cart#Cart.Total`: the package's import path, the file's stem, then
+# the definitions in it (ADR 0063).
+[naming]
+module = "/"
+join = "#"
+member = "."
+
+# An import path is split by `/` and binds its last segment (`example.com/shop/cart` → `cart`);
+# the code then writes `cart.Total`, split by `.`.
+[paths]
+separators = ["/", "."]
+bind = "last_segment"
+
+[fingerprint]
+atoms = ["interpreted_string_literal", "raw_string_literal", "rune_literal"]
+drop = []
+drop_before_closing = [","]
+closing = [")", "]", "}"]
+opening = ["=", ":=", "(", "[", "{", ":", ","]
+
+[signature]
+no_space_before = [")", "]", ",", ":", ".", "("]
+tight_after_word = ["(", "["]
+no_space_after = ["(", "[", ".", "*", "&"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+[dependencies]
+async = ["golang.org/x/sync"]
+network = [
+  "github.com/gin-gonic/gin", "github.com/labstack/echo/v4", "github.com/gofiber/fiber/v2",
+  "github.com/go-chi/chi/v5", "github.com/gorilla/mux", "github.com/gorilla/websocket",
+  "google.golang.org/grpc", "github.com/valyala/fasthttp", "github.com/go-resty/resty/v2",
+]
+serialization = [
+  "google.golang.org/protobuf", "github.com/golang/protobuf", "gopkg.in/yaml.v3",
+  "github.com/json-iterator/go", "github.com/vmihailenco/msgpack/v5", "github.com/BurntSushi/toml",
+]
+database = [
+  "gorm.io/gorm", "github.com/jackc/pgx/v5", "github.com/lib/pq", "github.com/go-sql-driver/mysql",
+  "github.com/mattn/go-sqlite3", "modernc.org/sqlite", "go.mongodb.org/mongo-driver",
+  "github.com/redis/go-redis/v9", "github.com/jmoiron/sqlx", "entgo.io/ent",
+]
+cli = ["github.com/spf13/cobra", "github.com/urfave/cli/v2", "github.com/alecthomas/kong"]
+observability = [
+  "go.opentelemetry.io/otel", "go.opentelemetry.io/otel/sdk", "go.uber.org/zap",
+  "github.com/sirupsen/logrus", "github.com/rs/zerolog", "github.com/prometheus/client_golang",
+]
+
+# Importing `net/http` says nothing: a client imports it too. A server is seen in the code
+# (roles.scm: `ListenAndServe`, `Serve`).
+[[roles]]
+role = "entry_point"
+libraries = [
+  "github.com/gin-gonic/gin", "github.com/labstack/echo/v4", "github.com/gofiber/fiber/v2",
+  "github.com/go-chi/chi/v5", "github.com/gorilla/mux", "github.com/spf13/cobra",
+  "github.com/urfave/cli/v2",
+]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = [
+  "gorm.io/gorm", "github.com/jackc/pgx/v5", "github.com/lib/pq", "github.com/go-sql-driver/mysql",
+  "github.com/mattn/go-sqlite3", "modernc.org/sqlite", "go.mongodb.org/mongo-driver",
+  "github.com/redis/go-redis/v9", "github.com/jmoiron/sqlx", "entgo.io/ent",
+]
+paths = ["database/sql"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+paths = ["encoding/json", "encoding/xml"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["fyne.io/fyne/v2", "github.com/charmbracelet/bubbletea", "github.com/rivo/tview"]
+confidence = 0.8
+
+# `sync` says nothing: any concurrent code takes its mutexes. Goroutines are seen in the code.
+[[roles]]
+role = "background_task"
+paths = ["golang.org/x/sync/errgroup"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# Builtins: a name tree-sitter cannot resolve that is one of them is defined outside the
+# repository, and the language server is not asked.
+outside = [
+  "append", "cap", "clear", "close", "complex", "copy", "delete", "imag", "len", "make", "max",
+  "min", "new", "panic", "print", "println", "real", "recover", "bool", "byte", "rune", "string",
+  "error", "any", "comparable", "int", "int8", "int16", "int32", "int64", "uint", "uint8",
+  "uint16", "uint32", "uint64", "uintptr", "float32", "float64", "complex64", "complex128",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): `go test` writes none; gotestsum runs it and
+# writes it. Checked with gotestsum 1.13.0 and Go 1.27.
+[[tests.runners]]
+name = "gotestsum"
+command = "gotestsum --junitfile .timonier/runs/junit.xml -- ./..."
+junit = ".timonier/runs/junit.xml"
+program = "gotestsum"
+install = "go install gotest.tools/gotestsum@v1.13.0"
+note = "Timonier reads the tests' JUnit XML through gotestsum: install it (`go install gotest.tools/gotestsum@v1.13.0`), and keep `$(go env GOPATH)/bin` on the PATH."
+
+# Timonier's smoke test (spec « Initialisation », 7), which `timonier doctor` runs.
+[tests.runners.smoke]
+command = "go test ./timonier/ -run TestTimonierSmoke -count=1"
+files = [{ path = "timonier/timonier_smoke_test.go", source = "instrumentation/timonier_smoke_test.go" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0063): the
+# API, the SDK and its OTLP exporter in `go.mod`, which builds only what a package imports.
+# Verified on proxy.golang.org on 2026-10-22, upgraded together.
+[instrumentation]
+files = [{ path = "timonier/otel.go", source = "instrumentation/otel.go" }]
+note = "run `go mod tidy`, which fills `go.sum`; the package `timonier` (`timonier/otel.go`) starts the export: call `stop := timonier.StartTelemetry(ctx)` where the tests set up (a `TestMain`), as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "go.opentelemetry.io/otel"
+version = "v1.47.0"
+production = true
+
+[[instrumentation.dependencies]]
+name = "go.opentelemetry.io/otel/sdk"
+version = "v1.47.0"
+
+[[instrumentation.dependencies]]
+name = "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+version = "v1.47.0"
+
+[[instrumentation.dependencies]]
+name = "go.opentelemetry.io/otel/trace"
+version = "v1.47.0"
+production = true
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known modules:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = [
+  "github.com/gin-gonic/gin", "github.com/labstack/echo/v4", "github.com/gofiber/fiber/v2",
+  "gorm.io/gorm", "entgo.io/ent", "github.com/spf13/cobra",
+]
+
+[inventory.functions]
+http-router = [
+  "github.com/gin-gonic/gin", "github.com/labstack/echo/v4", "github.com/gofiber/fiber/v2",
+  "github.com/go-chi/chi/v5", "github.com/gorilla/mux", "github.com/julienschmidt/httprouter",
+]
+http-client = ["github.com/go-resty/resty/v2", "github.com/valyala/fasthttp"]
+cli-parser = ["github.com/spf13/cobra", "github.com/urfave/cli/v2", "github.com/alecthomas/kong", "github.com/jessevdk/go-flags"]
+orm = ["gorm.io/gorm", "entgo.io/ent", "github.com/uptrace/bun"]
+postgres-driver = ["github.com/jackc/pgx/v5", "github.com/lib/pq"]
+logging = ["go.uber.org/zap", "github.com/sirupsen/logrus", "github.com/rs/zerolog"]
+test-assertions = ["github.com/stretchr/testify", "gotest.tools/v3", "github.com/onsi/gomega"]
+yaml = ["gopkg.in/yaml.v3", "gopkg.in/yaml.v2", "sigs.k8s.io/yaml", "github.com/goccy/go-yaml"]
+config = ["github.com/spf13/viper", "github.com/kelseyhightower/envconfig", "github.com/caarlos0/env/v11"]

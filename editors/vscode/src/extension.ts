@@ -16,7 +16,8 @@ import {
   refreshCopy,
   type Machine,
 } from "./commandLine";
-import { daemonProgram, initCommand } from "./launch";
+import { daemonProgram } from "./launch";
+import { recordedCommands, TEST_ARGS } from "./runTests";
 import { detectAgents, setUp } from "./setup";
 
 /** The program this package ships (ADR 0059), found at activation. */
@@ -45,6 +46,49 @@ function machine(): Machine {
         });
       }),
   };
+}
+
+/**
+ * The Performances panel's « Run the tests »: the commands shown, approved by the click (Q84),
+ * then `timonier test` in a terminal, which installs a runner's missing program first.
+ */
+async function runTestsNow(root: string | undefined): Promise<void> {
+  if (!root) {
+    void vscode.window.showInformationMessage(vscode.l10n.t("Open a folder: Timonier maps the project it holds."));
+    return;
+  }
+  const commands = recordedCommands(root);
+  if (commands === null) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t("Set the project up first, with « Set up » in the Overview: it records how its tests run."),
+    );
+    return;
+  }
+  if (commands.length === 0) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t("No test command is recorded for this project's languages yet."),
+    );
+    return;
+  }
+  const run = vscode.l10n.t("Run the tests");
+  const chosen = await vscode.window.showWarningMessage(
+    vscode.l10n.t("Run the project's tests on this machine?"),
+    {
+      modal: true,
+      detail: `${vscode.l10n.t(
+        "Timonier runs these commands, and installs first what they need and this machine lacks (cargo-nextest, say):",
+      )}\n\n${commands.join("\n")}`,
+    },
+    run,
+  );
+  if (chosen !== run) return;
+  const terminal = vscode.window.createTerminal({
+    name: vscode.l10n.t("Timonier tests"),
+    cwd: root,
+    shellPath: initProgram(),
+    shellArgs: TEST_ARGS,
+  });
+  terminal.show();
 }
 
 /** Puts the shipped program on the agents' PATH, and says what was done (ADR 0059). */
@@ -252,8 +296,14 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         void vscode.window.showInformationMessage(vscode.l10n.t("Open a folder: Timonier maps the project it holds."));
         return;
       }
-      const terminal = vscode.window.createTerminal({ name: INIT_TERMINAL, cwd: root });
-      terminal.sendText(initCommand(initProgram()));
+      // The program itself as the terminal's process: no shell to quote for, PowerShell
+      // included (T-125).
+      const terminal = vscode.window.createTerminal({
+        name: INIT_TERMINAL,
+        cwd: root,
+        shellPath: initProgram(),
+        shellArgs: ["init"],
+      });
       terminal.show();
     }),
     // The bridge's « Where to look », from the palette (ADR 0032): a box, then the map on it.
@@ -354,7 +404,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     // The Performances panel (ADR 0051).
     vscode.commands.registerCommand("timonier.openPerformance", () => {
       try {
-        PerformancePanel.show(context.extensionUri, daemon, log);
+        PerformancePanel.show(context.extensionUri, daemon, log, () => void runTestsNow(root));
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not open the performances: {0}", reason));

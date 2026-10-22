@@ -177,7 +177,7 @@ impl<'a> Extraction<'a> {
         let q = &self.grammar.definitions;
         let mut cursor = QueryCursor::new();
         let mut matches = cursor.matches(&q.query, root, self.source);
-        let mut by_node: HashMap<usize, Item<'t>> = HashMap::new();
+        let mut by_node: HashMap<(usize, bool), Item<'t>> = HashMap::new();
         while let Some(m) = matches.next() {
             let capture = |index: Option<u32>| {
                 index.and_then(|i| m.captures().iter().find(|c| c.index == i).map(|c| c.node))
@@ -232,16 +232,25 @@ impl<'a> Extraction<'a> {
             if item.segment.is_empty() {
                 continue;
             }
-            match by_node.get(&item.node.id()) {
+            // A node can be both a container and a definition: a Go method names its receiver.
+            let key = (item.node.id(), item.definition.is_some());
+            match by_node.get(&key) {
                 Some(existing) if existing.pattern <= item.pattern => {}
                 _ => {
-                    by_node.insert(item.node.id(), item);
+                    by_node.insert(key, item);
                 }
             }
         }
         let mut items: Vec<Item<'t>> = by_node.into_values().collect();
-        // Outer items first when two start at the same byte.
-        items.sort_by_key(|i| (i.node.start_byte(), std::cmp::Reverse(i.node.end_byte())));
+        // Outer items first when two start at the same byte; a container before the definition
+        // on the same node.
+        items.sort_by_key(|i| {
+            (
+                i.node.start_byte(),
+                std::cmp::Reverse(i.node.end_byte()),
+                i.definition.is_some(),
+            )
+        });
         items
     }
 
@@ -433,7 +442,10 @@ impl<'a> Extraction<'a> {
                     .and_then(|r| names_by_root.get(&r).cloned())
                     .unwrap_or_default(),
                 Bind::LastSegment => match (alias, binds) {
-                    (Some(alias), _) if alias != "_" => vec![alias.clone()],
+                    // `_` and Go's `.` import bind no name, nor Java's `*`.
+                    (Some(alias), _) if !matches!(alias.as_str(), "_" | "." | "*") => {
+                        vec![alias.clone()]
+                    }
                     (Some(_), _) => Vec::new(),
                     (None, Some(name)) => vec![name],
                     (None, None) => Vec::new(),
@@ -498,7 +510,13 @@ impl<'a> Extraction<'a> {
     ) -> Option<(String, Option<String>)> {
         let rules = &self.pack.manifest.paths;
         let separator = rules.separators.first().map_or("::", String::as_str);
-        let mut segments: Vec<String> = vec![compact(self.text(node))];
+        // A C++ system include is written `<fmt/core.h>`: the path is inside.
+        let mut segments: Vec<String> = vec![
+            compact(self.text(node))
+                .trim_start_matches('<')
+                .trim_end_matches('>')
+                .to_owned(),
+        ];
         if let Some(field) = &rules.prefix_field {
             let mut child = node;
             let mut up = node.parent();
@@ -506,12 +524,18 @@ impl<'a> Extraction<'a> {
                 if roots.contains(&child.id()) {
                     break;
                 }
-                if let Some(prefix) = n.child_by_field_name(field)
-                    && prefix.id() != child.id()
-                    && !(prefix.start_byte() <= node.start_byte()
-                        && node.end_byte() <= prefix.end_byte())
-                {
-                    segments.insert(0, compact(self.text(prefix)));
+                // Every child of that field before the node: Scala writes `import a.b.{C, D}`
+                // as `a`, `b` and the selectors (ADR 0071); Rust's list has one.
+                let mut cursor = n.walk();
+                let prefix: Vec<String> = n
+                    .children_by_field_name(field, &mut cursor)
+                    .filter(|p| {
+                        p.is_named() && p.id() != child.id() && p.end_byte() <= node.start_byte()
+                    })
+                    .map(|p| compact(self.text(p)))
+                    .collect();
+                if !prefix.is_empty() {
+                    segments.insert(0, prefix.join(separator));
                 }
                 if roots.contains(&n.id()) {
                     break;

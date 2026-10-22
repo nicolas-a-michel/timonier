@@ -14,6 +14,7 @@ tiny-skia = { workspace = true }
 timonier-core = { workspace = true }
 timonier-store = { workspace = true }
 timonier-index = { workspace = true }
+roxmltree = { workspace = true }
 timonier-otlp = { workspace = true }
 # The parsing pool of a whole indexing, sized by the daemon (T-119).
 rayon = { workspace = true }

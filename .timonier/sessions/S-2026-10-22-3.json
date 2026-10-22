@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-3",
+  "agent": "claude-code",
+  "objective": "Panneau Performances : un bouton pour lancer les premiers tests depuis le panneau, avec les commandes montrées et approuvées, et l'installation de l'outil de test manquant (cargo-nextest).",
+  "tasks": [
+    "T-126"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-22T06:40:19Z",
+  "ended_at": "2026-10-22T06:50:57Z",
+  "snapshots": {
+    "start": 111,
+    "end": 112
+  },
+  "summary": "T-126 done, at the human's request after the Windows try: the empty Performances panel offers « Run the tests »; the extension shows the recorded commands in a modal (the click approves them, Q84), then runs timonier test --approve --install in a terminal; --install installs a runner's missing program from its pack (cargo-nextest for Rust). The extension's terminals run the program itself (no shell quoting; Configure fixed for PowerShell). All checks green. Not committed.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Bouton « Lancer les tests », timonier test --install, terminaux sans shell, tests et docs",
+      "task": "T-126",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 18,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/test/a11y",
+        "name": "a11y",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/commandLine.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/webview/src/performance",
+        "name": "performance",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": null
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "webviewHtml",
+        "within": "timonier"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 36,
+    "input": 74,
+    "output": 23993,
+    "cache_read": 30342300,
+    "cache_creation": 37897,
+    "cost_usd_micros": 6851792
+  }
+}

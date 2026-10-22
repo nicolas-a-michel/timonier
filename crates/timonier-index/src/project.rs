@@ -12,7 +12,7 @@ use crate::components::Components;
 use crate::ecosystem::{self, ModulePath, PackageInfo};
 use crate::lsp::{Lookup, Usage};
 use crate::pack::{Ecosystem, Naming, Packs, RoleRule};
-use crate::{FileFacts, Result};
+use crate::{FileFacts, ImportFact, Result};
 
 /// Confidence of a tree-sitter edge (ADR 0013).
 const IMPORT: f32 = 0.9;
@@ -76,6 +76,8 @@ pub struct Project {
     pub(crate) components: Components,
     /// Module path (per language) → file.
     modules: HashMap<(Language, Vec<String>), String>,
+    /// File name → the files of that name: a C++ include names a file by its end (ADR 0065).
+    basenames: HashMap<String, BTreeSet<String>>,
     /// (package, name) → files that define a symbol of that name (fields excepted).
     names: HashMap<(Option<usize>, String), BTreeSet<String>>,
     /// Name → files whose imports or references cite it, as any segment.
@@ -134,6 +136,7 @@ impl Project {
             files: BTreeMap::new(),
             components: Components::default(),
             modules: HashMap::new(),
+            basenames: HashMap::new(),
             names: HashMap::new(),
             citing: HashMap::new(),
         })
@@ -173,6 +176,7 @@ impl Project {
         self.packages = packages;
         let entries: Vec<FileEntry> = std::mem::take(&mut self.files).into_values().collect();
         self.modules.clear();
+        self.basenames.clear();
         self.names.clear();
         self.citing.clear();
         let mut affected = Affected {
@@ -314,6 +318,14 @@ impl Project {
             Some(Ecosystem::Cargo) => {
                 ecosystem::rust_module(info, info.is_some_and(|i| i.has_lib), &relative)
             }
+            Some(Ecosystem::Pypi) => ecosystem::python_module(info, &relative),
+            Some(Ecosystem::Gomod) => ecosystem::go_module(info, &relative),
+            Some(Ecosystem::Maven | Ecosystem::Sbt) => ecosystem::java_module(&relative),
+            Some(Ecosystem::Cmake) => ecosystem::cpp_module(info, &relative),
+            Some(Ecosystem::Swiftpm) => ecosystem::swift_module(&relative),
+            // .NET: the project's name, then the path, as npm (ADR 0069).
+            Some(Ecosystem::Nuget) => ecosystem::npm_module(info, &relative),
+            Some(Ecosystem::Composer) => ecosystem::php_module(info, &relative),
             _ => ecosystem::npm_module(info, &relative),
         };
         let entry = FileEntry {
@@ -341,6 +353,10 @@ impl Project {
         for name in cited_names(&entry.facts, &separators) {
             self.citing.entry(name).or_default().insert(path.clone());
         }
+        self.basenames
+            .entry(basename(&path).to_owned())
+            .or_default()
+            .insert(path.clone());
         self.files.insert(path, entry);
         Ok(())
     }
@@ -349,6 +365,9 @@ impl Project {
         let old = self.files.remove(path)?;
         self.modules
             .remove(&(old.language.clone(), old.module.segments.clone()));
+        if let Some(files) = self.basenames.get_mut(basename(path)) {
+            files.remove(path);
+        }
         for symbol in &old.facts.symbols {
             if let Some(files) = self.names.get_mut(&(old.package, symbol.name().to_owned())) {
                 files.remove(path);
@@ -544,22 +563,33 @@ impl Project {
             }
         };
         for import in &file.facts.imports {
-            match self.resolve_import(file, &import.path) {
-                Some(Target::File(path)) if path != file.path => {
-                    add(
-                        file.id.clone(),
-                        self.files[&path].id.clone(),
-                        EdgeKind::Imports,
-                        1,
-                        IMPORT,
-                    );
-                }
-                Some(target) => {
-                    if let Some(dst) = package_node(&target) {
-                        add(file.id.clone(), dst, EdgeKind::Imports, 1, IMPORT);
+            // Python's `from shop import prices` imports the submodule when there is one.
+            let submodules = self.python_submodules(file, import);
+            let targets: Vec<Target> = if submodules.is_empty() {
+                self.resolve_import(file, &import.path)
+                    .into_iter()
+                    .collect()
+            } else {
+                submodules
+            };
+            for target in targets {
+                match Some(target) {
+                    Some(Target::File(path)) if path != file.path => {
+                        add(
+                            file.id.clone(),
+                            self.files[&path].id.clone(),
+                            EdgeKind::Imports,
+                            1,
+                            IMPORT,
+                        );
                     }
+                    Some(target) => {
+                        if let Some(dst) = package_node(&target) {
+                            add(file.id.clone(), dst, EdgeKind::Imports, 1, IMPORT);
+                        }
+                    }
+                    None => {}
                 }
-                None => {}
             }
         }
         for reference in &file.facts.references {
@@ -701,6 +731,13 @@ impl Project {
                 self.rust_path(file, &segments).map(|(target, _)| target)
             }
             Ecosystem::Npm => self.npm_specifier(file, path),
+            Ecosystem::Pypi => self.python_path(file, path, &[]),
+            Ecosystem::Gomod => self.go_package(file, path, None),
+            Ecosystem::Maven | Ecosystem::Sbt => self.java_path(file, path),
+            Ecosystem::Cmake => self.cpp_include(file, path),
+            Ecosystem::Swiftpm => self.swift_import(file, path),
+            Ecosystem::Nuget => self.csharp_using(file, path),
+            Ecosystem::Composer => self.php_use(file, path),
         }
     }
 
@@ -735,6 +772,29 @@ impl Project {
                     let target = self.npm_specifier(file, &import.path)?;
                     Some((self.npm_reexported(target, first, 0), BY_PATH))
                 }
+                // An include binds no name; a Swift import brings a whole module, and so does a
+                // C# `using`.
+                Ecosystem::Cmake | Ecosystem::Swiftpm | Ecosystem::Nuget => None,
+                // `use Shop\Cart;` then `Cart::make()`: the used class's file.
+                Ecosystem::Composer => self.php_use(file, &import.path).map(|t| (t, BY_PATH)),
+                // `Cart.total()`: the imported class's file.
+                Ecosystem::Maven | Ecosystem::Sbt => {
+                    self.java_path(file, &import.path).map(|t| (t, BY_PATH))
+                }
+                // `cart.Total`: the file of the imported package that defines `Total`.
+                Ecosystem::Gomod => self
+                    .go_package(file, &import.path, segments.get(1).map(String::as_str))
+                    .map(|t| (t, BY_PATH)),
+                // `import a.b` binds `a`: the cited path is absolute. `from m import x` binds a
+                // name of `m`, or its submodule `m.x`.
+                Ecosystem::Pypi => {
+                    let target = if import.path.split('.').next() == Some(first.as_str()) {
+                        self.python_path(file, "", segments)
+                    } else {
+                        self.python_path(file, &import.path, segments)
+                    };
+                    target.map(|t| (t, BY_PATH))
+                }
             };
         }
         if segments.len() > 1
@@ -742,6 +802,21 @@ impl Project {
             && let Some(found) = self.rust_path(file, segments)
         {
             return Some(found);
+        }
+        // A qualified name, `com.shop.Cart.total()`: a class of the repository only, since a
+        // prefix would take any `a.b()` for a package.
+        if segments.len() > 1
+            && matches!(ecosystem, Ecosystem::Maven | Ecosystem::Sbt)
+            && let Some(found @ Target::File(_)) = self.java_path(file, &segments.join("."))
+        {
+            return Some((found, BY_PATH));
+        }
+        // C++: `Cart::make()`, `shop::price()`: by the name, else by its scope (ADR 0065).
+        if segments.len() > 1 && ecosystem == Ecosystem::Cmake && !receiver {
+            let last = &segments[segments.len() - 1..];
+            return self
+                .resolve_reference(file, last, false)
+                .or_else(|| self.resolve_reference(file, &segments[..1], false));
         }
         // A name alone. A member of an unknown receiver (`this.n()`, `x.push()`) stays
         // unresolved: by its name alone, `.iter()` would lead to any `iter` of the package.
@@ -757,16 +832,87 @@ impl Project {
         {
             return Some(found);
         }
-        let defining = self.names.get(&(file.package, name.clone()))?;
+        // `import com.shop.*;` and `import static com.shop.Util.*;` bind no name: the class
+        // of that package, or the member of that class.
+        if matches!(ecosystem, Ecosystem::Maven | Ecosystem::Sbt) {
+            for import in file.facts.imports.iter().filter(|i| i.names.is_empty()) {
+                // The class of that package, the member of that class, or a top-level
+                // declaration of that package (Kotlin).
+                if let Some(Target::File(found)) =
+                    self.java_path(file, &format!("{}.{name}", import.path))
+                    && self.files[&found]
+                        .facts
+                        .symbols
+                        .iter()
+                        .any(|s| s.name() == name)
+                {
+                    return Some((Target::File(found), BY_PATH));
+                }
+            }
+        }
+        // C#: a type of another project of the repository is seen through its namespace.
+        let across: BTreeSet<String>;
+        let defining = match self.names.get(&(file.package, name.clone())) {
+            Some(found) => found,
+            None if ecosystem == Ecosystem::Nuget => {
+                across = (0..self.packages.len())
+                    .filter_map(|p| self.names.get(&(Some(p), name.clone())))
+                    .flatten()
+                    .cloned()
+                    .collect();
+                &across
+            }
+            None => return None,
+        };
         // A Rust name stays inside its crate: the library does not see an integration test,
         // nor a binary's modules.
-        let same_target = |path: &String| {
-            ecosystem != Ecosystem::Cargo
-                || self
-                    .files
-                    .get(path)
-                    .is_some_and(|other| other.target() == file.target())
+        // Go: a name is seen without an import in its own package, its directory.
+        let dir_of = |path: &str| path.rsplit_once('/').map_or("", |(d, _)| d).to_owned();
+        let same_target = |path: &String| match ecosystem {
+            Ecosystem::Cargo => self
+                .files
+                .get(path)
+                .is_some_and(|other| other.target() == file.target()),
+            Ecosystem::Gomod => dir_of(path) == dir_of(&file.path),
+            // Swift: a name is seen in its target, and in the targets that import it.
+            Ecosystem::Swiftpm => self.files.get(path).is_some_and(|other| {
+                let target = other.module.segments.first();
+                target == file.module.segments.first()
+                    || target.is_some_and(|t| file.facts.imports.iter().any(|i| &i.path == t))
+            }),
+            // Java: a package's classes see each other without an import, from any source
+            // root (`src/main/java`, `src/test/java`).
+            Ecosystem::Maven | Ecosystem::Sbt => self.files.get(path).is_some_and(|other| {
+                let package = |m: &[String]| m[..m.len().saturating_sub(1)].to_vec();
+                package(&other.module.segments) == package(&file.module.segments)
+            }),
+            _ => true,
         };
+        // C++: a name declared in a header and defined in a source file leads to the header the
+        // file includes, when it includes one.
+        if ecosystem == Ecosystem::Cmake && defining.len() > 1 {
+            // What the file includes, and what those include, four levels deep.
+            let mut included: BTreeSet<String> = BTreeSet::new();
+            let mut frontier: Vec<&FileEntry> = vec![file];
+            for _ in 0..4 {
+                let mut next = Vec::new();
+                for from in frontier {
+                    for import in &from.facts.imports {
+                        if let Some(Target::File(path)) = self.cpp_include(from, &import.path)
+                            && included.insert(path.clone())
+                            && let Some(entry) = self.files.get(&path)
+                        {
+                            next.push(entry);
+                        }
+                    }
+                }
+                frontier = next;
+            }
+            let mut through = defining.iter().filter(|p| included.contains(*p));
+            if let (Some(only), None) = (through.next(), through.next()) {
+                return Some((Target::File(only.clone()), BY_PATH));
+            }
+        }
         let mut others = defining
             .iter()
             .filter(|p| **p != file.path && same_target(p));
@@ -924,6 +1070,336 @@ impl Project {
             (Target::File(found), _) if found != path => Some(found),
             _ => None,
         }
+    }
+
+    /// A PHP `use` (ADR 0070): the file of the class its PSR-4 path names; else the Composer
+    /// package that autoloads its namespace; PHP's own classes stay unresolved.
+    fn php_use(&self, file: &FileEntry, path: &str) -> Option<Target> {
+        let segments: Vec<String> = path
+            .trim_start_matches('\\')
+            .split('\\')
+            .map(str::to_owned)
+            .collect();
+        if let Some(found) = self.modules.get(&(file.language.clone(), segments.clone())) {
+            return Some(Target::File(found.clone()));
+        }
+        let package = file.package?;
+        let joined = segments.join("\\");
+        self.packages[package]
+            .dependencies
+            .iter()
+            .filter(|d| {
+                d.code_name.split(',').any(|ns| {
+                    !ns.is_empty() && (joined == ns || joined.starts_with(&format!("{ns}\\")))
+                })
+            })
+            .max_by_key(|d| d.code_name.len())
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// A C# `using` (ADR 0069): the files that declare that namespace, the first one; else the
+    /// NuGet package whose name it starts with; `System` stays unresolved.
+    fn csharp_using(&self, file: &FileEntry, namespace: &str) -> Option<Target> {
+        let namespace = namespace.trim_start_matches("static ").trim();
+        for package in (0..self.packages.len()).map(Some).chain([None]) {
+            if let Some(found) = self
+                .names
+                .get(&(package, namespace.to_owned()))
+                .and_then(|files| files.iter().next())
+            {
+                return Some(Target::File(found.clone()));
+            }
+        }
+        let package = file.package?;
+        self.packages[package]
+            .dependencies
+            .iter()
+            .filter(|d| namespace == d.name || namespace.starts_with(&format!("{}.", d.name)))
+            .max_by_key(|d| d.name.len())
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// A Swift import (ADR 0067): a target of the package, its first file; else the dependency
+    /// that brings that module; the system's modules (`Foundation`) stay unresolved.
+    fn swift_import(&self, file: &FileEntry, module: &str) -> Option<Target> {
+        let package = file.package?;
+        let dir = &self.packages[package].dir;
+        for root in ["Sources", "Tests"] {
+            let prefix = [dir.as_str(), root, module, ""]
+                .iter()
+                .filter(|s| !s.is_empty())
+                .copied()
+                .collect::<Vec<_>>()
+                .join("/")
+                + "/";
+            if let Some((path, _)) = self
+                .files
+                .range(prefix.clone()..)
+                .take_while(|(p, _)| p.starts_with(&prefix))
+                .next()
+            {
+                return Some(Target::File(path.clone()));
+            }
+        }
+        self.packages[package]
+            .dependencies
+            .iter()
+            .find(|d| d.code_name.split(',').any(|m| m == module))
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// A C++ include (ADR 0065): `"…"` from the file's folder first; then from the package's
+    /// folder, its `include/` and `src/`; then the one file of the repository whose path ends
+    /// with it; else the dependency its first folder names (`<fmt/core.h>`); the system's
+    /// headers stay unresolved.
+    fn cpp_include(&self, file: &FileEntry, path: &str) -> Option<Target> {
+        let exists = |candidate: &str| self.files.contains_key(candidate);
+        let dir = file.path.rsplit_once('/').map_or("", |(d, _)| d);
+        if let Some(joined) = normalise(dir, path)
+            && exists(&joined)
+        {
+            return Some(Target::File(joined));
+        }
+        let base = file
+            .package
+            .map(|p| self.packages[p].dir.clone())
+            .unwrap_or_default();
+        for root in ["", "include", "src"] {
+            let candidate = [base.as_str(), root, path]
+                .iter()
+                .filter(|s| !s.is_empty())
+                .copied()
+                .collect::<Vec<_>>()
+                .join("/");
+            if exists(&candidate) {
+                return Some(Target::File(candidate));
+            }
+        }
+        let suffix = format!("/{path}");
+        let mut ending = self
+            .basenames
+            .get(basename(path))
+            .into_iter()
+            .flatten()
+            .filter(|p| p.ends_with(&suffix) || **p == path);
+        if let (Some(only), None) = (ending.next(), ending.next()) {
+            return Some(Target::File(only.clone()));
+        }
+        let first = path.split('/').next()?;
+        let first = first.split('.').next().unwrap_or(first).to_lowercase();
+        let package = file.package?;
+        self.packages[package]
+            .dependencies
+            .iter()
+            .find(|d| d.code_name == first)
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// A Java import (ADR 0064): the class of the repository its longest prefix names (a
+    /// static import names a member after it), else the dependency whose group prefixes it,
+    /// else the one whose group shares its first two segments; the JDK stays unresolved.
+    fn java_path(&self, file: &FileEntry, path: &str) -> Option<Target> {
+        let segments: Vec<String> = path.split('.').map(str::to_owned).collect();
+        // Java and Kotlin see each other's classes (ADR 0066).
+        let jvm: Vec<Language> = ["java", "kotlin", "scala"]
+            .into_iter()
+            .filter_map(|l| Language::new(l).ok())
+            .collect();
+        for n in (1..=segments.len()).rev() {
+            if let Some(found) = jvm
+                .iter()
+                .find_map(|l| self.modules.get(&(l.clone(), segments[..n].to_vec())))
+            {
+                return Some(Target::File(found.clone()));
+            }
+        }
+        // `import com.shop.total`: a declaration of the package `com.shop` that no file is
+        // named after, as Kotlin's top-level functions (ADR 0066).
+        if let Some((name, package)) = segments.split_last() {
+            let owners = self
+                .packages
+                .iter()
+                .enumerate()
+                .map(|(i, _)| Some(i))
+                .chain([None]);
+            for owner in owners {
+                let Some(defining) = self.names.get(&(owner, name.clone())) else {
+                    continue;
+                };
+                let mut inside = defining.iter().filter(|p| {
+                    self.files.get(*p).is_some_and(|f| {
+                        jvm.contains(&f.language)
+                            && f.module.segments.len() == package.len() + 1
+                            && f.module.segments[..package.len()] == *package
+                    })
+                });
+                if let (Some(only), None) = (inside.next(), inside.next()) {
+                    return Some(Target::File(only.clone()));
+                }
+            }
+        }
+        let package = file.package?;
+        let dependencies = &self.packages[package].dependencies;
+        let inside = |group: &str| path.starts_with(&format!("{group}."));
+        let organisation = |group: &str| {
+            let two: Vec<&str> = group.split('.').take(2).collect();
+            two.len() == 2 && inside(&two.join("."))
+        };
+        dependencies
+            .iter()
+            .filter(|d| inside(&d.code_name))
+            .max_by_key(|d| d.code_name.len())
+            .or_else(|| dependencies.iter().find(|d| organisation(&d.code_name)))
+            // Scala's libraries are often packaged by their artifact: `upickle.default` is
+            // `com.lihaoyi:upickle_3` (ADR 0071).
+            .or_else(|| {
+                let first = segments.first()?;
+                dependencies.iter().find(|d| {
+                    d.name.split_once(':').is_some_and(|(_, artifact)| {
+                        let base = artifact.split('_').next().unwrap_or(artifact);
+                        base.replace('-', "") == first.replace('-', "")
+                    })
+                })
+            })
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// A Go import path (ADR 0063): a package of a module of the repository, the file of its
+    /// directory that defines `name` (else its first file, tests aside); a dependency by the
+    /// longest module path it starts with; the standard library stays unresolved.
+    fn go_package(&self, file: &FileEntry, path: &str, name: Option<&str>) -> Option<Target> {
+        let inside = |module: &str| path == module || path.starts_with(&format!("{module}/"));
+        let module = self
+            .packages
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.ecosystem == Ecosystem::Gomod && inside(&p.code_name))
+            .max_by_key(|(_, p)| p.code_name.len());
+        if let Some((index, package)) = module {
+            let rest = path[package.code_name.len()..].trim_start_matches('/');
+            let dir = [package.dir.as_str(), rest]
+                .iter()
+                .filter(|s| !s.is_empty())
+                .copied()
+                .collect::<Vec<_>>()
+                .join("/");
+            let prefix = if dir.is_empty() {
+                String::new()
+            } else {
+                format!("{dir}/")
+            };
+            let in_dir: Vec<&FileEntry> = self
+                .files
+                .range(prefix.clone()..)
+                .take_while(|(path, _)| path.starts_with(&prefix))
+                .filter(|(path, f)| {
+                    !path[prefix.len()..].contains('/') && f.language == file.language
+                })
+                .map(|(_, f)| f)
+                .collect();
+            let defining = name.and_then(|name| {
+                in_dir
+                    .iter()
+                    .find(|f| f.facts.symbols.iter().any(|s| s.name() == name))
+            });
+            let first = || in_dir.iter().find(|f| !f.path.ends_with("_test.go"));
+            return match defining.or_else(first) {
+                Some(found) => Some(Target::File(found.path.clone())),
+                None => Some(Target::Package(index)),
+            };
+        }
+        let package = file.package?;
+        self.packages[package]
+            .dependencies
+            .iter()
+            .filter(|d| inside(&d.name))
+            .max_by_key(|d| d.name.len())
+            .map(|d| Target::External(d.name.clone()))
+    }
+
+    /// The submodules a Python `from m import a, b` names (`from shop import prices`), other than
+    /// `m` itself; none for `import a.b`, which binds `a`, nor outside Python.
+    fn python_submodules(&self, file: &FileEntry, import: &ImportFact) -> Vec<Target> {
+        let binds_first = import
+            .path
+            .split('.')
+            .next()
+            .is_some_and(|first| !first.is_empty() && import.names.iter().all(|n| n == first));
+        if self.ecosystem_of(file) != Some(Ecosystem::Pypi) || binds_first {
+            return Vec::new();
+        }
+        let module = self.python_path(file, &import.path, &[]);
+        import
+            .names
+            .iter()
+            .filter_map(|name| {
+                let joined = if import.path.ends_with('.') {
+                    format!("{}{name}", import.path)
+                } else {
+                    format!("{}.{name}", import.path)
+                };
+                match self.python_path(file, &joined, &[]) {
+                    Some(Target::File(found))
+                        if module.as_ref() != Some(&Target::File(found.clone())) =>
+                    {
+                        Some(Target::File(found))
+                    }
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    /// A Python module path (ADR 0062), absolute (`shop.cart`) or relative (`.cart`, `..`), then
+    /// the names cited after it: the file of the longest module, else a package of the
+    /// repository or a dependency by its first segment. The standard library stays unresolved.
+    fn python_path(&self, file: &FileEntry, path: &str, then: &[String]) -> Option<Target> {
+        let dots = path.chars().take_while(|c| *c == '.').count();
+        let mut segments: Vec<String> = if dots > 0 {
+            // The package of the file: its own module for an `__init__.py`.
+            let module = &file.module.segments;
+            let own = file.path.ends_with("/__init__.py") || file.path == "__init__.py";
+            let package = if own {
+                module.len()
+            } else {
+                module.len().saturating_sub(1)
+            };
+            module[..package.saturating_sub(dots - 1)].to_vec()
+        } else {
+            Vec::new()
+        };
+        segments.extend(
+            path[dots..]
+                .split('.')
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned),
+        );
+        segments.extend(then.iter().cloned());
+        for n in (1..=segments.len()).rev() {
+            if let Some(found) = self
+                .modules
+                .get(&(file.language.clone(), segments[..n].to_vec()))
+            {
+                return Some(Target::File(found.clone()));
+            }
+        }
+        if dots > 0 {
+            return None;
+        }
+        let first = segments.first()?;
+        if let Some(p) = self
+            .packages
+            .iter()
+            .position(|p| p.ecosystem == Ecosystem::Pypi && p.code_name == *first)
+        {
+            return Some(Target::Package(p));
+        }
+        let package = file.package?;
+        self.packages[package]
+            .dependencies
+            .iter()
+            .find(|d| d.code_name == *first)
+            .map(|d| Target::External(d.name.clone()))
     }
 
     /// A TypeScript module specifier: a relative file, a package of the repository, or a
@@ -1102,6 +1578,11 @@ fn cited_names(facts: &FileFacts, separators: &[String]) -> BTreeSet<String> {
         names.extend(reference.path.iter().cloned());
     }
     names
+}
+
+/// The last segment of a path: `src/shop/cart.hpp` → `cart.hpp`.
+fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 #[cfg(test)]

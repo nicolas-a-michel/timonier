@@ -1,0 +1,31 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/Cart.php\", PHP))"
+---
+trait    Priced                                   under -                        at 9:0  `interface Priced`  #5c3795da
+method   Priced/price                             under Priced                   at 11:4  `public function price() : int`  #8e16e9cc
+type     Kind                                     under -                        at 14:0  `enum Kind`  #bf501921
+constant Kind/Small                               under Kind                     at 16:4  `case Small`  #c85d302d
+constant Kind/Large                               under Kind                     at 17:4  `case Large`  #419de0e1
+type     Cart                                     under -                        at 20:0  `final class Cart extends Base implements Priced`  #a72e4c58
+constant Cart/TAX                                 under Cart                     at 22:4  `public const TAX = 0.2`  #780daccc
+field    Cart/items                               under Cart                     at 24:4  `private array $items = []`  #55995f03
+method   Cart/__construct                         under Cart                     at 26:4  `public function __construct(private Logger $logger)`  #c7ee7c96
+field    Cart/__construct/logger                  under Cart/__construct         at 26:32  `private Logger $logger`  #171d8550
+method   Cart/add                                 under Cart                     at 30:4  `public function add(Item $item) : void`  #7239de86
+method   Cart/price                               under Cart                     at 36:4  `public function price() : int`  #b12fa812
+method   Cart/make                                under Cart                     at 41:4  `public static function make() : self`  #e90e8074
+function total                                    under -                        at 47:0  `function total(Cart $cart) : int`  #83863ec9
+import   Shop\Model\Item binds ["Item"]
+import   Psr\Log\LoggerInterface binds ["Logger"]
+calls Cart ×2 at 43:19
+calls NullLogger ×1 at 43:28
+calls array_map ×1 at 38:25
+calls array_sum ×1 at 38:15
+references Cart ×1 at 47:15
+references Item ×2 at 30:24
+references Logger ×1 at 26:40
+references self ×1 at 41:35
+implements Priced ×1 at 20:41 from Cart
+inherits Base ×1 at 20:25 from Cart
+errors   false

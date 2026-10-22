@@ -19,7 +19,12 @@ export class PerformancePanel {
   private static current: PerformancePanel | undefined;
 
   /** Opens the panel, or reveals it. Throws if its build is missing from the extension. */
-  static show(extensionUri: vscode.Uri, daemon: DaemonSource, log: vscode.LogOutputChannel): void {
+  static show(
+    extensionUri: vscode.Uri,
+    daemon: DaemonSource,
+    log: vscode.LogOutputChannel,
+    runTests: () => void = () => undefined,
+  ): void {
     if (PerformancePanel.current) {
       PerformancePanel.current.panel.reveal();
       return;
@@ -45,7 +50,7 @@ export class PerformancePanel {
       lang: vscode.env.language,
       title: vscode.l10n.t("Timonier performances"),
     });
-    PerformancePanel.current = new PerformancePanel(panel, daemon, log);
+    PerformancePanel.current = new PerformancePanel(panel, daemon, log, runTests);
   }
 
   /** Resolves once the open panel's page has rendered; undefined when none is open. */
@@ -61,6 +66,7 @@ export class PerformancePanel {
     private readonly panel: vscode.WebviewPanel,
     daemon: DaemonSource,
     log: vscode.LogOutputChannel,
+    runTests: () => void,
   ) {
     this.ready = this.nextPage();
     const client = () => {
@@ -88,6 +94,8 @@ export class PerformancePanel {
         polling(true);
       } else if (message.type === "chooseRun") {
         void feed.choose(message.run);
+      } else if (message.type === "runTests") {
+        runTests();
       }
     });
     const connected = "onDidConnect" in daemon ? daemon.onDidConnect(() => void feed.opened()) : undefined;

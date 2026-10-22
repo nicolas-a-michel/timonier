@@ -1,0 +1,42 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/Shop/Cart.cs\", CSHARP))"
+---
+module   Shop                                     under -                        at 4:0  `namespace Shop`  #19ef2c98
+trait    IPriced                                  under -                        at 6:0  `public interface IPriced`  #c922455b
+field    IPriced/Price                            under IPriced                  at 6:27  `int Price { get }`  #854d3012
+type     Item                                     under -                        at 8:0  `public record Item(string Name, int Price) : IPriced`  #588ec207
+field    Item/Name                                under Item                     at 8:19  `string Name`  #00d3213f
+field    Item/Price                               under Item                     at 8:32  `int Price`  #43fccc56
+type     Cart                                     under -                        at 10:0  `public class Cart : Base, IPriced`  #45dc4c37
+field    Cart/_items                              under Cart                     at 12:4  `private readonly List<Item> _items = new()`  #2f2c837c
+field    Cart/Tax                                 under Cart                     at 13:4  `public const double Tax = 0.2`  #b1a4242f
+method   Cart/Cart                                under Cart                     at 14:4  `public Cart()`  #c7ee7c96
+method   Cart/Add                                 under Cart                     at 15:4  `public void Add(Item item)`  #43b2d084
+field    Cart/Price                               under Cart                     at 16:4  `public int Price => _items.Sum(i => i.Price)`  #e30626c8
+method   Cart/Make                                under Cart                     at 17:4  `public static Cart Make()`  #81970ff8
+type     Cart/Kind                                under Cart                     at 18:4  `public enum Kind`  #9a321647
+constant Cart/Kind/Small                          under Cart/Kind                at 18:23  `Small`  #cf10b6f0
+constant Cart/Kind/Large                          under Cart/Kind                at 18:30  `Large`  #3781df23
+type     Point                                    under -                        at 21:0  `public struct Point`  #bdd25d97
+field    Point/X                                  under Point                    at 21:22  `public int X`  #21dcace2
+type     App                                      under -                        at 23:0  `class App`  #7fadc111
+method   App/Main                                 under App                      at 25:4  `static void Main()`  #b1d665b0
+import   System.Text.Json binds []
+import   Shop.Model binds []
+import   Shop.Prices binds []
+calls Cart ×2 at 17:37
+calls Console ×1 at 28:8
+calls JsonSerializer ×1 at 28:26
+calls Total ×1 at 28:61
+calls _items ×2 at 15:34
+calls c ×1 at 28:51
+calls i ×1 at 16:40
+references Cart ×1 at 17:18
+references Item ×2 at 12:26
+references List ×1 at 12:21
+inherits Base ×1 at 10:20 from Cart
+inherits IPriced ×1 at 8:45 from Item
+inherits IPriced ×1 at 10:26 from Cart
+signal   entry_point ×1
+errors   false

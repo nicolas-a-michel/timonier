@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "S-2026-10-22-11",
+  "agent": "claude-code",
+  "objective": "10.9 Pack C#, 10.10 Pack PHP, 10.11 Pack Scala, puis README, commit, push et préparation de la préversion.",
+  "tasks": [
+    "T-130",
+    "T-131",
+    "T-132"
+  ],
+  "status": "open",
+  "started_at": "2026-10-22T09:40:17Z",
+  "snapshots": {
+    "start": 127
+  }
+}

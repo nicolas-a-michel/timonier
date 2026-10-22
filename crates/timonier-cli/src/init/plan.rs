@@ -135,6 +135,56 @@ pub const TESTS: &str = ".timonier/tests.json";
 /// `.timonier/intent.json`: the whiteboard (ADR 0039).
 pub const INTENT: &str = ".timonier/intent.json";
 
+/// The first .NET test project, the one that references Microsoft.NET.Test.Sdk, at the root and
+/// three folders below: its path from the root.
+fn dotnet_test_project(root: &Path) -> Option<String> {
+    let mut found = Vec::new();
+    let mut pending = vec![(root.to_path_buf(), 0)];
+    while let Some((dir, depth)) = pending.pop() {
+        for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if entry.file_type().is_ok_and(|t| t.is_dir()) {
+                if depth < 3 && !name.starts_with('.') && !matches!(name.as_str(), "bin" | "obj") {
+                    pending.push((path, depth + 1));
+                }
+            } else if name.ends_with(".csproj")
+                && std::fs::read_to_string(&path)
+                    .is_ok_and(|t| t.contains("Microsoft.NET.Test.Sdk"))
+                && let Ok(relative) = path.strip_prefix(root)
+            {
+                found.push(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+    found.sort();
+    found.into_iter().next()
+}
+
+/// The one project a Gradle build without a root build includes, and its build file:
+/// `include("app")` and `app/build.gradle.kts` → `("app", "build.gradle.kts")`.
+fn lone_gradle_project(root: &Path) -> Option<(String, &'static str)> {
+    let settings = read(root, Path::new("settings.gradle.kts"))
+        .or_else(|| read(root, Path::new("settings.gradle")))?;
+    let mut projects = Vec::new();
+    for line in settings.lines() {
+        if let Some(rest) = line.trim().strip_prefix("include") {
+            for (i, part) in rest.split(['"', '\'']).enumerate() {
+                if i % 2 == 1 && !part.is_empty() {
+                    projects.push(part.trim_start_matches(':').replace(':', "/"));
+                }
+            }
+        }
+    }
+    let [dir] = projects.as_slice() else {
+        return None;
+    };
+    let build = ["build.gradle.kts", "build.gradle"]
+        .into_iter()
+        .find(|b| root.join(dir).join(b).is_file())?;
+    Some((dir.clone(), build))
+}
+
 fn read(root: &Path, path: &Path) -> Option<String> {
     std::fs::read_to_string(root.join(path)).ok()
 }
@@ -353,16 +403,61 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                     production: d.production,
                 })
                 .collect();
-            let manifest = match runner.ecosystem.as_str() {
-                "cargo" => "Cargo.toml",
-                _ => "package.json",
+            // A Gradle build whose one project is in a folder (`gradle init`'s `app/`): its
+            // build takes the SDK, and the files go under it (ADR 0066).
+            let mut under = String::new();
+            let manifest: String = match runner.ecosystem.as_str() {
+                "cargo" => "Cargo.toml".to_owned(),
+                "pypi" => "pyproject.toml".to_owned(),
+                "gomod" => "go.mod".to_owned(),
+                "cmake" => "CMakeLists.txt".to_owned(),
+                "swiftpm" => "Package.swift".to_owned(),
+                "composer" => "composer.json".to_owned(),
+                "sbt" => "build.sbt".to_owned(),
+                // .NET: the test project takes the SDK, and the files go beside it (ADR 0069).
+                "nuget" => match dotnet_test_project(root) {
+                    Some(project) => {
+                        under = project
+                            .rsplit_once('/')
+                            .map_or(String::new(), |(dir, _)| format!("{dir}/"));
+                        project
+                    }
+                    None => "Tests.csproj".to_owned(),
+                },
+                // The root build; else the build of a lone subproject; else none (below).
+                "maven" => match ["pom.xml", "build.gradle.kts", "build.gradle"]
+                    .into_iter()
+                    .find(|m| root.join(m).is_file())
+                {
+                    Some(m) => m.to_owned(),
+                    None => match lone_gradle_project(root) {
+                        Some((dir, build)) => {
+                            under = format!("{dir}/");
+                            format!("{dir}/{build}")
+                        }
+                        None => "build.gradle.kts".to_owned(),
+                    },
+                },
+                _ => "package.json".to_owned(),
             };
+            let manifest = manifest.as_str();
             // `false`: the manifest takes no SDK here, so the files have no crate to go in.
             let mut takes = false;
             if let Some(current) = read(root, Path::new(manifest)) {
                 let after = match (runner.ecosystem.as_str(), &rules.feature) {
                     ("cargo", Some(feature)) => edits::cargo_with_sdk(&current, feature, &sdk),
                     ("cargo", None) => Err("the pack names no feature".to_owned()),
+                    ("pypi", _) => edits::pyproject_with_sdk(&current, &sdk).map(Some),
+                    ("gomod", _) => edits::go_mod_with_sdk(&current, &sdk).map(Some),
+                    ("maven", _) if manifest == "pom.xml" => {
+                        edits::pom_with_sdk(&current, &sdk).map(Some)
+                    }
+                    ("maven", _) => Ok(Some(edits::gradle_with_sdk(&current, &sdk))),
+                    ("cmake", _) => Ok(Some(edits::cmake_with_sdk(&current))),
+                    ("swiftpm", _) => edits::swift_package_with_sdk(&current, &sdk).map(Some),
+                    ("nuget", _) => edits::csproj_with_sdk(&current, &sdk).map(Some),
+                    ("composer", _) => edits::composer_with_sdk(&current, &sdk).map(Some),
+                    ("sbt", _) => Ok(Some(edits::sbt_with_sdk(&current, &sdk))),
                     _ => edits::npm_with_sdk(&current, &sdk).map(Some),
                 };
                 match after {
@@ -375,6 +470,17 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                             false,
                             "the OpenTelemetry SDK",
                         );
+                        // C++ with vcpkg: the port goes into its manifest too (ADR 0065).
+                        if runner.ecosystem == "cmake"
+                            && let Some(vcpkg) = read(root, Path::new("vcpkg.json"))
+                        {
+                            change(
+                                PathBuf::from("vcpkg.json"),
+                                edits::vcpkg_with_sdk(&vcpkg, &sdk),
+                                false,
+                                "the OpenTelemetry SDK",
+                            );
+                        }
                     }
                     Ok(None) => info.push(format!(
                         "OpenTelemetry ({}): a workspace without a root package; each crate \
@@ -388,15 +494,30 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                         "the OpenTelemetry SDK",
                     ),
                 }
+            } else if runner.ecosystem == "nuget" {
+                info.push(format!(
+                    "OpenTelemetry ({}): no test project (one that references \
+                     Microsoft.NET.Test.Sdk); the project that runs the tests takes the SDK and the \
+                     files as the conventions say",
+                    runner.language
+                ));
+            } else if runner.ecosystem == "maven" {
+                info.push(format!(
+                    "OpenTelemetry ({}): a Gradle build of subprojects alone; the project that \
+                     runs the tests takes the SDK and the files as the conventions say",
+                    runner.language
+                ));
             }
             let smoke = rule.smoke.iter().flat_map(|s| &s.files);
             for file in rules.files.iter().chain(smoke).filter(|_| takes) {
-                let path = PathBuf::from(&file.path);
+                let path = PathBuf::from(format!("{under}{}", file.path));
                 // A file of the developer's at that place stays theirs.
                 if read(root, &path).is_none()
                     && let Some(text) = runner.templates.get(&file.source)
                 {
-                    change(path, Ok(text.clone()), false, "");
+                    // A template that names its own path (`code.file.path`) names where it goes.
+                    let text = text.replace(&file.path, &format!("{under}{}", file.path));
+                    change(path, Ok(text), false, "");
                 }
             }
             if let Some(said) = rules.note.as_ref().filter(|_| takes) {
@@ -618,6 +739,35 @@ pub fn diff(planned: &Planned) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// T-127: `gradle init`'s layout, a lone `app/`, takes the SDK; two projects do not.
+    #[test]
+    fn a_lone_gradle_subproject_is_found() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::write(
+            root.join("settings.gradle.kts"),
+            "rootProject.name = \"shop\"\ninclude(\"app\")\n",
+        )
+        .unwrap();
+        assert_eq!(lone_gradle_project(root), None, "no build in app/");
+        std::fs::create_dir(root.join("app")).unwrap();
+        std::fs::write(
+            root.join("app/build.gradle.kts"),
+            "plugins { application }\n",
+        )
+        .unwrap();
+        assert_eq!(
+            lone_gradle_project(root),
+            Some(("app".to_owned(), "build.gradle.kts"))
+        );
+        std::fs::write(
+            root.join("settings.gradle.kts"),
+            "include(\"app\", \"lib\")\n",
+        )
+        .unwrap();
+        assert_eq!(lone_gradle_project(root), None, "two projects");
+    }
 
     fn choices(agents: &[Agent], root: &Path) -> Choices {
         Choices {

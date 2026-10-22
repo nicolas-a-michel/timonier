@@ -32,6 +32,8 @@ export interface PerformanceProps {
   run: PerfRun | null | undefined;
   chosen: string | null;
   onChoose: (run: string) => void;
+  /** « Run the tests », when no run is there yet: the host shows the commands first. */
+  onRunTests?: () => void;
   /** Milliseconds since the epoch, for « 3 min ago ». */
   now: number;
   /** The tab shown first: the timeline unless said. */
@@ -43,14 +45,30 @@ export interface PerformanceProps {
 export type Tab = "timeline" | "tree" | "evolution";
 const TABS: Tab[] = ["timeline", "tree", "evolution"];
 
-export function Performance({ locale, runs, run, chosen, onChoose, now, initialTab, regressions }: PerformanceProps) {
+export function Performance({
+  locale,
+  runs,
+  run,
+  chosen,
+  onChoose,
+  onRunTests,
+  now,
+  initialTab,
+  regressions,
+}: PerformanceProps) {
   const t = performanceMessages[locale];
   const [tab, setTab] = useState<Tab>(initialTab ?? "timeline");
   if (runs === null) {
     return <EmptyState title={t.noDaemonTitle} text={t.noDaemonText} />;
   }
   if (runs.runs.length === 0) {
-    return <EmptyState title={t.emptyTitle} text={t.emptyText} />;
+    return (
+      <EmptyState
+        title={t.emptyTitle}
+        text={t.emptyText}
+        action={onRunTests ? { label: t.runTests, onSelect: onRunTests } : undefined}
+      />
+    );
   }
   const summary =
     run?.summary ?? runs.runs.find((r) => r.run === chosen) ?? runs.runs.find((r) => !r.smoke) ?? runs.runs[0];

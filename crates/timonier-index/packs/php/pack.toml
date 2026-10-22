@@ -1,0 +1,173 @@
+# PHP language pack. Format: docs/adr/0012-format-des-packs-de-langage.md
+# Bump `version` whenever a query or a rule below changes: it keys the extraction cache.
+format = 1
+language = "php"
+version = "1.0.0"
+ecosystem = "composer"
+
+[[grammars]]
+name = "php"
+crate = "tree-sitter-php"
+version = "0.25.1"
+license = "MIT"
+extensions = ["php"]
+
+# Composer's installed packages and caches, never the project's code.
+[walk]
+skip = ["vendor", "var"]
+
+# `php:Shop\Model\Item#Item.price`: the class's PSR-4 name (its path outside the PSR-4 folder),
+# then the definitions in it (ADR 0070).
+[naming]
+module = "\\"
+join = "#"
+member = "."
+
+[paths]
+separators = ["\\", "::", "->"]
+# `use Shop\Model\Item;` binds `Item`, or its alias.
+bind = "last_segment"
+
+[fingerprint]
+atoms = ["string", "encapsed_string", "heredoc", "nowdoc"]
+drop = [";"]
+drop_before_closing = [","]
+closing = [")", "]", "}"]
+opening = ["=", "(", "[", "{", ":", ",", "=>", "->"]
+
+[signature]
+no_space_before = [")", "]", ",", ";", "(", "->", "::", "?"]
+tight_after_word = ["(", "["]
+no_space_after = ["(", "[", "->", "::", "$", "\\", "?", "&"]
+
+# Usage categories of external dependencies (spec: network, serialisation, database, async).
+[dependencies]
+async = ["react/event-loop", "amphp/amp", "revolt/event-loop", "react/promise"]
+network = [
+  "guzzlehttp/guzzle", "symfony/http-client", "symfony/http-kernel", "laravel/framework", "slim/slim",
+  "psr/http-client", "php-http/discovery", "nyholm/psr7",
+]
+serialization = ["symfony/serializer", "jms/serializer", "symfony/yaml", "google/protobuf", "symfony/property-access"]
+database = [
+  "doctrine/orm", "doctrine/dbal", "illuminate/database", "predis/predis", "mongodb/mongodb",
+  "cycle/orm", "propel/propel",
+]
+cli = ["symfony/console", "laravel/prompts"]
+observability = ["open-telemetry/api", "open-telemetry/sdk", "monolog/monolog", "psr/log", "sentry/sentry"]
+ui = ["twig/twig", "livewire/livewire", "symfony/ux-live-component"]
+
+[[roles]]
+role = "entry_point"
+libraries = ["laravel/framework", "symfony/http-kernel", "symfony/framework-bundle", "slim/slim", "symfony/console"]
+paths = ["Symfony\\Component\\HttpKernel", "Symfony\\Component\\Routing", "Illuminate\\Routing", "Slim"]
+confidence = 0.8
+
+[[roles]]
+role = "persistence"
+libraries = ["doctrine/orm", "doctrine/dbal", "illuminate/database", "predis/predis", "mongodb/mongodb", "cycle/orm"]
+paths = ["Doctrine\\ORM", "Doctrine\\DBAL", "Illuminate\\Database", "PDO"]
+confidence = 0.8
+
+[[roles]]
+role = "data_model"
+paths = ["Doctrine\\ORM\\Mapping", "Symfony\\Component\\Validator\\Constraints"]
+confidence = 0.5
+
+[[roles]]
+role = "interface"
+libraries = ["twig/twig", "livewire/livewire"]
+paths = ["Twig", "Livewire"]
+confidence = 0.8
+
+[[roles]]
+role = "background_task"
+libraries = ["symfony/messenger", "laravel/horizon"]
+paths = ["Symfony\\Component\\Messenger", "Illuminate\\Queue"]
+confidence = 0.5
+
+# What refinement needs to know of the language (ADR 0022).
+[lsp]
+# PHP's own functions and classes: a name tree-sitter cannot resolve that is one of them is
+# defined outside the repository, and the language server is not asked.
+outside = [
+  "array_map", "array_filter", "array_sum", "array_keys", "array_values", "count", "strlen",
+  "sprintf", "printf", "implode", "explode", "json_encode", "json_decode", "is_array", "isset",
+  "Exception", "InvalidArgumentException", "RuntimeException", "DateTimeImmutable", "PDO",
+  "ArrayObject", "Closure", "self", "static", "parent", "this",
+]
+
+# How the tests run and write JUnit XML (ADR 0034): PHPUnit writes it itself (`--log-junit`),
+# run through PHP so that the same command works on every system. With a configuration file,
+# its test suites; without one, the folder `tests`. Checked with PHPUnit 13.4 and PHP 8.5.
+[[tests.runners]]
+name = "phpunit"
+when = "phpunit.xml.dist"
+command = "php vendor/bin/phpunit --log-junit .timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "php"
+note = "Timonier runs the tests with PHPUnit: install PHP (https://www.php.net/downloads) and the project's packages (`composer install`)."
+
+[tests.runners.smoke]
+command = "php vendor/bin/phpunit tests/Timonier/TimonierSmokeTest.php"
+files = [{ path = "tests/Timonier/TimonierSmokeTest.php", source = "instrumentation/TimonierSmokeTest.php" }]
+
+[[tests.runners]]
+name = "phpunit (phpunit.xml)"
+when = "phpunit.xml"
+command = "php vendor/bin/phpunit --log-junit .timonier/runs/junit.xml"
+junit = ".timonier/runs/junit.xml"
+program = "php"
+note = "Timonier runs the tests with PHPUnit: install PHP (https://www.php.net/downloads) and the project's packages (`composer install`)."
+
+[tests.runners.smoke]
+command = "php vendor/bin/phpunit tests/Timonier/TimonierSmokeTest.php"
+files = [{ path = "tests/Timonier/TimonierSmokeTest.php", source = "instrumentation/TimonierSmokeTest.php" }]
+
+[[tests.runners]]
+name = "phpunit (tests)"
+command = "php vendor/bin/phpunit --log-junit .timonier/runs/junit.xml tests"
+junit = ".timonier/runs/junit.xml"
+program = "php"
+note = "Timonier runs the tests with PHPUnit: install PHP (https://www.php.net/downloads) and the project's packages (`composer install`)."
+
+[tests.runners.smoke]
+command = "php vendor/bin/phpunit tests/Timonier/TimonierSmokeTest.php"
+files = [{ path = "tests/Timonier/TimonierSmokeTest.php", source = "instrumentation/TimonierSmokeTest.php" }]
+
+# The OpenTelemetry SDK `timonier init` adds (spec « Initialisation », 3; ADR 0050, 0070): the
+# API in `require` (the code that ships uses it, Q78), the SDK, its OTLP exporter and an HTTP
+# client for it in `require-dev`. Verified on Packagist on 2026-10-22.
+[instrumentation]
+files = [{ path = "tests/Timonier/TimonierOtel.php", source = "instrumentation/TimonierOtel.php" }]
+note = "run `composer update` (it installs what `composer.json` now asks); `Timonier\\TimonierOtel::start()` starts the export: call it where the tests set up (a bootstrap file), as the conventions say."
+
+[[instrumentation.dependencies]]
+name = "open-telemetry/api"
+version = "^1.10"
+production = true
+
+[[instrumentation.dependencies]]
+name = "open-telemetry/sdk"
+version = "^1.15"
+
+[[instrumentation.dependencies]]
+name = "open-telemetry/exporter-otlp"
+version = "^1.4"
+
+[[instrumentation.dependencies]]
+name = "guzzlehttp/guzzle"
+version = "^7.10 || ^8.0"
+
+# The technology inventory (ADR 0055): frameworks, and the precise function of known packages:
+# two direct dependencies of the same function are a duplicate.
+[inventory]
+frameworks = ["laravel/framework", "symfony/framework-bundle", "slim/slim", "laminas/laminas-mvc", "cakephp/cakephp"]
+
+[inventory.functions]
+http-client = ["guzzlehttp/guzzle", "symfony/http-client", "php-http/curl-client"]
+orm = ["doctrine/orm", "illuminate/database", "cycle/orm", "propel/propel"]
+logging = ["monolog/monolog", "analog/analog"]
+test-framework = ["phpunit/phpunit", "pestphp/pest", "codeception/codeception"]
+templating = ["twig/twig", "league/plates", "smarty/smarty"]
+validation = ["symfony/validator", "respect/validation"]
+dates = ["nesbot/carbon", "cakephp/chronos"]

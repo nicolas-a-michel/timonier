@@ -13,14 +13,17 @@ From the spec, two principles apply:
   means writing a pack, never modifying the daemon.
 
 Built-in packs: Rust and TypeScript (the MVP, so that Timonier can index itself), JavaScript
-(Phase 10, ADR 0061); Python, Go, Java and C++ follow (PLAN.md Phase 10). The format is fixed by
+Python, Go, Java, Kotlin, Scala, C, C++, C#, Swift and PHP (Phase 10, ADR 0061 to 0071). The format is fixed by
 ADR 0012, the extraction and resolution by ADR 0013: read them before changing a pack.
 
 What a language still needs outside its pack directory (learnt with JavaScript, ADR 0061):
 - its grammar in `src/grammar.rs` (the one place a grammar is compiled in), the crate in the
   workspace `Cargo.toml`, and the pack in `BUILTIN` of `src/pack.rs`;
 - its ecosystem's manifests and module resolution in `src/ecosystem.rs` and `src/project.rs`
-  when it is not Cargo or npm, and its extensions in `without_extension`;
+  when it is not one of those already there (`Ecosystem` in `src/pack.rs` and in
+  `timonier-core::inventory`), and its extensions in `without_extension`;
+- `init`'s SDK edit of its manifest (`crates/timonier-cli/src/init/edits.rs`, taken back by
+  `uninit.rs`), and a runner rule's `when` when its command depends on a file (`uv.lock`);
 - its lockfile in the daemon's `inventory.rs`;
 - `init`'s detection of the language (`crates/timonier-cli/src/init/detect.rs`): a runner is
   taken only for a language detected;
@@ -37,7 +40,7 @@ CI installs it.
 A pack is a directory `crates/timonier-index/packs/<language>/`, embedded at build time
 (`BUILTIN` in `crates/timonier-index/src/pack.rs`):
 
-- `pack.toml`: `format`, `language`, `version`, `ecosystem` (`cargo` | `npm`), `[[grammars]]`,
+- `pack.toml`: `format`, `language`, `version`, `ecosystem` (`cargo` | `npm` | `pypi` | `gomod` | `maven` | `cmake` | `swiftpm` | `nuget` | `composer` | `sbt`), `[[grammars]]`,
   `[naming]`, `[paths]`, `[fingerprint]`, `[signature]`, `[dependencies]`, `[[roles]]`, and the
   reserved `[lsp]`, `[tests]`, `[instrumentation]`, `[security]`. Unknown keys are refused.
 - `definitions.scm`, `references.scm`, `roles.scm`; `<query>.<grammar>.scm` adds patterns for
@@ -54,7 +57,9 @@ predicates):
 
 Engine rules the queries rely on:
 
-- One definition per node: the first pattern of the file wins (methods before functions).
+- One definition per node: the first pattern of the file wins (methods before functions). A node
+  can also be a container (`@scope`): a Go method names its receiver's type (ADR 0063), a C++
+  method defined outside its class names the class (ADR 0065).
 - One symbol per qualified path in a file: the first with a body wins (TS overloads).
 - One reference per node, the outer path wins, and nothing inside an `@import` counts.
 - An import path gets the `prefix_field` of its enclosing lists prepended (`use a::{b::c}`).
@@ -116,9 +121,13 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
    its file. Templates are written into other projects: lint and type them there, not here.
 8. **Test runner**: how to detect it, how to make it produce JUnit XML, and how each test
    becomes a root span. Format fixed by ADR 0034: `[[tests.runners]]` in `pack.toml`, tried in
-   order (`name`, `uses` = a word of the `test` script, `command`, `junit`, `config` = a block
-   `init` writes into a project file, `program`, `note`). `timonier init` writes the chosen one
-   to `.timonier/tests.json`; Rust uses cargo-nextest (`cargo test` has no stable JUnit).
+   order (`name`, `uses` = a word of the `test` script, `when` = a file at the root, `command`,
+   `junit`, `config` = a block `init` writes into a project file, `program`, `install`, `note`).
+   `when_text` = a text the `when` file holds (`sbt.version=2`).
+   `junit` is a file, or a folder of reports ending with `/`, and `**/` finds that folder in
+   every module (Surefire, Gradle; ADR 0064). A command may start with `./` (a wrapper): on
+   Windows it becomes `.\`. `timonier init` writes the chosen one to `.timonier/tests.json`;
+   Rust uses cargo-nextest (`cargo test` has no stable JUnit).
 9. **LSP**: which server the pack relies on and which capabilities (definition, references,
    call hierarchy).
    - `[lsp] outside` (ADR 0022): names no repository defines (the standard library, the

@@ -85,6 +85,7 @@ void applyTheme(theme).then(async (names) => {
           now={SAMPLE_NOW}
           initialTab={tab === "tree" || tab === "evolution" ? tab : undefined}
           regressions={empty ? undefined : SAMPLE_REGRESSIONS}
+          onRunTests={() => undefined}
         />
       </StrictMode>,
     );

@@ -72,13 +72,6 @@
       "parent": "pkg:cargo/timonier-daemon"
     },
     {
-      "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "kind": "component",
-      "name": "inventory",
-      "role": "data_model",
-      "parent": "pkg:cargo/timonier-daemon"
-    },
-    {
       "id": "component:cluster/crates/timonier-index/src/cluster.rs",
       "kind": "component",
       "name": "components",
@@ -89,6 +82,13 @@
       "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
       "kind": "component",
       "name": "pack",
+      "role": "utility",
+      "parent": "pkg:cargo/timonier-index"
+    },
+    {
+      "id": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kind": "component",
+      "name": "extract",
       "role": "utility",
       "parent": "pkg:cargo/timonier-index"
     },
@@ -520,6 +520,13 @@
       "parent": "component:external/network"
     },
     {
+      "id": "pkg:cargo/roxmltree",
+      "kind": "package",
+      "name": "roxmltree",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:cargo/rusqlite",
       "kind": "package",
       "name": "rusqlite",
@@ -674,9 +681,65 @@
       "parent": "component:external/parsing"
     },
     {
+      "id": "pkg:cargo/tree-sitter-c",
+      "kind": "package",
+      "name": "tree-sitter-c",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-c-sharp",
+      "kind": "package",
+      "name": "tree-sitter-c-sharp",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-cpp",
+      "kind": "package",
+      "name": "tree-sitter-cpp",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-go",
+      "kind": "package",
+      "name": "tree-sitter-go",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-java",
+      "kind": "package",
+      "name": "tree-sitter-java",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
       "id": "pkg:cargo/tree-sitter-javascript",
       "kind": "package",
       "name": "tree-sitter-javascript",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-kotlin-ng",
+      "kind": "package",
+      "name": "tree-sitter-kotlin-ng",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-php",
+      "kind": "package",
+      "name": "tree-sitter-php",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-python",
+      "kind": "package",
+      "name": "tree-sitter-python",
       "role": "external_libraries",
       "parent": "component:external/other"
     },
@@ -686,6 +749,20 @@
       "name": "tree-sitter-rust",
       "role": "external_libraries",
       "parent": "component:external/parsing"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-scala",
+      "kind": "package",
+      "name": "tree-sitter-scala",
+      "role": "external_libraries",
+      "parent": "component:external/other"
+    },
+    {
+      "id": "pkg:cargo/tree-sitter-swift",
+      "kind": "package",
+      "name": "tree-sitter-swift",
+      "role": "external_libraries",
+      "parent": "component:external/other"
     },
     {
       "id": "pkg:cargo/tree-sitter-typescript",
@@ -813,7 +890,7 @@
         "imports",
         "references"
       ],
-      "weight": 47
+      "weight": 48
     },
     {
       "from": "component:cluster/crates/timonier-cli/src/approval.rs",
@@ -835,12 +912,21 @@
     },
     {
       "from": "component:cluster/crates/timonier-cli/src/approval.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-cli/src/approval.rs",
       "to": "component:dir/crates/timonier-cli/src/init",
       "kinds": [
+        "calls",
         "imports",
         "references"
       ],
-      "weight": 3
+      "weight": 5
     },
     {
       "from": "component:cluster/crates/timonier-cli/src/approval.rs",
@@ -1243,7 +1329,7 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/bridge.rs",
-      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
       "kinds": [
         "calls",
         "implements",
@@ -1344,25 +1430,24 @@
         "imports",
         "references"
       ],
-      "weight": 27
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "kinds": [
-        "calls",
-        "references"
-      ],
-      "weight": 4
+      "weight": 31
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
       "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
       "kinds": [
+        "references"
+      ],
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/client.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kinds": [
         "imports",
         "references"
       ],
-      "weight": 5
+      "weight": 3
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/client.rs",
@@ -1461,15 +1546,7 @@
         "calls",
         "imports"
       ],
-      "weight": 6
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
+      "weight": 7
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/debt.rs",
@@ -1513,7 +1590,7 @@
         "imports",
         "references"
       ],
-      "weight": 66
+      "weight": 71
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1523,7 +1600,7 @@
         "imports",
         "references"
       ],
-      "weight": 47
+      "weight": 210
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1536,12 +1613,20 @@
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+      "kinds": [
+        "calls"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "component:cluster/crates/timonier-daemon/src/client.rs",
       "kinds": [
         "imports",
         "references"
       ],
-      "weight": 58
+      "weight": 60
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1561,7 +1646,17 @@
         "imports",
         "references"
       ],
-      "weight": 80
+      "weight": 82
+    },
+    {
+      "from": "component:cluster/crates/timonier-daemon/src/git.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 45
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1585,7 +1680,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 2
+      "weight": 4
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1593,7 +1688,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 1
+      "weight": 4
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
@@ -1611,90 +1706,13 @@
         "imports",
         "references"
       ],
-      "weight": 31
+      "weight": 33
     },
     {
       "from": "component:cluster/crates/timonier-daemon/src/git.rs",
       "to": "pkg:cargo/tokio",
       "kinds": [
         "imports"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-core/src/actual.rs",
-      "kinds": [
-        "imports",
-        "references"
-      ],
-      "weight": 5
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 86
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/bridge.rs",
-      "kinds": [
-        "calls"
-      ],
-      "weight": 1
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/client.rs",
-      "kinds": [
-        "references"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-daemon/src/git.rs",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
-      "kinds": [
-        "calls",
-        "imports",
-        "references"
-      ],
-      "weight": 7
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "pkg:cargo/serde",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 2
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "pkg:cargo/serde_json",
-      "kinds": [
-        "imports"
-      ],
-      "weight": 3
-    },
-    {
-      "from": "component:cluster/crates/timonier-daemon/src/inventory.rs",
-      "to": "pkg:cargo/timonier-store",
-      "kinds": [
-        "references"
       ],
       "weight": 2
     },
@@ -1725,7 +1743,16 @@
         "imports",
         "references"
       ],
-      "weight": 19
+      "weight": 15
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/cluster.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 4
     },
     {
       "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
@@ -1735,7 +1762,7 @@
         "imports",
         "references"
       ],
-      "weight": 115
+      "weight": 61
     },
     {
       "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
@@ -1745,7 +1772,7 @@
         "imports",
         "references"
       ],
-      "weight": 129
+      "weight": 83
     },
     {
       "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
@@ -1756,6 +1783,16 @@
         "references"
       ],
       "weight": 9
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 39
     },
     {
       "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
@@ -1787,7 +1824,7 @@
       "kinds": [
         "imports"
       ],
-      "weight": 3
+      "weight": 1
     },
     {
       "from": "component:cluster/crates/timonier-index/src/ecosystem.rs",
@@ -1795,16 +1832,53 @@
       "kinds": [
         "imports"
       ],
-      "weight": 12
+      "weight": 5
     },
     {
-      "from": "component:cluster/editors/vscode/src/code.ts",
-      "to": "component:cluster/editors/vscode/src/commandLine.ts",
+      "from": "component:cluster/crates/timonier-index/src/extract.rs",
+      "to": "component:cluster/crates/timonier-core/src/actual.rs",
       "kinds": [
         "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 54
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/extract.rs",
+      "to": "component:cluster/crates/timonier-core/src/aggregate.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 56
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/extract.rs",
+      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "kinds": [
+        "calls",
+        "imports",
+        "references"
+      ],
+      "weight": 59
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/extract.rs",
+      "to": "pkg:cargo/serde",
+      "kinds": [
         "imports"
       ],
-      "weight": 3
+      "weight": 2
+    },
+    {
+      "from": "component:cluster/crates/timonier-index/src/extract.rs",
+      "to": "pkg:cargo/tree-sitter",
+      "kinds": [
+        "imports"
+      ],
+      "weight": 7
     },
     {
       "from": "component:cluster/editors/vscode/src/code.ts",
@@ -1831,7 +1905,7 @@
         "imports",
         "references"
       ],
-      "weight": 5
+      "weight": 7
     },
     {
       "from": "component:cluster/editors/vscode/src/commandLine.ts",
@@ -2275,7 +2349,7 @@
         "calls",
         "references"
       ],
-      "weight": 4
+      "weight": 6
     },
     {
       "from": "component:dir/crates/timonier-cli/src/init",
@@ -2515,7 +2589,7 @@
     },
     {
       "from": "component:dir/crates/timonier-daemon/tests",
-      "to": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
       "kinds": [
         "calls",
         "implements",
@@ -2568,7 +2642,16 @@
         "imports",
         "references"
       ],
-      "weight": 20
+      "weight": 15
+    },
+    {
+      "from": "component:dir/crates/timonier-index/tests",
+      "to": "component:cluster/crates/timonier-index/src/extract.rs",
+      "kinds": [
+        "imports",
+        "references"
+      ],
+      "weight": 15
     },
     {
       "from": "component:dir/crates/timonier-store/examples",
@@ -2635,7 +2718,7 @@
         "imports",
         "references"
       ],
-      "weight": 57
+      "weight": 70
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -2644,7 +2727,7 @@
         "calls",
         "imports"
       ],
-      "weight": 33
+      "weight": 24
     },
     {
       "from": "component:dir/editors/vscode/src/test/unit",
@@ -3166,6 +3249,14 @@
     },
     {
       "from": "pkg:cargo/timonier-cli",
+      "to": "pkg:cargo/roxmltree",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-cli",
       "to": "pkg:cargo/serde",
       "kinds": [
         "depends_on"
@@ -3342,6 +3433,14 @@
     },
     {
       "from": "pkg:cargo/timonier-daemon",
+      "to": "pkg:cargo/roxmltree",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-daemon",
       "to": "pkg:cargo/serde",
       "kinds": [
         "depends_on"
@@ -3470,6 +3569,14 @@
     },
     {
       "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/roxmltree",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
       "to": "pkg:cargo/serde",
       "kinds": [
         "depends_on"
@@ -3518,6 +3625,46 @@
     },
     {
       "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-c",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-c-sharp",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-cpp",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-go",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-java",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
       "to": "pkg:cargo/tree-sitter-javascript",
       "kinds": [
         "depends_on"
@@ -3526,7 +3673,47 @@
     },
     {
       "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-kotlin-ng",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-php",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-python",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
       "to": "pkg:cargo/tree-sitter-rust",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-scala",
+      "kinds": [
+        "depends_on"
+      ],
+      "weight": 1
+    },
+    {
+      "from": "pkg:cargo/timonier-index",
+      "to": "pkg:cargo/tree-sitter-swift",
       "kinds": [
         "depends_on"
       ],

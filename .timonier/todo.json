@@ -1,4 +1,29 @@
 {
   "version": 1,
-  "items": []
+  "session": "S-2026-10-22-11",
+  "items": [
+    {
+      "id": "D-1",
+      "text": "10.10 PHP : pack, Composer, PHPUnit, SDK, critère sur un vrai projet",
+      "task": "T-131",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "10.11 Scala : pack, sbt, rapports JUnit, SDK, critère sur un vrai projet",
+      "task": "T-132",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "README et docs des langages, suite complète, commit et push",
+      "status": "open"
+    },
+    {
+      "id": "D-4",
+      "text": "Avancer jusqu'à la préversion (T-109) : relire 9.7, préparer le tag, s'arrêter avant la publication",
+      "task": "T-109",
+      "status": "open"
+    }
+  ]
 }

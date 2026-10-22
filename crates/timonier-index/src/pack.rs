@@ -18,6 +18,22 @@ pub const FORMAT: u32 = 1;
 pub enum Ecosystem {
     Cargo,
     Npm,
+    /// Python: `pyproject.toml` (ADR 0062).
+    Pypi,
+    /// Go: `go.mod`, and `go.work` for its members (ADR 0063).
+    Gomod,
+    /// Maven coordinates: `pom.xml`, and Gradle's builds and settings (ADR 0064).
+    Maven,
+    /// CMake projects, with the dependencies of vcpkg and Conan beside them (ADR 0065, Q89).
+    Cmake,
+    /// Swift Package Manager: `Package.swift` (ADR 0067).
+    Swiftpm,
+    /// .NET projects (`*.csproj`) and their NuGet packages (ADR 0069).
+    Nuget,
+    /// Composer: `composer.json`, `composer.lock` (ADR 0070).
+    Composer,
+    /// sbt: `build.sbt`, Maven coordinates (ADR 0071).
+    Sbt,
 }
 
 impl Ecosystem {
@@ -25,6 +41,14 @@ impl Ecosystem {
         match self {
             Self::Cargo => "cargo",
             Self::Npm => "npm",
+            Self::Pypi => "pypi",
+            Self::Gomod => "gomod",
+            Self::Maven => "maven",
+            Self::Cmake => "cmake",
+            Self::Swiftpm => "swiftpm",
+            Self::Nuget => "nuget",
+            Self::Composer => "composer",
+            Self::Sbt => "sbt",
         }
     }
 }
@@ -101,6 +125,12 @@ pub struct RunnerRule {
     /// A word the manifest's `test` script holds (`vitest`); without it, the runner always fits.
     #[serde(default)]
     pub uses: Option<String>,
+    /// A file at the root that the runner needs (`uv.lock`: the tests run through uv).
+    #[serde(default)]
+    pub when: Option<String>,
+    /// A text that file must hold (`sbt.version=2`: sbt 2 runs every test with `testFull`).
+    #[serde(default)]
+    pub when_text: Option<String>,
     /// How to run the tests so that they write JUnit XML.
     #[serde(default)]
     pub command: Option<String>,
@@ -113,6 +143,10 @@ pub struct RunnerRule {
     /// A program the runner needs on the `PATH`.
     #[serde(default)]
     pub program: Option<String>,
+    /// The command that installs `program`, which `timonier test --install` runs when it is
+    /// missing.
+    #[serde(default)]
+    pub install: Option<String>,
     /// What to do by hand: when `program` is missing, or what `init` does not do.
     #[serde(default)]
     pub note: Option<String>,
@@ -691,7 +725,7 @@ macro_rules! pack_files {
     };
 }
 
-const BUILTIN: [(&str, &[(&str, &str)]); 3] = [
+const BUILTIN: [(&str, &[(&str, &str)]); 13] = [
     pack_files!(
         "rust",
         [
@@ -729,10 +763,134 @@ const BUILTIN: [(&str, &[(&str, &str)]); 3] = [
             "instrumentation/timonier.smoke.test.mjs"
         ]
     ),
+    pack_files!(
+        "python",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/timonier_otel.py",
+            "instrumentation/timonier_smoke_test.py"
+        ]
+    ),
+    pack_files!(
+        "go",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/otel.go",
+            "instrumentation/timonier_smoke_test.go"
+        ]
+    ),
+    pack_files!(
+        "java",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.java",
+            "instrumentation/TimonierSmokeTest.java"
+        ]
+    ),
+    pack_files!(
+        "cpp",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/CMakeLists.txt",
+            "instrumentation/timonier_otel.hpp",
+            "instrumentation/timonier_smoke_test.cpp"
+        ]
+    ),
+    pack_files!(
+        "kotlin",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.kt",
+            "instrumentation/TimonierSmokeTest.kt"
+        ]
+    ),
+    pack_files!(
+        "swift",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.swift",
+            "instrumentation/TimonierSmokeTests.swift"
+        ]
+    ),
+    pack_files!(
+        "c",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/CMakeLists.txt",
+            "instrumentation/timonier_otel.h",
+            "instrumentation/timonier_otel.cpp",
+            "instrumentation/timonier_smoke_test.c"
+        ]
+    ),
+    pack_files!(
+        "csharp",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.cs",
+            "instrumentation/TimonierSmokeTest.cs"
+        ]
+    ),
+    pack_files!(
+        "php",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.php",
+            "instrumentation/TimonierSmokeTest.php"
+        ]
+    ),
+    pack_files!(
+        "scala",
+        [
+            "pack.toml",
+            "definitions.scm",
+            "references.scm",
+            "roles.scm",
+            "conventions/instrumentation.md",
+            "instrumentation/TimonierOtel.scala",
+            "instrumentation/TimonierSmokeSuite.scala"
+        ]
+    ),
 ];
 
 impl Packs {
-    /// The packs embedded in this build: Rust, TypeScript and JavaScript.
+    /// The packs embedded in this build: Rust, TypeScript, JavaScript, Python, Go, Java, C++,
+    /// Kotlin, Swift, C, C#, PHP and Scala.
     pub fn builtin() -> Result<Self> {
         let packs = BUILTIN
             .iter()
@@ -853,7 +1011,15 @@ mod tests {
             typescript,
             ["npm workspaces", "vitest", "node:test", "jest"]
         );
-        for name in ["rust", "typescript", "javascript"] {
+        for name in [
+            "rust",
+            "typescript",
+            "javascript",
+            "python",
+            "go",
+            "java",
+            "cpp",
+        ] {
             let conventions = &pack(name).conventions;
             assert!(conventions["instrumentation.md"].contains("code.function.name"));
         }
@@ -863,7 +1029,24 @@ mod tests {
     fn builtin_packs_load_and_compile_for_every_grammar() {
         let packs = Packs::builtin().unwrap();
         let languages: Vec<_> = packs.iter().map(|p| p.language.as_str()).collect();
-        assert_eq!(languages, ["rust", "typescript", "javascript"]);
+        assert_eq!(
+            languages,
+            [
+                "rust",
+                "typescript",
+                "javascript",
+                "python",
+                "go",
+                "java",
+                "cpp",
+                "kotlin",
+                "swift",
+                "c",
+                "csharp",
+                "php",
+                "scala"
+            ]
+        );
         for (path, language, grammar) in [
             ("src/lib.rs", "rust", "rust"),
             ("src/App.tsx", "typescript", "tsx"),
@@ -874,6 +1057,19 @@ mod tests {
             ("src/App.jsx", "javascript", "javascript"),
             ("eslint.config.mjs", "javascript", "javascript"),
             ("webpack.config.cjs", "javascript", "javascript"),
+            ("src/shop/cart.py", "python", "python"),
+            ("stubs/shop.pyi", "python", "python"),
+            ("cart/cart.go", "go", "go"),
+            ("src/main/java/com/shop/Cart.java", "java", "java"),
+            ("src/cart.cpp", "cpp", "cpp"),
+            ("include/shop/cart.hpp", "cpp", "cpp"),
+            ("src/main/kotlin/com/shop/Cart.kt", "kotlin", "kotlin"),
+            ("Sources/Shop/Cart.swift", "swift", "swift"),
+            ("src/cart.c", "c", "c"),
+            ("include/cart.h", "cpp", "cpp"),
+            ("src/Shop/Cart.cs", "csharp", "c_sharp"),
+            ("src/Cart.php", "php", "php"),
+            ("src/main/scala/com/shop/Cart.scala", "scala", "scala"),
         ] {
             let (pack, g) = packs.for_path(path).unwrap();
             assert_eq!(
@@ -882,7 +1078,7 @@ mod tests {
                 "{path}"
             );
         }
-        for path in ["README.md", "Makefile", "src/x.py", ".rs/x"] {
+        for path in ["README.md", "Makefile", "src/x.rb", ".rs/x"] {
             assert!(!packs.reads(path), "{path}");
         }
         for pack in packs.iter() {
@@ -954,7 +1150,7 @@ mod tests {
         assert!(with("language = \"rust\"", "language = \"file\"").contains("reserved"));
         assert!(with("version = \"1.1.1\"", "version = \"1.0\"").contains("major.minor.patch"));
         assert!(with("[lsp]", "[lsp]\nserver = \"rust-analyzer\"").contains("server"));
-        assert!(with("ecosystem = \"cargo\"", "ecosystem = \"maven\"").contains("maven"));
+        assert!(with("ecosystem = \"cargo\"", "ecosystem = \"hex\"").contains("hex"));
         assert!(with("name = \"rust\"", "name = \"cobol\"").contains("not compiled"));
         assert!(with("role = \"persistence\"", "role = \"database\"").contains("database"));
         assert!(with("confidence = 0.8", "confidence = 1.5").contains("outside"));

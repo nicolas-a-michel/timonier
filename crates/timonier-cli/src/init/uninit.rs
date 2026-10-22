@@ -35,6 +35,19 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         }
         // The OpenTelemetry SDK (ADR 0050): Timonier's blocks only.
         "Cargo.toml" => Ok(edits::cargo_without_sdk(text)),
+        "pyproject.toml" => Ok(Some(edits::pyproject_without_sdk(text))),
+        "go.mod" => Ok(Some(edits::go_mod_without_sdk(text))),
+        "pom.xml" => Ok(Some(edits::pom_without_sdk(text))),
+        "build.gradle.kts" | "build.gradle" => Ok(Some(edits::gradle_without_sdk(text))),
+        "CMakeLists.txt" => Ok(edits::without_block(text, HASH_BEGIN, HASH_END)),
+        "Package.swift" => Ok(Some(edits::swift_package_without_sdk(text))),
+        // The same `//` markers as Gradle's.
+        "build.sbt" => Ok(Some(edits::gradle_without_sdk(text))),
+        _ if name.ends_with(".csproj") => Ok(Some(edits::pom_without_sdk(text))),
+        // A lone subproject's build (ADR 0066).
+        _ if name.ends_with("/build.gradle.kts") || name.ends_with("/build.gradle") => {
+            Ok(Some(edits::gradle_without_sdk(text)))
+        }
         _ if name.ends_with("pre-commit") => {
             // A hook of Timonier's own making: the interpreter line alone is left.
             Ok(edits::without_block(text, HASH_BEGIN, HASH_END)
@@ -43,6 +56,27 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         // The record, the ignore file: Timonier's.
         _ => Ok(None),
     }
+}
+
+/// The packages of the OpenTelemetry SDK the PHP pack adds (ADR 0070).
+fn composer_packages() -> Vec<&'static str> {
+    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    NAMES
+        .get_or_init(|| {
+            timonier_daemon::Packs::builtin()
+                .map(|packs| {
+                    packs
+                        .iter()
+                        .filter(|p| p.manifest.ecosystem.as_str() == "composer")
+                        .flat_map(|p| p.manifest.instrumentation.iter())
+                        .flat_map(|i| i.dependencies.iter().map(|d| d.name.clone()))
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+        .iter()
+        .map(String::as_str)
+        .collect()
 }
 
 /// The packages of the OpenTelemetry SDK the npm packs add (ADR 0050).
@@ -186,6 +220,11 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
         let undone = if path == Path::new("package.json") {
             // The SDK's packages that were not there before `init` (ADR 0050).
             edits::npm_without_sdk(&current, &modified.original, &sdk_packages())
+        } else if path == Path::new("composer.json") {
+            // The SDK's packages that were not there before `init` (ADR 0070).
+            edits::composer_without_sdk(&current, &modified.original, &composer_packages())
+        } else if path == Path::new("vcpkg.json") {
+            edits::vcpkg_without_sdk(&current, &modified.original, &["opentelemetry-cpp"]).map(Some)
         } else {
             without(&path, &current)
         };

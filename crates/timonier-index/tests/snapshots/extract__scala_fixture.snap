@@ -1,0 +1,46 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"src/main/scala/com/shop/Cart.scala\", SCALA))"
+---
+trait    Priced                                   under -                        at 6:0  `trait Priced`  #37081a0d
+method   Priced/price                             under Priced                   at 7:2  `def price: Int`  #ffad6d23
+type     Line                                     under -                        at 9:0  `final case class Line(name: String, price: Int) extends Priced`  #1670205e
+field    Line/name                                under Line                     at 9:22  `name: String`  #872ef8f0
+field    Line/price                               under Line                     at 9:36  `price: Int`  #05583915
+type     Cart                                     under -                        at 11:0  `class Cart(owner: String) extends Base with Priced`  #31149644
+field    Cart/owner                               under Cart                     at 11:11  `owner: String`  #7f3a386f
+field    Cart/items                               under Cart                     at 12:2  `private val items = mutable.ListBuffer.empty[Item]`  #f49cb1c5
+field    Cart/Tax                                 under Cart                     at 13:2  `val Tax = 0.2`  #42ecff33
+method   Cart/add                                 under Cart                     at 14:2  `def add(item: Item): Unit =`  #a8dd0e87
+method   Cart/price                               under Cart                     at 15:2  `def price: Int =`  #7c52dcd9
+method   Cart/make                                under Cart                     at 18:2  `def make(): Cart =`  #e30a412a
+type     Kind                                     under -                        at 20:0  `enum Kind`  #11d046b8
+constant Kind/Small                               under Kind                     at 21:7  `Small`  #cf10b6f0
+constant Kind/Large                               under Kind                     at 21:14  `Large`  #3781df23
+type     Prices                                   under -                        at 23:0  `type Prices = List[Int]`  #afb5b0f4
+function total                                    under -                        at 25:0  `def total(cart: Cart): Int =`  #5beaca8d
+function run                                      under -                        at 27:0  `@main def run(): Unit =`  #d842a4e7
+import   com.shop.model.Item binds ["Item"]
+import   com.shop.model.Price binds ["P"]
+import   scala.collection.mutable binds ["mutable"]
+import   com.shop.util binds []
+calls Cart ×3 at 18:25
+calls cart ×1 at 25:49
+calls helper ×1 at 15:44
+calls items ×1 at 15:19
+calls mutable ×1 at 12:22
+calls println ×1 at 27:24
+calls total ×1 at 27:32
+references Cart ×2 at 18:14
+references Int ×5 at 7:13
+references Item ×2 at 12:47
+references List ×1 at 23:14
+references Priced ×1 at 11:44
+references Prices ×1 at 23:5
+references String ×2 at 9:28
+references Unit ×2 at 14:23
+references main ×1 at 27:1
+inherits Base ×1 at 11:34 from Cart
+inherits Priced ×1 at 9:56 from Line
+signal   entry_point ×1
+errors   false

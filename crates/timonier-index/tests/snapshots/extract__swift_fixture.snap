@@ -1,0 +1,41 @@
+---
+source: crates/timonier-index/tests/extract.rs
+expression: "render(&extract(\"Sources/Shop/Cart.swift\", SWIFT))"
+---
+constant tax                                      under -                        at 4:0  `public let tax = 0.2`  #0802aa95
+trait    Priced                                   under -                        at 6:0  `public protocol Priced`  #0c18d8fd
+field    Priced/price                             under Priced                   at 6:25  `var price: Int { get }`  #21b47cd6
+type     Item                                     under -                        at 8:0  `public struct Item: Priced, Codable`  #c36910ed
+field    Item/name                                under Item                     at 9:4  `public let name: String`  #f1bd27cc
+field    Item/price                               under Item                     at 10:4  `public var price: Int`  #bfd41c37
+type     Cart                                     under -                        at 13:0  `public final class Cart: Base, Priced`  #6fcd885c
+field    Cart/items                               under Cart                     at 14:4  `private var items: [Item] = []`  #e84e7078
+method   Cart/init                                under Cart                     at 15:4  `public init()`  #c7ee7c96
+method   Cart/add                                 under Cart                     at 16:4  `public func add(_ item: Item)`  #9146e03f
+field    Cart/price                               under Cart                     at 17:4  `public var price: Int { items.reduce(0) { $0 + $1.price } }`  #6bed6a21
+method   Cart/make                                under Cart                     at 18:4  `static func make() -> Cart`  #5faee77d
+method   Cart/describe                            under Cart                     at 22:4  `func describe() -> String`  #93d2919e
+type     Kind                                     under -                        at 25:0  `enum Kind`  #e8b06248
+constant Kind/small                               under Kind                     at 25:17  `small`  #390514a0
+constant Kind/large                               under Kind                     at 25:24  `large`  #00074bd5
+type     Prices                                   under -                        at 27:0  `typealias Prices = [Int]`  #dd9dc576
+function total                                    under -                        at 29:0  `func total(_ cart: Cart) -> Int`  #b4583997
+import   Foundation binds ["Foundation"]
+import   Logging binds ["Logging"]
+import   Shop binds ["Shop"]
+calls $1 ×1 at 17:51
+calls Cart ×2 at 18:33
+calls Logger ×1 at 31:4
+calls c ×1 at 32:24
+calls cart ×1 at 32:11
+calls items ×2 at 16:36
+references Cart ×3 at 18:26
+references Int ×5 at 6:36
+references Item ×2 at 14:24
+references String ×2 at 9:21
+inherits Base ×1 at 13:25 from Cart
+inherits Codable ×1 at 8:28 from Item
+inherits Priced ×1 at 8:20 from Item
+inherits Priced ×1 at 13:31 from Cart
+signal   data_model ×1
+errors   false

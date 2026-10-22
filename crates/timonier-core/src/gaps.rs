@@ -68,13 +68,23 @@ pub fn is_test_code(callable: &Callable) -> bool {
     let name = file.rsplit('/').next().unwrap_or(file);
     let test_file = name.contains(".test.")
         || name.contains(".spec.")
+        // pytest's names: `test_cart.py`, `cart_test.py`.
+        || (name.ends_with(".py") && (name.starts_with("test_") || name.ends_with("_test.py")))
+        // Go's: `cart_test.go`; C++'s: `cart_test.cpp`, `cart_unittest.cc`.
+        || name.ends_with("_test.go")
+        || [".cpp", ".cc", ".cxx", ".c"].iter().any(|ext| {
+            name.strip_suffix(ext)
+                .is_some_and(|stem| stem.ends_with("_test") || stem.ends_with("_unittest"))
+        })
         || file
             .split('/')
             .any(|part| part == "test" || part == "tests");
     rust_test || test_file
 }
 
-/// Whether the function is a boundary the conventions instrument (ADR 0049): `pub` in Rust;
+/// Whether the function is a boundary the conventions instrument (ADR 0049): `pub` in Rust,
+/// capitalised in Go, `public` in Java and C#, not `private`/`internal`/`protected` in Kotlin, not
+/// `static` in C and C++ (but members), without a leading `_` in Python;
 /// every one in TypeScript and JavaScript, but private methods (`private`, `#name`), as the
 /// graph does not keep `export`.
 pub fn is_public(callable: &Callable) -> bool {
@@ -88,6 +98,33 @@ pub fn is_public(callable: &Callable) -> bool {
         .trim_start();
     if callable.id.starts_with("rust:") {
         signature.starts_with("pub ") || signature.starts_with("pub(")
+    } else if callable.id.starts_with("python:") {
+        // Python's convention: a leading `_` keeps a name to its module or class.
+        !callable.name.starts_with('_')
+    } else if callable.id.starts_with("java:") || callable.id.starts_with("csharp:") {
+        // Java says it: `public` among the modifiers, annotations before them.
+        signature.split_whitespace().any(|word| word == "public")
+    } else if callable.id.starts_with("php:") || callable.id.starts_with("scala:") {
+        // PHP's and Scala's default is public.
+        !signature
+            .split_whitespace()
+            .any(|word| matches!(word, "private" | "protected"))
+    } else if callable.id.starts_with("swift:") {
+        // Swift says it: `public` or `open`; the default, `internal`, stays in the module.
+        signature
+            .split_whitespace()
+            .any(|word| matches!(word, "public" | "open"))
+    } else if callable.id.starts_with("kotlin:") {
+        // Kotlin's default is public.
+        !signature
+            .split_whitespace()
+            .any(|word| matches!(word, "private" | "internal" | "protected"))
+    } else if callable.id.starts_with("cpp:") || callable.id.starts_with("c:") {
+        // What a file keeps to itself is `static`; the graph does not keep `private:`.
+        !signature.starts_with("static ") || callable.name.contains("::")
+    } else if callable.id.starts_with("go:") {
+        // Go exports a name by its capital letter.
+        callable.name.starts_with(|c: char| c.is_uppercase())
     } else if callable.id.starts_with("typescript:") || callable.id.starts_with("javascript:") {
         !(signature.starts_with("private ")
             || signature.starts_with('#')
@@ -316,6 +353,108 @@ mod tests {
             "javascript:shop/src/cart#Cart.#sum",
             "#sum(a)",
             "src/cart.js"
+        ));
+        // T-121: Python by its leading underscore; `test_` files are test code.
+        assert!(public(
+            "python:shop.cart#total",
+            "def total(items):",
+            "src/shop/cart.py"
+        ));
+        assert!(!public(
+            "python:shop.cart#_round",
+            "def _round(x):",
+            "src/shop/cart.py"
+        ));
+        assert!(!public(
+            "python:test_cart#test_total",
+            "def test_total():",
+            "test_cart.py"
+        ));
+        // T-128: Swift by `public` or `open`.
+        assert!(public(
+            "swift:Shop/Cart#Cart.add",
+            "public func add(_ item: Item)",
+            "Sources/Shop/Cart.swift"
+        ));
+        assert!(!public(
+            "swift:Shop/Cart#Cart.make",
+            "static func make() -> Cart",
+            "Sources/Shop/Cart.swift"
+        ));
+        // T-127: Kotlin but `private`, `internal` and `protected`.
+        assert!(public(
+            "kotlin:com.shop.Cart#Cart.total",
+            "fun total(): Int",
+            "src/main/kotlin/com/shop/Cart.kt"
+        ));
+        assert!(!public(
+            "kotlin:com.shop.Cart#Cart.helper",
+            "private fun helper(): Int",
+            "src/main/kotlin/com/shop/Cart.kt"
+        ));
+        // T-129: C as C++: but `static` functions; `_test.c` files are test code.
+        assert!(public(
+            "c:src/cart.c#cart_total",
+            "int cart_total(const struct cart * c)",
+            "src/cart.c"
+        ));
+        assert!(!public(
+            "c:src/cart.c#round_up",
+            "static int round_up(int x)",
+            "src/cart.c"
+        ));
+        assert!(!public(
+            "c:tests/cart_test.c#check",
+            "void check(void)",
+            "tests/cart_test.c"
+        ));
+        // T-124: C++ but `static` functions; `_test.cpp` files are test code.
+        assert!(public(
+            "cpp:src/cart.cpp#shop::Cart::total",
+            "int Cart::total() const",
+            "src/cart.cpp"
+        ));
+        assert!(!public(
+            "cpp:src/cart.cpp#helper",
+            "static int helper()",
+            "src/cart.cpp"
+        ));
+        assert!(!public(
+            "cpp:src/cart_test.cpp#check",
+            "void check()",
+            "src/cart_test.cpp"
+        ));
+        // T-123: Java by `public`; `src/test/` is test code.
+        assert!(public(
+            "java:com.shop.Cart#Cart.total",
+            "@Override public int total()",
+            "src/main/java/com/shop/Cart.java"
+        ));
+        assert!(!public(
+            "java:com.shop.Cart#Cart.helper",
+            "private int helper()",
+            "src/main/java/com/shop/Cart.java"
+        ));
+        assert!(!public(
+            "java:com.shop.CartTest#CartTest.total",
+            "public void total()",
+            "src/test/java/com/shop/CartTest.java"
+        ));
+        // T-122: Go by its capital letter; `_test.go` files are test code.
+        assert!(public(
+            "go:example.com/shop/cart/cart#Cart.Total",
+            "func(c *Cart) Total() int",
+            "cart/cart.go"
+        ));
+        assert!(!public(
+            "go:example.com/shop/cart/cart#round",
+            "func round(x int) int",
+            "cart/cart.go"
+        ));
+        assert!(!public(
+            "go:example.com/shop/cart/cart_test#TestTotal",
+            "func TestTotal(t *testing.T)",
+            "cart/cart_test.go"
         ));
         assert!(!public(
             "rust:demo::tests::helper",
