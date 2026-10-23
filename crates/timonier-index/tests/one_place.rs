@@ -66,9 +66,7 @@ fn forbidden() -> BTreeSet<String> {
 /// The string literals of a file of Rust, out of its comments and of its `mod tests`, with
 /// the line each starts on; a literal may span lines.
 fn literals(text: &str) -> Vec<(usize, String)> {
-    let code = text
-        .find("#[cfg(test)]\nmod tests")
-        .map_or(text, |at| &text[..at]);
+    let code = &text[..tests_at(text)];
     let mut out = Vec::new();
     let mut line = 1;
     let mut chars = code.chars().peekable();
@@ -110,6 +108,23 @@ fn literals(text: &str) -> Vec<(usize, String)> {
         }
     }
     out
+}
+
+/// Where the file's `mod tests` starts, with its `#[cfg(test)]` or `#[cfg(all(test, unix))]`;
+/// the end of the file without one.
+fn tests_at(text: &str) -> usize {
+    let Some(module) = text.find("\nmod tests {") else {
+        return text.len();
+    };
+    let before = &text[..module];
+    match before.rfind('\n') {
+        Some(line)
+            if before[line + 1..].starts_with("#[cfg(") && before[line..].contains("test") =>
+        {
+            line + 1
+        }
+        _ => module + 1,
+    }
 }
 
 /// Literals about Timonier itself, a Rust program, that name one of its crates: how it installs
@@ -174,6 +189,15 @@ fn the_core_the_daemon_and_the_cli_name_no_language() {
         "what a language needs goes in its pack or its module of `tooling` (ADR 0077):\n{}",
         found.join("\n")
     );
+}
+
+#[test]
+fn a_test_module_is_left_out_whatever_its_cfg() {
+    for cfg in ["#[cfg(test)]", "#[cfg(all(test, unix))]"] {
+        let text = format!("let a = \"rust\";\n{cfg}\nmod tests {{ \"cargo\" }}\n");
+        let read: Vec<String> = literals(&text).into_iter().map(|(_, l)| l).collect();
+        assert_eq!(read, ["rust"], "{cfg}");
+    }
 }
 
 #[test]
