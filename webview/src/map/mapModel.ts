@@ -51,6 +51,9 @@ export interface MapEdge {
   target: string;
   /** Every edge it stands for comes from tree-sitter alone. */
   approximate: boolean;
+  /** Of the stored edges it stands for, those a manifest, a language server or SCIP confirmed
+   * (PLAN.md 11.5). */
+  confirmed: number;
   weight: number;
   edges: number;
   kinds: ViewEdge["kind"][];
@@ -181,10 +184,22 @@ export function mapContent(view: ViewData, openRoles: ReadonlySet<string>, optio
       if (!source || !target || source === target) continue;
       const id = `${source}→${target}`;
       const known = merged.get(id);
-      const line = known ?? { id, source, target, approximate: true, weight: 0, edges: 0, kinds: [], review: null };
+      const line = known ?? {
+        id,
+        source,
+        target,
+        approximate: true,
+        confirmed: 0,
+        weight: 0,
+        edges: 0,
+        kinds: [],
+        review: null,
+      };
       line.approximate &&= edge.approximateOnly;
       line.weight += edge.weight;
       line.edges += edge.edges;
+      // A view saved before the count (a demonstration snapshot): all or nothing, as it said.
+      line.confirmed += edge.confirmed ?? (edge.approximateOnly ? 0 : edge.edges);
       if (!line.kinds.includes(edge.kind)) line.kinds.push(edge.kind);
       const seen = reviews.get(id);
       const added = edge.review?.added ?? false;

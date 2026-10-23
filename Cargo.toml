@@ -35,6 +35,9 @@ anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 proptest = "1.12.0"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
+# SCIP indexes (ADR 0073): the crate pins rust-protobuf 3.7.2, which it does not re-export.
+scip = "=0.10.0"
+protobuf = "=3.7.2"
 rusqlite_migration = "2.6.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
@@ -70,7 +73,7 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 tokio = { version = "1.53.3", features = ["rt-multi-thread", "net", "io-util", "sync", "macros", "time", "signal"] }
 ts-rs = "12.0.1"
 # MCP SDK and JSON schemas of the tools' inputs (ADR 0027), verified 2026-10-20.
-rmcp = { version = "3.5.1", default-features = false, features = ["server", "transport-io"] }
+rmcp = { version = "3.6.0", default-features = false, features = ["server", "transport-io"] }
 schemars = "1.2.3"
 # Draws the whiteboard's sketch as a PNG for the agent's vision (ADR 0040).
 tiny-skia = "0.12.0"

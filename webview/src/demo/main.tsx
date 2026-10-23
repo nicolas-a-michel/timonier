@@ -158,6 +158,7 @@ void applyTheme(theme).then(async (names) => {
       review={params.get("review") === "1"}
       only={params.get("only") === "1"}
       debt={params.get("debt") === "1"}
+      certainty={params.get("certainty") === "1"}
       intent={params.get("intent") === "1"}
       performance={params.get("performance") === "map"}
       budget={params.get("budget") === "1"}

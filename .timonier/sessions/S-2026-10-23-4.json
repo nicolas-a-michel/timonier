@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-4",
+  "agent": "claude-code",
+  "objective": "11.4: the daemon runs each language's SCIP indexer after a commit, in the background; doctor says what is missing; installing is approved by a click; time and memory measured on the six projects of 11.1.",
+  "tasks": [
+    "T-137"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T05:54:15Z",
+  "ended_at": "2026-10-23T06:53:18Z",
+  "snapshots": {
+    "start": 183,
+    "end": 184
+  },
+  "summary": "11.4 done: SCIP indexers declared in ten packs, run by the daemon after each commit on a thread of their own, read and checked against tree-sitter's links recomputed from the project, applied above 70 %; status file, `timonier scip`, scip/run, doctor notes, extension command with its click approval. Found and fixed: --infer-tsconfig writes tsconfig.json (writes), spring-petclinic's two builds (variants), rustup's proxy (--version), a shutdown deadlock, doctor's extra pack loads. Measured on the six projects: all applied. Tests, clippy, fmt green. Not committed. Next: 11.5, how sure the map is.",
+  "changes": {
+    "files": 20,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/commandLine.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/bin/tim.rs",
+        "name": "lib",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "component:cluster/crates/timonier-cli/src/check.rs",
+          "name": "daemon",
+          "within": "timonier-cli"
+        },
+        "to": {
+          "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+          "name": "approval",
+          "within": "timonier-cli"
+        }
+      },
+      {
+        "from": {
+          "id": "component:cluster/crates/timonier-cli/src/check.rs",
+          "name": "daemon",
+          "within": "timonier-cli"
+        },
+        "to": {
+          "id": "component:dir/crates/timonier-cli/src/init",
+          "name": "init",
+          "within": "timonier-cli"
+        }
+      }
+    ],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 87,
+    "input": 176,
+    "output": 80216,
+    "cache_read": 57749921,
+    "cache_creation": 122245,
+    "cost_usd_micros": 14132969
+  }
+}

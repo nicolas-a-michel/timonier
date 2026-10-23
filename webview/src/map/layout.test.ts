@@ -84,6 +84,7 @@ describe("the incremental layout", () => {
       edges: 1,
       best: "tree_sitter",
       approximateOnly: true,
+      confirmed: 0,
       review: null,
     };
     const grown: ViewData = {

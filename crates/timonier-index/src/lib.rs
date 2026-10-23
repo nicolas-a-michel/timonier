@@ -12,8 +12,10 @@ pub mod indexer;
 pub mod lsp;
 pub mod pack;
 pub mod project;
+pub mod scip;
 mod structure;
 mod tokens;
+pub mod tooling;
 
 pub use error::{Error, Result};
 pub use extract::{

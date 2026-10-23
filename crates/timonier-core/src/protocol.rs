@@ -82,6 +82,10 @@ pub mod methods {
     pub const WORKFLOW_GET: &str = "workflow/get";
     /// Its settings, from the panel; checked, the daemon writes the file.
     pub const WORKFLOW_SET: &str = "workflow/set";
+    /// Index the last commit with SCIP now (ADR 0073): after installing an indexer.
+    pub const SCIP_RUN: &str = "scip/run";
+    /// The developer names a box of the map and gives it a role, or takes them back (ADR 0075).
+    pub const NAMES_SET: &str = "names/set";
 }
 
 /// Error codes of the daemon, after JSON-RPC's own (ADR 0019).
@@ -282,6 +286,9 @@ pub struct ViewNode {
     /// Its review debt: files written since the last review and not read since (ADR 0030);
     /// `null` without any.
     pub debt: Option<NodeDebt>,
+    /// What it does, in a sentence or two, as an agent said it (PLAN.md 11.10); `null` without.
+    #[serde(default)]
+    pub summary: Option<String>,
 }
 
 /// The review debt of a box or a file (ADR 0030): of its `of` files, `files` changed since the
@@ -397,6 +404,8 @@ pub struct ViewEdge {
     pub best: Provenance,
     /// Tree-sitter alone: drawn differently (spec « Displayed precision »).
     pub approximate_only: bool,
+    /// How many of `edges` a manifest, a language server or SCIP confirmed (PLAN.md 11.5).
+    pub confirmed: u32,
     /// What changed since the last review; `null` without change (ADR 0024).
     pub review: Option<EdgeReview>,
 }
@@ -411,6 +420,7 @@ impl From<AggregatedEdge> for ViewEdge {
             edges: edge.edges,
             best: edge.best,
             approximate_only: edge.approximate_only,
+            confirmed: edge.confirmed,
             review: None,
         }
     }
@@ -555,6 +565,16 @@ pub struct ActualWritten {
 pub struct IntentRead {
     pub intent: Option<Intent>,
     pub problem: Option<String>,
+}
+
+/// `names/set` (ADR 0075): `None` for both takes the box back to what Timonier computed.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NamesSetParams {
+    pub id: String,
+    pub name: Option<String>,
+    #[ts(type = "Role | null")]
+    pub role: Option<Role>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -1103,6 +1123,13 @@ pub enum MapCommand {
     ToggleIntent,
     /// Show the Performances layer of the last run, or no longer (ADR 0051).
     TogglePerformance,
+    /// Show how sure each box and link is, or no longer (PLAN.md 11.5).
+    ToggleCertainty,
+    /// Rename a box and change its role (ADR 0075): `target`, or the box with the focus.
+    Rename {
+        #[ts(type = "string | null")]
+        target: Option<String>,
+    },
     /// Open what leads to a box, then center and select it (ADR 0032, Q46): `path` are its
     /// ancestors from the top of the map.
     Reveal {
@@ -1224,6 +1251,14 @@ pub enum WebviewMessage {
     /// The Performances panel's « Run the tests »: the host shows the commands, then runs
     /// `timonier test` in a terminal once approved.
     RunTests,
+    /// F2, a double click or the command on a box of the map: the host asks its name and role
+    /// (ADR 0075). `name` and `role` are the box's now.
+    Rename {
+        target: String,
+        name: String,
+        #[ts(type = "Role | null")]
+        role: Option<Role>,
+    },
     /// What the webview shows now, once a snapshot or a delta is applied.
     Rendered {
         #[ts(type = "number")]
@@ -1366,6 +1401,7 @@ pub fn typescript() -> String {
         crate::budgets::BudgetsView::decl(&cfg),
         IntentRead::decl(&cfg),
         IntentWriteParams::decl(&cfg),
+        NamesSetParams::decl(&cfg),
         IntentWritten::decl(&cfg),
         HostMessage::decl(&cfg),
         WebviewMessage::decl(&cfg),
@@ -1403,6 +1439,8 @@ pub fn typescript() -> String {
         ("INVENTORY_SBOM", methods::INVENTORY_SBOM),
         ("WORKFLOW_GET", methods::WORKFLOW_GET),
         ("WORKFLOW_SET", methods::WORKFLOW_SET),
+        ("SCIP_RUN", methods::SCIP_RUN),
+        ("NAMES_SET", methods::NAMES_SET),
     ];
     out.push_str("export const METHODS = {\n");
     for (name, value) in methods {
@@ -1594,6 +1632,7 @@ mod tests {
                 of: 1,
                 untracked: 0,
             }),
+            summary: None,
         };
         let json = serde_json::to_value(&node).unwrap();
         assert_eq!(json["kind"], "file");

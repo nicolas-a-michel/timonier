@@ -60,6 +60,7 @@ impl Fixture {
             .env("HOME", self.home.path())
             .env("PATH", self.path())
             .env_remove("CODEX_HOME")
+            .env("TIMONIER_SCIP", "off")
             .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"))
             // The approved commands (Q84), never in the developer's home.
             .env(
@@ -605,6 +606,7 @@ fn doctor_finds_and_repairs_the_setup() {
     let blocked = project
         .command(assert_cmd::cargo::cargo_bin!("tim"))
         .args(["doctor", "--check", "--no-smoke"])
+        .env("TIMONIER_SCIP", "off")
         .env("TIMONIER_RUNTIME_DIR", "/dev/null/run")
         .output()
         .expect("tim runs");

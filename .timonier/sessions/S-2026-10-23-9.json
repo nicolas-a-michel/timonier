@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-9",
+  "agent": "claude-code",
+  "objective": "11.7: move each language's code into one place (pack.toml rules and one ecosystem module per language behind an interface), with no visible change.",
+  "tasks": [
+    "T-133"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T08:15:10Z",
+  "ended_at": "2026-10-23T08:34:36Z",
+  "snapshots": {
+    "start": 193,
+    "end": 194
+  },
+  "summary": "Opened for 11.7 (T-133), but this session did 11.8 instead. The six projects were measured with their SCIP indexes: 96–100 % of the links between files and 99–100 % of the links between the repository's boxes are confirmed, against none before. The measurement showed that no indexer marks import occurrences, so SCIP never confirmed imports. Fixed: tree-sitter imports that the index links are now confirmed (scip::confirm_imports, Project::file_imports), with fixture tests; ADR 0073, PLAN.md, the READMEs and features.md are updated. Not yet run after this change: clippy and the full Rust suite. T-140 is not yet marked done. 11.7 is not started; its inventory is done (about 5,500 lines of language-specific code across four crates, no shared interface). Waiting for the user before going on.",
+  "changes": {
+    "files": 5,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/examples",
+        "name": "examples",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 78,
+    "input": 156,
+    "output": 55898,
+    "cache_read": 11805092,
+    "cache_creation": 242889,
+    "cost_usd_micros": 4898805
+  }
+}

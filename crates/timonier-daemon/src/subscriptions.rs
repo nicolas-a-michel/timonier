@@ -103,6 +103,8 @@ struct TrackingSubscription {
 struct Reviewed {
     mark: ReviewMark,
     graph: Graph,
+    /// The names given by hand it was read with (ADR 0075).
+    names: timonier_core::names::Names,
     /// The content hash of each file when it was marked.
     contents: HashMap<String, ContentHash>,
 }
@@ -340,7 +342,7 @@ impl Subscriptions {
         let (root, windows) = (&self.root, &mut self.windows);
         // The head, the review and the contents as of one moment (review n° 1 of Phase 5, m11).
         let (graph, review, debt, contents) = reader.consistent(|reader| -> crate::Result<_> {
-            let graph = view::load(reader)?;
+            let graph = view::load(reader, root)?;
             let review = match reader.latest(SnapshotKind::ReviewMark)? {
                 // No diff before the first review (Q27).
                 None => {
@@ -348,11 +350,19 @@ impl Subscriptions {
                     None
                 }
                 Some(mark) => {
-                    if cache.as_ref().map(|r| r.mark.seq) != Some(mark.seq) {
+                    let names = view::names(root);
+                    if cache.as_ref().map(|r| (r.mark.seq, &r.names)) != Some((mark.seq, &names)) {
                         *cache = Some(Reviewed {
+                            names: names.clone(),
                             mark: ReviewMark::from(&mark),
+                            // Named as the head is: a name given by hand is no change of
+                            // the box since the review (ADR 0075).
                             graph: Graph::new(
-                                reader.nodes_at(mark.seq)?,
+                                {
+                                    let mut nodes = reader.nodes_at(mark.seq)?;
+                                    names.apply(&mut nodes);
+                                    nodes
+                                },
                                 reader.edges_at(mark.seq)?,
                             ),
                             contents: reader.kept_contents(mark.seq)?,

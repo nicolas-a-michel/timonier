@@ -412,7 +412,8 @@ fn a_directory_created_again_is_watched_again() {
     git(&root, &["add", "."]);
     git(&root, &["commit", "--quiet", "-m", "one"]);
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
-    let pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    pipeline.without_scip();
     let (send, receive) = mpsc::channel::<()>();
     let watch =
         timonier_daemon::Watch::start(pipeline, Duration::from_millis(100), None, move |_| {
@@ -658,7 +659,8 @@ fn the_watch_rests_when_nothing_changes() {
         .collect();
     write(&root, "src/many.rs", &many);
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
-    let pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    pipeline.without_scip();
     let passes = Arc::new(AtomicUsize::new(0));
     let verified = Arc::new(AtomicUsize::new(0));
     let (p, v) = (Arc::clone(&passes), Arc::clone(&verified));
@@ -752,7 +754,8 @@ fn a_new_crate_is_a_package() {
     }
     // Through the watcher.
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
-    let pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    pipeline.without_scip();
     let watch =
         timonier_daemon::Watch::start(pipeline, Duration::from_millis(100), None, |_| {}).unwrap();
     std::thread::sleep(Duration::from_millis(800));

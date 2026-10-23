@@ -2,12 +2,12 @@
 //! every dependency, then the details of each vulnerability found, kept 24 hours in
 //! `.timonier/cache/osv.json`. The network goes through `Fetch`, so that tests never reach it.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use timonier_core::inventory::{CveCheck, Dependency, Vulnerability};
+use timonier_core::inventory::{CveCheck, Dependency, Ecosystem, Vulnerability};
 
 /// How long an answer of OSV stands.
 pub const KEPT_MS: i64 = 24 * 3_600_000;
@@ -38,10 +38,15 @@ struct Detail {
     aliases: Vec<String>,
 }
 
+/// An ecosystem's name in OSV's queries; `None` for the ones OSV does not know.
+fn osv(ecosystem: Ecosystem) -> Option<&'static str> {
+    timonier_index::tooling::packages(ecosystem).and_then(|p| p.osv)
+}
+
 fn key(dependency: &Dependency, version: &str) -> String {
     format!(
         "{}/{}@{version}",
-        dependency.ecosystem.osv().unwrap_or("-"),
+        osv(dependency.ecosystem).unwrap_or("-"),
         dependency.name
     )
 }
@@ -60,18 +65,20 @@ pub fn check(
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
     let fresh = |at: i64| now_ms - at < KEPT_MS;
-    // Dependencies of ecosystems OSV does not know (vcpkg, CMake) alone: unknown, not absent.
-    if !dependencies.is_empty() && dependencies.iter().all(|d| d.ecosystem.osv().is_none()) {
+    // Dependencies of ecosystems OSV does not know alone: unknown, not absent.
+    if !dependencies.is_empty() && dependencies.iter().all(|d| osv(d.ecosystem).is_none()) {
+        let names: BTreeSet<&str> = dependencies.iter().map(|d| d.ecosystem.name()).collect();
+        let names: Vec<&str> = names.into_iter().collect();
         return (
             Vec::new(),
             CveCheck::NotChecked {
-                reason: "OSV knows none of these ecosystems (vcpkg, CMake)".to_owned(),
+                reason: format!("OSV knows none of these ecosystems ({})", names.join(", ")),
             },
         );
     }
     let versioned: Vec<(&Dependency, &str)> = dependencies
         .iter()
-        .filter(|d| d.ecosystem.osv().is_some())
+        .filter(|d| osv(d.ecosystem).is_some())
         .filter_map(|d| d.version.as_deref().map(|v| (d, v)))
         .collect();
     let missing: Vec<(&Dependency, &str)> = versioned
@@ -98,7 +105,7 @@ pub fn check(
         for chunk in missing.chunks(1_000) {
             let queries: Vec<Value> = chunk
                 .iter()
-                .map(|(d, v)| json!({"package": {"name": d.name, "ecosystem": d.ecosystem.osv()}, "version": v}))
+                .map(|(d, v)| json!({"package": {"name": d.name, "ecosystem": osv(d.ecosystem)}, "version": v}))
                 .collect();
             let answer = match fetch(QUERY_BATCH, Some(&json!({ "queries": queries }))) {
                 Ok(answer) => answer,
@@ -252,7 +259,7 @@ mod tests {
 
     fn dep(name: &str, version: &str) -> Dependency {
         Dependency {
-            ecosystem: Ecosystem::Cargo,
+            ecosystem: Ecosystem::new("cargo", 0),
             name: name.to_owned(),
             version: Some(version.to_owned()),
             license: None,
@@ -340,7 +347,7 @@ mod tests {
             panic!("OSV must not be asked")
         };
         let mut fmt = dep("fmt", "12.2.0");
-        fmt.ecosystem = Ecosystem::Vcpkg;
+        fmt.ecosystem = Ecosystem::new("vcpkg", 6);
         let (found, state) = check(&[fmt], &dir.path().join("osv.json"), 0, true, &fetch);
         assert!(found.is_empty());
         assert!(matches!(state, CveCheck::NotChecked { .. }), "{state:?}");

@@ -73,7 +73,7 @@ const INDEXING: Duration = Duration::from_secs(30);
 
 /// A command line run by the system's shell: `sh -c`, or `cmd /C` on Windows (T-125), where
 /// a wrapper of the project (`./gradlew`, `./mvnw`) is written `.\gradlew` (ADR 0064).
-fn shell(command: String) -> Vec<String> {
+pub(crate) fn shell(command: String) -> Vec<String> {
     if cfg!(windows) {
         let command = match command.strip_prefix("./") {
             Some(rest) => format!(".\\{rest}"),
@@ -616,6 +616,25 @@ fn reports(path: &Path) -> Option<(PathBuf, Option<PathBuf>)> {
     }
     (text.ends_with('/') || text.ends_with('\\')).then(|| (path.to_path_buf(), None))
 }
+/// The folders the packs never walk, wherever they are: installed packages, caches
+/// (`[walk] skip_anywhere`), where no report of the project's own tests is.
+fn installed() -> Vec<&'static str> {
+    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    NAMES
+        .get_or_init(|| {
+            timonier_daemon::Packs::builtin_manifests()
+                .map(|manifests| {
+                    manifests
+                        .into_iter()
+                        .flat_map(|m| m.walk.skip_anywhere)
+                        .collect()
+                })
+                .unwrap_or_default()
+        })
+        .iter()
+        .map(String::as_str)
+        .collect()
+}
 
 /// The XML reports this run wrote in a folder of reports, or in that folder of every module
 /// under `base` (a few levels deep; hidden folders and installed dependencies aside).
@@ -645,7 +664,7 @@ fn read_reports(
                 for entry in entries.flatten() {
                     let name = entry.file_name();
                     let name = name.to_string_lossy();
-                    let skipped = name.starts_with('.') || name == "node_modules";
+                    let skipped = name.starts_with('.') || installed().contains(&name.as_ref());
                     if !skipped && entry.file_type().is_ok_and(|t| t.is_dir()) {
                         pending.push((entry.path(), depth + 1));
                     }

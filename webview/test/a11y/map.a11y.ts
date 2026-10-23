@@ -61,6 +61,26 @@ test("Enter opens the focused role", async ({ page }) => {
   await expect(page.locator(".react-flow__node .tim-box__name")).toHaveText(["@timonier/webview", "timonier"]);
 });
 
+test("F2 or a double click on a package asks for its name and role (ADR 0075)", async ({ page }) => {
+  await open(page);
+  await page.locator(".react-flow__node", { hasText: "Persistence" }).click();
+  const store = page.locator('.react-flow__node[data-id="pkg:cargo/timonier-store"]');
+  await store.focus();
+  await page.keyboard.press("F2");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-rename",
+    JSON.stringify({ target: "pkg:cargo/timonier-store", name: "timonier-store", role: "persistence" }),
+  );
+  await page.evaluate(() => delete document.body.dataset.rename);
+  await store.dblclick();
+  await expect(page.locator("body")).toHaveAttribute("data-rename", /timonier-store/);
+  // A role group is no box of the graph: F2 there does nothing.
+  await page.evaluate(() => delete document.body.dataset.rename);
+  await page.locator(".react-flow__node", { hasText: "Utility" }).focus();
+  await page.keyboard.press("F2");
+  await expect(page.locator("body")).not.toHaveAttribute("data-rename", /./);
+});
+
 for (const theme of themes) {
   test(`${theme}: WCAG AA, lines at 3:1`, async ({ page }) => {
     await open(page, theme);

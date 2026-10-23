@@ -18,6 +18,8 @@ export interface UiState {
   intent?: boolean;
   /** The map shows its Performances layer (ADR 0051). */
   performance?: boolean;
+  /** The map shows how sure each box and link is (PLAN.md 11.5). */
+  certainty?: boolean;
 }
 
 export const initialUi: UiState = { openRoles: [], expanded: [] };
@@ -76,6 +78,7 @@ export function closeAll(ui: UiState): Applied {
       ...(ui.debt ? { debt: true } : {}),
       ...(ui.intent ? { intent: true } : {}),
       ...(ui.performance ? { performance: true } : {}),
+      ...(ui.certainty ? { certainty: true } : {}),
     },
     subscribe: ui.expanded.length > 0 ? [] : undefined,
   };
@@ -91,6 +94,12 @@ export function toggleDebt(ui: UiState): Applied {
 export function toggleIntent(ui: UiState): Applied {
   const { intent, ...rest } = ui;
   return { ui: intent ? rest : { ...rest, intent: true } };
+}
+
+/** How sure the map is, on or off (PLAN.md 11.5). */
+export function toggleCertainty(ui: UiState): Applied {
+  const { certainty, ...rest } = ui;
+  return { ui: certainty ? rest : { ...rest, certainty: true } };
 }
 
 /** The Performances layer, on or off (ADR 0051). */

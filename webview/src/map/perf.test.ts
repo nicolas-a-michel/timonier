@@ -21,6 +21,7 @@ function node(id: string, role: Role, parent: string | null = null, children = 0
     signature: null,
     review: null,
     debt: null,
+    summary: null,
   };
 }
 
@@ -44,6 +45,7 @@ const calls: ViewEdge = {
   edges: 1,
   best: "lsp",
   approximateOnly: false,
+  confirmed: 1,
   review: null,
 };
 

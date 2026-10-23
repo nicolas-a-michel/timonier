@@ -14,6 +14,8 @@ pub struct Graph {
     edges: Vec<Edge>,
     /// Nodes without a parent, sorted: the repository.
     roots: Vec<NodeId>,
+    /// What an agent said a box does (PLAN.md 11.10): laid over the graph, never stored.
+    summaries: HashMap<NodeId, String>,
 }
 
 impl Graph {
@@ -41,7 +43,21 @@ impl Graph {
             parents,
             edges,
             roots,
+            summaries: HashMap::new(),
         }
+    }
+
+    /// The summaries of the boxes, by id (`names.json`, PLAN.md 11.10).
+    pub fn with_summaries(mut self, summaries: impl IntoIterator<Item = (String, String)>) -> Self {
+        self.summaries = summaries
+            .into_iter()
+            .filter_map(|(id, s)| NodeId::parse(id).ok().map(|id| (id, s)))
+            .collect();
+        self
+    }
+
+    pub fn summary(&self, id: &NodeId) -> Option<&String> {
+        self.summaries.get(id)
     }
 
     pub fn node(&self, id: &NodeId) -> Option<&Node> {

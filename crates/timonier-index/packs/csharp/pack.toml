@@ -150,3 +150,21 @@ orm = ["Microsoft.EntityFrameworkCore", "Dapper", "NHibernate", "linq2db"]
 http-client = ["RestSharp", "Refit", "Flurl.Http"]
 mapping = ["AutoMapper", "Mapster"]
 validation = ["FluentValidation"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-dotnet 0.2.16 (Apache-2.0, verified on
+# 2026-10-22), which restores the solution and loads it with Roslyn.
+[scip]
+name = "scip-dotnet"
+program = "scip-dotnet"
+# Where its installer puts the indexer, under the home: the editor's `PATH` may lack it.
+bin_dirs = [".dotnet/tools"]
+args = ["index", "--output", "{output}"]
+install = "dotnet tool install --global scip-dotnet --version 0.2.16"
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+signature_words = ["public"]
+
+[code.tests]
+# A .NET test project: `Shop.Tests/`, `Shop.UnitTests/` (ADR 0069).
+folders = ["*.tests", "*.test", "*unittests"]

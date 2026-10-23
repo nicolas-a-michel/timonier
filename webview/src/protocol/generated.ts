@@ -210,7 +210,11 @@ review: NodeReview | null,
  * Its review debt: files written since the last review and not read since (ADR 0030);
  * `null` without any.
  */
-debt: NodeDebt | null, };
+debt: NodeDebt | null, 
+/**
+ * What it does, in a sentence or two, as an agent said it (PLAN.md 11.10); `null` without.
+ */
+summary: string | null, };
 
 export type ViewEdge = { src: string, dst: string, kind: EdgeKind, weight: number, 
 /**
@@ -225,6 +229,10 @@ best: Provenance,
  * Tree-sitter alone: drawn differently (spec « Displayed precision »).
  */
 approximateOnly: boolean, 
+/**
+ * How many of `edges` a manifest, a language server or SCIP confirmed (PLAN.md 11.5).
+ */
+confirmed: number, 
 /**
  * What changed since the last review; `null` without change (ADR 0024).
  */
@@ -472,7 +480,7 @@ export type Density = "comfortable" | "compact";
 
 export type DaemonState = "starting" | "connected" | "restarting" | "unavailable";
 
-export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "toggleIntent" } | { "name": "togglePerformance" } | { "name": "reveal", target: string, path: Array<string>, };
+export type MapCommand = { "name": "fitView" } | { "name": "zoomIn" } | { "name": "zoomOut" } | { "name": "closeAll" } | { "name": "toggle", target: string | null, } | { "name": "openCode", target: string | null, } | { "name": "move", target: string | null, direction: Direction, } | { "name": "resetLayout" } | { "name": "toggleChanges" } | { "name": "toggleReviewDetails" } | { "name": "toggleDebt" } | { "name": "toggleIntent" } | { "name": "togglePerformance" } | { "name": "toggleCertainty" } | { "name": "rename", target: string | null, } | { "name": "reveal", target: string, path: Array<string>, };
 
 export type WhiteboardTool = "select" | "pen" | "eraser" | "box" | "zone" | "note" | "budget" | "arrow";
 
@@ -835,6 +843,8 @@ export type IntentRead = { intent: Intent | null, problem: string | null, };
 
 export type IntentWriteParams = { intent: Intent, };
 
+export type NamesSetParams = { id: string, name: string | null, role: Role | null, };
+
 export type IntentWritten = { intent: Intent, changed: boolean, };
 
 export type HostMessage = { "type": "snapshot", snapshot: ViewSnapshot, } | { "type": "delta", delta: ViewDelta, } | { "type": "daemon", state: DaemonState, 
@@ -851,7 +861,7 @@ progress?: IndexProgress, } | { "type": "command", command: MapCommand, } | { "t
  */
 problem: string | null, } | { "type": "intentSaved", saved: boolean, detail: string | null, } | { "type": "drift", drift: DriftView | null, } | { "type": "perfMap", perf: PerfMap | null, } | { "type": "perfRuns", runs: PerfRuns, } | { "type": "perfRun", run: PerfRun | null, } | { "type": "perfRegressions", report: RegressionReport | null, } | { "type": "budgets", budgets: BudgetsView | null, };
 
-export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure", agents?: Array<string>, } | { "type": "detectAgents" } | { "type": "askWorkflow" } | { "type": "setWorkflow", workflow: Workflow, } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "showPerformance", on: boolean, } | { "type": "openPerformance" } | { "type": "chooseRun", run: string, } | { "type": "runTests" } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
+export type WebviewMessage = { "type": "ready", protocol: number, } | { "type": "subscribe", view: ViewSpec, } | { "type": "resync" } | { "type": "displayed", paths: Array<string>, } | { "type": "openCode", file: string, span: Span | null, } | { "type": "pins", pins: Record<string, Pin>, } | { "type": "markReviewed" } | { "type": "reveal", target: string, path: Array<string>, } | { "type": "openMap" } | { "type": "configure", agents?: Array<string>, } | { "type": "detectAgents" } | { "type": "askWorkflow" } | { "type": "setWorkflow", workflow: Workflow, } | { "type": "trackingShown", panel: string, revision: number, } | { "type": "intent", intent: Intent, } | { "type": "compareIntent", on: boolean, } | { "type": "openWhiteboard" } | { "type": "showPerformance", on: boolean, } | { "type": "openPerformance" } | { "type": "chooseRun", run: string, } | { "type": "runTests" } | { "type": "rename", target: string, name: string, role: Role | null, } | { "type": "rendered", subscription: number, revision: number, nodes: number, };
 
 export const METHODS = {
   INITIALIZE: "initialize",
@@ -882,6 +892,8 @@ export const METHODS = {
   INVENTORY_SBOM: "inventory/sbom",
   WORKFLOW_GET: "workflow/get",
   WORKFLOW_SET: "workflow/set",
+  SCIP_RUN: "scip/run",
+  NAMES_SET: "names/set",
 } as const;
 
 export const ERRORS = {

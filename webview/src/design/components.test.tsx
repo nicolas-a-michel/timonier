@@ -18,6 +18,14 @@ describe("component box", () => {
     expect(html).toContain('aria-label="x, Pas encore de rôle, 1 élément"');
   });
 
+  it("says what an agent said it does, on hover and to screen readers (PLAN.md 11.10)", () => {
+    const html = renderToStaticMarkup(
+      <ComponentBox name="store" role="persistence" items={2} locale="en" summary="Keeps the graph's history." />,
+    );
+    expect(html).toContain('title="Keeps the graph&#x27;s history."');
+    expect(html).toContain('aria-label="store, Persistence, 2 items. Keeps the graph&#x27;s history."');
+  });
+
   it("marks the selected box, not by colour alone", () => {
     const html = renderToStaticMarkup(<ComponentBox name="x" role="utility" items={0} locale="en" selected />);
     expect(html).toContain('aria-current="true"');
@@ -67,9 +75,19 @@ describe("edges", () => {
     expect(svg(false)).toContain("<title>a → b</title>");
   });
 
+  it("have long dashes when partly confirmed (PLAN.md 11.5)", () => {
+    const partial = renderToStaticMarkup(
+      <svg>
+        <EdgeLine d="M0 0H10" approximate={false} partial label="a → b" />
+      </svg>,
+    );
+    expect(partial).toContain("tim-edge--partial");
+    expect(partial).not.toContain("tim-edge--confirmed");
+  });
+
   it("have a legend in words", () => {
     const html = renderToStaticMarkup(<EdgeLegend locale="fr" />);
-    expect(html).toContain("Sûre : déclarée dans un manifeste, ou confirmée par un serveur de langage");
+    expect(html).toContain("Sûre : manifeste, serveur de langage ou SCIP");
     expect(html).toContain("Vue par tree-sitter seulement : approchée");
   });
 });

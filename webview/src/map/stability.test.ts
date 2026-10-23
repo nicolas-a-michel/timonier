@@ -46,6 +46,7 @@ function changes(): { name: string; nodes: ViewNode[]; edges: ViewEdge[] }[] {
     edges: 1,
     best: "tree_sitter",
     approximateOnly: true,
+    confirmed: 0,
     review: null,
   };
   return [

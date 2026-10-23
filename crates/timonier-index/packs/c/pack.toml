@@ -171,3 +171,25 @@ http-server = ["libmicrohttpd", "mongoose", "civetweb"]
 test-framework = ["cmocka", "check", "unity", "criterion", "gtest", "GTest"]
 tls = ["openssl", "OpenSSL", "mbedtls", "wolfssl"]
 compression = ["zlib", "ZLIB", "zstd", "lz4", "bzip2"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-clang 0.4.1 (Apache-2.0, beta,
+# verified on 2026-10-22), binaries for x86_64 Linux and arm64 macOS only. It reads the
+# compilation database of a build done, and writes `index.scip` where it runs.
+[scip]
+name = "scip-clang"
+program = "scip-clang"
+# Where its installer puts the indexer, under the home: the editor's `PATH` may lack it.
+bin_dirs = [".local/bin"]
+args = ["--compdb-path={needs}"]
+note = "install scip-clang from its releases (https://github.com/sourcegraph/scip-clang/releases)."
+needs = ["compile_commands.json", "build/compile_commands.json"]
+needs_note = "configure the build with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` and build it once: scip-clang reads `compile_commands.json`."
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# What a file keeps to itself is `static`.
+hidden_starts = ["static "]
+members = ["::"]
+
+[code.tests]
+files = ["*_test.c", "*_unittest.c"]

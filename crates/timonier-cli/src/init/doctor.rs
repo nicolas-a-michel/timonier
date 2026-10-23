@@ -80,9 +80,6 @@ fn finding(change: &Change) -> Option<String> {
         }
         // The record: bookkeeping, repaired with the rest.
         RECORD => return None,
-        ".config/nextest.toml" => {
-            "the nextest profile that writes the tests' JUnit XML is missing".to_owned()
-        }
         plan::TESTS => {
             "the record of the test runners (.timonier/tests.json) is missing or out of date"
                 .to_owned()
@@ -91,6 +88,8 @@ fn finding(change: &Change) -> Option<String> {
             let language = path.split('/').nth(2).unwrap_or("?");
             format!("the {language} conventions are missing or out of date ({path})")
         }
+        // A test runner's configuration, which the packs name and say what it is for.
+        _ if let Some(purpose) = runner_purpose(&path) => format!("{purpose} is missing"),
         _ if path.ends_with("pre-commit") => {
             "the git hook that writes .timonier/actual.json is missing".to_owned()
         }
@@ -100,6 +99,17 @@ fn finding(change: &Change) -> Option<String> {
         }
         _ => format!("{path} is not as Timonier writes it"),
     })
+}
+
+/// What a test runner's configuration file is for, when `path` is one the packs name.
+fn runner_purpose(path: &str) -> Option<String> {
+    timonier_daemon::Packs::builtin_manifests()
+        .ok()?
+        .into_iter()
+        .flat_map(|m| m.tests.runners.into_iter())
+        .filter_map(|r| r.config)
+        .find(|c| c.file == path)
+        .map(|c| c.purpose)
 }
 
 /// The setup of the project at `root`, checked against its record.

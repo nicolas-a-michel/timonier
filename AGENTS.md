@@ -11,6 +11,7 @@ This project is steered with Timonier. Its MCP server, `timonier`, holds the pro
 - Never edit `.timonier/` by hand: the tools write `plan.json`, `todo.json` and `sessions/`, and `intent.json`, the whiteboard, belongs to the developer.
 - Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
 - After adding or changing a dependency, read `get_tech_inventory`: duplicates by function, licences, known vulnerabilities.
+- To find your way in the code, read the map the developer sees: `query_graph` for the boxes and their links, `get_component` for one box. When a box has a name or a role that does not say what it does, or no summary, propose them with `propose_component_name`; what the developer named stays theirs.
 - Before starting a task of the plan, read `get_workflow`: the project's process (tickets, a branch per task, pull requests); start the task with `task_start`, which follows it.
 - Every tool result starts with a mailbox header: read the messages it announces.
 <!-- timonier:end -->

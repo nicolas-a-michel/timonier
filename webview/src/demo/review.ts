@@ -72,6 +72,7 @@ export function withReview(open: ViewSnapshot, since: number): ViewSnapshot {
     edges: 1,
     best: "lsp",
     approximateOnly: false,
+    confirmed: 1,
     review: null,
   };
   const nodes = open.nodes.map((node) => ({ ...node, review: NODES[node.id] ?? null, debt: DEBT[node.id] ?? null }));

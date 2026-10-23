@@ -33,11 +33,12 @@ function node(id: string, review: NodeReview | null = null, parent: string | nul
     signature: null,
     review,
     debt: null,
+    summary: null,
   };
 }
 
 function edge(src: string, dst: string, review: ViewEdge["review"] = null): ViewEdge {
-  return { src, dst, kind: "calls", weight: 1, edges: 1, best: "lsp", approximateOnly: false, review };
+  return { src, dst, kind: "calls", weight: 1, edges: 1, best: "lsp", approximateOnly: false, confirmed: 1, review };
 }
 
 function view(nodes: ViewNode[], edges: ViewEdge[], review: ReviewSummary = NO_REVIEW): ViewData {

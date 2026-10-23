@@ -6,9 +6,31 @@
   "tasks": [
     "T-107"
   ],
-  "status": "open",
+  "status": "ended",
   "started_at": "2026-10-22T18:19:43Z",
+  "ended_at": "2026-10-22T18:20:18Z",
   "snapshots": {
-    "start": 173
+    "start": 173,
+    "end": 175
+  },
+  "summary": "Phases 9 and 10 validated by the human; ADR 0055 to 0072 accepted; PLAN.md statuses and Journal updated; committed and pushed as 2d47170 (docs, plan, palette command timonier.runTests). Left: the 0.1.2 release is still publishing; Phase 11 waits for the human's signal.",
+  "changes": {
+    "files": 0,
+    "added": [],
+    "modified": [],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 5,
+    "input": 12,
+    "output": 2256,
+    "cache_read": 2417099,
+    "cache_creation": 5863,
+    "cost_usd_micros": 575492
   }
 }

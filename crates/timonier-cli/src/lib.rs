@@ -8,6 +8,7 @@ mod init;
 mod inventory;
 mod mcp;
 mod measure;
+mod scip;
 mod telemetry;
 mod test;
 
@@ -42,6 +43,9 @@ enum Command {
     /// Check the whiteboard's budgets on the last runs and its architecture rules; what the CI
     /// replays after the tests (fails when one does not hold)
     Check(check::CheckArgs),
+    /// The SCIP indexers of the project's languages, which make the map exact after each commit;
+    /// `--install` installs the missing ones
+    Scip(scip::ScipArgs),
     /// The measuring relay of `timonier test`
     #[command(name = "__measure", hide = true)]
     Measure(measure::MeasureArgs),
@@ -86,6 +90,7 @@ pub fn run() -> ExitCode {
         Some(Command::Test(args)) => test::run(&args),
         Some(Command::Inventory(args)) => inventory::run(&args),
         Some(Command::Check(args)) => check::run(&args),
+        Some(Command::Scip(args)) => scip::run(&args),
         Some(Command::Measure(args)) => measure::run(&args),
         Some(Command::Uninit(args)) => init::run_uninit(&args),
         Some(Command::Doctor(args)) => init::run_doctor(&args),

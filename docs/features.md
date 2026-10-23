@@ -153,7 +153,27 @@ measured on Timonier itself. The [README](../README.md) gives the overview.
     symbols. An open box becomes a frame around its contents;
   - edges are dependencies and calls. As in a node editor, they leave a box on its right and
     enter the other on its left. Edges known only from tree-sitter are dashed. Edges declared
-    in a manifest (`Cargo.toml`, `package.json`) or confirmed by a language server are solid.
+    in a manifest (`Cargo.toml`, `package.json`), or confirmed by a language server or by a
+    SCIP index after each commit, are solid; long dashes are partly confirmed. Measured on six open-source projects (PLAN.md 11.8), a SCIP index confirms 96 to 100 % of the
+    links between files and 99 to 100 % of those between the finest boxes; links to external
+    dependencies stay dashed, since no index of the repository defines them. Each language's
+    SCIP indexer (rust-analyzer, scip-typescript, scip-python, scip-go, scip-java, scip-clang,
+    scip-dotnet; none for Scala, Swift and PHP) is installed only on approval (`tim scip
+    --install`, or « Install the SCIP Indexers »), and runs in the background after each
+    commit and at start, one at a time, at low priority, cancelled by a newer commit, stopped
+    after 10 minutes: 0.4 to 10.4 s and up to 1.1 GB on the projects of PLAN.md 11.1 and 11.4 (Java:
+    10.4 s with Maven's cache, 34.8 s building from nothing). An index that confirms under 70 % of tree-sitter's links (a project
+    not built) is not applied; `tim scip` and `tim doctor` say why. `TIMONIER_SCIP=off`
+    turns the indexers off. The
+    « Certainty » layer (toolbar and command) gives each box the share of its links confirmed,
+    the counts in its tooltip, and the map the share of the links it draws. F2, a double
+    click or « Timonier: Rename the Box and Change Its Role » renames a package or a component
+    and changes its role, kept in `.timonier/names.json` (versioned); an agent proposes names,
+    roles and a one- or two-sentence summary through `propose_component_name` (the summary shows
+    in the box's tooltip and details), and what the developer named stays theirs. The agent
+    reads the same map through `query_graph` (the top boxes, then the boxes it opens, with their
+    links) and `get_component` (one box: its contents, what it uses and what uses it, and how
+    many of those links are confirmed).
     Pointing at a box colours its edges;
   - the layout stays stable when the code changes: on Timonier, unchanged boxes move less than
     5 px on average when a file is added, and not at all when a call is. Opening a box makes

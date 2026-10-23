@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-7",
+  "agent": "claude-code",
+  "objective": "11.11: a C# using (and any import of a whole namespace or package) links to the files of the namespace the file cites a name of, not to the first file found.",
+  "tasks": [
+    "T-143"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T07:46:31Z",
+  "ended_at": "2026-10-23T07:51:13Z",
+  "snapshots": {
+    "start": 189,
+    "end": 190
+  },
+  "summary": "11.11 done: whole-namespace imports (C# using, Swift import) link to the files they bring a cited name from; C# precision 75 → 99 % on aspnetcore-realworld; test added; index tests and clippy green. Next: 11.10, the agent reads the graph (query_graph, get_component) and proposes summaries.",
+  "changes": {
+    "files": 2,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 20,
+    "input": 42,
+    "output": 11280,
+    "cache_read": 18565337,
+    "cache_creation": 21173,
+    "cost_usd_micros": 4108222
+  }
+}

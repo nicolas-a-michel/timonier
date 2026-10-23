@@ -207,3 +207,31 @@ mocking = ["org.mockito:mockito-core", "io.mockk:mockk", "org.easymock:easymock"
 orm = ["org.hibernate.orm:hibernate-core", "org.jooq:jooq", "org.mybatis:mybatis", "org.eclipse.persistence:eclipselink"]
 migrations = ["org.flywaydb:flyway-core", "org.liquibase:liquibase-core"]
 cli-parser = ["info.picocli:picocli", "commons-cli:commons-cli", "com.beust:jcommander"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-java 0.13.2 (Apache-2.0, verified on
+# 2026-10-22), launched by coursier. It builds the project with Maven or Gradle, `clean` first:
+# it runs in a worktree of the commit, not in the developer's tree.
+[scip]
+name = "scip-java"
+program = "scip-java"
+# Where its installer puts the indexer, under the home: the editor's `PATH` may lack it.
+bin_dirs = [".local/share/coursier/bin"]
+args = ["index", "--build-tool={variant}", "--output", "{output}"]
+# Installed once, on approval (Q94): coursier writes a launcher of scip-java 0.13.2, checked on
+# 2026-10-23 (`scip-java --version`). `{home}` is the user's folder.
+install = "coursier bootstrap org.scip-code:scip-java:0.13.2 -M org.scip_code.scip_java.ScipJava -o {home}/.local/share/coursier/bin/scip-java"
+note = "scip-java is installed by coursier (https://get-coursier.io/docs/cli-installation) and runs on a JDK 17 or later."
+in_place = false
+# A project with both builds (spring-petclinic) must say which: Maven when there is a `pom.xml`.
+variants = [
+  { when = "pom.xml", value = "maven" },
+  { when = "build.gradle.kts", value = "gradle" },
+  { when = "build.gradle", value = "gradle" },
+  { when = "settings.gradle.kts", value = "gradle" },
+  { when = "settings.gradle", value = "gradle" },
+]
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# `public` among the modifiers, annotations before them.
+signature_words = ["public"]

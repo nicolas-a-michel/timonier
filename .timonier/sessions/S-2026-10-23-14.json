@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-14",
+  "agent": "claude-code",
+  "objective": "11.9: fix what the Phase 11 review found (B1, I1–I11, minors), then review again.",
+  "tasks": [
+    "T-141"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T09:51:40Z",
+  "ended_at": "2026-10-23T10:20:35Z",
+  "snapshots": {
+    "start": 203,
+    "end": 204
+  },
+  "summary": "The first review's findings are fixed and tested, each listed in PLAN.md 11.9:\n- B1: .timonier/scip/ is ignored by git.\n- I1: a worktree index leaves out the files changed since the commit.\n- I2: a Go package import leads to the files of the package it uses.\n- I3/I4/I11: tests of the SCIP path, of typed_range and UTF-16/UTF-32 columns, and isolation from installed indexers.\n- I5: cancelling an indexer kills its process group.\n- I6: scip-java is installed by coursier bootstrap, on approval.\n- I7: SCIP is documented.\n- I8: a11y test of the certainty layer.\n- I9: the precision comparison is in the repository.\n- I10: not a defect.\n- m1–m13: fixed or recorded.\nFull Rust suite (36 binaries), clippy, Node tests, lint, typecheck and a11y (200) are green. Left: the second phase-reviewer run, in progress, then the phase summary for the human.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "B1: .timonier/scip/ ignored by git (its own .gitignore, as perf/)",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "I1: an index made in a worktree applies only to files whose content is the commit's",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "I3, I4, I11: tests of apply_scip, scip/run, timonier scip, doctor notes, typed_range and UTF-16; the suite isolated from installed indexers",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "I2: a Go import of a whole package leads to the files used; I9: the precision measurement in the repository",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "I6, I7, I8: coursier approval, SCIP documented, the certainty layer's a11y test",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-6",
+      "text": "I5, I10 and the minors (m1–m13), then a second review",
+      "task": "T-141",
+      "status": "open"
+    }
+  ],
+  "changes": {
+    "files": 25,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/test/a11y",
+        "name": "a11y",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/examples",
+        "name": "examples",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 131,
+    "input": 266,
+    "output": 97017,
+    "cache_read": 71578986,
+    "cache_creation": 164803,
+    "cost_usd_micros": 17575621
+  }
+}

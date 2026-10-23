@@ -33,6 +33,7 @@ import { intentMarks, type IntentMark, type IntentMarks } from "./intent";
 import type { Obstacle } from "./labelSpot";
 import { IntentPanel } from "./intentPanel";
 import { budgetMarks, perfMarks, type PerfMark, type PerfMarks } from "./perf";
+import { certaintyMarks, lineCertainty, sureShare, type CertaintyMarks, type Sureness } from "./certainty";
 import { PerfPanel } from "./perfPanel";
 import { reviewLines, ReviewSummaryPanel } from "./review";
 import { absolute } from "./stability";
@@ -84,6 +85,12 @@ export interface MapViewProps {
   onOpenPerformance?: () => void;
   /** The whiteboard's budgets on the last runs: an exceeded one marks its box, always (Q74). */
   budgets?: BudgetsView | null;
+  /** How sure each box and link is, and the whole map (PLAN.md 11.5). */
+  showCertainty?: boolean;
+  onToggleCertainty?: () => void;
+  /** F2, a double click or the command on a package or a component: the host asks its name
+   * and role (ADR 0075). */
+  onRename?: (box: { target: string; name: string; role: Role | null }) => void;
 }
 
 /** What an item cost in the run, for screen readers and the details (ADR 0051). */
@@ -92,6 +99,15 @@ function perfLine(mark: PerfMark | undefined, locale: Locale): string[] {
   return [
     `${performanceMessages[locale].boxWords(duration(mark.totalNs, locale), duration(mark.selfNs, locale), mark.calls)}.`,
     `${performanceMessages[locale].shareWords(percent(mark.share, locale))}${mark.largest ? ` (${performanceMessages[locale].largestShare})` : ""}.`,
+  ];
+}
+
+/** How sure an item is, for screen readers (PLAN.md 11.5). */
+function sureLine(sure: Sureness | undefined, locale: Locale): string[] {
+  const share = sure ? sureShare(sure) : null;
+  if (!sure || share === null) return [];
+  return [
+    `${messages[locale].sureWords(percent(share, locale))}: ${messages[locale].sureTip(sure.confirmed, sure.of)}.`,
   ];
 }
 
@@ -157,12 +173,20 @@ function describe(item: MapItem, locale: Locale): { name: string; label: string;
         : "";
   const changes = reviewLines(node.review, locale);
   const said = changes.map((line) => ` ${line}.`).join("");
+  // What an agent said the box does (PLAN.md 11.10).
+  const summary = node.summary ? ` ${node.summary}` : "";
   return {
     name: node.name,
     label: symbol
       ? `${node.name}, ${kind}, ${t.items(node.children)}.${said}${hint}`
-      : `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${said}${hint}`,
-    lines: [symbol ? kind : `${kind} · ${role}`, t.items(node.children), ...(node.file ? [node.file] : []), ...changes],
+      : `${node.name}, ${kind}, ${role}, ${t.items(node.children)}.${summary}${said}${hint}`,
+    lines: [
+      symbol ? kind : `${kind} · ${role}`,
+      ...(node.summary ? [node.summary] : []),
+      t.items(node.children),
+      ...(node.file ? [node.file] : []),
+      ...changes,
+    ],
   };
 }
 
@@ -176,6 +200,7 @@ function flowNodes(
   marks?: IntentMarks,
   perf?: PerfMarks,
   budgets?: Map<string, string[]>,
+  certainty?: CertaintyMarks,
 ): Node[] {
   const nodes: Node[] = [];
   const ins = new Set(content.edges.map((edge) => edge.target));
@@ -195,6 +220,7 @@ function flowNodes(
         ...(debt ? debtLine(item.kind === "role" ? item.debt : item.node.debt, locale) : []),
         ...intentLine(marks?.items.get(item.id), locale),
         ...perfLine(perf?.items.get(item.id), locale),
+        ...sureLine(certainty?.items.get(item.id), locale),
         ...(budgets?.get(item.id) ?? []).map((said) => `${said}.`),
       ].join(" "),
       draggable: true,
@@ -218,6 +244,7 @@ function flowNodes(
           intent: marks?.items.get(item.id),
           perf: perf && (perf.items.get(item.id) ?? null),
           budgets: budgets?.get(item.id),
+          sure: certainty && (certainty.items.get(item.id) ?? null),
         },
       } satisfies RoleNode);
     } else {
@@ -235,6 +262,7 @@ function flowNodes(
           intent: marks?.items.get(item.id),
           perf: perf && (perf.items.get(item.id) ?? null),
           budgets: budgets?.get(item.id),
+          sure: certainty && (certainty.items.get(item.id) ?? null),
         },
       } satisfies BoxNode);
     }
@@ -284,7 +312,7 @@ function flowEdges(
             names.get(line.source) ?? line.source,
             names.get(line.target) ?? line.target,
             line.edges,
-            line.approximate,
+            line.confirmed,
           ),
           ...(line.review?.added ? [`${t.review.addedLong}.`] : []),
           ...(line.review?.cycle ? [`${t.review.cycleLong}.`] : []),
@@ -343,6 +371,9 @@ function Canvas({
   onTogglePerformance,
   onOpenPerformance,
   budgets,
+  showCertainty = false,
+  onToggleCertainty,
+  onRename,
 }: MapViewProps) {
   // Before the first review there is nothing to highlight: the map shows as it is (Q27).
   const onlyChanges = filter && view.review.since !== null;
@@ -401,12 +432,28 @@ function Canvas({
     () => (budgets && placed ? budgetMarks(budgets, placed.content, view, locale) : undefined),
     [budgets, placed, view, locale],
   );
+  // How sure each box and link is, and the whole map, when the layer is on (PLAN.md 11.5).
+  const certainty = useMemo(
+    () => (showCertainty && placed ? certaintyMarks(placed.content) : undefined),
+    [showCertainty, placed],
+  );
   const laidOut = useMemo(
     () =>
       placed
-        ? flowNodes(placed.content, placed.layout, locale, onlyChanges, density, showDebt, marks, perf, exceeded)
+        ? flowNodes(
+            placed.content,
+            placed.layout,
+            locale,
+            onlyChanges,
+            density,
+            showDebt,
+            marks,
+            perf,
+            exceeded,
+            certainty,
+          )
         : [],
-    [placed, locale, onlyChanges, density, showDebt, marks, perf, exceeded],
+    [placed, locale, onlyChanges, density, showDebt, marks, perf, exceeded, certainty],
   );
   const nodes = useMemo(
     () =>
@@ -524,6 +571,13 @@ function Canvas({
     const code = codeOf(id);
     if (code) onOpenCode?.(code.file, code.span);
   };
+  /** A package or a component, named by hand (ADR 0075); files and symbols keep their names. */
+  const rename = (id: string | undefined) => {
+    const node = nodeOf(id);
+    if (!node || (node.kind !== "package" && node.kind !== "component")) return false;
+    onRename?.({ target: node.id, name: node.name, role: node.role });
+    return true;
+  };
   /** A click or Enter: open what can be opened, else go to its code. */
   const activate = (id: string | undefined) => {
     const item = id ? items.get(id) : undefined;
@@ -588,6 +642,12 @@ function Canvas({
         return;
       case "togglePerformance":
         onTogglePerformance?.();
+        return;
+      case "toggleCertainty":
+        onToggleCertainty?.();
+        return;
+      case "rename":
+        rename(command.target ?? focused);
         return;
     }
   };
@@ -656,6 +716,11 @@ function Canvas({
     }
     if (!target.classList.contains("react-flow__node")) return;
     const id = target.dataset.id;
+    // F2, as everywhere in the editor: rename (ADR 0075).
+    if (event.key === "F2") {
+      if (rename(id)) event.preventDefault();
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       if (event.shiftKey) openCode(id);
@@ -742,7 +807,10 @@ function Canvas({
           zIndexMode="manual"
           onMove={(_, viewport) => setFar(viewport.zoom < FAR_ZOOM)}
           onNodeClick={(_, node) => activate(node.id)}
-          onNodeDoubleClick={(_, node) => openCode(node.id)}
+          // A file or a symbol: its code; a package or a component: its name (ADR 0075).
+          onNodeDoubleClick={(_, node) => {
+            if (!rename(node.id)) openCode(node.id);
+          }}
           onNodeMouseEnter={(_, node) => setShownId(node.id)}
 
           ariaLabelConfig={{
@@ -779,6 +847,9 @@ function Canvas({
                       },
                     ]
                   : []),
+                ...(onToggleCertainty
+                  ? [{ id: "certainty", label: t.certaintyLayer, pressed: showCertainty, onSelect: onToggleCertainty }]
+                  : []),
               ]}
             />
           </Panel>
@@ -790,6 +861,10 @@ function Canvas({
               intent={compareIntent && intent?.drawn === true}
               performance={Boolean(perf)}
               budgets={Boolean(exceeded && exceeded.size > 0)}
+              partial={
+                placed?.content.edges.some((line) => lineCertainty(line.confirmed, line.edges) === "partial") ?? false
+              }
+              {...(certainty ? { sure: sureShare(certainty.whole) } : {})}
             />
           </Panel>
           {described && (

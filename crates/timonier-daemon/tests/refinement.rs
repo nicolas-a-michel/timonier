@@ -312,6 +312,7 @@ fn the_watch_refines_when_idle() {
     let (repo, db) = repository();
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
     let mut pipeline = Pipeline::new(repo.path(), store.clone()).unwrap();
+    pipeline.without_scip();
     pipeline.index_all().unwrap();
     let (send, receive) = mpsc::channel();
     let watch = Watch::start(
@@ -351,7 +352,8 @@ enum Step {
 
 /// A watch on `pipeline` with the double, whose watcher says nothing for 10 s: longer than the
 /// tests. Its steps, once its own first indexing is done.
-fn quiet_watch(pipeline: Pipeline) -> (Watch, mpsc::Receiver<Step>) {
+fn quiet_watch(mut pipeline: Pipeline) -> (Watch, mpsc::Receiver<Step>) {
+    pipeline.without_scip();
     let (send, receive) = mpsc::channel();
     let watch = Watch::start(
         pipeline,
@@ -361,7 +363,9 @@ fn quiet_watch(pipeline: Pipeline) -> (Watch, mpsc::Receiver<Step>) {
             let step = match event {
                 Event::Refined(refined) => Step::Refined(refined.expect("test helper")),
                 Event::Indexed(_) => Step::Indexed,
-                Event::Committed(_) | Event::Reviewed(_) | Event::Frozen(_) => return,
+                Event::Committed(_) | Event::Reviewed(_) | Event::Frozen(_) | Event::Scip(_) => {
+                    return;
+                }
             };
             let _ = send.send(step);
         },
@@ -2706,6 +2710,7 @@ fn the_watch_follows_an_ignore_file() {
     write(root, "crates/core/src/gen.rs", "pub fn generated() {}\n");
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
     let mut pipeline = Pipeline::new(root, store.clone()).unwrap();
+    pipeline.without_scip();
     pipeline.index_all().unwrap();
     let (indexed, first_indexing) = mpsc::channel();
     let watch = Watch::start(pipeline, Duration::from_millis(100), None, move |event| {
@@ -2800,6 +2805,7 @@ fn the_watch_follows_git_s_own_ignore_file() {
     write(root, "crates/core/src/gen.rs", "pub fn generated() {}\n");
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
     let mut pipeline = Pipeline::new(root, store.clone()).unwrap();
+    pipeline.without_scip();
     pipeline.index_all().unwrap();
     let gen_rs = "crates/core/src/gen.rs".to_owned();
     assert!(files_at_head(&store).contains(&gen_rs));
@@ -2827,7 +2833,8 @@ fn the_watch_follows_git_s_own_ignore_file() {
 }
 
 /// A watch on `pipeline`, once its own first indexing is done: the watches are in place.
-fn watch_indexed(pipeline: Pipeline) -> Watch {
+fn watch_indexed(mut pipeline: Pipeline) -> Watch {
+    pipeline.without_scip();
     let (indexed, first_indexing) = mpsc::channel();
     let watch = Watch::start(pipeline, Duration::from_millis(100), None, move |event| {
         if let Event::Indexed(_) = event {

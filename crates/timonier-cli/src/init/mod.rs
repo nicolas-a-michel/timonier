@@ -602,18 +602,27 @@ pub fn run_doctor(args: &DoctorArgs) -> ExitCode {
         }
         let paranoid = std::fs::read_to_string("/proc/sys/kernel/perf_event_paranoid").ok();
         let counters = doctor::counters_note(paranoid.as_deref());
+        let (scip_notes, scip_info) = crate::scip::doctor_notes(&root);
         if checked.findings.is_empty() {
             println!("Timonier is set up and in order in {}.", root.display());
-            for said in checked.repair.info.iter().chain(&smoked).chain(&counters) {
+            for said in checked
+                .repair
+                .info
+                .iter()
+                .chain(&smoked)
+                .chain(&counters)
+                .chain(&scip_info)
+                .chain(&scip_notes)
+            {
                 println!("  - {said}");
             }
             return Ok(true);
         }
         println!("Timonier in {}:", root.display());
-        for said in &smoked {
+        for said in smoked.iter().chain(&scip_info) {
             println!("  - {said}");
         }
-        if let Some(note) = &counters {
+        for note in counters.iter().chain(&scip_notes) {
             println!("  - {note} (a note)");
         }
         for finding in &checked.findings {

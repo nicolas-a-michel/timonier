@@ -19,6 +19,7 @@ function node(id: string, parent: string | null, children: number): ViewNode {
     signature: null,
     review: null,
     debt: null,
+    summary: null,
   };
 }
 

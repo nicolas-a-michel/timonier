@@ -1525,7 +1525,7 @@ pub fn cpp_code_name(name: &str) -> String {
 
 /// The name of a PEP 508 requirement (`requests[socks]>=2; python_version<"4"` → `requests`),
 /// normalised.
-fn requirement_name(requirement: &str) -> Option<String> {
+pub(crate) fn requirement_name(requirement: &str) -> Option<String> {
     let name: String = requirement
         .trim()
         .chars()
@@ -1535,7 +1535,7 @@ fn requirement_name(requirement: &str) -> Option<String> {
 }
 
 /// PEP 503: lower case, and every run of `-`, `_` and `.` one `-`.
-fn normalise_python(name: &str) -> String {
+pub(crate) fn normalise_python(name: &str) -> String {
     let mut normal = String::with_capacity(name.len());
     for c in name.chars() {
         if matches!(c, '-' | '_' | '.') {

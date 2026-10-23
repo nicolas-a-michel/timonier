@@ -53,7 +53,15 @@ export interface Messages {
   folded: (count: number) => string;
   foldedHint: string;
   /** An edge of the map, for screen readers. */
-  edgeLabel: (source: string, target: string, links: number, approximate: boolean) => string;
+  /** A line of the map, for screen readers: its ends, its links and how many are confirmed. */
+  edgeLabel: (source: string, target: string, links: number, confirmed: number) => string;
+  edgePartial: string;
+  /** The certainty layer (PLAN.md 11.5). */
+  certaintyLayer: string;
+  sureWords: (percent: string) => string;
+  sureTip: (confirmed: number, of: number) => string;
+  mapSure: (percent: string) => string;
+  mapSureNone: string;
   kinds: Record<"repo" | "component" | "package" | "file" | "symbol", string>;
   /** What a symbol is (T-114), and its tooltip: the kind, then its signature. */
   symbolKinds: Record<SymbolKind, string>;
@@ -187,7 +195,7 @@ export const messages: Record<Locale, Messages> = {
     },
     noRole: "No role yet",
     items: (count) => (count === 1 ? "1 item" : `${count} items`),
-    edgeConfirmed: "Certain: declared in a manifest, or confirmed by a language server",
+    edgeConfirmed: "Certain: a manifest, a language server or SCIP",
     edgeApproximate: "Seen by tree-sitter only: approximate",
     edgeDirection: "Leaves a box on the right, enters the other on the left",
     edgeLegend: "Links: dependencies and calls",
@@ -210,8 +218,17 @@ export const messages: Record<Locale, Messages> = {
     goToCode: "Go to the code",
     folded: (count) => `${count} folded`,
     foldedHint: "Folded to keep the map fluid: Enter shows its contents.",
-    edgeLabel: (source, target, links, approximate) =>
-      `${source} to ${target}: ${links === 1 ? "1 link" : `${links} links`}, ${approximate ? "approximate" : "certain"}`,
+    edgeLabel: (source, target, links, confirmed) =>
+      `${source} to ${target}: ${links === 1 ? "1 link" : `${links} links`}, ${
+        confirmed >= links ? "certain" : confirmed === 0 ? "approximate" : `${confirmed} confirmed`
+      }`,
+    edgePartial: "Partly confirmed",
+    certaintyLayer: "Certainty",
+    sureWords: (percent) => `${percent} sure`,
+    sureTip: (confirmed, of) =>
+      `${confirmed} of ${of} ${of === 1 ? "link" : "links"} confirmed by a manifest, a language server or SCIP; the others seen by tree-sitter alone`,
+    mapSure: (percent) => `${percent} of the links drawn are confirmed`,
+    mapSureNone: "No link drawn yet",
     kinds: { repo: "Repository", component: "Component", package: "Package", file: "File", symbol: "Symbol" },
     symbolKinds: {
       module: "Module",
@@ -331,7 +348,7 @@ export const messages: Record<Locale, Messages> = {
     },
     noRole: "Pas encore de rôle",
     items: (count) => (count === 1 ? "1 élément" : `${count} éléments`),
-    edgeConfirmed: "Sûre : déclarée dans un manifeste, ou confirmée par un serveur de langage",
+    edgeConfirmed: "Sûre : manifeste, serveur de langage ou SCIP",
     edgeApproximate: "Vue par tree-sitter seulement : approchée",
     edgeDirection: "Sort d'une boîte à droite, entre dans l'autre à gauche",
     edgeLegend: "Liens : dépendances et appels",
@@ -359,8 +376,23 @@ export const messages: Record<Locale, Messages> = {
     goToCode: "Aller au code",
     folded: (count) => `${count} repliés`,
     foldedHint: "Replié pour garder la carte fluide : Entrée montre son contenu.",
-    edgeLabel: (source, target, links, approximate) =>
-      `${source} vers ${target} : ${links === 1 ? "1 lien" : `${links} liens`}, ${approximate ? "approché" : "sûr"}`,
+    edgeLabel: (source, target, links, confirmed) =>
+      `${source} vers ${target} : ${links === 1 ? "1 lien" : `${links} liens`}, ${
+        confirmed >= links
+          ? links === 1
+            ? "sûr"
+            : "sûrs"
+          : confirmed === 0
+            ? "approché"
+            : `${confirmed} ${confirmed === 1 ? "confirmé" : "confirmés"}`
+      }`,
+    edgePartial: "En partie confirmée",
+    certaintyLayer: "Certitude",
+    sureWords: (percent) => `${percent} sûrs`,
+    sureTip: (confirmed, of) =>
+      `${confirmed} ${confirmed <= 1 ? "lien" : "liens"} sur ${of} ${confirmed <= 1 ? "confirmé" : "confirmés"} par un manifeste, un serveur de langage ou SCIP ; les autres vus par tree-sitter seul`,
+    mapSure: (percent) => `${percent} des liens dessinés sont confirmés`,
+    mapSureNone: "Aucun lien dessiné pour l'instant",
     kinds: { repo: "Dépôt", component: "Composant", package: "Paquet", file: "Fichier", symbol: "Symbole" },
     symbolKinds: {
       module: "Module",

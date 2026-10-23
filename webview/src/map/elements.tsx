@@ -23,6 +23,7 @@ import type { Density, NodeDebt, Role } from "../protocol";
 import { METRICS } from "./layout";
 import type { IntentMark } from "./intent";
 import { trafficWidth, type PerfMark } from "./perf";
+import { lineCertainty, sureShare, type Sureness } from "./certainty";
 import { performanceMessages } from "../performance/messages";
 import { duration, percent } from "../performance/model";
 import { labelSpot, type Obstacle } from "./labelSpot";
@@ -77,7 +78,22 @@ export type Quiet = {
   perf?: PerfMark | null;
   /** The budgets it holds that the last runs exceed, in words (ADR 0052). */
   budgets?: string[];
+  /** The certainty layer is on (PLAN.md 11.5): its links confirmed, `null` without a link. */
+  sure?: Sureness | null;
 };
+
+/** How sure a box is (PLAN.md 11.5): its share of links confirmed; the counts in its tooltip. */
+function SureWords({ sure, locale }: { sure: Sureness | null | undefined; locale: Locale }) {
+  if (!sure) return null;
+  const t = messages[locale];
+  const share = sureShare(sure);
+  if (share === null) return null;
+  return (
+    <span className="tim-sure-words" title={t.sureTip(sure.confirmed, sure.of)}>
+      {t.sureWords(percent(share, locale))}
+    </span>
+  );
+}
 
 /** A budget the last runs exceed (Q74, ADR 0052): the violation's shape and word, in the title
  * bar; what it says, on hover and in the item's name. */
@@ -195,6 +211,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
             <IntentFlag mark={data.intent} locale={locale} />
             <BudgetFlag said={data.budgets} locale={locale} />
             {data.perf && <PerfWords mark={data.perf} locale={locale} />}
+            <SureWords sure={data.sure} locale={locale} />
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -222,6 +239,7 @@ export function RoleElement({ data }: NodeProps<RoleNode>) {
           <IntentFlag mark={data.intent} locale={locale} />
           <BudgetFlag said={data.budgets} locale={locale} />
           {data.perf && <PerfWords mark={data.perf} locale={locale} />}
+          <SureWords sure={data.sure} locale={locale} />
         </div>
         <ul className="tim-map-role__members">
           {shown.map((member) => {
@@ -281,7 +299,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
           data-contrast="outline"
           data-role={symbol ? undefined : (node.role ?? undefined)}
           data-symbol={symbol?.kind}
-          title={symbol ? t.symbolTip(t.symbolKinds[symbol.kind], symbol.signature) : undefined}
+          title={symbol ? t.symbolTip(t.symbolKinds[symbol.kind], symbol.signature) : (node.summary ?? undefined)}
         >
           <div className="tim-map-frame__header" data-contrast="icon">
             {symbol ? <SymbolIcon kind={symbol.kind} /> : <RoleIcon role={node.role} />}
@@ -294,6 +312,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
             <IntentFlag mark={data.intent} locale={locale} />
             <BudgetFlag said={data.budgets} locale={locale} />
             {data.perf && <PerfWords mark={data.perf} locale={locale} />}
+            <SureWords sure={data.sure} locale={locale} />
           </div>
         </div>
         <Ends y={pinY.frame} sides={sides} />
@@ -309,6 +328,7 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
         locale={locale}
         focusable={false}
         dimmed={quiet}
+        summary={node.summary}
         flag={
           (!data.debt && flag) || data.intent || data.budgets ? (
             <>
@@ -322,8 +342,11 @@ export function BoxElement({ data }: NodeProps<BoxNode>) {
         debt={
           debt ? (
             <DebtWords debt={debt} locale={locale} />
-          ) : data.perf ? (
-            <PerfWords mark={data.perf} locale={locale} />
+          ) : data.perf || data.sure ? (
+            <>
+              {data.perf && <PerfWords mark={data.perf} locale={locale} />}
+              <SureWords sure={data.sure} locale={locale} />
+            </>
           ) : undefined
         }
         debtLevel={debtLevel(debt)}
@@ -372,7 +395,7 @@ export function LineElement({
     sourcePosition,
     targetPosition,
   });
-  const approximate = data?.line.approximate ?? true;
+  const certainty = data ? lineCertainty(data.line.confirmed, data.line.edges) : "approximate";
   const active = data?.active ?? null;
   const review = data?.line.review ?? null;
   const quiet = data?.quiet ?? false;
@@ -384,7 +407,7 @@ export function LineElement({
     const size = { width: 48 + said.length * 8 + (review ? 24 : 0), height: 26 };
     return labelSpot(path, data.covering ?? [], size);
   }, [forbidden, data, review, path]);
-  const classes = ["tim-edge", approximate ? "tim-edge--approximate" : "tim-edge--confirmed"];
+  const classes = ["tim-edge", `tim-edge--${certainty}`];
   if (forbidden && !active) classes.push("tim-edge--forbidden");
   else if (review && !active) classes.push("tim-edge--review");
   if (active) classes.push("tim-edge--active");

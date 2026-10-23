@@ -151,6 +151,7 @@ fn the_watcher_sees_a_commit() {
     let root = repo.path().to_path_buf();
     let store = Store::open(db.path().join("graph.sqlite")).unwrap();
     let mut pipeline = Pipeline::new(&root, store.clone()).unwrap();
+    pipeline.without_scip();
     pipeline.index_all().unwrap();
     let (send, receive) = mpsc::channel();
     let watch = Watch::start(pipeline, Duration::from_millis(100), None, move |event| {

@@ -6,6 +6,8 @@ pub enum Error {
 
     #[error(transparent)]
     Index(#[from] timonier_index::Error),
+    #[error(transparent)]
+    Scip(#[from] timonier_index::scip::ScipError),
 
     #[error("cannot watch `{path}`: {source}")]
     Watch {

@@ -182,3 +182,21 @@ logging = ["go.uber.org/zap", "github.com/sirupsen/logrus", "github.com/rs/zerol
 test-assertions = ["github.com/stretchr/testify", "gotest.tools/v3", "github.com/onsi/gomega"]
 yaml = ["gopkg.in/yaml.v3", "gopkg.in/yaml.v2", "sigs.k8s.io/yaml", "github.com/goccy/go-yaml"]
 config = ["github.com/spf13/viper", "github.com/kelseyhightower/envconfig", "github.com/caarlos0/env/v11"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-go 0.2.9 (Apache-2.0, verified on
+# 2026-10-22).
+[scip]
+name = "scip-go"
+program = "scip-go"
+# Where its installer puts the indexer, under the home: the editor's `PATH` may lack it.
+bin_dirs = ["go/bin"]
+args = ["--output", "{output}"]
+install = "go install github.com/scip-code/scip-go/cmd/scip-go@v0.2.9"
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# Go exports a name by its capital letter.
+capitalised = true
+
+[code.tests]
+files = ["*_test.go"]

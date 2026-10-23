@@ -15,9 +15,11 @@ import {
   type MapCommand,
   type PerfMap,
   type PerfRuns,
+  type Role,
   type Span,
 } from "./protocol/generated";
 import { createNonce, renderWebviewHtml } from "./webviewHtml";
+import { askRename, ROLES } from "./naming";
 
 export const MAP_VIEW_TYPE = "timonier.map";
 
@@ -173,6 +175,7 @@ export class MapPanel {
       openWhiteboard: () => vscode.commands.executeCommand("timonier.openWhiteboard"),
       showPerformance: (on) => this.perf.show(on),
       openPerformance: () => vscode.commands.executeCommand("timonier.openPerformance"),
+      rename: (box) => void rename(daemon, box, log),
       relay: (message) => this.relay.receive(message),
     };
     const messages = webview.onDidReceiveMessage((message: unknown) => onPageMessage(message, actions));
@@ -210,5 +213,72 @@ export class MapPanel {
       void this.relay.dispose();
       MapPanel.current = undefined;
     });
+  }
+}
+
+/** The role names of the quick pick, in the interface's language. */
+function roleLabel(role: Role): string {
+  switch (role) {
+    case "project":
+      return vscode.l10n.t("Project");
+    case "entry_point":
+      return vscode.l10n.t("Entry point");
+    case "interface":
+      return vscode.l10n.t("Interface");
+    case "background_task":
+      return vscode.l10n.t("Background task");
+    case "data_model":
+      return vscode.l10n.t("Data model");
+    case "persistence":
+      return vscode.l10n.t("Persistence");
+    case "utility":
+      return vscode.l10n.t("Utility");
+    case "external_libraries":
+      return vscode.l10n.t("External libraries");
+  }
+}
+
+/**
+ * Asks a box's name and role, then gives them to the daemon, which keeps them in
+ * `.timonier/names.json` and redraws the map (ADR 0075).
+ */
+async function rename(
+  daemon: DaemonSource,
+  box: { target: string; name: string; role: Role | null },
+  log: vscode.LogOutputChannel,
+): Promise<void> {
+  const computed = vscode.l10n.t("As Timonier computes it");
+  const asked = await askRename(box, {
+    name: (current) =>
+      vscode.window.showInputBox({
+        title: vscode.l10n.t("Rename the box"),
+        prompt: vscode.l10n.t("A few words that say what it does; empty, the name Timonier computes."),
+        value: current,
+        validateInput: (value) => (value.trim().length > 60 ? vscode.l10n.t("At most 60 characters.") : undefined),
+      }),
+    role: async (current) => {
+      const items: { label: string; role: Role | null; description?: string }[] = [
+        { label: computed, role: null },
+        ...ROLES.map((role) => ({
+          label: roleLabel(role),
+          role,
+          description: role === current ? vscode.l10n.t("now") : undefined,
+        })),
+      ];
+      const picked = await vscode.window.showQuickPick(items, { title: vscode.l10n.t("Its role on the map") });
+      return picked ? picked.role : undefined;
+    },
+  });
+  if (!asked) return;
+  if (!daemon.client) {
+    void vscode.window.showErrorMessage(vscode.l10n.t("the daemon is not running"));
+    return;
+  }
+  try {
+    await daemon.client.sendRequest(METHODS.NAMES_SET, asked);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    log.warn(`names/set: ${reason}`);
+    void vscode.window.showErrorMessage(vscode.l10n.t("Timonier could not rename the box: {0}", reason));
   }
 }

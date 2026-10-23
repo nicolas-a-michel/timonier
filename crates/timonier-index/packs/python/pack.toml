@@ -168,3 +168,30 @@ json = ["orjson", "ujson", "simplejson", "rapidjson"]
 task-queue = ["celery", "rq", "dramatiq", "huey"]
 logging = ["loguru", "structlog"]
 dataframe = ["pandas", "polars"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-python 0.6.8 (MIT, verified on
+# 2026-10-22). It resolves the project's imports only where the project is installed: its
+# virtual environment is activated (PLAN.md 11.1, Flask: 0 links from the tests without it).
+[scip]
+name = "scip-python"
+program = "scip-python"
+args = ["index", ".", "--project-name", "{project}", "--output", "{output}"]
+install = "npm install --global @sourcegraph/scip-python@0.6.8"
+
+# The project's virtual environment, as its activation would: scip-python resolves the imports
+# only where the project is installed.
+[scip.environment]
+folders = [".venv", "venv"]
+marker = "pyvenv.cfg"
+bin = "bin"
+bin_windows = "Scripts"
+variable = "VIRTUAL_ENV"
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# A leading `_` keeps a name to its module or class.
+hidden_names = ["_"]
+
+[code.tests]
+# pytest's names.
+files = ["test_*.py", "*_test.py"]

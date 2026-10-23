@@ -171,3 +171,8 @@ test-framework = ["phpunit/phpunit", "pestphp/pest", "codeception/codeception"]
 templating = ["twig/twig", "league/plates", "smarty/smarty"]
 validation = ["symfony/validator", "respect/validation"]
 dates = ["nesbot/carbon", "cakephp/chronos"]
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# The default is public.
+hidden_words = ["private", "protected"]

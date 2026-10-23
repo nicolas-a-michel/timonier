@@ -32,8 +32,11 @@ cyclonedx-bom = { workspace = true }
 
 [dev-dependencies]
 ignore = { workspace = true }
+# SCIP indexes made by the tests (ADR 0073).
+protobuf = { workspace = true }
 # A test makes the store fail on purpose, with an SQLite trigger.
 rusqlite = { workspace = true }
+scip = { workspace = true }
 tempfile = { workspace = true }
 tracing-subscriber = { workspace = true }
 

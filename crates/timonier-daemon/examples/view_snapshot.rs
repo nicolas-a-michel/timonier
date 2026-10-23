@@ -27,7 +27,7 @@ fn main() {
     let mut pipeline = Pipeline::new(&root, store.clone()).expect("pipeline");
     let report = pipeline.index_all().expect("index");
     let mut reader = store.reader().expect("reader");
-    let graph = view::load(&mut reader).expect("graph");
+    let graph = view::load(&mut reader, &root).expect("graph");
     let head = reader.head().expect("head").seq;
     let open: Vec<_> = reader
         .nodes_at(head)

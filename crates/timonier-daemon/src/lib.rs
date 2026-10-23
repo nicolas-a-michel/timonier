@@ -14,11 +14,13 @@ pub mod indexing;
 pub mod inventory;
 pub mod journal;
 pub mod osv;
+mod packs;
 mod process;
 mod relay;
 pub mod runs;
 pub mod runtime;
 pub mod sbom;
+pub mod scip;
 pub mod server;
 pub mod sketch;
 mod subscriptions;
@@ -32,12 +34,13 @@ pub use error::{Error, Result};
 pub use indexing::{Consolidated, Consolidation, Pipeline, Refinement, Report};
 pub use runtime::{Lock, Paths};
 pub use server::{Daemon, Options};
-pub use timonier_index::ecosystem::cmake_commands;
 /// The language packs, for the CLI's `init` (ADR 0034): the CLI depends on the daemon, not on
 /// the indexer (ADR 0003).
 pub use timonier_index::pack::{
     ConfigBlock, InstrumentationRules, RunnerRule, SdkDependency, SmokeRule, TemplateFile,
 };
+/// Each ecosystem's lockfiles, detection and manifest edits, for the CLI's `init` (ADR 0077).
+pub use timonier_index::tooling;
 pub use timonier_index::{Pack, Packs};
 /// The header a run's senders carry its token in (audit of 2026-10-21, finding 2).
 pub use timonier_otlp::TOKEN_HEADER as OTLP_TOKEN_HEADER;

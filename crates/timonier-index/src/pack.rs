@@ -87,6 +87,86 @@ pub struct Manifest {
     /// dependencies (`node_modules`), which are packages, not the project's code (T-120).
     #[serde(default)]
     pub walk: WalkRules,
+    /// The language's SCIP indexer, run after each commit (ADR 0073); none for a language
+    /// without a dependable one.
+    #[serde(default)]
+    pub scip: Option<ScipRule>,
+    /// What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+    #[serde(default)]
+    pub code: timonier_core::gaps::LanguageCode,
+}
+
+/// `[scip.environment]`: a project environment, activated as its own activation script would
+/// (ADR 0073, 0077): the first of `folders` that holds `marker`, its `bin` (`bin_windows` on
+/// Windows) first on the `PATH`, and `variable` set to the folder.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Environment {
+    pub folders: Vec<String>,
+    pub marker: String,
+    pub bin: String,
+    pub bin_windows: String,
+    pub variable: String,
+}
+
+/// `[scip]`: how the daemon runs the language's SCIP indexer (ADR 0073).
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScipRule {
+    /// Its name, for `doctor` and the logs: `scip-typescript`.
+    pub name: String,
+    /// The program, looked for on the `PATH`.
+    pub program: String,
+    /// Its arguments: `{output}` is the index's path, `{project}` the project's name, `{needs}`
+    /// the first file of `needs` there, `{variant}` the value of the first of `variants` whose
+    /// file is there. Without `{output}`, the indexer writes `index.scip` in
+    /// the folder it runs in.
+    pub args: Vec<String>,
+    /// The command that installs `program`, shown and approved by a click (Q94).
+    #[serde(default)]
+    pub install: Option<String>,
+    /// What to do by hand when `program` is missing and no command installs it.
+    #[serde(default)]
+    pub note: Option<String>,
+    /// Files the project must hold for the index to be complete, any of them: the compilation
+    /// database of `scip-clang`.
+    #[serde(default)]
+    pub needs: Vec<String>,
+    /// What `doctor` says when none of `needs` is there.
+    #[serde(default)]
+    pub needs_note: Option<String>,
+    /// The project's environment, activated for the indexer: scip-python resolves the
+    /// project's imports only where the project is installed (PLAN.md 11.1).
+    #[serde(default)]
+    pub environment: Option<Environment>,
+    /// A value chosen by the files of the project, for `{variant}`: scip-java must be told the
+    /// build tool when a project has both a Maven and a Gradle build (spring-petclinic).
+    #[serde(default)]
+    pub variants: Vec<ScipVariant>,
+    /// Files the indexer may create in the project, removed after it when they were not there
+    /// before: `scip-typescript --infer-tsconfig` writes a `tsconfig.json`.
+    #[serde(default)]
+    pub writes: Vec<String>,
+    /// `false` for an indexer that cleans or rewrites the developer's build outputs: it runs
+    /// in a git worktree of the commit instead (`scip-java` runs `clean`).
+    #[serde(default = "in_place")]
+    pub in_place: bool,
+    /// Where its installer puts the indexer, under the home (`.cargo/bin`): the daemon's
+    /// `PATH`, inherited from the editor, may lack it.
+    #[serde(default)]
+    pub bin_dirs: Vec<String>,
+}
+
+fn in_place() -> bool {
+    true
+}
+
+/// `{ when = "pom.xml", value = "maven" }`: the value of `{variant}` when the file is there.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScipVariant {
+    pub when: String,
+    pub value: String,
 }
 
 /// `[inventory]`: the frameworks among the dependencies, and the precise function of known
@@ -230,6 +310,8 @@ fn yes() -> bool {
 pub struct ConfigBlock {
     pub file: String,
     pub text: String,
+    /// What the block is for, as `doctor` says it is missing.
+    pub purpose: String,
 }
 
 /// What refinement needs to know of the language (ADR 0022).
@@ -901,6 +983,39 @@ const BUILTIN: [(&str, &[(&str, &str)]); 13] = [
 impl Packs {
     /// The packs embedded in this build: Rust, TypeScript, JavaScript, Python, Go, Java, C++,
     /// Kotlin, Swift, C, C#, PHP and Scala.
+    /// The built-in packs' manifests alone, their queries not compiled: what reads only
+    /// `pack.toml` (`timonier scip`, `doctor`) without the cost of a whole load.
+    pub fn builtin_manifests() -> Result<Vec<Manifest>> {
+        BUILTIN
+            .iter()
+            .map(|(name, files)| {
+                let text = files
+                    .iter()
+                    .find(|(file, _)| *file == "pack.toml")
+                    .map(|(_, text)| *text)
+                    .ok_or_else(|| Error::Pack {
+                        pack: (*name).to_owned(),
+                        reason: "missing pack.toml".into(),
+                    })?;
+                toml::from_str(text).map_err(|source| Error::Manifest {
+                    pack: (*name).to_owned(),
+                    source: Box::new(source),
+                })
+            })
+            .collect()
+    }
+
+    /// Every built-in language's rules of public and test code (ADR 0077), in the packs'
+    /// order: what the instrumentation gaps apply.
+    pub fn code_rules() -> Result<timonier_core::gaps::CodeRules> {
+        Ok(timonier_core::gaps::CodeRules {
+            languages: Self::builtin_manifests()?
+                .into_iter()
+                .map(|manifest| (manifest.language, manifest.code))
+                .collect(),
+        })
+    }
+
     pub fn builtin() -> Result<Self> {
         let packs = BUILTIN
             .iter()

@@ -31,6 +31,30 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
+    "description": "Read a box of the map (a component or a package) as the developer sees it: its name, role and summary, the boxes and files it holds, and the boxes it uses and is used by, with how many links stand behind each and how many a compiler's index confirmed. Read it before changing a part of the code you do not know.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "description": "A box of the map, as the tools give it: `component:dir/crates/core`, `pkg:cargo/core`.",
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "component"
+      ],
+      "type": "object"
+    },
+    "name": "get_component"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
     "description": "Compare the code with the developer's whiteboard: each drawn component and the real package or component it stands for (by name, then place), the drawn components the code lacks, the forbidden edges the code crosses with the dependencies that cross them, and the required edges it lacks. Check it after changing the structure.",
     "inputSchema": {
       "additionalProperties": false,
@@ -442,6 +466,101 @@
       "type": "object"
     },
     "name": "plan_update_task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Propose a name, a role or a summary for a box of the map (a component or a package): a few words that say what it does, one of the map's roles, and a sentence or two (300 characters at most) on its responsibility, which the developer reads on the map and `get_component` returns. It shows at once and is kept in `.timonier/names.json`; a name or role the developer gave stays theirs. Returns the box as the map now names it.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "description": "The box's id, as the tools give it: `component:dir/crates/core`, `pkg:cargo/core`.",
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "description": "A name of a few words; omitted, the name stays.",
+          "maxLength": 60,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "One of the map's roles; omitted, the role stays.",
+          "pattern": "^(entry_point|data_model|persistence|interface|background_task|external_libraries|utility|project)$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "description": "What the box does, in a sentence or two; omitted, the summary stays.",
+          "maxLength": 300,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "component"
+      ],
+      "type": "object"
+    },
+    "name": "propose_component_name"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Read the architecture map as the developer sees it: the top boxes, and what each box of `expanded` holds, with the links between the boxes shown (paged). Start with no argument, then open the boxes you need; `get_component` gives one box in detail.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "description": "Where the previous page ended: its `next_cursor`.",
+          "maxLength": 16,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expanded": {
+          "default": [],
+          "description": "Boxes opened on what they hold, as the developer opens them on the map; none: the top.",
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "limit": {
+          "description": "How many nodes the page lists (200 at most, and by default).",
+          "format": "uint32",
+          "maximum": 200,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "query_graph"
   },
   {
     "annotations": {

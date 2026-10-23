@@ -72,6 +72,12 @@ export function isWebviewMessage(message: unknown): message is WebviewMessage {
     case "intent":
       // The board itself is checked by the daemon, the only one that writes the file.
       return isObject(message.intent) && message.intent.version === 1;
+    case "rename":
+      return (
+        typeof message.target === "string" &&
+        typeof message.name === "string" &&
+        (message.role === null || typeof message.role === "string")
+      );
     case "rendered":
       return isCount(message.subscription) && isCount(message.revision) && isCount(message.nodes);
     default:

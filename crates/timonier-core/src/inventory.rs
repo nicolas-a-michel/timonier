@@ -24,64 +24,57 @@ pub struct GetTechInventory {
     pub cursor: Option<String>,
 }
 
-/// The package ecosystems the packs read (ADR 0055).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Ecosystem {
-    Cargo,
-    Npm,
-    /// Python packages (ADR 0062).
-    Pypi,
-    /// Go modules (ADR 0063).
-    Go,
-    /// Maven coordinates, `group:artifact`, for Maven and Gradle (ADR 0064).
-    Maven,
-    /// C++ (ADR 0065, Q89): Conan's packages, vcpkg's ports, and what CMake alone finds
-    /// (`find_package`, `FetchContent`).
-    Conan,
-    Vcpkg,
-    Cmake,
-    /// Swift packages, by their location (ADR 0067).
-    Swift,
-    /// NuGet packages of .NET projects (ADR 0069).
-    Nuget,
-    /// Composer packages, `vendor/package` (ADR 0070).
-    Composer,
+/// A package ecosystem the packs read (ADR 0055, 0077), by its name (`cargo`, `npm`): what
+/// `timonier-index` gives, with its rank, the order the packs list them, which orders the
+/// inventory. Read back from JSON, it has its name only and ranks after the others: one read
+/// back and one of the packs are never compared (review of Phase 11, m6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Ecosystem {
+    rank: u16,
+    name: &'static str,
 }
 
 impl Ecosystem {
-    /// Its name in OSV's queries; `None` for the ones OSV does not know (vcpkg, CMake).
-    pub const fn osv(self) -> Option<&'static str> {
-        Some(match self {
-            Self::Cargo => "crates.io",
-            Self::Npm => "npm",
-            Self::Pypi => "PyPI",
-            Self::Go => "Go",
-            Self::Maven => "Maven",
-            Self::Conan => "ConanCenter",
-            Self::Swift => "SwiftURL",
-            Self::Nuget => "NuGet",
-            Self::Composer => "Packagist",
-            Self::Vcpkg | Self::Cmake => return None,
-        })
+    pub const fn new(name: &'static str, rank: u16) -> Self {
+        Self { rank, name }
     }
 
-    /// Its type in a package URL (purl).
-    pub const fn purl(self) -> &'static str {
-        match self {
-            Self::Cargo => "cargo",
-            Self::Npm => "npm",
-            Self::Pypi => "pypi",
-            Self::Go => "golang",
-            Self::Maven => "maven",
-            Self::Conan => "conan",
-            Self::Swift => "swift",
-            Self::Nuget => "nuget",
-            Self::Composer => "composer",
-            // No purl type of their own.
-            Self::Vcpkg | Self::Cmake => "generic",
-        }
+    pub const fn name(self) -> &'static str {
+        self.name
     }
+}
+
+impl std::fmt::Display for Ecosystem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name)
+    }
+}
+
+impl Serialize for Ecosystem {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.name)
+    }
+}
+
+impl<'de> Deserialize<'de> for Ecosystem {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let name = String::deserialize(deserializer)?;
+        Ok(Self::new(intern(name), u16::MAX))
+    }
+}
+
+/// The ecosystems' names read back, kept once each: a handful at most.
+fn intern(name: String) -> &'static str {
+    static NAMES: std::sync::Mutex<BTreeSet<&'static str>> = std::sync::Mutex::new(BTreeSet::new());
+    let mut names = NAMES
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(known) = names.get(name.as_str()) {
+        return known;
+    }
+    let kept: &'static str = Box::leak(name.into_boxed_str());
+    names.insert(kept);
+    kept
 }
 
 /// What a dependency is for, as the manifest declares it.
@@ -233,9 +226,11 @@ pub fn licenses(dependencies: &[Dependency]) -> BTreeMap<String, u32> {
 mod tests {
     use super::*;
 
+    const CARGO: Ecosystem = Ecosystem::new("cargo", 0);
+
     fn dependency(name: &str, function: Option<&str>, scope: Scope, direct: bool) -> Dependency {
         Dependency {
-            ecosystem: Ecosystem::Cargo,
+            ecosystem: CARGO,
             name: name.to_owned(),
             version: Some("1.0.0".to_owned()),
             license: (name != "mystery").then(|| "MIT".to_owned()),
@@ -260,7 +255,7 @@ mod tests {
         assert_eq!(
             duplicates(&deps),
             [Duplicate {
-                ecosystem: Ecosystem::Cargo,
+                ecosystem: CARGO,
                 function: "http-client".to_owned(),
                 packages: vec!["reqwest".to_owned(), "ureq".to_owned()],
                 used_by: vec!["app-reqwest".to_owned(), "app-ureq".to_owned()],
@@ -274,11 +269,21 @@ mod tests {
     #[test]
     fn the_same_function_in_two_ecosystems_is_no_duplicate() {
         let mut npm = dependency("axios", Some("http-client"), Scope::Normal, true);
-        npm.ecosystem = Ecosystem::Npm;
+        npm.ecosystem = Ecosystem::new("npm", 1);
         let deps = [
             dependency("reqwest", Some("http-client"), Scope::Normal, true),
             npm,
         ];
         assert!(duplicates(&deps).is_empty());
+    }
+
+    #[test]
+    fn an_ecosystem_is_written_by_its_name_and_ordered_by_its_rank() {
+        let json = serde_json::to_string(&[CARGO, Ecosystem::new("composer", 9)]).unwrap();
+        assert_eq!(json, r#"["cargo","composer"]"#);
+        assert!(CARGO < Ecosystem::new("composer", 9));
+        let back: Vec<Ecosystem> = serde_json::from_str(&json).unwrap();
+        let names: Vec<&str> = back.iter().map(|e| e.name()).collect();
+        assert_eq!(names, ["cargo", "composer"]);
     }
 }

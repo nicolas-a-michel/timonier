@@ -59,16 +59,10 @@ impl Tracker {
         {
             return Ok(());
         }
-        let mut steps = String::new();
-        if root.join("package-lock.json").is_file() {
-            steps.push_str(
-                "      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - run: npm ci
-",
-            );
-        }
+        let steps: String = timonier_index::tooling::all()
+            .iter()
+            .filter_map(|tooling| tooling.ci_steps(root))
+            .collect();
         let text = format!(
             "{CI_MARK}
 # It replays the tests, the whiteboard's budgets and its architecture rules: with GitHub's

@@ -1,6 +1,8 @@
 # 0027 — Serveur MCP : rmcp sur stdio, mince proxy vers le démon
 
 - Statut : Accepté (2026-10-20, validation de la Phase 6 par l'humain)
+- Mise à jour de version (2026-10-23, sans changer la décision) : `rmcp` 3.6.0, pour le `resultType`
+  que demande la révision 2026-07-28 du protocole ; vérifiée dans PLAN.md, « Dépendances vérifiées »
 - Date : 2026-10-20
 - Phase : 6
 - Liens : spec « Architecture technique », « Interface MCP », « Pilotage » ; Q10 ; H10 ;

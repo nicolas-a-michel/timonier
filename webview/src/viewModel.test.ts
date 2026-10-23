@@ -24,11 +24,22 @@ function node(id: string, name = id): ViewNode {
     signature: null,
     review: null,
     debt: null,
+    summary: null,
   };
 }
 
 function edge(src: string, dst: string): ViewEdge {
-  return { src, dst, kind: "calls", weight: 1, edges: 1, best: "tree_sitter", approximateOnly: true, review: null };
+  return {
+    src,
+    dst,
+    kind: "calls",
+    weight: 1,
+    edges: 1,
+    best: "tree_sitter",
+    approximateOnly: true,
+    confirmed: 0,
+    review: null,
+  };
 }
 
 function snapshot(subscription: number, revision: number, nodes: ViewNode[], edges: ViewEdge[] = []): HostMessage {

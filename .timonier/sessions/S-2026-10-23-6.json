@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-6",
+  "agent": "claude-code",
+  "objective": "Close 11.5 on the human's validation, then 11.6: rename a box and change its role (F2, double click, command), kept in .timonier/names.json, the agent proposing through an MCP tool, the developer's choice winning.",
+  "tasks": [
+    "T-139",
+    "T-138"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T07:13:09Z",
+  "ended_at": "2026-10-23T07:44:46Z",
+  "snapshots": {
+    "start": 187,
+    "end": 188
+  },
+  "summary": "11.5 closed with the human's five-second test (under 2 s). 11.6 done (ADR 0075). Also fixed a bug of the published versions found by the human: Claude Code refused tool results without resultType (MCP 2026-07-28, SEP-2322); rmcp 3.6.0 and the proxy marks results complete; checked by probing 0.1.1 (missing) and the fix (present); new test. Not committed; a 0.1.3 release is needed for the fix to reach users.",
+  "changes": {
+    "files": 29,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/test/a11y",
+        "name": "a11y",
+        "within": "test"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/examples",
+        "name": "examples",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/commandLine.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test",
+        "name": "test",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/webview/test",
+        "name": "test",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-mcp",
+        "name": "timonier-mcp",
+        "within": "crates"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/editors/vscode/src/test/unit",
+        "name": "unit",
+        "within": "test"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/extension.ts",
+        "name": "webviewHtml",
+        "within": "timonier"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 113,
+    "input": 230,
+    "output": 69439,
+    "cache_read": 96849036,
+    "cache_creation": 121855,
+    "cost_usd_micros": 21734351
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-5",
+  "agent": "claude-code",
+  "objective": "11.5: show on the map how sure each box and link is (share of links confirmed by a manifest, a language server or SCIP), and the whole map's share; never by colour alone; AA in six themes.",
+  "tasks": [
+    "T-138"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T06:57:38Z",
+  "ended_at": "2026-10-23T07:11:36Z",
+  "snapshots": {
+    "start": 185,
+    "end": 186
+  },
+  "summary": "11.5 built: ViewEdge.confirmed, lines solid / long dashes / dashes by their confirmed share, the Certainty layer (toolbar, command, words on items, tooltip, accessible names, the map's share in the legend), README and features updated, README screenshots retaken, ADR 0074. Tests, a11y (191), lint, typecheck, clippy green. Left: the five-second test by the human; not committed.",
+  "changes": {
+    "files": 27,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/commandLine.ts",
+        "name": "extension",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:cluster/webview/src/map/layout.perf.test.ts",
+        "name": "layout",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/mapModel.test.ts",
+        "name": "mapModel",
+        "within": "map"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 50,
+    "input": 102,
+    "output": 35063,
+    "cache_read": 37936851,
+    "cache_creation": 68296,
+    "cost_usd_micros": 8835408
+  }
+}

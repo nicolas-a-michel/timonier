@@ -38,8 +38,12 @@ The map opens on a few boxes named by role: entry point, data model, persistence
 utility, external libraries; in a folder of several repositories, one box per project. Timonier
 itself fits in six. A click opens a box on its packages,
 then on its components, files and symbols. Dashed links are known only from syntax
-(tree-sitter); solid links are declared in a manifest or confirmed by the IDE's language
-servers. The layout stays stable as the code changes, and Shift+Enter opens the code of a box.
+(tree-sitter); solid links are declared in a manifest, or confirmed by the IDE's language
+servers or by a SCIP index after each commit; long dashes are partly confirmed. On six
+open-source projects (Rust, TypeScript, Python, Go, Java, C#), a SCIP index confirmed 96 to
+100 % of the links between files, against none from syntax alone ([details](PLAN.md)). The
+« Certainty » layer gives each box its share of confirmed links, and the map its own. F2 or a
+double click renames a box and changes its role; the name is kept in `.timonier/names.json`. The layout stays stable as the code changes, and Shift+Enter opens the code of a box.
 
 ### What changed since your review
 
@@ -143,20 +147,19 @@ decision records ([docs/adr/](docs/adr/README.md)) are in French.
 
 ## Status
 
-Early development, not released yet (22 October 2026). The MVP is planned in phases 0 to 9
-([PLAN.md](PLAN.md)): phases 0 to 8 are done. Phase 9, under way, has added the technology
-inventory, the development process and the AI cost, and ported Timonier to Windows; it
-publishes a pre-release on the VSCode Marketplace, then ends by steering a new project end to
-end. Timonier steers its own development.
+Early development (23 October 2026). The MVP is planned in phases 0 to 9
+([PLAN.md](PLAN.md)): they are done, and its end, a full review then a real project steered end
+to end, is ahead. Timonier steers its own development.
 
-Phase 10, done before the pre-release, took Timonier from two languages to thirteen: each one
-was checked on a real project, from the map to the first trace of its tests. Timonier runs on
-Linux, macOS and Windows; its tests pass there in CI, and on a new Windows machine. The
-extension is published as a pre-release on the VSCode Marketplace, for the six platforms
-(Linux, macOS and Windows, x64 and arm64). What comes next is about the two things Timonier
-cares most for, the architecture and the performance. First a map you can trust (SCIP, how sure
-each link is, renaming boxes), then memory per component and deeper profiling. The
-[roadmap](ROADMAP.md) gives the order.
+Phase 10 took Timonier from two languages to thirteen: each one was checked on a real project,
+from the map to the first trace of its tests. Timonier runs on Linux, macOS and Windows; its
+tests pass there in CI, and on a new Windows machine. The extension is published as a
+pre-release on the VSCode Marketplace, for the six platforms (Linux, macOS and Windows, x64 and
+arm64). Phase 11 made the map one you can trust: SCIP indexes confirm its links (96 to 100 % of
+the links between files on six open-source projects), each box and the map say how sure they
+are, the developer renames boxes, and the agents read the map through MCP. Next comes
+performance in depth, memory per component and deeper profiling; the [roadmap](ROADMAP.md)
+gives the order.
 
 ## Try it
 
@@ -180,7 +183,15 @@ tim init             # --yes to ask nothing
 tim doctor           # checks the setup and repairs it
 tim test             # runs the tests init recorded, and measures them
 tim inventory        # dependencies, licences, duplicates, known vulnerabilities
+tim scip             # the SCIP indexers of the project's languages; --install installs them
 ```
+
+The SCIP indexers confirm the map's links (one per language, from rust-analyzer to
+scip-dotnet). Timonier installs one only when you approve it (`tim scip --install`, or
+« Install the SCIP Indexers » in VSCode), then runs it in the background after each commit and
+at start. An indexer compiles or loads the whole project: on the six projects of PLAN.md 11.1 and 11.4,
+0.4 s to 10.4 s and up to 1.1 GB of memory (Java: 10.4 s with Maven's cache, 34.8 s building from nothing). `TIMONIER_SCIP=off`
+in the daemon's environment turns them off.
 
 ## Develop
 

@@ -11,7 +11,9 @@ use super::edits::{self, HASH_BEGIN, HASH_END, MD_BEGIN, MD_END};
 use super::plan::{Change, Planned, RECORD, Record, stop_command};
 
 /// What Timonier added to `path`, taken out of `text`; `None` when nothing else is left.
-fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
+/// `original` is the file before `init`, for the manifests whose packages are told apart by
+/// it (ADR 0050); empty for a file `init` created.
+fn without(path: &Path, text: &str, original: &str) -> Result<Option<String>, String> {
     let name = path.display().to_string();
     let hooks = |text: &str| -> Result<Option<String>, String> {
         let mut text = Some(text.to_owned());
@@ -22,76 +24,49 @@ fn without(path: &Path, text: &str) -> Result<Option<String>, String> {
         Ok(text)
     };
     match name.as_str() {
-        "AGENTS.md" | "CLAUDE.md" => Ok(edits::without_block(text, MD_BEGIN, MD_END)),
+        "AGENTS.md" | "CLAUDE.md" => return Ok(edits::without_block(text, MD_BEGIN, MD_END)),
         ".mcp.json" | ".cursor/mcp.json" => {
-            edits::json_without_entry(text, "mcpServers", "timonier")
+            return edits::json_without_entry(text, "mcpServers", "timonier");
         }
-        ".vscode/mcp.json" => edits::json_without_entry(text, "servers", "timonier"),
+        ".vscode/mcp.json" => return edits::json_without_entry(text, "servers", "timonier"),
         ".claude/settings.json" | ".codex/hooks.json" | ".github/hooks/timonier.json" => {
-            hooks(text)
+            return hooks(text);
         }
-        ".codex/config.toml" | ".config/nextest.toml" => {
-            Ok(edits::without_block(text, HASH_BEGIN, HASH_END))
-        }
-        // The OpenTelemetry SDK (ADR 0050): Timonier's blocks only.
-        "Cargo.toml" => Ok(edits::cargo_without_sdk(text)),
-        "pyproject.toml" => Ok(Some(edits::pyproject_without_sdk(text))),
-        "go.mod" => Ok(Some(edits::go_mod_without_sdk(text))),
-        "pom.xml" => Ok(Some(edits::pom_without_sdk(text))),
-        "build.gradle.kts" | "build.gradle" => Ok(Some(edits::gradle_without_sdk(text))),
-        "CMakeLists.txt" => Ok(edits::without_block(text, HASH_BEGIN, HASH_END)),
-        "conanfile.txt" => Ok(Some(edits::conanfile_without_sdk(text))),
-        "Package.swift" => Ok(Some(edits::swift_package_without_sdk(text))),
-        // The same `//` markers as Gradle's.
-        "build.sbt" => Ok(Some(edits::gradle_without_sdk(text))),
-        _ if name.ends_with(".csproj") => Ok(Some(edits::pom_without_sdk(text))),
-        // A lone subproject's build (ADR 0066).
-        _ if name.ends_with("/build.gradle.kts") || name.ends_with("/build.gradle") => {
-            Ok(Some(edits::gradle_without_sdk(text)))
-        }
-        _ if name.ends_with("pre-commit") => {
-            // A hook of Timonier's own making: the interpreter line alone is left.
-            Ok(edits::without_block(text, HASH_BEGIN, HASH_END)
-                .filter(|rest| rest.trim() != "#!/bin/sh"))
-        }
-        // The record, the ignore file: Timonier's.
-        _ => Ok(None),
+        ".codex/config.toml" => return Ok(edits::without_block(text, HASH_BEGIN, HASH_END)),
+        _ => {}
     }
-}
-
-/// The packages of the OpenTelemetry SDK the PHP pack adds (ADR 0070).
-fn composer_packages() -> Vec<&'static str> {
-    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
-    NAMES
-        .get_or_init(|| {
-            timonier_daemon::Packs::builtin()
-                .map(|packs| {
-                    packs
-                        .iter()
-                        .filter(|p| p.manifest.ecosystem.as_str() == "composer")
-                        .flat_map(|p| p.manifest.instrumentation.iter())
-                        .flat_map(|i| i.dependencies.iter().map(|d| d.name.clone()))
-                        .collect()
-                })
-                .unwrap_or_default()
-        })
+    // A test runner's configuration, which the packs name (ADR 0034).
+    if runner_configs().contains(&name.as_str()) {
+        return Ok(edits::without_block(text, HASH_BEGIN, HASH_END));
+    }
+    // The OpenTelemetry SDK (ADR 0050): each ecosystem takes Timonier's part out of its
+    // manifests (ADR 0077).
+    if let Some(undone) = timonier_daemon::tooling::all()
         .iter()
-        .map(String::as_str)
-        .collect()
+        .find_map(|tooling| tooling.without_sdk(&name, text, original))
+    {
+        return undone;
+    }
+    if name.ends_with("pre-commit") {
+        // A hook of Timonier's own making: the interpreter line alone is left.
+        return Ok(edits::without_block(text, HASH_BEGIN, HASH_END)
+            .filter(|rest| rest.trim() != "#!/bin/sh"));
+    }
+    // The record, the ignore file: Timonier's.
+    Ok(None)
 }
 
-/// The packages of the OpenTelemetry SDK the npm packs add (ADR 0050).
-fn sdk_packages() -> Vec<&'static str> {
-    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
-    NAMES
+/// The files the packs' test runners configure (`.config/…`): a block of Timonier's in each.
+fn runner_configs() -> Vec<&'static str> {
+    static FILES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    FILES
         .get_or_init(|| {
-            timonier_daemon::Packs::builtin()
-                .map(|packs| {
-                    packs
+            timonier_daemon::Packs::builtin_manifests()
+                .map(|manifests| {
+                    manifests
                         .iter()
-                        .filter(|p| p.manifest.ecosystem.as_str() == "npm")
-                        .flat_map(|p| p.manifest.instrumentation.iter())
-                        .flat_map(|i| i.dependencies.iter().map(|d| d.name.clone()))
+                        .flat_map(|m| m.tests.runners.iter())
+                        .filter_map(|r| r.config.as_ref().map(|c| c.file.clone()))
                         .collect()
                 })
                 .unwrap_or_default()
@@ -183,7 +158,7 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
         {
             continue;
         }
-        match without(&path, &current) {
+        match without(&path, &current, "") {
             Ok(after) => changes.push(Change {
                 path,
                 before: Some(current),
@@ -218,17 +193,7 @@ pub fn plan(root: &Path, purge: bool) -> Result<Undone, String> {
     for modified in &record.modified {
         let path = PathBuf::from(&modified.path);
         let Some(current) = read(&path) else { continue };
-        let undone = if path == Path::new("package.json") {
-            // The SDK's packages that were not there before `init` (ADR 0050).
-            edits::npm_without_sdk(&current, &modified.original, &sdk_packages())
-        } else if path == Path::new("composer.json") {
-            // The SDK's packages that were not there before `init` (ADR 0070).
-            edits::composer_without_sdk(&current, &modified.original, &composer_packages())
-        } else if path == Path::new("vcpkg.json") {
-            edits::vcpkg_without_sdk(&current, &modified.original, &["opentelemetry-cpp"]).map(Some)
-        } else {
-            without(&path, &current)
-        };
+        let undone = without(&path, &current, &modified.original);
         let after = match undone {
             Ok(Some(rest)) if same(&path, &rest, &modified.original) => {
                 Some(modified.original.clone())
@@ -341,9 +306,16 @@ mod tests {
             ".codex/hooks.json",
             ".git/hooks/pre-commit",
         ] {
-            assert_eq!(without(Path::new(path), &read(path)), Ok(None), "{path}");
+            assert_eq!(
+                without(Path::new(path), &read(path), ""),
+                Ok(None),
+                "{path}"
+            );
         }
-        assert_eq!(without(Path::new(".timonier/tests.json"), "{}"), Ok(None));
+        assert_eq!(
+            without(Path::new(".timonier/tests.json"), "{}", ""),
+            Ok(None)
+        );
     }
 
     #[test]

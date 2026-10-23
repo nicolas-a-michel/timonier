@@ -69,6 +69,9 @@ pub struct Options {
     /// The agents' telemetry (ADR 0058): the machine's data folder and the agents' port. `None`
     /// in tests that do not ask: the machine's port is not theirs.
     pub agents: Option<AgentsOptions>,
+    /// Runs the SCIP indexers (ADR 0073): off with `TIMONIER_SCIP=off`, and in tests, whose
+    /// machine may have an indexer installed (review of Phase 11, I11).
+    pub scip: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -87,6 +90,7 @@ impl Options {
             signals: true,
             gh: None,
             agents: None,
+            scip: !crate::scip::disabled(),
         }
     }
 }
@@ -118,7 +122,10 @@ impl Daemon {
             })?;
         runtime::prepare_repository(&paths)?;
         let store = Store::open(&paths.database)?;
-        let pipeline = Pipeline::new(&paths.root, store.clone())?;
+        let mut pipeline = Pipeline::new(&paths.root, store.clone())?;
+        if !options.scip {
+            pipeline.without_scip();
+        }
         Ok(Some(Self {
             options,
             paths,
@@ -170,6 +177,7 @@ impl Daemon {
         let mut listener = listener.listen().map_err(socket_error)?;
         let (shutdown, _) = watch::channel(false);
         let changed = Arc::new(AtomicBool::new(false));
+        let graph_changed = Arc::clone(&changed);
         let (views, commands) = mpsc::channel(VIEW_COMMANDS);
         let watching = Arc::new(AtomicBool::new(false));
         let views_thread = subscriptions::spawn(
@@ -241,10 +249,12 @@ impl Daemon {
                 .as_ref()
                 .map(|agents| crate::agents::Spool::new(&agents.data)),
             agent_stops: Mutex::new(std::collections::HashMap::new()),
+            changed: graph_changed,
         });
         let mut background = JoinSet::new();
         background.spawn(idle(Arc::clone(&shared), options.idle));
         background.spawn(watch_tracking(Arc::clone(&shared), watching));
+        background.spawn(watch_names(Arc::clone(&shared)));
         if options.signals {
             background.spawn(signals(Arc::clone(&shared)));
         }
@@ -338,6 +348,17 @@ struct Shared {
     spool: Option<crate::agents::Spool>,
     /// When each agent session last stopped here, Unix milliseconds.
     agent_stops: Mutex<std::collections::HashMap<String, i64>>,
+    /// The views read the head again: set when the names given by hand change (ADR 0075).
+    changed: Arc<AtomicBool>,
+}
+
+impl Shared {
+    /// The views read the graph again, names given by hand included (ADR 0075).
+    fn graph_changed(&self) {
+        self.changed.store(true, Ordering::SeqCst);
+        // Full: the views thread is busy and sees the flag afterwards.
+        let _ = self.views.try_send(Command::Changed);
+    }
 }
 
 impl Shared {
@@ -420,6 +441,114 @@ fn infrastructure_failure(error: &dyn std::fmt::Display) -> Value {
             format!("the daemon failed ({error}): try again, or run `timonier doctor`"),
         ),
     )
+}
+
+/// Looks at `.timonier/names.json` every second: a name given by hand, here or by a
+/// colleague's commit, reaches the views (ADR 0075).
+async fn watch_names(shared: Arc<Shared>) {
+    let path = shared
+        .root_path
+        .join(".timonier")
+        .join(timonier_core::names::FILE);
+    let stat = |path: &std::path::Path| {
+        std::fs::metadata(path)
+            .ok()
+            .map(|m| (m.len(), m.modified().ok()))
+    };
+    let mut last = stat(&path);
+    loop {
+        tokio::time::sleep(TRACKING_POLL).await;
+        let now = stat(&path);
+        if now != last {
+            shared.graph_changed();
+            last = now;
+        }
+    }
+}
+
+/// Gives a box of the map a name and a role in `.timonier/names.json`, or takes them back
+/// (ADR 0075): the box as the map now names it, or why not. A file that does not read is not
+/// written over. The caller holds the tracking lock: one writer of `.timonier/` (ADR 0029).
+fn give_name(
+    shared: &Shared,
+    id: &str,
+    name: Option<&str>,
+    role: Option<timonier_core::Role>,
+    summary: Option<&str>,
+    by: timonier_core::names::GivenBy,
+    now_ms: i64,
+) -> Result<std::result::Result<timonier_core::names::Named, timonier_core::names::Refused>> {
+    use timonier_core::names::{Names, Refused};
+    let Ok(id) = timonier_core::NodeId::parse(id.to_owned()) else {
+        return Ok(Err(Refused::NotABox));
+    };
+    let mut reader = shared.store.reader()?;
+    let head = reader.head()?.seq;
+    let Some(node) = reader.nodes_at(head)?.into_iter().find(|n| n.id == id) else {
+        return Ok(Err(Refused::NotABox));
+    };
+    let folder = shared.root_path.join(".timonier");
+    let path = folder.join(timonier_core::names::FILE);
+    // Read within the bound the views keep (ADR 0075): a file that does not read is not
+    // written over.
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > timonier_core::names::MAX_BYTES) {
+        return Ok(Err(Refused::Unreadable(format!(
+            "it is larger than {} bytes",
+            timonier_core::names::MAX_BYTES
+        ))));
+    }
+    let mut names = match std::fs::read_to_string(&path) {
+        Ok(text) => match Names::parse(&text) {
+            Ok(names) => names,
+            Err(refused) => return Ok(Err(refused)),
+        },
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Names::empty(),
+        Err(source) => return Err(Error::Io { path, source }),
+    };
+    let at = timonier_core::tracking::utc(now_ms);
+    let given = names.boxes.get(node.id.as_str()).cloned();
+    // The developer gives the name and the role together; an agent proposes what it gives,
+    // what it does not give stays.
+    let (name, role) = match by {
+        timonier_core::names::GivenBy::Developer => (name.map(str::to_owned), role),
+        timonier_core::names::GivenBy::Agent => (
+            name.map(str::to_owned)
+                .or_else(|| given.as_ref().and_then(|g| g.name.clone())),
+            role.or_else(|| given.as_ref().and_then(|g| g.role)),
+        ),
+    };
+    let touches_name =
+        by == timonier_core::names::GivenBy::Developer || name.is_some() || role.is_some();
+    if touches_name && let Err(refused) = names.give(&node, name.as_deref(), role, by, &at) {
+        return Ok(Err(refused));
+    }
+    if let Some(summary) = summary
+        && let Err(refused) = names.summarise(&node, Some(summary), &at)
+    {
+        return Ok(Err(refused));
+    }
+    std::fs::create_dir_all(&folder).map_err(|source| Error::Io {
+        path: folder.clone(),
+        source,
+    })?;
+    let temporary = folder.join(".names.json.tmp");
+    std::fs::write(&temporary, names.to_text())
+        .and_then(|()| std::fs::rename(&temporary, &path))
+        .map_err(|source| Error::Io {
+            path: path.clone(),
+            source,
+        })?;
+    shared.graph_changed();
+    let mut nodes = vec![node];
+    names.apply(&mut nodes);
+    let node = nodes.remove(0);
+    let summary = names.summaries().remove(node.id.as_str());
+    Ok(Ok(timonier_core::names::Named {
+        id: node.id.to_string(),
+        name: node.name,
+        role: node.role,
+        summary,
+    }))
 }
 
 /// How often `.timonier/` is looked at while a tracking view is open.
@@ -619,6 +748,7 @@ impl Session {
             },
             methods::STATUS => self.status().await,
             methods::REVIEW_MARK => self.mark_reviewed().await,
+            methods::SCIP_RUN => self.index_with_scip(),
             methods::TOOLS_LIST => {
                 Ok(serde_json::json!({ "tools": timonier_core::tools::catalogue() }))
             }
@@ -702,6 +832,39 @@ impl Session {
                         Ok(Ok(Err(refusal))) => {
                             Err(ErrorObject::new(errors::INVALID_PARAMS, refusal.message))
                         }
+                        Ok(Err(error)) => {
+                            Err(ErrorObject::new(errors::INTERNAL, error.to_string()))
+                        }
+                        Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+                    }
+                }
+                Err(error) => Err(error),
+            },
+            methods::NAMES_SET => match parse::<timonier_core::protocol::NamesSetParams>(params) {
+                Ok(set) => {
+                    let shared = Arc::clone(&self.shared);
+                    let given = tokio::task::spawn_blocking(move || {
+                        let _writing = shared.tracking.lock().map_err(|_| Error::Poisoned)?;
+                        let now_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX));
+                        give_name(
+                            &shared,
+                            &set.id,
+                            set.name.as_deref(),
+                            set.role,
+                            None,
+                            timonier_core::names::GivenBy::Developer,
+                            now_ms,
+                        )
+                    })
+                    .await;
+                    match given {
+                        Ok(Ok(Ok(named))) => Ok(json(&named)),
+                        Ok(Ok(Err(refused))) => Err(ErrorObject::new(
+                            errors::INVALID_PARAMS,
+                            refused.to_string(),
+                        )),
                         Ok(Err(error)) => {
                             Err(ErrorObject::new(errors::INTERNAL, error.to_string()))
                         }
@@ -924,6 +1087,21 @@ impl Session {
         }
     }
 
+    /// `scip/run`: the last commit's SCIP indexes, asked for now (ADR 0073); `.timonier/scip/
+    /// status.json` says what came of them.
+    fn index_with_scip(&self) -> Result<Value, ErrorObject> {
+        let asked = self
+            .shared
+            .watch
+            .lock()
+            .map_err(|_| Error::Poisoned)
+            .and_then(|watch| watch.as_ref().ok_or(Error::Stopped)?.index_with_scip());
+        match asked {
+            Ok(()) => Ok(Value::Null),
+            Err(error) => Err(ErrorObject::new(errors::INTERNAL, error.to_string())),
+        }
+    }
+
     /// `review/mark`: the pipeline thread freezes the head between two of its steps (ADR 0024).
     async fn mark_reviewed(&self) -> Result<Value, ErrorObject> {
         let shared = Arc::clone(&self.shared);
@@ -996,7 +1174,7 @@ impl Session {
         let shared = Arc::clone(&self.shared);
         let written = tokio::task::spawn_blocking(move || -> Result<_> {
             let mut reader = shared.store.reader()?;
-            let graph = crate::view::load(&mut reader)?;
+            let graph = crate::view::load(&mut reader, &shared.root_path)?;
             let actual = timonier_core::actual::actual(&graph);
             let path = shared.root_path.join(".timonier").join("actual.json");
             let mut text = serde_json::to_string_pretty(&actual).unwrap_or_default();
@@ -1077,7 +1255,7 @@ impl Session {
                 }
             };
             let mut reader = shared.store.reader()?;
-            let graph = crate::view::load(&mut reader)?;
+            let graph = crate::view::load(&mut reader, &shared.root_path)?;
             Ok(timonier_core::drift::view(
                 &intent,
                 &timonier_core::actual::actual(&graph),
@@ -1201,7 +1379,7 @@ impl Session {
                     forget_contents: &|| Ok(shared.store.forget_contents()?),
                     actual: &|| {
                         let mut reader = shared.store.reader()?;
-                        let graph = crate::view::load(&mut reader)?;
+                        let graph = crate::view::load(&mut reader, &shared.root_path)?;
                         Ok(timonier_core::actual::actual(&graph))
                     },
                     run_facts: &|run| shared.runs.facts(&shared.store, run),
@@ -1212,6 +1390,13 @@ impl Session {
                     regressions: &|batch| shared.runs.regressions(&shared.store, batch),
                     forge: &crate::forge::Forge::new(&shared.root_path, shared.gh.as_deref()),
                     last_run: &|| shared.runs.last_run_line(),
+                    name_box: &|id, name, role, summary, by| {
+                        give_name(&shared, id, name, role, summary, by, now_ms)
+                    },
+                    graph: &|| {
+                        let mut reader = shared.store.reader()?;
+                        crate::view::load(&mut reader, &shared.root_path)
+                    },
                     inventory: &|input| {
                         crate::inventory::gather(
                             &shared.root_path,

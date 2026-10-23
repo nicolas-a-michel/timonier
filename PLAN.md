@@ -4242,7 +4242,8 @@ application RealWorld de chaque langage (2026-10-22) :
 
 ## Phase 11 — Une carte fiable
 
-Statut : planifiée le 2026-10-22 (Q94 à Q97 répondues), après la fin de la Phase 9
+Statut : faite le 2026-10-23 (seconde relecture : prête), en attente de la validation par l'humain
+(planifiée le 2026-10-22, Q94 à Q97 répondues, après la fin de la Phase 9)
 
 Recentrage décidé par l'humain le 2026-10-22 : l'architecture et les performances d'abord ; une
 carte juste avant d'être riche. Le reste du MVP (suivi, inventaire, processus, coût) est gardé
@@ -4259,36 +4260,304 @@ pas de fiable, PHP n'a que scip-php 0.0.2 (2023).
   (Rust, TypeScript, Python, Go, Java, C#), la précision et le rappel des liens tree-sitter face
   à l'index SCIP du même commit, par langage, consignés ici. C'est la référence qui dira si SCIP
   et l'affichage de la certitude améliorent quelque chose, et de combien.
+
+  Fait (2026-10-23). Méthode : un lien d'usage SCIP va du fichier A au fichier B quand A cite un
+  symbole global défini dans B ; un lien de Timonier est toute arête d'un fichier à un autre,
+  celles des symboles ramenées à leur fichier (`TIMONIER_DUMP_EDGES` de `index_dump`) ; seuls
+  comptent les fichiers des deux index ; les poids sont ignorés. La mesure « large » accepte un
+  lien vers un fichier de réexport (`__init__.py`, `mod.rs`, `lib.rs`, `index.ts`) quand SCIP
+  relie au même dossier. Le lecteur SCIP (crate `scip` 0.10.0) et le script de comparaison sont
+  restés dans le scratchpad : la crate n'entre dans Timonier qu'avec l'ADR de 11.2.
+
+  | Langage | Projet (commit) | Lignes | Fichiers | Liens SCIP | Liens Timonier | Précision | Rappel | Indexeur : durée, mémoire |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Rust | ripgrep (`3fce3b5`) | 56 386 | 104 | 444 | 218 | 93 % | 46 % | rust-analyzer 2026-10-19 : 10,6 s, 1,1 Go |
+  | TypeScript | node-express-realworld (`30b68e1`) | 2 371 | 32 | 52 | 45 | 100 % | 87 % | scip-typescript 0.5.2 : 1,1 s, 0,35 Go |
+  | Python | Flask (`d086db8`) | 18 333 | 83 | 358 | 191 | 90 % (large : 94 %) | 48 % (52 %) | scip-python 0.6.8 : 6,6 s, 0,6 Go |
+  | Go | cobra (`adbc881`) | 16 765 | 35 | 146 | 122 | 93 % | 78 % | scip-go 0.2.9 : 1,0 s, 0,15 Go |
+  | Java | spring-petclinic (`500158f`) | 4 297 | 50 | 119 | 91 | 100 % | 76 % | scip-java 0.13.2 : 34,8 s avec le build Maven, 0,75 Go |
+  | C# | aspnetcore-realworld (`8aa617a`) | 7 350 | 106 | 402 | 338 | 75 % | 63 % | scip-dotnet 0.2.16 : 11,2 s, 0,29 Go |
+
+  Ce que ça dit :
+  - les liens que tree-sitter trouve sont presque tous vrais (90 à 100 %), sauf en C# : un
+    `using` d'espace de noms est relié à un seul fichier de cet espace, le premier, utilisé ou
+    non (83 des 85 liens en trop) ;
+  - tree-sitter n'en trouve qu'une partie : 46 à 87 %, moins de la moitié en Rust et en Python
+    (appels de méthodes sur un type, traits, attributs) ; c'est là que SCIP apportera le plus ;
+  - SCIP ne vaut que dans un projet prêt : sans Flask installé, scip-python ne voyait aucun lien
+    des tests vers `src/` (0 au lieu de 179) ; scip-java fait le build Maven (et remplit
+    `~/.m2`) ; scip-dotnet fait `dotnet restore` ; rust-analyzer est venu en binaire, le
+    composant rustup n'étant pas installé ;
+  - limites : un projet par langage, TypeScript et Java petits ; les liens SCIP comptent les
+    usages de symboles, pas les imports de modules entiers ; à refaire en 11.8 avec SCIP dans
+    Timonier.
+
 - 11.2 ADR de l'intégration SCIP — critère : ADR acceptée qui fixe : quand (au commit, en tâche
   de fond de basse priorité, annulable, avec un délai maximal) ; quels indexeurs par langage,
   déclarés dans les packs (`[scip]` : commande, prérequis, installation) ; l'identité (Q95) ; la
   part de la fusion (ADR 0009 : Scip > Lsp > Manifest > TreeSitter) ; la mémoire (un index décodé
   en entier) ; ce qui se passe quand l'indexeur manque ou échoue (la carte reste celle de
   tree-sitter et du LSP, et le dit).
+
+  Fait (2026-10-23), ADR 0073 (Proposé) : au commit et au démarrage, en tâche de fond, un
+  indexeur à la fois, annulable, 10 min au plus ; `[scip]` dans les packs (`program`,
+  `command`, `install` approuvé par un clic, `needs`, `in_place` faux pour scip-java, lancé dans
+  un worktree du commit) ; occurrences rattachées au plus petit symbole qui les contient (Q95) ;
+  `Calls`, `References`, `Implements`, `Inherits` en `Scip`, `verifying` des quatre genres,
+  `computed_on` au contenu lu ; index de plus de 256 Mo refusé ; un index qui confirme moins de
+  70 % des liens de tree-sitter est jugé incomplet et n'est pas appliqué ; Scala, Swift et PHP
+  sans indexeur.
+
 - 11.3 Lire un index SCIP — critère : `timonier-index` transforme un `index.scip` en
   observations `Scip` (appels et références symbole → symbole, `Implements`, `Inherits`),
   ancrées sur le contenu indexé (ADR 0009) ; les deux formes de plage (`range` et
   `typed_range`) ; tests sur des index produits par trois indexeurs.
+
+  Fait (2026-10-23) :
+  - `timonier-index::scip` (crates `scip` =0.10.0 et `protobuf` =3.7.2) : `read` donne une mise
+    à jour par fichier du modèle, en `Scip`, `computed_on` au contenu lu ; `Calls` entre
+    symboles (genre fonction ou méthode, ou descripteur `().` sans genre), `References` entre
+    fichiers, `Implements` (vers une interface, un trait, un protocole) et `Inherits` entre
+    types seulement ; colonnes UTF-16 et UTF-32 converties en octets UTF-8 ; `typed_range` puis
+    `range` ; `confirmed_share` et `COMPLETE_ENOUGH` (70 %) pour le contrôle d'index incomplet ;
+    `Project::symbol_at`, le pendant du `symbol_at` du stockage ;
+  - précision portée dans l'ADR 0073 (encore « Proposé ») : rust-analyzer n'émet aucune relation (ni sur la fixture
+    ni sur ripgrep) ; un index sans relation ne vérifie donc que `Calls` et `References`, et
+    tree-sitter garde `Implements` et `Inherits` ; les relations entre méthodes ne font pas
+    d'arête ;
+  - tests (`tests/scip.rs`) sur trois index réels, rust-analyzer 2026-10-19, scip-typescript
+    0.5.2 et scip-python 0.6.8 (`tests/fixtures/scip/*.scip`, 3 à 5 Ko ; les sources sont
+    écrites par le test, pour qu'aucun projet de test n'apparaisse sur la carte de Timonier) ;
+    index cassé, contrôle d'index incomplet.
+
 - 11.4 Lancer les indexeurs — critère : au commit, le démon lance l'indexeur de chaque langage
   présent, sans bloquer la carte ; `doctor` dit lesquels manquent ; l'installation suit Q94 ;
   temps et mémoire mesurés sur les six projets de 11.1, consignés ici.
+
+  Fait (2026-10-23), ADR 0073 complétée :
+  - packs : `[scip]` pour Rust (rust-analyzer), TypeScript et JavaScript (scip-typescript),
+    Python (scip-python, `.venv` activé), Go (scip-go), Java et Kotlin (scip-java par coursier,
+    dans un worktree du commit), C# (scip-dotnet), C et C++ (scip-clang, `compile_commands.json`) ;
+  - démon (`scip.rs`) : un fil à part, un indexeur à la fois, `nice -n 10`, annulé par un commit
+    plus récent, 10 min au plus ; l'index revient au fil d'indexation (`Command::Scip`), qui le
+    lit (`Pipeline::apply_scip`), le compare aux liens de tree-sitter recalculés depuis le projet
+    (`Project::file_links`, que la fusion a retirés du stockage dans les fichiers déjà vérifiés)
+    et l'applique au-dessus de 70 % ; état dans `.timonier/scip/status.json` ; au démarrage, un
+    commit pas indexé jusqu'au bout l'est de nouveau ;
+  - `timonier scip [--install [--approve]] [--now] [--json]`, la méthode `scip/run`, les notes de
+    `doctor`, la commande « Installer les indexeurs SCIP » de l'extension (commandes montrées,
+    clic qui approuve, puis le terminal) ;
+  - trouvés en chemin : `--infer-tsconfig` écrit un `tsconfig.json` dans le projet (champ
+    `writes`) ; spring-petclinic a Maven et Gradle, scip-java refuse de choisir (champ
+    `variants`) ; le raccourci rustup de rust-analyzer est dans le `PATH` sans le composant
+    (test `--version`) ; le fil SCIP gardait l'émetteur des commandes, et l'arrêt du démon
+    attendait sans fin (vidé en premier à l'arrêt) ; les manifestes seuls des packs pour
+    `doctor`, sinon 4 s de plus par appel en debug ;
+  - mesuré par le démon, au démarrage sur les six projets de 11.1 (durée de l'indexeur, part des
+    liens de tree-sitter confirmée, état ; la mémoire est celle de 11.1, mêmes commandes) :
+
+    | Projet | Indexeur | Durée | Confirmé | État | Mémoire (11.1) |
+    | --- | --- | --- | --- | --- | --- |
+    | ripgrep | rust-analyzer | 6,2 s | 91 % | appliqué | 1,1 Go |
+    | node-express-realworld | scip-typescript | 1,4 s | 92 % | appliqué | 0,35 Go |
+    | Flask (`.venv`) | scip-python | 6,4 s | 90 % | appliqué | 0,6 Go |
+    | cobra | scip-go | 0,4 s | 93 % | appliqué | 0,15 Go |
+    | spring-petclinic | scip-java | 10,4 s, worktree, Maven en cache | 100 % | appliqué | 0,75 Go |
+    | aspnetcore-realworld | scip-dotnet | 8,5 s | 75 % | appliqué | 0,29 Go |
+
+  - le C# passe de justesse (75 %) à cause des `using` mal reliés par tree-sitter (11.11) ;
+    tests : `scip.rs` du démon (index transmis, raisons d'échec, annulation, fichiers retirés,
+    environnement virtuel), `scipIndexers.test.ts` ; toute la suite verte.
+
 - 11.5 Le degré de certitude sur la carte — critère : chaque boîte et chaque lien montrent la
   part de leurs liens confirmés (manifeste, LSP, SCIP), et la carte entière dit sa part
   confirmée ; jamais par la couleur seule ; contraste AA dans les six thèmes ; test des cinq
   secondes.
+
+  Fait (2026-10-23), ADR 0074, validé par toi sur les captures ; test des cinq secondes, le
+  2026-10-23, par toi : le pourcentage des boîtes vu en moins de 2 s :
+  - `AggregatedEdge.confirmed` et `ViewEdge.confirmed` (protocole régénéré) ; `mapModel` les
+    additionne par ligne ; `certainty.ts` compte chaque élément et la carte (tests) ;
+  - trois traits : plein, tirets longs (`--tim-edge-dash-partial`), tirets courts ; la légende
+    montre les tirets longs seulement s'il y en a, et sa ligne « certaine » dit maintenant
+    « un manifeste, un serveur de langage ou SCIP » (plus courte : la légende recouvrait une
+    boîte du test de la dette à 1 100 px) ;
+  - le calque « Certitude » : bouton, commande `timonier.map.certainty` (FR/EN), « 67 % sûr »
+    sur chaque élément, détail dans l'infobulle et le nom accessible, part de la carte dans la
+    légende ; captures vérifiées en anglais (Dark Modern) et en français (Light Modern) ;
+    191 tests d'accessibilité verts dans les six thèmes ; captures du README reprises.
+
 - 11.6 Renommer une boîte — critère : F2, double clic ou commande renomment une boîte ; le nom
   tient à travers réindexations et commits dans `.timonier/names.json` (Q96), le rôle aussi ;
   un outil MCP permet à l'agent de proposer un nom, que le nom du développeur emporte
   (Q6).
+
+  Fait (2026-10-23), ADR 0075 :
+  - `timonier-core::names` (format, règles : le développeur l'emporte, un nom vide rend la boîte,
+    60 caractères, paquets et composants seulement) ; `view::load` pose les noms sur la tête et
+    le graphe de la relecture (cache de la relecture clé sur les noms) ;
+  - démon : `names/set`, l'outil `propose_component_name` (catalogue et instantané mis à jour,
+    bloc géré d'`AGENTS.md`), écriture atomique sous le verrou des outils, `names.json` regardé
+    chaque seconde ;
+  - VSCode : F2 et double clic sur un paquet ou un composant, la commande
+    `timonier.map.rename`, la saisie du nom puis la liste des rôles (FR/EN) ;
+  - tests : `names.rs` (cœur), `the_developer_names_a_box_and_the_agent_proposes_where_they_did_not`
+    (démon réel, vue, outil refusé puis accepté), `naming.test.ts`, F2 et double clic dans le
+    navigateur (`map.a11y.ts`).
+
 - 11.7 Chaque langage au même endroit (T-133) — critère : ajouter un langage ne touche plus ni
   le démon, ni le CLI, ni le cœur ; aucun changement visible ; toute la suite verte.
+
+  Fait (2026-10-23), ADR 0077 (Proposé) :
+  - inventaire d'abord : environ 5 500 lignes propres à un langage hors des packs, dans le cœur,
+    l'index, le démon et le CLI, sans interface commune ;
+  - le cœur : le code public et le code de test des lacunes viennent de `[code]` des packs
+    (`gaps::CodeRules`) ; l'écosystème de l'inventaire est un nom avec un rang ;
+  - `timonier_index::tooling` : le trait `Tooling` et un module par écosystème (dix), qui
+    tiennent les verrous (déplacés du démon), la détection et le manifeste du lanceur (du CLI),
+    les éditions d'`init` et d'`uninit` (du CLI, avec leurs tests), les étapes de CI, les noms
+    OSV et purl ; `tooling::text` et `tooling::ordered` partagés avec les éditions des agents ;
+  - des données de pack nouvelles : `[code]`, `[scip] bin_dirs`, `[scip.environment]` (à la
+    place de `virtual_env`), `[tests.runners.config] purpose` ;
+  - vérifié par `tests/one_place.rs` : aucune chaîne du cœur, du démon ou du CLI ne nomme un
+    langage, un écosystème ou un manifeste (essayé avec une sonde, qui échoue comme il faut) ;
+  - toute la suite Rust verte sans changer ses attentes, clippy propre.
+
+  Écarts : la résolution des imports (`ecosystem.rs`, `project.rs`) reste par `match` dans
+  l'index, où elle était déjà ; les variables `NEXTEST_*` de la télémétrie de Timonier
+  lui-même restent dans le CLI ; la raison d'OSV nomme les écosystèmes en minuscules.
 - 11.10 L'agent lit et enrichit la carte (relecture 9.5, I2 et I3 ; Q6 (a)) — critère : les
   outils MCP `query_graph` et `get_component` donnent à l'agent le graphe réel que voit le
   développeur ; l'agent propose noms, résumés et rôles des composants par un outil structuré,
   que le choix du développeur emporte (11.6) ; tests d'intégration MCP → démon.
+
+  Fait (2026-10-23), ADR 0076 (Proposé) :
+  - `timonier-core::explore` : `component` (nom, rôle, résumé, contenu, fichiers, liens
+    `uses`/`used_by` agrégés comme sur la carte, avec les liens confirmés) et `query` (le haut
+    et les boîtes ouvertes, paginé) ; outils `get_component` et `query_graph` au catalogue,
+    servis par le démon sur `view::load` (noms de `names.json` compris), bornes vérifiées dans
+    le démon ;
+  - `propose_component_name` prend un `summary` (300 caractères), gardé dans `names.json` ;
+    `ViewNode.summary` le montre dans le panneau de détail, le nom accessible et l'infobulle ;
+  - tests : `explore.rs` (cœur), `an_agent_reads_the_map_and_explains_a_box` (client MCP →
+    `tim mcp` → démon réel : la boîte et ses liens, la carte ouverte et paginée, un résumé
+    proposé puis relu, refus `not_found` et `invalid_argument`), `components.test.tsx`.
+- 11.11 (ajoutée le 2026-10-23, après 11.1) Un `using` d'espace de noms relié aux fichiers
+  utilisés — critère : en C#, et partout où un import vise un espace de noms ou un paquet
+  entier, le lien va aux fichiers de l'espace dont le fichier cite un nom, et non plus au
+  premier fichier trouvé ; sur aspnetcore-realworld, la précision de 11.1 passe de 75 % à au moins 90 %.
+
+  Fait (2026-10-23) : `Project::whole_namespace` relie un `using` C# et un `import` Swift aux
+  fichiers de l'espace de noms ou du module qui définissent un nom que le fichier cite : un type
+  du haut de l'espace (ou une fonction de premier niveau), ni un membre nommé comme un type
+  (`Article Article`), ni un type imbriqué (`Delete.Command`). Sur aspnetcore-realworld :
+  précision 75 % → 99 %, rappel 63 % → 66 % (11.1, même méthode) ; test
+  `a_using_leads_to_the_files_of_its_namespace_that_are_used`.
+
+  Complété le 2026-10-23 (relecture, I2) : un `import` Go d'un paquet entier mène aux fichiers
+  du paquet qui définissent un nom que le fichier cite par ce paquet (`b.F2`), tests du paquet
+  à part ; un paquet dont il ne cite rien (`import _ "…"`) reste relié comme avant. Test
+  `a_go_import_leads_to_the_files_of_its_package_that_are_used`. Sur cobra, précision 93 %
+  inchangée, rappel 78 % → 71 % : les onze liens perdus vont de `doc/*.go` à `active_help.go`,
+  le premier fichier du paquet, où scip-go place la définition du symbole de paquet ; ces
+  fichiers utilisent `cobra.Command`, de `command.go`, que leur import vise maintenant.
+
+  La mesure est dans le dépôt (relecture, I9) : `TIMONIER_SCIP_COMPARE=<langage>=<index>` de
+  `index_dump` (`timonier_index::scip::compare`, testée), qui redonne les chiffres de 11.1 sur
+  les mêmes index : Rust 93/46, TypeScript 100/87, Python 90/48 (large 94/52), Java 100/76,
+  C# 99/66.
+
 - 11.8 Mesurer de nouveau (11.1) avec SCIP — critère : les mêmes six projets, la part confirmée
   des liens avant et après, consignée ici et dans le README.
+
+  Fait (2026-10-23). Méthode : les six projets et les six index de 11.1 (mêmes commits) ;
+  `index_dump` avec `TIMONIER_SCIP_INDEX=<langage>=<index>` indexe le projet, puis applique
+  l'index par `Pipeline::apply_scip`, comme le démon après un commit ; un lien est confirmé
+  quand sa provenance est un manifeste, un serveur de langage ou SCIP (ADR 0074). Deux niveaux :
+  entre fichiers, et entre les boîtes les plus fines, toutes ouvertes (les liens vers une
+  dépendance externe à part, les `DependsOn` des manifestes exclus). Avant SCIP, aucun lien du
+  code n'est confirmé (0 %).
+
+  | Projet | Liens entre fichiers confirmés | Lignes entre fichiers sûres | Liens entre boîtes confirmés | Lignes entre boîtes sûres |
+  | --- | --- | --- | --- | --- |
+  | ripgrep (Rust) | 99 % (3 062 / 3 089) | 97 % | 99 % (1 416 / 1 429) | 88 % (95 / 108) |
+  | node-express-realworld (TS) | 96 % (107 / 111) | 96 % | 99 % (73 / 74) | 98 % (51 / 52) |
+  | Flask (Python) | 99 % (1 201 / 1 209) | 99 % | 99 % (1 004 / 1 011) | 97 % (117 / 121) |
+  | cobra (Go) | 100 % (1 182 / 1 183) | 100 % | 100 % (599 / 599) | 100 % (35 / 35) |
+  | spring-petclinic (Java) | 100 % (389 / 389) | 100 % | 100 % (315 / 315) | 100 % (38 / 38) |
+  | aspnetcore-realworld (C#) | 100 % (748 / 751) | 100 % | 100 % (645 / 648) | 98 % (184 / 187) |
+
+  Ce que ça dit :
+  - SCIP ajoute les liens que tree-sitter manquait (le rappel de 11.1) : ripgrep passe de 463 à
+    3 089 liens entre fichiers, surtout des appels entre symboles ;
+  - la première mesure laissait 4 à 44 % des liens entre fichiers non confirmés (ripgrep 93 %,
+    TS 56 %, Flask 85 %, cobra 99 %, petclinic 94 %, C# 74 %) : presque tous des imports, que
+    SCIP ne vérifie pas, aucun indexeur ne marquant ses occurrences d'import. Corrigé le jour
+    même : un import que l'index relie est confirmé (ADR 0073, « Les imports confirmés ») ;
+  - les liens vers les dépendances externes (23 à 68 par projet) restent non confirmés : aucun
+    index du dépôt ne les définit.
+
+  Écart : la mesure lit les index de 11.1 au lieu de relancer les indexeurs dans le démon ;
+  11.4 a vérifié ce chemin sur les mêmes six projets (durées et part confirmée).
 - 11.9 Relecture de la phase par `phase-reviewer` — critère : verdict « prête ».
+
+  Première relecture (2026-10-23) : « pas prête », un bloquant et onze points importants,
+  corrigés le jour même :
+  - B1 : `.timonier/scip/` a son `.gitignore` (`*`), comme `perf/` ;
+  - I1 : un index fait dans un worktree (scip-java) ne touche pas les fichiers que l'arbre de
+    travail a changés depuis le commit ;
+  - I2 : l'import Go d'un paquet (11.11 ci-dessus) ; I9 : la mesure de précision dans le dépôt ;
+  - I3 : tests du chemin SCIP du démon (`tests/scip.rs` : appliqué, refusé sous 70 %, fichier
+    changé depuis, worktree), de `scip/run`, de `timonier scip` et des notes de `doctor` ;
+  - I4 : test de `typed_range` et des colonnes UTF-16 et UTF-32 sur une ligne non ASCII ;
+  - I5 : annuler ou arrêter un indexeur tue son groupe de processus (Unix) ou son arbre
+    (Windows), testé ;
+  - I6 : scip-java s'installe une fois par `coursier bootstrap`, sur approbation (Q94) ;
+    `{home}` dans les commandes d'installation ; vérifié avec `scip-java --version` ;
+  - I7 : SCIP documenté (README, README.fr, `docs/features.md`) : installation, coût,
+    `TIMONIER_SCIP=off` ;
+  - I8 : `certainty.a11y.ts`, le calque en AA dans les six thèmes ;
+  - I10 : pas un défaut : la relecture ne compte un lien ajouté que si un fichier changé en
+    porte une extrémité (Q28, Q36), comme pour les liens que trouve le serveur de langage ;
+  - I11 : `Pipeline::without_scip` et `Options.scip` : les tests ne lancent aucun indexeur
+    installé sur la machine ;
+  - mineurs : commentaires de doc remis à leur place (m1), ADR 0074 à jour (m3), seuil de
+    70 % revu (m4, gardé), `one_place.rs` lit les chaînes sur plusieurs lignes (m5),
+    `inventory::Ecosystem` comparé et ordonné sur les mêmes champs (m6), `names.json` lu
+    dans sa borne par `give_name` (m7), deux dépendances transitives consignées (m8), un
+    indexeur partagé par deux langages lancé une fois et l'`index.scip` du projet gardé (m9),
+    skills `mcp-tools` (codes d'erreur) et `language-pack` (`[scip]`), schéma de `query_graph`
+    borné (m10), ADR 0027 rendue telle qu'acceptée avec une note de version (m11), un nom tient
+    après une réindexation et un `names.json` venu d'un commit est relu (m12, testé).
+
+  Seconde relecture (2026-10-23) : « prête avec réserves », aucun bloquant ; corrigé le jour
+  même :
+  - I-a : un indexeur de worktree tourne dans le dossier du projet quand la racine est un
+    sous-dossier du dépôt (`git rev-parse --show-prefix`), testé ;
+  - m-a : le dernier test de surveillance qui pouvait lancer un indexeur installé l'éteint ;
+    m-b : commentaire de `go_package` remis ; m-c : seuls C et C++ partagent un indexeur
+    (TypeScript et JavaScript diffèrent par `--infer-tsconfig`), dit juste dans l'ADR 0073 et le
+    code ; m-d : `tim scip --install` lance chaque commande une fois ; m-e : nom français de la
+    commande dans README.fr, chiffres de Java dans `docs/features.md`, état des README et
+    feuilles de route ; m-f : ADR 0073 (`args`, une commande d'installation, une seule puce) ;
+    m-g : accords français du calque (« 1 confirmé », « sûrs »).
+
+  Verdict : prête (seconde relecture), avec l'écart I-b ci-dessous.
+
+Décisions : ADR 0073 (intégration de SCIP), 0074 (certitude de la carte), 0075 (noms donnés
+à la main), 0076 (le graphe pour l'agent), 0077 (chaque langage au même endroit).
+
+Écarts : 11.7 (T-133) est suivie sous le jalon M-13 ; la résolution des imports reste par
+`match` dans l'index (ADR 0077) ; une ligne de la carte dit sa part confirmée par son motif et
+son nom accessible, pas en chiffres (m2, validé sur les captures) ; 11.8 mesure avec les index
+de 11.1 au lieu de relancer les indexeurs dans le démon (11.4 l'a fait) ; le rappel de cobra
+passe de 78 % à 71 % pour la raison dite en 11.11 ; un agent pourrait écrire `names.json` à la
+main en s'y disant `developer` (m13) : rien ne l'en empêche, l'ADR 0075 ne prévoit pas de garde ; les
+variables `NEXTEST_*` de la télémétrie de Timonier lui-même restent dans le CLI ; le chemin SCIP
+de bout en bout dans la surveillance (commit → indexeur → `status.json` à `applied`), `tim scip
+--install` et `--now` n'ont pas de test : les indexeurs viennent des packs intégrés, et un faux
+indexeur demanderait de changer le `PATH` du processus de test, ce que l'interdiction du code
+`unsafe` exclut (I-b) ; chaque morceau, lui, est testé.
 
 Questions (répondues le 2026-10-22) :
 
@@ -4342,7 +4611,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | jsonrpsee | 0.26.1 | MIT | **Écarté** (ADR 0019) : serveurs HTTP et WebSocket seulement |
 | ts-rs | 12.0.1 | MIT | Vérifié le 2026-10-16 ; types TypeScript du protocole (ADR 0019). specta écarté (2.0.0-rc.25) |
 | async-lsp / tower-lsp-server | 0.2.4 / 0.23.0 | MIT OR Apache-2.0 | tower-lsp n'est plus maintenu ; lsp-types est figé |
-| rmcp | 3.5.1 | Apache-2.0 (parties en MIT) | SDK Rust officiel de MCP ; revérifié le 2026-10-20 (Rust 1.88 au moins ; la 3.6.0 du jour attend), verrouillé dans `Cargo.lock` (ADR 0027) |
+| rmcp | 3.6.0 | Apache-2.0 (parties en MIT) | SDK Rust officiel de MCP ; 3.6.0 vérifiée le 2026-10-23 (sortie le 2026-10-20 ; la 3.7.0 du 2026-10-22 attend) : `CallToolResult.result_type`, exigé par la révision 2026-07-28 ; verrouillé dans `Cargo.lock` (ADR 0027) |
 | schemars | 1.2.3 | MIT | Vérifié le 2026-10-20 ; schémas JSON des entrées des outils MCP (ADR 0027) |
 | tonic / prost / axum | 0.14.6 / 0.14.4 / 0.8.9 | MIT / Apache-2.0 / MIT | |
 | clap | 4.6.7 | MIT OR Apache-2.0 | |
@@ -4391,6 +4660,7 @@ avant ajout si plus d'un mois s'est écoulé.
 | actions/checkout / setup-node / upload-artifact | v7.0.1 / v7.1.0 / v7.0.2 | MIT | Actions GitHub officielles, par tag majeur |
 | Swatinem/rust-cache | v2.9.2 (`6323deb`) | LGPL-3.0 | Action tierce, épinglée par SHA |
 | scip (crate, Phase 11) | 0.10.0 | Apache-2.0 | vérifiée le 2026-10-22 ; dépend de `protobuf` =3.7.2 (MIT, rust-protobuf, pas le `protobuf` 4.x de Google) ; pas de lecture en flux |
+| protobuf-support / thiserror 1 (Phase 11, transitives de `protobuf`) | 3.7.2 / 1.0.69 | MIT / MIT OR Apache-2.0 | vérifiées le 2026-10-23 (relecture de la Phase 11, m8) ; `thiserror` 1.0.69 vit à côté de la 2.x du projet, tirée par `protobuf` 3.7.2 seul |
 | Indexeurs SCIP (Phase 11) | rust-analyzer 2026-10-19 ; scip-typescript 0.5.2 ; scip-python 0.6.8 ; scip-go 0.2.9 ; scip-java 0.13.2 ; scip-clang 0.4.1 ; scip-dotnet 0.2.16 ; scip-php 0.0.2 | MIT OR Apache-2.0 ; Apache-2.0 ; MIT ; Apache-2.0 ; Apache-2.0 ; Apache-2.0 ; Apache-2.0 ; MIT | vérifiés le 2026-10-22, à revérifier avant de figer ; Scala sans indexeur depuis le 2026-05-27, Swift sans indexeur fiable |
 
 Toolchain : Rust stable 1.99.1 (installée en local le 2026-10-16 ; 1.96 reste pour la MSRV), édition 2024 stable depuis 1.85 ;
@@ -4692,3 +4962,10 @@ capture des thèmes.
     « pas prête » puis « prête » (Q98).
 - 2026-10-22 — Phases 9 et 10 validées par toi (« oui je valide ») : ADR 0055 à 0072 acceptées.
   Prochaine : Phase 11, « Une carte fiable », à ton signal.
+- 2026-10-23 — Trouvé par toi sur un autre projet : Claude Code refusait les résultats des outils
+  (« missing required resultType »). La révision MCP 2026-07-28 l'exige (SEP-2322), et Claude
+  Code récent parle cette révision sans `initialize`, par le `_meta` de chaque requête (SEP-2567).
+  rmcp 3.5.1 annonçait la révision mais n'avait pas le champ : la 0.1.1 sondée ne l'envoyait pas.
+  Corrigé : rmcp 3.6.0, et le proxy marque chaque résultat `complete` (rmcp l'ôte pour un client
+  plus ancien) ; test `a_2026_07_28_client_gets_complete_results`. À publier (0.1.3).
+

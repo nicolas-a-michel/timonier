@@ -58,6 +58,13 @@ Which tools belong to which phase is in `PLAN.md`. Multi-agents, communication a
    - The daemon is the only writer of `.timonier/plan.json`, `todo.json` and `sessions/`.
 7. **Errors**: an MCP tool error result with a stable code and an actionable message, such as
    "no open session: call session_start first". Never a stack trace.
+   Reuse a code before making one: `invalid_argument` (a bound or a shape the schema cannot
+   say), `not_found` (an id the graph or the tracking lacks), `unknown_task`, `unknown_item`,
+   `unknown_session`, `unknown_milestone`, `unknown_language`, `unknown_tool`,
+   `no_open_session`, `session_already_open`, `forbidden_transition`, `developer_chose` (the
+   developer's choice stays theirs, ADR 0075), `no_run`, `no_measure`, `invalid_file`,
+   `forge_failed`, `io_error`, `internal`.
+
 8. **No logic in `timonier-mcp`**: it maps MCP to JSON-RPC and back, nothing more.
 9. **Tests**:
    - schema validation, with valid and invalid inputs;
@@ -71,7 +78,7 @@ Which tools belong to which phase is in `PLAN.md`. Multi-agents, communication a
 
 ## How it is built (ADR 0027, 0028, 0029)
 
-- SDK: `rmcp` 3.5.1 (locked in `Cargo.lock`), stdio only. `timonier mcp` (CLI) finds or starts
+- SDK: `rmcp` 3.6.0 (locked in `Cargo.lock`; protocol 2026-07-28 needs `resultType: "complete"` on every tool result, set by the proxy), stdio only. `timonier mcp` (CLI) finds or starts
   the daemon quietly (stdout carries MCP), then `timonier-mcp` relays MCP `tools/list` and
   `tools/call` to the daemon's JSON-RPC methods of the same names (protocol version 4).
 - A tool is:

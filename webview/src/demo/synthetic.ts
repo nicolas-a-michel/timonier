@@ -40,6 +40,7 @@ function node(
     signature: null,
     review: null,
     debt: null,
+    summary: null,
   };
 }
 
@@ -78,6 +79,7 @@ export function synthetic(packages: number, components: number, files: number, c
         edges: 1,
         best: approximateOnly ? "tree_sitter" : "lsp",
         approximateOnly,
+        confirmed: approximateOnly ? 0 : 1,
         review: null,
       });
     }

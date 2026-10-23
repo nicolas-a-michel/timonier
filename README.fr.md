@@ -41,7 +41,12 @@ persistance, interface, utilitaire, bibliothèques externes ; dans un dossier d
 une boîte par projet. Timonier lui-même tient en six. Un
 clic ouvre une boîte sur ses paquets, puis sur ses composants, fichiers et symboles. Un lien en
 tirets n'est connu que par la syntaxe (tree-sitter) ; un lien plein est déclaré dans un
-manifeste ou confirmé par les serveurs de langage de l'IDE. La disposition reste stable quand le
+manifeste, ou confirmé par les serveurs de langage de l'IDE ou par un index SCIP après chaque
+commit ; des tirets longs disent qu'il l'est en partie. Sur six projets libres (Rust,
+TypeScript, Python, Go, Java, C#), un index SCIP a confirmé de 96 à 100 % des liens entre
+fichiers, contre aucun par la syntaxe seule ([détail](PLAN.md)). Le calque « Certitude » donne à chaque
+boîte sa part de liens confirmés, et à la carte la sienne. F2 ou
+un double clic renomme une boîte et change son rôle ; le nom est gardé dans `.timonier/names.json`. La disposition reste stable quand le
 code change, et Maj+Entrée ouvre le code d'une boîte.
 
 ### Ce qui a changé depuis votre relecture
@@ -149,20 +154,19 @@ les décisions d'architecture ([docs/adr/](docs/adr/README.md)) sont en françai
 
 ## État
 
-Développement précoce, rien de publié (22 octobre 2026). Le MVP est découpé en phases 0 à 9
-([PLAN.md](PLAN.md)) : les phases 0 à 8 sont faites. La phase 9, en cours, a ajouté l'inventaire
-des technologies, le processus de développement et le coût de l'IA, et porté Timonier sous
-Windows ; elle publie une préversion sur le Marketplace VSCode, puis se termine en pilotant un
-nouveau projet de bout en bout. Timonier pilote son propre développement.
+Développement précoce (23 octobre 2026). Le MVP est découpé en phases 0 à 9
+([PLAN.md](PLAN.md)) : elles sont faites, et sa fin, une relecture complète puis un vrai projet
+piloté de bout en bout, reste à venir. Timonier pilote son propre développement.
 
-La phase 10, faite avant la préversion, a fait passer Timonier de deux langages à treize :
-chacun a été vérifié sur un vrai projet, de la carte à la première trace de ses tests. Timonier
-fonctionne sous Linux, macOS et Windows ; ses tests y passent en CI, et sur une machine
-Windows neuve. L'extension est publiée en préversion sur le Marketplace VSCode, pour les six
-plateformes (Linux, macOS et Windows, x64 et arm64). La suite porte sur les deux points qui
-comptent le plus pour Timonier, l'architecture et les performances. D'abord une carte fiable
-(SCIP, le degré de certitude de chaque lien, le renommage des boîtes), puis la mémoire par
-composant et un profilage plus fin. La [feuille de route](ROADMAP.fr.md) donne l'ordre.
+La phase 10 a fait passer Timonier de deux langages à treize : chacun a été vérifié sur un
+vrai projet, de la carte à la première trace de ses tests. Timonier fonctionne sous Linux, macOS
+et Windows ; ses tests y passent en CI, et sur une machine Windows neuve. L'extension est
+publiée en préversion sur le Marketplace VSCode, pour les six plateformes (Linux, macOS et
+Windows, x64 et arm64). La phase 11 a rendu la carte fiable : des index SCIP confirment ses liens
+(de 96 à 100 % des liens entre fichiers sur six projets libres), chaque boîte et la carte disent
+leur degré de certitude, le développeur renomme les boîtes, et les agents lisent la carte par
+MCP. Viennent ensuite les performances en profondeur, la mémoire par composant et un profilage
+plus fin ; la [feuille de route](ROADMAP.fr.md) donne l'ordre.
 
 ## Essayer
 
@@ -186,7 +190,15 @@ tim init             # --yes pour ne rien demander
 tim doctor           # vérifie l'installation et la répare
 tim test             # lance les tests qu'init a enregistrés, et les mesure
 tim inventory        # dépendances, licences, doublons, vulnérabilités connues
+tim scip             # les indexeurs SCIP des langages du projet ; --install les installe
 ```
+
+Les indexeurs SCIP confirment les liens de la carte (un par langage, de rust-analyzer à
+scip-dotnet). Timonier n'en installe un que si vous l'approuvez (`tim scip --install`, ou
+« Installer les indexeurs SCIP » dans VSCode), puis le lance en arrière-plan après chaque commit et
+au démarrage. Un indexeur compile ou charge tout le projet : sur les six projets de PLAN.md 11.1 et 11.4,
+de 0,4 s à 10,4 s et jusqu'à 1,1 Go de mémoire (Java : 10,4 s avec le cache de Maven, 34,8 s en partant de rien).
+`TIMONIER_SCIP=off` dans l'environnement du démon les arrête.
 
 ## Développer
 

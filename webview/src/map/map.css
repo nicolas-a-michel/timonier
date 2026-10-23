@@ -29,6 +29,11 @@
   stroke-dasharray: var(--tim-edge-dash);
 }
 
+.tim-map .react-flow__edge-path.tim-edge--partial {
+  stroke: var(--tim-edge-confirmed);
+  stroke-dasharray: var(--tim-edge-dash-partial);
+}
+
 /*
  * The wires of the item pointed at or focused: in its colour, and drawn over the others with a
  * casing of the background, which cuts the lines they cross. Not by colour alone.
@@ -657,4 +662,21 @@ body.vscode-high-contrast .tim-map-frame__header {
 .tim-map-frame[data-role="project"] {
   border-width: 2px;
   border-color: var(--tim-role-project-outline);
+}
+
+/* How sure a box is (PLAN.md 11.5): the share of its links confirmed, in words. */
+.tim-sure-words {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--tim-space-1);
+  margin-left: auto;
+  color: var(--tim-color-muted-on-box);
+  font-size: var(--tim-font-size-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-map-role__title .tim-sure-words,
+.tim-map-frame__header .tim-sure-words {
+  color: var(--tim-color-muted-on-header);
 }

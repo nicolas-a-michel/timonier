@@ -18,6 +18,7 @@ import {
 } from "./commandLine";
 import { daemonProgram } from "./launch";
 import { recordedCommands, TEST_ARGS } from "./runTests";
+import { missingIndexers, SCIP_INSTALL_ARGS } from "./scipIndexers";
 import { detectAgents, setUp } from "./setup";
 
 /** The program this package ships (ADR 0059), found at activation. */
@@ -87,6 +88,58 @@ async function runTestsNow(root: string | undefined): Promise<void> {
     cwd: root,
     shellPath: initProgram(),
     shellArgs: TEST_ARGS,
+  });
+  terminal.show();
+}
+
+/**
+ * « Install the SCIP indexers » (ADR 0073, Q94): the commands that install the missing ones,
+ * shown, approved by the click, then run in a terminal, which asks the daemon to index at once.
+ */
+async function installScipNow(root: string | undefined): Promise<void> {
+  if (!root) {
+    void vscode.window.showInformationMessage(vscode.l10n.t("Open a folder: Timonier maps the project it holds."));
+    return;
+  }
+  const json = await new Promise<string | null>((resolve) =>
+    execFile(initProgram(), ["scip", "--json", "--root", root], { timeout: 30_000 }, (error, out) =>
+      resolve(error ? null : String(out)),
+    ),
+  );
+  const missing = json === null ? null : missingIndexers(json);
+  if (missing === null) {
+    void vscode.window.showErrorMessage(
+      vscode.l10n.t("Timonier could not say which SCIP indexers this project needs."),
+    );
+    return;
+  }
+  const byHand =
+    missing.byHand.length > 0 ? `\n\n${vscode.l10n.t("To install by hand:")}\n${missing.byHand.join("\n")}` : "";
+  if (missing.commands.length === 0) {
+    void vscode.window.showInformationMessage(
+      missing.byHand.length === 0
+        ? vscode.l10n.t("Every SCIP indexer of this project is installed: the map is made exact after each commit.")
+        : `${vscode.l10n.t("No SCIP indexer of this project installs by a command.")}${byHand}`,
+    );
+    return;
+  }
+  const install = vscode.l10n.t("Install");
+  const chosen = await vscode.window.showWarningMessage(
+    vscode.l10n.t("Install the SCIP indexers on this machine?"),
+    {
+      modal: true,
+      detail: `${vscode.l10n.t(
+        "Timonier runs these commands, then indexes the last commit: the map gets the links tree-sitter misses.",
+      )}\n\n${missing.commands.join("\n")}${byHand}`,
+    },
+    install,
+  );
+  if (chosen !== install) return;
+  const terminal = vscode.window.createTerminal({
+    name: vscode.l10n.t("Timonier SCIP"),
+    cwd: root,
+    shellPath: initProgram(),
+    shellArgs: SCIP_INSTALL_ARGS,
   });
   terminal.show();
 }
@@ -397,6 +450,8 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
         ["timonier.map.reviewDebt", { name: "toggleDebt" }],
         ["timonier.map.compareIntent", { name: "toggleIntent" }],
         ["timonier.map.showPerformance", { name: "togglePerformance" }],
+        ["timonier.map.certainty", { name: "toggleCertainty" }],
+        ["timonier.map.rename", { name: "rename", target: null }],
       ] as const
     ).map(([id, command]) =>
       vscode.commands.registerCommand(id, async () => {
@@ -407,6 +462,7 @@ export function activate(context: vscode.ExtensionContext): TimonierApi {
     ),
     // The Performances panel's « Run the tests », from the command palette too (review 9.5, m2).
     vscode.commands.registerCommand("timonier.runTests", () => runTestsNow(root)),
+    vscode.commands.registerCommand("timonier.installScip", () => installScipNow(root)),
     // The Performances panel (ADR 0051).
     vscode.commands.registerCommand("timonier.openPerformance", () => {
       try {

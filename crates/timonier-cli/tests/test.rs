@@ -91,6 +91,7 @@ impl Project {
         command
             .args(args)
             .current_dir(self.repo.path())
+            .env("TIMONIER_SCIP", "off")
             .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"))
             // The approved commands (Q84), never in the developer's home.
             .env("TIMONIER_DATA_DIR", self.runtime.path().join("data"))

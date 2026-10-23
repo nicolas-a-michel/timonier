@@ -3,6 +3,7 @@
 //! [`load`].
 
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::path::Path;
 
 use timonier_core::protocol::{
     EdgeRef, EdgeReview, FanJump, NodeDebt, NodeReview, ReviewBox, ReviewChange, ReviewDependency,
@@ -15,11 +16,40 @@ use timonier_store::Reader;
 use crate::Result;
 
 pub use timonier_core::graph::Graph;
+use timonier_core::names::Names;
 
-/// The head, read once for every view (PLAN.md, Phase 2: aggregation reads the whole graph).
-pub fn load(reader: &mut Reader) -> Result<Graph> {
+/// The head, read once for every view (PLAN.md, Phase 2: aggregation reads the whole graph),
+/// with the names and roles given by hand laid over it (Q96, ADR 0075).
+pub fn load(reader: &mut Reader, root: &Path) -> Result<Graph> {
     let head = reader.head()?.seq;
-    Ok(Graph::new(reader.nodes_at(head)?, reader.edges_at(head)?))
+    let mut nodes = reader.nodes_at(head)?;
+    let names = names(root);
+    names.apply(&mut nodes);
+    Ok(Graph::new(nodes, reader.edges_at(head)?).with_summaries(names.summaries()))
+}
+
+/// `.timonier/names.json`; none, or one that does not read, is no name: the daemon's log says
+/// why, and `names/set` and `propose_component_name` refuse to write over it.
+pub fn names(root: &Path) -> Names {
+    let path = root.join(".timonier").join(timonier_core::names::FILE);
+    let Ok(meta) = std::fs::metadata(&path) else {
+        return Names::empty();
+    };
+    if meta.len() > timonier_core::names::MAX_BYTES {
+        tracing::warn!(path = %path.display(), "names.json is too large: not read");
+        return Names::empty();
+    }
+    match std::fs::read_to_string(&path).map(|text| Names::parse(&text)) {
+        Ok(Ok(names)) => names,
+        Ok(Err(error)) => {
+            tracing::warn!(%error, "names.json not read");
+            Names::empty()
+        }
+        Err(error) => {
+            tracing::warn!(%error, "names.json not read");
+            Names::empty()
+        }
+    }
 }
 
 /// The path of the file that holds a node, relative to the root.
@@ -228,6 +258,7 @@ impl ViewState {
                     signature: node.signature.clone(),
                     review: review.and_then(|r| node_review(r.diff, id)),
                     debt: debt.and_then(|d| d.get(id).copied()),
+                    summary: graph.summary(id).cloned(),
                 },
             );
             if expanded.contains(id) {

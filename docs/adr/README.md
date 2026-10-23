@@ -77,3 +77,8 @@ La procédure et le modèle sont dans le skill [`adr`](../../.claude/skills/adr/
 | 0070 | [Le pack PHP : noms PSR-4, Composer, PHPUnit](0070-pack-php.md) | Accepté | 10 |
 | 0071 | [Le pack Scala : sbt, imports à sélecteurs, sbt 2 et son cache de tests](0071-pack-scala.md) | Accepté | 10 |
 | 0072 | [Les rôles : un dossier de plusieurs projets, le vote des bibliothèques, les outils](0072-roles-projets-et-outils.md) | Accepté | 9 |
+| 0073 | [L'intégration de SCIP : au commit, par les packs, sur nos identifiants](0073-integration-scip.md) | Proposé | 11 |
+| 0074 | [La certitude de la carte : les liens confirmés, comptés et dessinés](0074-certitude-de-la-carte.md) | Proposé | 11 |
+| 0075 | [Les noms et les rôles donnés à la main : `names.json`, posés sur le graphe](0075-noms-donnes-a-la-main.md) | Proposé | 11 |
+| 0076 | [Le graphe pour l'agent : `get_component`, `query_graph` et les résumés](0076-graphe-pour-l-agent.md) | Proposé | 11 |
+| 0077 | [Chaque langage au même endroit : des règles dans les packs, un module par écosystème](0077-chaque-langage-au-meme-endroit.md) | Proposé | 11 |

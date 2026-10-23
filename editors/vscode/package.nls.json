@@ -44,6 +44,9 @@
   "command.map.compareIntent.title": "Compare the Map with the Whiteboard (On or Off)",
   "command.openPerformance.title": "Open the Performances Panel",
   "command.runTests.title": "Run the Tests",
+  "command.installScip.title": "Install the SCIP Indexers",
   "command.map.showPerformance.title": "Show the Map's Performances (On or Off)",
+  "command.map.certainty.title": "Show How Sure the Map Is (On or Off)",
+  "command.map.rename.title": "Rename the Box and Change Its Role",
   "command.openWorkflow.title": "Development Process: Presets and Settings"
 }

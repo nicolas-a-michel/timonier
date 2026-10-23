@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, ListToolsResult,
-    PaginatedRequestParams, ServerCapabilities, ServerConfig, Tool,
+    PaginatedRequestParams, ResultType, ServerCapabilities, ServerConfig, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::{ErrorData, RoleServer, ServerHandler, ServiceExt};
@@ -214,8 +214,11 @@ impl ServerHandler for Proxy {
     ) -> Result<CallToolResponse, ErrorData> {
         let params = json!({ "name": request.name, "arguments": request.arguments });
         let answer = self.ask(&context, methods::TOOLS_CALL, params).await?;
-        let result: CallToolResult = serde_json::from_value(answer)
+        let mut result: CallToolResult = serde_json::from_value(answer)
             .map_err(|e| ErrorData::internal_error(format!("the daemon's result: {e}"), None))?;
+        // Protocol 2026-07-28 requires it (SEP-2322); the daemon's JSON does not carry it, and
+        // rmcp takes it off again for a client of an older revision.
+        result.result_type = Some(ResultType::COMPLETE);
         Ok(result.into())
     }
 }

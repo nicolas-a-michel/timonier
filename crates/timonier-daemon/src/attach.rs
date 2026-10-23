@@ -16,11 +16,12 @@ pub(crate) fn attach(
 ) -> Option<(String, Attachment)> {
     let code = &span.code;
     let file = code.file.as_deref().map(|f| relative(root, f));
-    let rust = span.language.as_deref() == Some("rust")
-        || file.as_deref().is_some_and(|f| f.ends_with(".rs"));
+    // A language whose spans name the function by its id (ADR 0044, 0077).
+    let by_id = crate::packs::of(span.language.as_deref(), file.as_deref())
+        .filter(|pack| pack.code.function_ids);
     if let Some(function) = &code.function
-        && rust
-        && let Ok(id) = NodeId::parse(format!("rust:{function}"))
+        && let Some(pack) = by_id
+        && let Ok(id) = NodeId::parse(format!("{}:{function}", pack.language))
         && reader.exists(&id).unwrap_or(false)
     {
         return Some((id.as_str().to_owned(), Attachment::Id));

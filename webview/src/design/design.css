@@ -187,6 +187,11 @@ body.vscode-high-contrast .tim-box__header {
   stroke-dasharray: var(--tim-edge-dash);
 }
 
+.tim-edge--partial {
+  stroke: var(--tim-edge-confirmed);
+  stroke-dasharray: var(--tim-edge-dash-partial);
+}
+
 .tim-legend {
   margin: 0;
 }

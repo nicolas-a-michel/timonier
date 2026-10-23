@@ -35,6 +35,9 @@ pub const GET_WORKFLOW: &str = "get_workflow";
 pub const TASK_START: &str = "task_start";
 pub const OPEN_PULL_REQUEST: &str = "open_pull_request";
 pub const LINK_TICKET: &str = "link_ticket";
+pub const PROPOSE_COMPONENT_NAME: &str = "propose_component_name";
+pub const GET_COMPONENT: &str = "get_component";
+pub const QUERY_GRAPH: &str = "query_graph";
 
 /// `get_intended_architecture` (ADR 0041): the image of the sketch comes unless declined.
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize, JsonSchema)]
@@ -208,6 +211,30 @@ pub fn catalogue() -> Vec<Value> {
             "Link a task of the plan to a GitHub issue that already exists (`github#12` or `12`); \
              the issue is closed with the task.",
             false,
+        ),
+        tool::<crate::names::ProposeComponentName>(
+            PROPOSE_COMPONENT_NAME,
+            "Propose a name, a role or a summary for a box of the map (a component or a package): \
+             a few words that say what it does, one of the map's roles, and a sentence or two \
+             (300 characters at most) on its responsibility, which the developer reads on the map \
+             and `get_component` returns. It shows at once and is kept in `.timonier/names.json`; \
+             a name or role the developer gave stays theirs. Returns the box as the map now names it.",
+            false,
+        ),
+        tool::<crate::explore::GetComponent>(
+            GET_COMPONENT,
+            "Read a box of the map (a component or a package) as the developer sees it: its name, \
+             role and summary, the boxes and files it holds, and the boxes it uses and is used by, \
+             with how many links stand behind each and how many a compiler's index confirmed. \
+             Read it before changing a part of the code you do not know.",
+            true,
+        ),
+        tool::<crate::explore::QueryGraph>(
+            QUERY_GRAPH,
+            "Read the architecture map as the developer sees it: the top boxes, and what each box \
+             of `expanded` holds, with the links between the boxes shown (paged). Start with no \
+             argument, then open the boxes you need; `get_component` gives one box in detail.",
+            true,
         ),
         tool::<crate::inventory::GetTechInventory>(
             GET_TECH_INVENTORY,

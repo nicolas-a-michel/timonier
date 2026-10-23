@@ -194,3 +194,23 @@ mocking = ["org.mockito:mockito-core", "io.mockk:mockk", "org.easymock:easymock"
 orm = ["org.hibernate.orm:hibernate-core", "org.jooq:jooq", "org.mybatis:mybatis", "org.eclipse.persistence:eclipselink"]
 migrations = ["org.flywaydb:flyway-core", "org.liquibase:liquibase-core"]
 cli-parser = ["info.picocli:picocli", "commons-cli:commons-cli", "com.beust:jcommander"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-java 0.13.2 (Apache-2.0, verified on
+# 2026-10-22), Kotlin with Gradle only, launched by coursier; it runs `clean`, so in a worktree
+# of the commit.
+[scip]
+name = "scip-java"
+program = "scip-java"
+# Where its installer puts the indexer, under the home: the editor's `PATH` may lack it.
+bin_dirs = [".local/share/coursier/bin"]
+args = ["index", "--build-tool=gradle", "--output", "{output}"]
+# Installed once, on approval (Q94): coursier writes a launcher of scip-java 0.13.2, checked on
+# 2026-10-23 (`scip-java --version`). `{home}` is the user's folder.
+install = "coursier bootstrap org.scip-code:scip-java:0.13.2 -M org.scip_code.scip_java.ScipJava -o {home}/.local/share/coursier/bin/scip-java"
+note = "scip-java is installed by coursier (https://get-coursier.io/docs/cli-installation) and runs on a JDK 17 or later."
+in_place = false
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# The default is public.
+hidden_words = ["private", "internal", "protected"]

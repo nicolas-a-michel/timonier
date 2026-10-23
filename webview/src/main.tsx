@@ -23,6 +23,7 @@ import {
   parseUi,
   reveal,
   toggleChanges,
+  toggleCertainty,
   toggleDebt,
   toggleIntent,
   togglePerformance,
@@ -119,6 +120,8 @@ function render() {
         onMarkReviewed={() => host?.postMessage({ type: "markReviewed" })}
         onToggleChanges={() => apply(toggleChanges(ui))}
         onToggleDebt={() => apply(toggleDebt(ui))}
+        onToggleCertainty={() => apply(toggleCertainty(ui))}
+        onRename={(box) => host?.postMessage({ type: "rename", ...box })}
         onToggleIntent={onToggleIntent}
         intent={intent}
         onOpenWhiteboard={() => host?.postMessage({ type: "openWhiteboard" })}

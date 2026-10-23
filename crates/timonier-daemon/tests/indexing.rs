@@ -140,6 +140,7 @@ fn the_watcher_updates_the_graph_after_a_save() {
     let (repo, db) = repository();
     let store = open(db.path());
     let mut pipeline = Pipeline::new(repo.path(), store.clone()).unwrap();
+    pipeline.without_scip();
     pipeline.index_all().unwrap();
     let (send, receive) = mpsc::channel::<Report>();
     let watch = Watch::start(pipeline, Duration::from_millis(100), None, move |event| {

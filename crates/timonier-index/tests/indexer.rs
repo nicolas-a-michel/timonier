@@ -684,8 +684,9 @@ fn a_go_module_links_its_packages() {
     };
     let main = edges("file:main.go");
     for edge in [
-        // The package's first file, tests aside; a call, the file that defines it.
-        "imports file:cart/cart.go",
+        // The files of the package the file uses, tests aside (review of Phase 11, I2): `cart.New`
+        // is in `new.go`; a call, the file that defines it.
+        "imports file:cart/new.go",
         "calls file:cart/new.go",
         "imports pkg:gomod/github.com/gin-gonic/gin",
     ] {
@@ -1536,4 +1537,79 @@ fn a_folder_of_repositories_shows_one_project_each() {
     assert_eq!(role("pkg:pypi/client"), Some(Role::Project));
     assert_eq!(role("pkg:cargo/xtask"), Some(Role::Utility));
     assert_eq!(role("pkg:cargo/server"), Some(Role::EntryPoint));
+}
+
+/// PLAN.md 11.11: a `using` leads to the files of its namespace that bring a name the file
+/// cites: a type at the namespace's top; neither a member named like a type nor a type nested
+/// in another (aspnetcore-realworld: precision of the links from 75 % to 99 %).
+#[test]
+fn a_using_leads_to_the_files_of_its_namespace_that_are_used() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(
+        root,
+        "Shop.csproj",
+        "<Project Sdk=\"Microsoft.NET.Sdk\">\n</Project>\n",
+    );
+    write(
+        root,
+        "Model/Item.cs",
+        "namespace Shop.Model;\n\npublic class Item\n{\n    public int Price { get; init; }\n}\n",
+    );
+    write(
+        root,
+        "Model/Order.cs",
+        "namespace Shop.Model;\n\npublic class Order\n{\n    public Item? Item { get; init; }\n    public record Command(int Id);\n}\n",
+    );
+    write(
+        root,
+        "Cart.cs",
+        "using Shop.Model;\n\nnamespace Shop;\n\npublic record Cart(Item Item);\npublic record Command(Item Item);\n",
+    );
+    let batch = indexer(root).index_all(&HashMap::new(), &[], None).unwrap();
+    let cart = update(&batch, "file:Cart.cs");
+    let imports: Vec<String> = cart
+        .observations
+        .as_ref()
+        .unwrap()
+        .observations
+        .iter()
+        .filter(|o| o.kind == timonier_core::EdgeKind::Imports)
+        .map(|o| o.dst.to_string())
+        .collect();
+    assert_eq!(imports, ["file:Model/Item.cs"]);
+}
+
+/// Review of Phase 11, I2: a Go import of a whole package leads to the files of it the file
+/// uses (`b.F2`), not to the first one; a package the file names nothing of still links.
+#[test]
+fn a_go_import_leads_to_the_files_of_its_package_that_are_used() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(root, "go.mod", "module example.com/shop\n\ngo 1.24\n");
+    write(root, "b/b1.go", "package b\n\nfunc F1() {}\n");
+    write(
+        root,
+        "b/b2.go",
+        "package b\n\nconst Rate = 2\n\nfunc F2() int { return Rate }\n",
+    );
+    write(root, "b/b2_test.go", "package b\n\nfunc F2() {}\n");
+    write(root, "c/c.go", "package c\n\nfunc init() {}\n");
+    write(
+        root,
+        "main.go",
+        "package main\n\nimport (\n\t\"example.com/shop/b\"\n\t_ \"example.com/shop/c\"\n)\n\nfunc main() { _ = b.F2() + b.Rate }\n",
+    );
+    let batch = indexer(root).index_all(&HashMap::new(), &[], None).unwrap();
+    let main = update(&batch, "file:main.go");
+    let imports: Vec<String> = main
+        .observations
+        .as_ref()
+        .unwrap()
+        .observations
+        .iter()
+        .filter(|o| o.kind == timonier_core::EdgeKind::Imports)
+        .map(|o| o.dst.to_string())
+        .collect();
+    assert_eq!(imports, ["file:b/b2.go", "file:c/c.go"]);
 }

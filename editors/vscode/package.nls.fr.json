@@ -44,6 +44,9 @@
   "command.map.compareIntent.title": "Comparer la carte au tableau blanc (activer ou non)",
   "command.openPerformance.title": "Ouvrir le panneau des performances",
   "command.runTests.title": "Lancer les tests",
+  "command.installScip.title": "Installer les indexeurs SCIP",
   "command.map.showPerformance.title": "Afficher les performances sur la carte (activer ou non)",
+  "command.map.certainty.title": "Afficher la certitude de la carte (activer ou non)",
+  "command.map.rename.title": "Renommer la boîte et changer son rôle",
   "command.openWorkflow.title": "Processus de développement : préréglages et réglages"
 }

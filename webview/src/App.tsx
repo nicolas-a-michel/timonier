@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { EmptyState } from "./design/components";
 import { messages, type Locale } from "./i18n";
 import type { Toggle } from "./map/mapModel";
-import type { BudgetsView, Density, DriftView, PerfMap, Span } from "./protocol";
+import type { BudgetsView, Density, DriftView, PerfMap, Role, Span } from "./protocol";
 import type { Pins } from "./map/layout";
 import { MapView, type MapCommands } from "./map/MapView";
 import { initialUi, type UiState } from "./uiState";
@@ -28,6 +28,10 @@ export interface AppProps {
   /** The filter « only the changes » (ADR 0024). */
   onToggleChanges?: () => void;
   onToggleDebt?: () => void;
+  /** How sure the map is, on or off (PLAN.md 11.5). */
+  onToggleCertainty?: () => void;
+  /** A box to rename: the host asks its name and role (ADR 0075). */
+  onRename?: (box: { target: string; name: string; role: Role | null }) => void;
   onReveal?: (target: string, path: string[]) => void;
   /** The map compared with the whiteboard (ADR 0042): the toggle, and the drift the host gave. */
   onToggleIntent?: () => void;
@@ -60,6 +64,8 @@ export function App({
   onMarkReviewed,
   onToggleChanges,
   onToggleDebt,
+  onToggleCertainty,
+  onRename,
   onReveal,
   onToggleIntent,
   intent,
@@ -115,6 +121,9 @@ export function App({
           onTogglePerformance={onTogglePerformance}
           onOpenPerformance={onOpenPerformance}
           budgets={budgets}
+          showCertainty={ui.certainty ?? false}
+          onToggleCertainty={onToggleCertainty}
+          onRename={onRename}
           commandsRef={commandsRef}
         />
       </main>

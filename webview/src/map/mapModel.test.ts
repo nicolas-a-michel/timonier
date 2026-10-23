@@ -20,6 +20,7 @@ function node(id: string, role: Role | null, parent: string | null = null, child
     signature: null,
     review: null,
     debt: null,
+    summary: null,
   };
 }
 
@@ -32,6 +33,7 @@ function edge(src: string, dst: string, approximateOnly = true, weight = 1): Vie
     edges: 1,
     best: approximateOnly ? "tree_sitter" : "lsp",
     approximateOnly,
+    confirmed: approximateOnly ? 0 : 1,
     review: null,
   };
 }

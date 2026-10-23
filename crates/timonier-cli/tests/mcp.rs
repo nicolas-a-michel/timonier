@@ -46,6 +46,7 @@ impl Project {
         command
             .args(["mcp", "--root"])
             .arg(self.repo.path())
+            .env("TIMONIER_SCIP", "off")
             .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"));
         let transport = TokioChildProcess::new(command).expect("tim mcp starts");
         Agent.serve(transport).await.expect("the MCP handshake")
@@ -57,6 +58,7 @@ impl Drop for Project {
         let _ = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
             .args(["daemon", "stop", "--root"])
             .arg(self.repo.path())
+            .env("TIMONIER_SCIP", "off")
             .env("TIMONIER_RUNTIME_DIR", self.runtime.path().join("run"))
             .output();
     }
@@ -104,6 +106,7 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
         [
             "get_budget_violations",
             "get_budgets",
+            "get_component",
             "get_drift",
             "get_instrumentation_conventions",
             "get_instrumentation_gaps",
@@ -119,6 +122,8 @@ async fn an_agent_keeps_its_session_through_the_proxy() {
             "open_pull_request",
             "plan_add_task",
             "plan_update_task",
+            "propose_component_name",
+            "query_graph",
             "session_end",
             "session_start",
             "task_start",
@@ -233,6 +238,7 @@ fn a_client_named_in_its_requests_metadata_names_the_session() {
     let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
         .args(["mcp", "--root"])
         .arg(project.repo.path())
+        .env("TIMONIER_SCIP", "off")
         .env("TIMONIER_RUNTIME_DIR", project.runtime.path().join("run"))
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -370,6 +376,129 @@ async fn an_agent_reads_the_whiteboard_and_the_drift_of_the_code() {
     agent.cancel().await.expect("the agent goes");
 }
 
+/// PLAN.md 11.10, ADR 0076: the agent reads the map as the developer sees it, and gives a box
+/// a summary the map shows.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_agent_reads_the_map_and_explains_a_box() {
+    let project = Project::new();
+    let root = project.repo.path();
+    std::fs::write(
+        root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"app\", \"store\"]\n",
+    )
+    .expect("workspace");
+    std::fs::remove_dir_all(root.join("src")).expect("no root crate");
+    for (name, manifest, code) in [
+        (
+            "store",
+            "[package]\nname = \"store\"\n",
+            "pub fn save() {}\n",
+        ),
+        (
+            "app",
+            "[package]\nname = \"app\"\n\n[dependencies]\nstore = { path = \"../store\" }\n",
+            "pub fn run() {\n    store::save();\n}\n",
+        ),
+    ] {
+        std::fs::create_dir_all(root.join(name).join("src")).expect("src");
+        std::fs::write(root.join(name).join("Cargo.toml"), manifest).expect("manifest");
+        std::fs::write(root.join(name).join("src/lib.rs"), code).expect("lib");
+    }
+    let agent = project.agent().await;
+
+    // Once indexed, the store is used by the app.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let store = loop {
+        let (store, error) = call(
+            &agent,
+            "get_component",
+            json!({"component": "pkg:cargo/store"}),
+        )
+        .await;
+        if !error
+            && store["result"]["used_by"]
+                .as_array()
+                .is_some_and(|u| !u.is_empty())
+        {
+            break store;
+        }
+        assert!(std::time::Instant::now() < deadline, "never used: {store}");
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    };
+    let result = &store["result"];
+    assert_eq!(result["name"], "store", "{result}");
+    assert_eq!(result["files"], json!(["store/src/lib.rs"]), "{result}");
+    assert_eq!(result["used_by"][0]["from"], "pkg:cargo/app", "{result}");
+    assert!(
+        result["used_by"][0]["links"].as_u64() >= Some(1),
+        "{result}"
+    );
+
+    // The map's top, then what the app holds.
+    let (top, error) = call(&agent, "query_graph", json!({})).await;
+    assert!(!error, "{top}");
+    let listed = |page: &Value| -> Vec<String> {
+        page["result"]["nodes"]
+            .as_array()
+            .map(|n| {
+                n.iter()
+                    .filter_map(|n| n["id"].as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let at_top = listed(&top);
+    assert!(!at_top.is_empty(), "{top}");
+    let (open, error) = call(&agent, "query_graph", json!({"expanded": at_top})).await;
+    assert!(!error, "{open}");
+    assert!(
+        listed(&open).len() > at_top.len() || listed(&open).iter().any(|id| id == "pkg:cargo/app"),
+        "{open}"
+    );
+    let (one, _) = call(&agent, "query_graph", json!({"limit": 1})).await;
+    assert_eq!(listed(&one).len(), 1, "{one}");
+    assert_eq!(
+        one["result"]["next_cursor"].is_string(),
+        top["result"]["total"].as_u64() > Some(1)
+    );
+
+    // The agent explains the store; the map and get_component say it.
+    let (named, error) = call(
+        &agent,
+        "propose_component_name",
+        json!({"component": "pkg:cargo/store", "summary": "Keeps what the app saves."}),
+    )
+    .await;
+    assert!(!error, "{named}");
+    assert_eq!(named["result"]["summary"], "Keeps what the app saves.");
+    let (store, _) = call(
+        &agent,
+        "get_component",
+        json!({"component": "pkg:cargo/store"}),
+    )
+    .await;
+    assert_eq!(
+        store["result"]["summary"], "Keeps what the app saves.",
+        "{store}"
+    );
+    let names = std::fs::read_to_string(root.join(".timonier/names.json")).expect("names.json");
+    assert!(names.contains("Keeps what the app saves."), "{names}");
+
+    // A file is no box; bounds are the daemon's to check.
+    let (file, error) = call(
+        &agent,
+        "get_component",
+        json!({"component": "file:store/src/lib.rs"}),
+    )
+    .await;
+    assert!(error, "{file}");
+    assert_eq!(file["error"]["code"], "not_found", "{file}");
+    let (bad, error) = call(&agent, "query_graph", json!({"cursor": "x"})).await;
+    assert!(error, "{bad}");
+    assert_eq!(bad["error"]["code"], "invalid_argument", "{bad}");
+    agent.cancel().await.expect("the agent goes");
+}
+
 /// PLAN.md T-110: the daemon stopped (an upgrade, a `kill`), the agent's next call still
 /// answers: the proxy reaches the daemon again, and starts it when none answers.
 #[tokio::test(flavor = "multi_thread")]
@@ -381,6 +510,7 @@ async fn the_proxy_reaches_a_daemon_that_went_again() {
     let stopped = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
         .args(["daemon", "stop", "--root"])
         .arg(project.repo.path())
+        .env("TIMONIER_SCIP", "off")
         .env("TIMONIER_RUNTIME_DIR", project.runtime.path().join("run"))
         .output()
         .expect("tim runs");
@@ -391,4 +521,42 @@ async fn the_proxy_reaches_a_daemon_that_went_again() {
     assert!(!error, "{again}");
     assert_eq!(again["result"], plan["result"]);
     agent.cancel().await.expect("the agent goes");
+}
+
+/// A client of protocol 2026-07-28 skips `initialize` and says its revision in each request's
+/// `_meta` (SEP-2567); the result of a tool must then say it is complete (SEP-2322), or Claude
+/// Code refuses it (« missing required resultType », seen with 0.1.1 on 2026-10-23).
+#[tokio::test(flavor = "multi_thread")]
+async fn a_2026_07_28_client_gets_complete_results() {
+    use std::io::{BufRead, Write};
+    let project = Project::new();
+    let mut proxy = std::process::Command::new(assert_cmd::cargo::cargo_bin!("tim"))
+        .args(["mcp", "--root"])
+        .arg(project.repo.path())
+        .env("TIMONIER_SCIP", "off")
+        .env("TIMONIER_RUNTIME_DIR", project.runtime.path().join("run"))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .expect("timonier mcp starts");
+    let meta = json!({
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": {"name": "probe", "version": "1"},
+        "io.modelcontextprotocol/clientCapabilities": {}
+    });
+    let request = json!({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "get_plan", "arguments": {}, "_meta": meta}
+    });
+    let mut stdin = proxy.stdin.take().expect("stdin");
+    writeln!(stdin, "{request}").expect("written");
+    let mut line = String::new();
+    std::io::BufReader::new(proxy.stdout.take().expect("stdout"))
+        .read_line(&mut line)
+        .expect("an answer");
+    let _ = proxy.kill();
+    let _ = proxy.wait();
+    let answer: Value = serde_json::from_str(&line).expect("JSON");
+    assert_eq!(answer["result"]["resultType"], "complete", "{answer}");
 }

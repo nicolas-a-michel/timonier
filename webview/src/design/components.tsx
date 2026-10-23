@@ -5,6 +5,7 @@
 import { cloneElement, useId, useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
 
 import { messages, type Locale } from "../i18n";
+import { percent } from "../performance/model";
 import { performanceMessages } from "../performance/messages";
 import type { IndexProgress, Role } from "../protocol";
 import { ChangeIcon, IntentIcon, RoleIcon, SymbolIcon, ToneIcon, type SymbolKind, type Tone } from "./icons";
@@ -28,6 +29,8 @@ export interface ComponentBoxProps {
   debtLevel?: number;
   /** A symbol (T-114): its kind in colour, icon and word in place of a role, and its signature. */
   symbol?: { kind: SymbolKind; signature: string | null };
+  /** What it does, as an agent said it (PLAN.md 11.10): shown on hover. */
+  summary?: string | null;
 }
 
 /** A box of the map: a component, a package, a file, a symbol. */
@@ -44,6 +47,7 @@ export function ComponentBox({
   debt,
   debtLevel,
   symbol,
+  summary,
 }: ComponentBoxProps) {
   const t = messages[locale];
   const roleLabel = symbol ? t.symbolKinds[symbol.kind] : role ? t.roles[role] : t.noRole;
@@ -53,13 +57,13 @@ export function ComponentBox({
       className={classes.join(" ")}
       tabIndex={focusable ? 0 : undefined}
       role={focusable ? "group" : undefined}
-      aria-label={focusable ? `${name}, ${roleLabel}, ${t.items(items)}` : undefined}
+      aria-label={focusable ? `${name}, ${roleLabel}, ${t.items(items)}${summary ? `. ${summary}` : ""}` : undefined}
       aria-current={selected ? "true" : undefined}
       data-contrast="outline"
       data-role={symbol ? undefined : (role ?? undefined)}
       data-symbol={symbol?.kind}
       data-debt={debtLevel || undefined}
-      title={symbol ? t.symbolTip(roleLabel, symbol.signature) : undefined}
+      title={symbol ? t.symbolTip(roleLabel, symbol.signature) : (summary ?? undefined)}
     >
       <div className="tim-box__header" data-contrast="icon">
         {symbol ? <SymbolIcon kind={symbol.kind} /> : <RoleIcon role={role} />}
@@ -83,13 +87,22 @@ export interface EdgeLineProps {
   d: string;
   /** Known from tree-sitter only (spec « Displayed precision »). */
   approximate: boolean;
+  /** Some of its links confirmed, not all (PLAN.md 11.5): long dashes. */
+  partial?: boolean;
   /** Its accessible name: what it links, and how sure it is. */
   label: string;
 }
 
-/** An edge of the map: dashed when approximate, solid when confirmed. Goes inside an `<svg>`. */
-export function EdgeLine({ d, approximate, label }: EdgeLineProps) {
-  const className = approximate ? "tim-edge tim-edge--approximate" : "tim-edge tim-edge--confirmed";
+/**
+ * An edge of the map: dashed when approximate, long dashes when partly confirmed, solid when
+ * confirmed. Goes inside an `<svg>`.
+ */
+export function EdgeLine({ d, approximate, partial = false, label }: EdgeLineProps) {
+  const className = approximate
+    ? "tim-edge tim-edge--approximate"
+    : partial
+      ? "tim-edge tim-edge--partial"
+      : "tim-edge tim-edge--confirmed";
   return (
     <path className={className} d={d} role="img" aria-label={label} data-contrast="stroke">
       <title>{label}</title>
@@ -106,6 +119,8 @@ export function EdgeLegend({
   intent = false,
   performance = false,
   budgets = false,
+  partial = false,
+  sure,
 }: {
   locale: Locale;
   changes?: boolean;
@@ -116,12 +131,16 @@ export function EdgeLegend({
   performance?: boolean;
   /** A budget of the whiteboard is exceeded on the map (ADR 0052). */
   budgets?: boolean;
+  /** A line of the map is partly confirmed: its look is told only then (PLAN.md 11.5). */
+  partial?: boolean;
+  /** The certainty layer is on: the share of the links drawn that are confirmed (PLAN.md 11.5). */
+  sure?: number | null;
 }) {
   const t = messages[locale];
-  const sample = (approximate: boolean, label: string) => (
+  const sample = (approximate: boolean, label: string, partial = false) => (
     <li className="tim-legend__item">
       <svg className="tim-legend__sample" viewBox="0 0 40 8" width="40" height="8" aria-hidden="true">
-        <EdgeLine d="M1 4H39" approximate={approximate} label={label} />
+        <EdgeLine d="M1 4H39" approximate={approximate} partial={partial} label={label} />
       </svg>
       <span>{label}</span>
     </li>
@@ -131,6 +150,7 @@ export function EdgeLegend({
       <figcaption className="tim-legend__title">{t.edgeLegend}</figcaption>
       <ul className="tim-legend__list">
         {sample(false, t.edgeConfirmed)}
+        {partial && sample(false, t.edgePartial, true)}
         {sample(true, t.edgeApproximate)}
         <li className="tim-legend__item">
           <svg className="tim-legend__sample" viewBox="0 0 40 10" width="40" height="10" aria-hidden="true">
@@ -141,6 +161,11 @@ export function EdgeLegend({
           <span>{t.edgeDirection}</span>
         </li>
       </ul>
+      {sure !== undefined && (
+        <p className="tim-legend__title tim-legend__subtitle">
+          {sure === null ? t.mapSureNone : t.mapSure(percent(sure, locale))}
+        </p>
+      )}
       {changes && (
         <>
           <p className="tim-legend__title tim-legend__subtitle">{t.review.legendTitle}</p>

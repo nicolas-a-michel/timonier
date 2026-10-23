@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-12",
+  "agent": "claude-code",
+  "objective": "11.7: each language's code in one place — pack.toml rules for the core, one ecosystem module per ecosystem in timonier-index behind an interface for the index, the daemon and the CLI — with no visible change.",
+  "tasks": [
+    "T-133"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T08:43:14Z",
+  "ended_at": "2026-10-23T09:36:36Z",
+  "snapshots": {
+    "start": 199,
+    "end": 200
+  },
+  "summary": "11.7 done (ADR 0077). Core: gaps' public/test rules from the packs' [code]; the inventory ecosystem is a ranked name. Index: timonier_index::tooling with the Tooling trait and ten ecosystem modules, holding the lockfile readers moved from the daemon, and the detection and init/uninit manifest edits moved from the CLI, with their tests; plus CI steps and OSV/purl data. Daemon: packs.rs, span attachment, SCIP bin dirs, venv activation and CI through pack data or the trait. CLI: detect, plan, uninit and doctor through the trait. tests/one_place.rs fails if the core, the daemon or the CLI name a language (checked with a probe). Full suite green, clippy clean. Left in Phase 11: 11.9, the phase review.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "Stage 1, core: gaps' test and public rules and the inventory's ecosystems become pack.toml data",
+      "task": "T-133",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Stage 2, index: the Ecosystem trait and registry; manifests, module paths and resolution move into one module per ecosystem",
+      "task": "T-133",
+      "status": "open"
+    },
+    {
+      "id": "D-3",
+      "text": "Stage 3, daemon: lockfiles, purl, span attachment and SCIP folders through the packs and the trait",
+      "task": "T-133",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Stage 4, CLI: detection, init/uninit edits and doctor through the trait",
+      "task": "T-133",
+      "status": "done"
+    },
+    {
+      "id": "D-5",
+      "text": "Stage 5: a test that the core, the daemon and the CLI name no language; ADR index, PLAN.md, skills",
+      "task": "T-133",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 36,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:cluster/crates/timonier-cli/src/approval.rs",
+        "name": "approval",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/extract.rs",
+        "name": "extract",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/inventory.rs",
+        "name": "inventory",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:dir/crates/timonier-index/tests",
+        "name": "tests",
+        "within": "timonier-index"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      }
+    ],
+    "removed": [],
+    "linked": [
+      {
+        "from": {
+          "id": "component:dir/crates/timonier-index",
+          "name": "timonier-index",
+          "within": "crates"
+        },
+        "to": {
+          "id": "pkg:cargo/timonier-index",
+          "name": "timonier-index",
+          "within": "crates"
+        }
+      }
+    ],
+    "unlinked": [
+      {
+        "from": {
+          "id": "component:dir/crates/timonier-index",
+          "name": "timonier-index",
+          "within": "crates"
+        },
+        "to": {
+          "id": "pkg:cargo/timonier-cli",
+          "name": "timonier-cli",
+          "within": "crates"
+        }
+      }
+    ]
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 113,
+    "input": 226,
+    "output": 126958,
+    "cache_read": 38157124,
+    "cache_creation": 207778,
+    "cost_usd_micros": 11833710
+  }
+}

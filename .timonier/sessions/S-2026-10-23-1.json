@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-1",
+  "agent": "claude-code",
+  "objective": "11.1: measure the precision and recall of today's tree-sitter file links against SCIP on six real projects (Rust, TypeScript, Python, Go, Java, C#).",
+  "tasks": [
+    "T-134",
+    "T-143"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T05:10:20Z",
+  "ended_at": "2026-10-23T05:19:16Z",
+  "snapshots": {
+    "start": 176,
+    "end": 177
+  },
+  "summary": "11.1 done: tree-sitter's file links measured against SCIP on six real projects. Precision 93/100/90/93/100/75 % and recall 46/87/48/78/76/63 % for Rust/TS/Python/Go/Java/C#. C#'s namespace using links to one arbitrary file: new task 11.11 (T-143). SCIP needs a ready project (dependencies installed, builds). index_dump gained TIMONIER_DUMP_EDGES. Not committed. Next: 11.2, the ADR of the SCIP integration.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "index_dump: write every link lifted to files (TIMONIER_DUMP_EDGES)",
+      "task": "T-134",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "A scratch reader of index.scip that writes the file-to-file uses it records",
+      "task": "T-134",
+      "status": "done"
+    },
+    {
+      "id": "D-3",
+      "text": "Six real projects and their indexers in the scratchpad (Rust, TypeScript, Python, Go, Java, C#)",
+      "task": "T-134",
+      "status": "done"
+    },
+    {
+      "id": "D-4",
+      "text": "Compare, and record precision and recall per language in PLAN.md",
+      "task": "T-134",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 1,
+    "added": [],
+    "modified": [
+      {
+        "id": "component:dir/crates/timonier-daemon/examples",
+        "name": "examples",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": null
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 37,
+    "input": 74,
+    "output": 27662,
+    "cache_read": 18417601,
+    "cache_creation": 506901,
+    "cost_usd_micros": 8292268
+  }
+}

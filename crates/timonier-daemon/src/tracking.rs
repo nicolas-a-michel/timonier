@@ -29,6 +29,17 @@ pub struct Tracker {
     pub(crate) dir: PathBuf,
 }
 
+/// What gives a box a name and a role (ADR 0075): the box as the map now names it, or why not.
+pub type NameBox<'a> = dyn Fn(
+        &str,
+        Option<&str>,
+        Option<timonier_core::Role>,
+        Option<&str>,
+        timonier_core::names::GivenBy,
+    ) -> crate::Result<
+        std::result::Result<timonier_core::names::Named, timonier_core::names::Refused>,
+    > + 'a;
+
 /// What a call needs from the daemon: who calls, the time, and a frozen snapshot.
 pub struct Context<'a> {
     /// The MCP client of the connection (`claude-code`…).
@@ -59,6 +70,10 @@ pub struct Context<'a> {
     pub forge: &'a crate::forge::Forge,
     /// The last run of the tests, in a line, for a pull request's description.
     pub last_run: &'a dyn Fn() -> Option<String>,
+    /// Gives a box a name and a role in `.timonier/names.json` (ADR 0075).
+    pub name_box: &'a NameBox<'a>,
+    /// The graph as the map shows it, names given by hand included (ADR 0076).
+    pub graph: &'a dyn Fn() -> crate::Result<timonier_core::graph::Graph>,
     /// The technology inventory (ADR 0055); it may ask OSV (Q79).
     pub inventory: &'a dyn Fn(
         &timonier_core::inventory::GetTechInventory,
@@ -181,6 +196,109 @@ impl Tracker {
                 let input: timonier_core::workflow::OpenPullRequest = tools::arguments(arguments)?;
                 let session = self.open_session()?.ok_or_else(no_open_session)?;
                 self.pull_request(&session, input.draft, context)
+            }
+            tools::PROPOSE_COMPONENT_NAME => {
+                let input: timonier_core::names::ProposeComponentName =
+                    tools::arguments(arguments)?;
+                let role = match input.role.as_deref().map(timonier_core::Role::parse) {
+                    Some(Err(_)) => {
+                        return Err(Refusal::new(
+                            "invalid_argument",
+                            "role is one of the map's roles",
+                        ));
+                    }
+                    Some(Ok(role)) => Some(role),
+                    None => None,
+                };
+                if input.name.is_none() && role.is_none() && input.summary.is_none() {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "propose a name, a role or a summary",
+                    ));
+                }
+                match (context.name_box)(
+                    &input.component,
+                    input.name.as_deref(),
+                    role,
+                    input.summary.as_deref(),
+                    timonier_core::names::GivenBy::Agent,
+                )
+                .map_err(|e| internal(e.to_string()))?
+                {
+                    Ok(named) => Ok((
+                        format!("{} is now « {} » on the map.", named.id, named.name),
+                        json(&named),
+                    )),
+                    Err(refused @ timonier_core::names::Refused::DeveloperChose) => {
+                        Err(Refusal::new("developer_chose", refused.to_string()))
+                    }
+                    Err(refused @ timonier_core::names::Refused::NotABox) => Err(Refusal::new(
+                        "not_found",
+                        format!("{refused}: give the id of a component or a package of the graph"),
+                    )),
+                    Err(refused) => Err(Refusal::new("invalid_argument", refused.to_string())),
+                }
+            }
+            tools::GET_COMPONENT => {
+                let input: timonier_core::explore::GetComponent = tools::arguments(arguments)?;
+                if input.component.is_empty() || input.component.len() > 512 {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "component is 1 to 512 characters",
+                    ));
+                }
+                let graph = (context.graph)().map_err(|e| internal(e.to_string()))?;
+                let Some(component) = timonier_core::explore::component(&graph, &input.component)
+                else {
+                    return Err(Refusal::new(
+                        "not_found",
+                        format!(
+                            "{} is no box of the map: give the id of a component or a package, \
+                             as query_graph lists them",
+                            input.component
+                        ),
+                    ));
+                };
+                Ok((component_words(&component), json(&component)))
+            }
+            tools::QUERY_GRAPH => {
+                let input: timonier_core::explore::QueryGraph = tools::arguments(arguments)?;
+                if input.expanded.len() > 50 || input.expanded.iter().any(|id| id.len() > 512) {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "expanded holds at most 50 ids of 512 characters at most",
+                    ));
+                }
+                if input.limit.is_some_and(|l| l == 0 || l > 200) {
+                    return Err(Refusal::new("invalid_argument", "limit is 1 to 200"));
+                }
+                if input
+                    .cursor
+                    .as_ref()
+                    .is_some_and(|c| c.is_empty() || c.len() > 16 || c.parse::<u32>().is_err())
+                {
+                    return Err(Refusal::new(
+                        "invalid_argument",
+                        "cursor is the next_cursor a previous page gave",
+                    ));
+                }
+                let graph = (context.graph)().map_err(|e| internal(e.to_string()))?;
+                let page = timonier_core::explore::query(&graph, &input)
+                    .map_err(|reason| Refusal::new("invalid_argument", reason))?;
+                let more = if page.next_cursor.is_some() {
+                    ", more with next_cursor"
+                } else {
+                    ""
+                };
+                Ok((
+                    format!(
+                        "{} of {} boxes and files, {} links{more}.",
+                        page.nodes.len(),
+                        page.total,
+                        page.links.len()
+                    ),
+                    json(&page),
+                ))
             }
             tools::GET_TECH_INVENTORY => {
                 let input: timonier_core::inventory::GetTechInventory =
@@ -401,6 +519,7 @@ impl Tracker {
                 callables: &facts.callables,
                 spans: &facts.spans,
                 overhead: facts.overhead,
+                rules: crate::packs::code_rules(),
             },
             cursor,
             limit as usize,
@@ -1210,6 +1329,23 @@ pub(crate) fn read_intent(path: &Path) -> std::io::Result<String> {
     std::fs::read_to_string(path)
 }
 
+/// A box in a line, for the summary of `get_component`.
+fn component_words(component: &timonier_core::explore::Component) -> String {
+    let brief = &component.brief;
+    let role = brief
+        .role
+        .map(|r| format!(", {}", r.as_str()))
+        .unwrap_or_default();
+    format!(
+        "« {} »{role}: {} boxes, {} files; uses {}, used by {}.",
+        brief.name,
+        component.children.len(),
+        component.files_total,
+        component.uses.len(),
+        component.used_by.len()
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1249,6 +1385,8 @@ mod tests {
                 Some(Path::new("/nowhere/gh")),
             ))),
             last_run: &|| None,
+            name_box: &|_, _, _, _, _| Ok(Err(timonier_core::names::Refused::NotABox)),
+            graph: &|| Ok(timonier_core::graph::Graph::new(Vec::new(), Vec::new())),
             inventory: &|_| {
                 Err(crate::Error::Io {
                     path: std::path::PathBuf::new(),

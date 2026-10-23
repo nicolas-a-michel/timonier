@@ -146,3 +146,8 @@ database = ["github.com/groue/grdb.swift", "github.com/stephencelis/sqlite.swift
 logging = ["github.com/apple/swift-log", "github.com/cocoalumberjack/cocoalumberjack", "github.com/sushichop/puppy"]
 yaml = ["github.com/jpsim/yams"]
 testing = ["github.com/quick/quick", "github.com/quick/nimble", "github.com/pointfreeco/swift-snapshot-testing"]
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# `public` or `open`; the default, `internal`, stays in the module.
+signature_words = ["public", "open"]

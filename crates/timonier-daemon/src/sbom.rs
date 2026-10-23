@@ -15,23 +15,25 @@ use cyclonedx_bom::models::vulnerability_target::{VulnerabilityTarget, Vulnerabi
 use cyclonedx_bom::validation::Validate;
 use timonier_core::inventory::{Dependency, Ecosystem, Vulnerability as Found};
 
-/// A package URL. Maven's `group:artifact` and Go's module paths carry a namespace, which the
-/// purl writes with `/` (`pkg:maven/io.opentelemetry/opentelemetry-api@1.67.0`).
+/// An ecosystem's type in a package URL.
+fn purl_type(ecosystem: Ecosystem) -> &'static str {
+    timonier_index::tooling::packages(ecosystem).map_or("generic", |p| p.purl)
+}
+
+/// A package URL. Some names carry a namespace, which the purl writes with `/`
+/// (`pkg:maven/io.opentelemetry/opentelemetry-api@1.67.0`); the ecosystem says how.
 fn purl(ecosystem: Ecosystem, name: &str, version: &str) -> Option<Purl> {
-    let namespaced = match ecosystem {
-        Ecosystem::Maven => name.split_once(':').map(|(g, a)| format!("{g}/{a}")),
-        // `pkg:swift/github.com/apple/swift-log@1.6.0`, as Go's.
-        // `pkg:composer/monolog/monolog@3.9.0`: the vendor is the namespace.
-        Ecosystem::Go | Ecosystem::Swift | Ecosystem::Composer => Some(name.to_owned()),
-        // `pkg:generic/fmt@11.2.0`: no namespace, and no type of their own.
-        Ecosystem::Vcpkg | Ecosystem::Cmake => None,
-        _ => None,
+    use timonier_index::tooling::PurlName;
+    let namespaced = match timonier_index::tooling::packages(ecosystem).map(|p| p.purl_name) {
+        Some(PurlName::GroupArtifact) => name.split_once(':').map(|(g, a)| format!("{g}/{a}")),
+        Some(PurlName::Path) => Some(name.to_owned()),
+        Some(PurlName::Plain) | None => None,
     };
     match namespaced {
-        Some(path) => format!("pkg:{}/{path}@{version}", ecosystem.purl())
+        Some(path) => format!("pkg:{}/{path}@{version}", purl_type(ecosystem))
             .parse()
             .ok(),
-        None => Purl::new(ecosystem.purl(), name, version).ok(),
+        None => Purl::new(purl_type(ecosystem), name, version).ok(),
     }
 }
 
@@ -42,7 +44,7 @@ pub fn sbom(
     vulnerabilities: &[Found],
 ) -> Result<serde_json::Value, String> {
     let reference = |ecosystem: Ecosystem, name: &str, version: &str| {
-        format!("pkg:{}/{name}@{version}", ecosystem.purl())
+        format!("pkg:{}/{name}@{version}", purl_type(ecosystem))
     };
     let mut components = Vec::new();
     for (name, version, ecosystem) in packages {
@@ -123,7 +125,7 @@ mod tests {
         let shown = |e, name, version| purl(e, name, version).map(|p| p.to_string());
         assert_eq!(
             shown(
-                Ecosystem::Maven,
+                Ecosystem::new("maven", 4),
                 "io.opentelemetry:opentelemetry-api",
                 "1.67.0"
             )
@@ -131,11 +133,16 @@ mod tests {
             Some("pkg:maven/io.opentelemetry/opentelemetry-api@1.67.0")
         );
         assert_eq!(
-            shown(Ecosystem::Go, "github.com/gin-gonic/gin", "v1.11.0").as_deref(),
+            shown(
+                Ecosystem::new("go", 3),
+                "github.com/gin-gonic/gin",
+                "v1.11.0"
+            )
+            .as_deref(),
             Some("pkg:golang/github.com/gin-gonic/gin@v1.11.0")
         );
         assert_eq!(
-            shown(Ecosystem::Cargo, "serde", "1.0.228").as_deref(),
+            shown(Ecosystem::new("cargo", 0), "serde", "1.0.228").as_deref(),
             Some("pkg:cargo/serde@1.0.228")
         );
     }
@@ -143,7 +150,7 @@ mod tests {
     #[test]
     fn the_sbom_is_valid_cyclonedx_with_licences_purls_and_vulnerabilities() {
         let dependency = |name: &str, license: Option<&str>| Dependency {
-            ecosystem: Ecosystem::Cargo,
+            ecosystem: Ecosystem::new("cargo", 0),
             name: name.to_owned(),
             version: Some("1.0.0".to_owned()),
             license: license.map(str::to_owned),
@@ -153,7 +160,11 @@ mod tests {
             function: None,
         };
         let json = sbom(
-            &[("app".to_owned(), Some("0.1.0".to_owned()), Ecosystem::Cargo)],
+            &[(
+                "app".to_owned(),
+                Some("0.1.0".to_owned()),
+                Ecosystem::new("cargo", 0),
+            )],
             &[
                 dependency("serde", Some("MIT OR Apache-2.0")),
                 dependency("old", Some("MIT/Apache-2.0")),
@@ -162,7 +173,7 @@ mod tests {
             ],
             &[Found {
                 id: "RUSTSEC-2020-0071".to_owned(),
-                ecosystem: Ecosystem::Cargo,
+                ecosystem: Ecosystem::new("cargo", 0),
                 package: "old".to_owned(),
                 version: "1.0.0".to_owned(),
                 aliases: vec![],

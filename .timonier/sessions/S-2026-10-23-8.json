@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-8",
+  "agent": "claude-code",
+  "objective": "11.10: the agent reads the real graph through MCP (query_graph, get_component) and proposes names, summaries and roles of components, the developer's choice winning.",
+  "tasks": [
+    "T-142"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T07:51:30Z",
+  "ended_at": "2026-10-23T08:14:29Z",
+  "snapshots": {
+    "start": 191,
+    "end": 192
+  },
+  "summary": "11.10 done: timonier-core::explore (component, query), the MCP tools get_component and query_graph served by the daemon on the map's graph (names.json included), bounds checked in the daemon; propose_component_name takes a summary, shown in the map's details, accessible name and tooltip. Tests: explore unit tests, an end-to-end MCP test (tim mcp → daemon), components.test.tsx; full Rust and Node suites, clippy and lint green. ADR 0076, PLAN.md, AGENTS.md and the init template, docs/features.md updated. Left in Phase 11: 11.7 (each language in one place), 11.8 (measure again with SCIP), 11.9 (phase review).",
+  "changes": {
+    "files": 25,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/MapView.test.ts",
+        "name": "MapView",
+        "within": "map"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:dir/webview/src/demo",
+        "name": "demo",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/webview/src/design",
+        "name": "design",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/client.rs",
+        "name": "error",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/editors/vscode/src/daemon.ts",
+        "name": "generated",
+        "within": "timonier"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/src/init",
+        "name": "init",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:dir/webview/src/map",
+        "name": "map",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/webview/src/map/mapModel.test.ts",
+        "name": "mapModel",
+        "within": "map"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/actual.rs",
+        "name": "node",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/protocol.rs",
+        "name": "protocol",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/webview/src/density.test.ts",
+        "name": "protocol",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:cluster/crates/timonier-core/src/aggregate.rs",
+        "name": "review",
+        "within": "timonier-core"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/bridge.rs",
+        "name": "subscriptions",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:dir/crates/timonier-cli/tests",
+        "name": "tests",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "pkg:npm/timonier",
+        "name": "timonier",
+        "within": null
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-core",
+        "name": "timonier-core",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/debt.rs",
+        "name": "tracking",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/webview/src/host.ts",
+        "name": "uiState",
+        "within": "@timonier/webview"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 57,
+    "input": 2448,
+    "output": 51799,
+    "cache_read": 20315846,
+    "cache_creation": 148642,
+    "cost_usd_micros": 6296938
+  }
+}

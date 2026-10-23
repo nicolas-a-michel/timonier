@@ -5,7 +5,9 @@
 Ce que Timonier fera ensuite, dans l'ordre. Timonier concentre ses efforts sur deux choses :
 l'architecture du code et ses performances. Aucune date n'est promise : chaque étape se termine
 quand son critère d'acceptation est vérifié sur un vrai projet ([PLAN.md](PLAN.md) les donne).
-Traduction de la version anglaise du 22 octobre 2026.
+Traduction de la version anglaise du 23 octobre 2026.
+Fait depuis : une carte fiable (Phase 11 : index SCIP, degré de certitude de chaque lien, renommage
+des boîtes, chaque langage au même endroit).
 
 ## La fin du MVP
 
@@ -13,23 +15,7 @@ Traduction de la version anglaise du 22 octobre 2026.
 - **Critère de sortie** : un vrai projet piloté de bout en bout sans en lire le code ligne à
   ligne.
 
-## Ensuite : une carte fiable
-
-- **Indexation SCIP**, pour des références exactes dans les langages qui ont un indexeur.
-- **Le degré de certitude de chaque boîte et de chaque lien** : la part de ses liens qu'un
-  manifeste, un serveur de langage ou SCIP a confirmés, montrée sur la carte, pour qu'une carte
-  approchée le dise.
-- **Renommer une boîte** : le développeur donne son propre nom à une boîte de la carte (F2 ou
-  double clic), conservé dans `.timonier/` à travers les réindexations et les commits ; les
-  agents peuvent proposer des noms par un outil MCP, et le nom du développeur l'emporte.
-- **Chaque langage au même endroit.** Aujourd'hui, un langage est son pack (grammaire,
-  requêtes, règles) plus du code réparti dans le démon, la ligne de commande et le cœur
-  (manifestes, inventaire, éditions de `timonier init`, ce qui est public). Les règles qui sont
-  des données passent dans le pack ; le reste va dans un module par écosystème derrière une
-  seule interface, pour qu'ajouter un langage ne touche jamais le démon. Rien ne change pour
-  l'utilisateur.
-
-## Puis : les performances en profondeur
+## Ensuite : les performances en profondeur
 
 - **Mémoire par composant.** Le module d'instrumentation que Timonier ajoute compte les octets
   alloués pendant chaque span, et le calque Performances de la carte montre la part de chaque

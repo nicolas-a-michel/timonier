@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use super::detect::{Agent, Git, Runner};
 use super::edits::{self, HASH_BEGIN, HASH_END, HookShape, MD_BEGIN, MD_END};
 use super::ordered::Json;
+use timonier_daemon::tooling::text::Sdk;
+use timonier_daemon::tooling::{SdkPlace, WithSdk};
 
 /// What the agents read, in `AGENTS.md` (spec « Enforcing the protocol »).
 pub const INSTRUCTIONS: &str = "\
@@ -33,6 +35,7 @@ blocked, done or dropped.
 `intent.json`, the whiteboard, belongs to the developer.
 - Instrument the code as `.timonier/conventions/<language>/instrumentation.md` says (`get_instrumentation_conventions`); after a run of `timonier test`, check `get_instrumentation_gaps` and `get_budget_violations` (the whiteboard's performance budgets); for performance work, run `timonier test --runs auto` and read `get_regressions`.
 - After adding or changing a dependency, read `get_tech_inventory`: duplicates by function, licences, known vulnerabilities.
+- To find your way in the code, read the map the developer sees: `query_graph` for the boxes and their links, `get_component` for one box. When a box has a name or a role that does not say what it does, or no summary, propose them with `propose_component_name`; what the developer named stays theirs.
 - Before starting a task of the plan, read `get_workflow`: the project's process (tickets, a branch per task, pull requests); start the task with `task_start`, which follows it.
 - Every tool result starts with a mailbox header: read the messages it announces.";
 
@@ -134,56 +137,6 @@ pub struct TestRunner {
 pub const TESTS: &str = ".timonier/tests.json";
 /// `.timonier/intent.json`: the whiteboard (ADR 0039).
 pub const INTENT: &str = ".timonier/intent.json";
-
-/// The first .NET test project, the one that references Microsoft.NET.Test.Sdk, at the root and
-/// three folders below: its path from the root.
-fn dotnet_test_project(root: &Path) -> Option<String> {
-    let mut found = Vec::new();
-    let mut pending = vec![(root.to_path_buf(), 0)];
-    while let Some((dir, depth)) = pending.pop() {
-        for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
-            let path = entry.path();
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if entry.file_type().is_ok_and(|t| t.is_dir()) {
-                if depth < 3 && !name.starts_with('.') && !matches!(name.as_str(), "bin" | "obj") {
-                    pending.push((path, depth + 1));
-                }
-            } else if name.ends_with(".csproj")
-                && std::fs::read_to_string(&path)
-                    .is_ok_and(|t| t.contains("Microsoft.NET.Test.Sdk"))
-                && let Ok(relative) = path.strip_prefix(root)
-            {
-                found.push(relative.to_string_lossy().replace('\\', "/"));
-            }
-        }
-    }
-    found.sort();
-    found.into_iter().next()
-}
-
-/// The one project a Gradle build without a root build includes, and its build file:
-/// `include("app")` and `app/build.gradle.kts` → `("app", "build.gradle.kts")`.
-fn lone_gradle_project(root: &Path) -> Option<(String, &'static str)> {
-    let settings = read(root, Path::new("settings.gradle.kts"))
-        .or_else(|| read(root, Path::new("settings.gradle")))?;
-    let mut projects = Vec::new();
-    for line in settings.lines() {
-        if let Some(rest) = line.trim().strip_prefix("include") {
-            for (i, part) in rest.split(['"', '\'']).enumerate() {
-                if i % 2 == 1 && !part.is_empty() {
-                    projects.push(part.trim_start_matches(':').replace(':', "/"));
-                }
-            }
-        }
-    }
-    let [dir] = projects.as_slice() else {
-        return None;
-    };
-    let build = ["build.gradle.kts", "build.gradle"]
-        .into_iter()
-        .find(|b| root.join(dir).join(b).is_file())?;
-    Some((dir.clone(), build))
-}
 
 fn read(root: &Path, path: &Path) -> Option<String> {
     std::fs::read_to_string(root.join(path)).ok()
@@ -387,15 +340,16 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
         }
         // The OpenTelemetry SDK, its module and the smoke test (ADR 0050).
         // Only where Timonier runs the tests: not at the top of npm workspaces, say.
-        if let Some(rules) = runner
+        if let Some((rules, tooling)) = runner
             .instrumentation
             .as_ref()
             .filter(|_| rule.command.is_some())
+            .zip(timonier_daemon::tooling::get(&runner.ecosystem))
         {
-            let sdk: Vec<edits::Sdk<'_>> = rules
+            let sdk: Vec<Sdk<'_>> = rules
                 .dependencies
                 .iter()
-                .map(|d| edits::Sdk {
+                .map(|d| Sdk {
                     name: &d.name,
                     version: &d.version,
                     features: &d.features,
@@ -403,65 +357,15 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                     production: d.production,
                 })
                 .collect();
-            // A Gradle build whose one project is in a folder (`gradle init`'s `app/`): its
-            // build takes the SDK, and the files go under it (ADR 0066).
-            let mut under = String::new();
-            let manifest: String = match runner.ecosystem.as_str() {
-                "cargo" => "Cargo.toml".to_owned(),
-                "pypi" => "pyproject.toml".to_owned(),
-                "gomod" => "go.mod".to_owned(),
-                "cmake" => "CMakeLists.txt".to_owned(),
-                "swiftpm" => "Package.swift".to_owned(),
-                "composer" => "composer.json".to_owned(),
-                "sbt" => "build.sbt".to_owned(),
-                // .NET: the test project takes the SDK, and the files go beside it (ADR 0069).
-                "nuget" => match dotnet_test_project(root) {
-                    Some(project) => {
-                        under = project
-                            .rsplit_once('/')
-                            .map_or(String::new(), |(dir, _)| format!("{dir}/"));
-                        project
-                    }
-                    None => "Tests.csproj".to_owned(),
-                },
-                // The root build; else the build of a lone subproject; else none (below).
-                "maven" => match ["pom.xml", "build.gradle.kts", "build.gradle"]
-                    .into_iter()
-                    .find(|m| root.join(m).is_file())
-                {
-                    Some(m) => m.to_owned(),
-                    None => match lone_gradle_project(root) {
-                        Some((dir, build)) => {
-                            under = format!("{dir}/");
-                            format!("{dir}/{build}")
-                        }
-                        None => "build.gradle.kts".to_owned(),
-                    },
-                },
-                _ => "package.json".to_owned(),
-            };
+            // The manifest that takes the SDK, and the folder its files go under: a subproject
+            // or a test project's (ADR 0066, 0069).
+            let SdkPlace { manifest, under } = tooling.sdk_place(root);
             let manifest = manifest.as_str();
             // `false`: the manifest takes no SDK here, so the files have no crate to go in.
             let mut takes = false;
             if let Some(current) = read(root, Path::new(manifest)) {
-                let after = match (runner.ecosystem.as_str(), &rules.feature) {
-                    ("cargo", Some(feature)) => edits::cargo_with_sdk(&current, feature, &sdk),
-                    ("cargo", None) => Err("the pack names no feature".to_owned()),
-                    ("pypi", _) => edits::pyproject_with_sdk(&current, &sdk).map(Some),
-                    ("gomod", _) => edits::go_mod_with_sdk(&current, &sdk).map(Some),
-                    ("maven", _) if manifest == "pom.xml" => {
-                        edits::pom_with_sdk(&current, &sdk).map(Some)
-                    }
-                    ("maven", _) => Ok(Some(edits::gradle_with_sdk(&current, &sdk))),
-                    ("cmake", _) => Ok(Some(edits::cmake_with_sdk(&current))),
-                    ("swiftpm", _) => edits::swift_package_with_sdk(&current, &sdk).map(Some),
-                    ("nuget", _) => edits::csproj_with_sdk(&current, &sdk).map(Some),
-                    ("composer", _) => edits::composer_with_sdk(&current, &sdk).map(Some),
-                    ("sbt", _) => Ok(Some(edits::sbt_with_sdk(&current, &sdk))),
-                    _ => edits::npm_with_sdk(&current, &sdk).map(Some),
-                };
-                match after {
-                    Ok(Some(after)) => {
+                match tooling.with_sdk(manifest, &current, &sdk, rules.feature.as_deref()) {
+                    Ok(WithSdk::Text(after)) => {
                         takes = true;
                         instrumented.insert(runner.language.clone());
                         change(
@@ -470,43 +374,25 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                             false,
                             "the OpenTelemetry SDK",
                         );
-                        // C and C++: the SDK goes into the manifest of vcpkg or of Conan too
-                        // (ADR 0065), each with the version its registry has.
-                        let for_manager = |manager: &str| -> Vec<edits::Sdk<'_>> {
-                            rules
-                                .dependencies
-                                .iter()
-                                .zip(&sdk)
-                                .filter(|(d, _)| d.manager.as_deref().is_none_or(|m| m == manager))
-                                .map(|(_, s)| *s)
-                                .collect()
-                        };
-                        if runner.ecosystem == "cmake"
-                            && let Some(vcpkg) = read(root, Path::new("vcpkg.json"))
-                        {
+                        // The other files that take it, each package by its manager (ADR 0065).
+                        let managed: Vec<(Option<&str>, Sdk<'_>)> = rules
+                            .dependencies
+                            .iter()
+                            .zip(&sdk)
+                            .map(|(d, s)| (d.manager.as_deref(), *s))
+                            .collect();
+                        for beside in tooling.sdk_beside(root, &managed) {
                             change(
-                                PathBuf::from("vcpkg.json"),
-                                edits::vcpkg_with_sdk(&vcpkg, &for_manager("vcpkg")),
-                                false,
-                                "the OpenTelemetry SDK",
-                            );
-                        }
-                        if runner.ecosystem == "cmake"
-                            && let Some(conan) = read(root, Path::new("conanfile.txt"))
-                        {
-                            change(
-                                PathBuf::from("conanfile.txt"),
-                                Ok(edits::conanfile_with_sdk(&conan, &for_manager("conan"))),
+                                PathBuf::from(beside.path),
+                                beside.text,
                                 false,
                                 "the OpenTelemetry SDK",
                             );
                         }
                     }
-                    Ok(None) => info.push(format!(
-                        "OpenTelemetry ({}): a workspace without a root package; each crate \
-                         that runs tests takes the SDK as the conventions say",
-                        runner.language
-                    )),
+                    Ok(WithSdk::Elsewhere(note)) => {
+                        info.push(format!("OpenTelemetry ({}): {note}", runner.language));
+                    }
                     Err(why) => change(
                         PathBuf::from(manifest),
                         Err(why),
@@ -514,19 +400,8 @@ pub fn plan(root: &Path, choices: &Choices) -> Planned {
                         "the OpenTelemetry SDK",
                     ),
                 }
-            } else if runner.ecosystem == "nuget" {
-                info.push(format!(
-                    "OpenTelemetry ({}): no test project (one that references \
-                     Microsoft.NET.Test.Sdk); the project that runs the tests takes the SDK and the \
-                     files as the conventions say",
-                    runner.language
-                ));
-            } else if runner.ecosystem == "maven" {
-                info.push(format!(
-                    "OpenTelemetry ({}): a Gradle build of subprojects alone; the project that \
-                     runs the tests takes the SDK and the files as the conventions say",
-                    runner.language
-                ));
+            } else if let Some(note) = tooling.without_manifest() {
+                info.push(format!("OpenTelemetry ({}): {note}", runner.language));
             }
             let smoke = rule.smoke.iter().flat_map(|s| &s.files);
             for file in rules.files.iter().chain(smoke).filter(|_| takes) {
@@ -759,35 +634,6 @@ pub fn diff(planned: &Planned) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// T-127: `gradle init`'s layout, a lone `app/`, takes the SDK; two projects do not.
-    #[test]
-    fn a_lone_gradle_subproject_is_found() {
-        let dir = tempfile::tempdir().unwrap();
-        let root = dir.path();
-        std::fs::write(
-            root.join("settings.gradle.kts"),
-            "rootProject.name = \"shop\"\ninclude(\"app\")\n",
-        )
-        .unwrap();
-        assert_eq!(lone_gradle_project(root), None, "no build in app/");
-        std::fs::create_dir(root.join("app")).unwrap();
-        std::fs::write(
-            root.join("app/build.gradle.kts"),
-            "plugins { application }\n",
-        )
-        .unwrap();
-        assert_eq!(
-            lone_gradle_project(root),
-            Some(("app".to_owned(), "build.gradle.kts"))
-        );
-        std::fs::write(
-            root.join("settings.gradle.kts"),
-            "include(\"app\", \"lib\")\n",
-        )
-        .unwrap();
-        assert_eq!(lone_gradle_project(root), None, "two projects");
-    }
 
     fn choices(agents: &[Agent], root: &Path) -> Choices {
         Choices {

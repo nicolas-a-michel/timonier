@@ -46,7 +46,8 @@ fn main() {
         let mut reader = store.reader().expect("reader");
         reader.head().expect("head");
         let before = resident_kib();
-        let graph = view::load(&mut reader).expect("load");
+        // The memory of the graph alone: no names to lay over it.
+        let graph = view::load(&mut reader, Path::new("")).expect("load");
         let after = resident_kib();
         println!("{} {}", after.saturating_sub(before), graph.nodes().count());
         return;
@@ -94,7 +95,7 @@ fn main() {
     let mut graph = Graph::default();
     for _ in 0..10 {
         let start = Instant::now();
-        graph = view::load(&mut reader).expect("load");
+        graph = view::load(&mut reader, copy.path()).expect("load");
         loads.push(start.elapsed());
     }
     let head = reader.head().expect("head").seq;

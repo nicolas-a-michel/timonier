@@ -30,6 +30,7 @@ function withBoxes(count: number): ViewModel {
       signature: null,
       review: null,
       debt: null,
+      summary: null,
     });
   }
   return {

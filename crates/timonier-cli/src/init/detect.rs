@@ -134,10 +134,9 @@ pub enum Git {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Detection {
-    /// `rust`, `python`, `scala`, `php`, `csharp`, `swift`, `cpp`, `c`, `kotlin`, `java`, `go`, `typescript`, `javascript`.
+    /// The languages found, as the packs name them.
     pub languages: Vec<&'static str>,
-    /// `cargo`, `uv`, `poetry`, `pdm`, `pip`, `swiftpm`, `vcpkg`, `conan`, `cmake`, `maven`, `gradle`, `go`,
-    /// `npm`, `pnpm`, `yarn`, `bun`.
+    /// Their package managers, one per language.
     pub package_managers: Vec<&'static str>,
     /// The test runner of each language, as its pack finds it (ADR 0034).
     pub runners: Vec<Runner>,
@@ -147,124 +146,7 @@ pub struct Detection {
 }
 
 pub fn detect(root: &Path, environment: &Environment) -> Detection {
-    let mut languages = Vec::new();
-    let mut package_managers = Vec::new();
-    let mut test_script = None;
-    if root.join("Cargo.toml").is_file() {
-        languages.push("rust");
-        package_managers.push("cargo");
-    }
-    // Python (ADR 0062): a `pyproject.toml`, or a project without one but its requirements.
-    if ["pyproject.toml", "requirements.txt", "setup.py"]
-        .iter()
-        .any(|f| root.join(f).is_file())
-    {
-        languages.push("python");
-        package_managers.push(
-            [
-                ("uv.lock", "uv"),
-                ("poetry.lock", "poetry"),
-                ("pdm.lock", "pdm"),
-            ]
-            .into_iter()
-            .find(|(lock, _)| root.join(lock).is_file())
-            .map_or("pip", |(_, manager)| manager),
-        );
-    }
-    // Scala (ADR 0071): an sbt build at the root.
-    if root.join("build.sbt").is_file() {
-        languages.push("scala");
-        package_managers.push("sbt");
-    }
-    // PHP (ADR 0070): a Composer project at the root.
-    if root.join("composer.json").is_file() {
-        languages.push("php");
-        package_managers.push("composer");
-    }
-    // C# (ADR 0069): a solution or a project at the root or one folder below.
-    if dotnet_projects(root) {
-        languages.push("csharp");
-        package_managers.push("dotnet");
-    }
-    // Swift (ADR 0067): a package at the root.
-    if root.join("Package.swift").is_file() {
-        languages.push("swift");
-        package_managers.push("swiftpm");
-    }
-    // C++ (ADR 0065) or C (ADR 0068): a CMake project at the root, with vcpkg or Conan when
-    // they are there. One runner either way: the same CTest.
-    if root.join("CMakeLists.txt").is_file() {
-        languages.push(if cmake_is_c(root) { "c" } else { "cpp" });
-        package_managers.push(if root.join("vcpkg.json").is_file() {
-            "vcpkg"
-        } else if ["conanfile.txt", "conanfile.py"]
-            .iter()
-            .any(|f| root.join(f).is_file())
-        {
-            "conan"
-        } else {
-            "cmake"
-        });
-    }
-    // Java (ADR 0064): a Maven or a Gradle build at the root.
-    let gradle = [
-        "build.gradle.kts",
-        "build.gradle",
-        "settings.gradle.kts",
-        "settings.gradle",
-    ]
-    .iter()
-    .any(|f| root.join(f).is_file());
-    // Kotlin (ADR 0066): a Gradle build that applies the Kotlin plugin, at the root, in a
-    // project it includes, or in its version catalog. A build of both is Kotlin's.
-    let kotlin = gradle && gradle_texts(root).iter().any(|t| t.contains("kotlin"));
-    if kotlin {
-        languages.push("kotlin");
-        package_managers.push("gradle");
-    } else if root.join("pom.xml").is_file() || gradle {
-        languages.push("java");
-        package_managers.push(if gradle { "gradle" } else { "maven" });
-    }
-    // Go (ADR 0063): a module at the root.
-    if root.join("go.mod").is_file() {
-        languages.push("go");
-        package_managers.push("go");
-    }
-    if let Ok(manifest) = std::fs::read_to_string(root.join("package.json")) {
-        let typescript = ["tsconfig.json", "tsconfig.base.json"]
-            .iter()
-            .any(|f| root.join(f).is_file())
-            || serde_json::from_str::<serde_json::Value>(&manifest).is_ok_and(|m| {
-                ["dependencies", "devDependencies"]
-                    .iter()
-                    .any(|d| m[d].get("typescript").is_some())
-            });
-        languages.push(if typescript {
-            "typescript"
-        } else {
-            "javascript"
-        });
-        let manager = [
-            ("pnpm-lock.yaml", "pnpm"),
-            ("yarn.lock", "yarn"),
-            ("bun.lock", "bun"),
-            ("bun.lockb", "bun"),
-        ]
-        .into_iter()
-        .find(|(lock, _)| root.join(lock).is_file())
-        .map_or("npm", |(_, manager)| manager);
-        package_managers.push(manager);
-        test_script = serde_json::from_str::<serde_json::Value>(&manifest)
-            .ok()
-            .and_then(|m| m["scripts"]["test"].as_str().map(str::to_owned));
-    }
-    // Python again: a folder of scripts without a manifest, when nothing else was found. Its
-    // runner is pytest, as for a project with only its requirements (no SDK without a
-    // `pyproject.toml`).
-    if languages.is_empty() && python_files(root) {
-        languages.push("python");
-        package_managers.push("pip");
-    }
+    let (languages, package_managers, test_script) = found(root);
     Detection {
         runners: runners(root, &languages, test_script.as_deref()),
         languages,
@@ -274,131 +156,21 @@ pub fn detect(root: &Path, environment: &Environment) -> Detection {
     }
 }
 
-/// A Python file at the root.
-fn python_files(root: &Path) -> bool {
-    std::fs::read_dir(root)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .any(|entry| {
-            entry.path().extension().is_some_and(|e| e == "py")
-                && entry.file_type().is_ok_and(|t| t.is_file())
-        })
+/// The languages of the project at `root`, by its manifests: no pack is loaded.
+pub fn languages(root: &Path) -> Vec<&'static str> {
+    found(root).0
 }
 
-/// A .NET solution (`.sln`, `.slnx`) or project (`.csproj`) at the root, or a project one
-/// folder below (`src/Shop/Shop.csproj` is two: also looked for).
-pub(crate) fn dotnet_projects(root: &Path) -> bool {
-    let has = |dir: &Path, extensions: &[&str]| {
-        std::fs::read_dir(dir)
-            .into_iter()
-            .flatten()
-            .flatten()
-            .any(|e| {
-                let name = e.file_name().to_string_lossy().into_owned();
-                extensions.iter().any(|x| name.ends_with(x))
-            })
-    };
-    if has(root, &[".sln", ".slnx", ".csproj"]) {
-        return true;
-    }
-    let below = |dir: &Path| -> Vec<std::path::PathBuf> {
-        std::fs::read_dir(dir)
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
-            .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
-            .map(|e| e.path())
-            .collect()
-    };
-    below(root)
-        .iter()
-        .flat_map(|d| std::iter::once(d.clone()).chain(below(d)))
-        .any(|d| has(&d, &[".csproj"]))
-}
-
-/// A CMake project in C: its `project()` names C and not CXX, or, naming neither, it has `.c`
-/// files and no C++ ones at the root and one folder below.
-fn cmake_is_c(root: &Path) -> bool {
-    let lists = std::fs::read_to_string(root.join("CMakeLists.txt")).unwrap_or_default();
-    let commands = timonier_daemon::cmake_commands(&lists);
-    if let Some((_, args)) = commands.iter().find(|(name, _)| name == "project") {
-        let languages: Vec<&str> = args
-            .iter()
-            .skip_while(|a| *a != "LANGUAGES")
-            .skip(1)
-            .map(String::as_str)
-            .collect();
-        let named = |l: &str| languages.contains(&l) || args.iter().skip(1).any(|a| a == l);
-        if named("CXX") {
-            return false;
-        }
-        if named("C") {
-            return true;
-        }
-    }
-    let mut c = false;
-    let mut dirs = vec![root.to_path_buf()];
-    if let Ok(entries) = std::fs::read_dir(root) {
-        dirs.extend(
-            entries
-                .flatten()
-                .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
-                .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
-                .map(|e| e.path()),
-        );
-    }
-    for dir in dirs {
-        for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-            let name = entry.file_name().to_string_lossy().to_lowercase();
-            if [".cpp", ".cc", ".cxx", ".hpp"]
-                .iter()
-                .any(|e| name.ends_with(e))
-            {
-                return false;
-            }
-            c |= name.ends_with(".c");
-        }
-    }
-    c
-}
-
-/// The Gradle files that say which plugins a build applies: settings, root build, version
-/// catalog, and the builds of the projects the settings include.
-fn gradle_texts(root: &Path) -> Vec<String> {
-    let read = |p: &str| std::fs::read_to_string(root.join(p)).ok();
-    let mut texts: Vec<String> = [
-        "settings.gradle.kts",
-        "settings.gradle",
-        "build.gradle.kts",
-        "build.gradle",
-        "gradle/libs.versions.toml",
-    ]
-    .iter()
-    .filter_map(|p| read(p))
-    .collect();
-    let included: Vec<String> = texts
-        .iter()
-        .take(2)
-        .flat_map(|s| s.lines())
-        .filter_map(|l| l.trim().strip_prefix("include").map(str::to_owned))
-        .flat_map(|rest| {
-            rest.split(['"', '\''])
-                .enumerate()
-                .filter(|(i, p)| i % 2 == 1 && !p.is_empty())
-                .map(|(_, p)| p.trim_start_matches(':').replace(':', "/"))
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    for project in included {
-        for build in ["build.gradle.kts", "build.gradle"] {
-            if let Some(text) = read(&format!("{project}/{build}")) {
-                texts.push(text);
-            }
-        }
-    }
-    texts
+/// The languages, the package managers and the `test` script the project shows, as each
+/// ecosystem of the packs finds them (ADR 0077).
+fn found(root: &Path) -> (Vec<&'static str>, Vec<&'static str>, Option<String>) {
+    let found = timonier_daemon::tooling::detect(root);
+    let test_script = found.iter().find_map(|f| f.test_script.clone());
+    (
+        found.iter().map(|f| f.language).collect(),
+        found.iter().map(|f| f.manager).collect(),
+        test_script,
+    )
 }
 
 /// The first runner of each pack whose ecosystem the project uses, and that the `test` script
@@ -413,26 +185,8 @@ fn runners(root: &Path, languages: &[&str], test_script: Option<&str>) -> Vec<Ru
         .iter()
         .filter(|pack| languages.contains(&pack.language.as_str()))
         .filter(|pack| {
-            let manifests: &[&str] = match pack.manifest.ecosystem.as_str() {
-                "cargo" => &["Cargo.toml"],
-                // Python was found by its manifest or, without one, by its files.
-                "pypi" => return true,
-                "gomod" => &["go.mod"],
-                "cmake" => &["CMakeLists.txt"],
-                "swiftpm" => &["Package.swift"],
-                "composer" => &["composer.json"],
-                "sbt" => &["build.sbt"],
-                "nuget" if dotnet_projects(root) => return true,
-                "maven" => &[
-                    "pom.xml",
-                    "build.gradle.kts",
-                    "build.gradle",
-                    "settings.gradle.kts",
-                    "settings.gradle",
-                ],
-                _ => &["package.json"],
-            };
-            manifests.iter().any(|m| root.join(m).is_file())
+            timonier_daemon::tooling::get(pack.manifest.ecosystem.as_str())
+                .is_some_and(|tooling| tooling.runs(root))
         })
         .filter_map(|pack| {
             let rule = pack.manifest.tests.runners.iter().find(|rule| {

@@ -5,28 +5,15 @@
 What Timonier will do next, in order. Timonier puts its effort on two things: the architecture
 of the code, and how it performs. Dates are not promised: each step ends when its acceptance
 criterion is checked on a real project ([PLAN.md](PLAN.md), in French, holds the criteria).
-Last updated: 22 October 2026.
+Last updated: 23 October 2026. Done since the last update: a map you can trust (Phase 11:
+SCIP indexes, how sure each link is, renaming boxes, each language in one place).
 
 ## The end of the MVP
 
 - **Full review of the MVP** against the specification ([docs/spec.md](docs/spec.md)).
 - **Exit criterion**: a real project steered end to end without reading its code line by line.
 
-## Next: a map you can trust
-
-- **SCIP indexing**, for exact references in the languages that have an indexer.
-- **How sure each box and link is**: the share of its links that a manifest, a language server
-  or SCIP confirmed, shown on the map, so that an approximate map says so.
-- **Renaming a box**: the developer gives a box of the map its own name (F2 or a double click),
-  kept in `.timonier/` across reindexing and commits; the agents can propose names through an
-  MCP tool, and the developer's name wins.
-- **Each language in one place.** Today a language is its pack (grammar, queries, rules) plus
-  code spread over the daemon, the command line and the core (manifests, inventory, the edits of
-  `timonier init`, what is public). The rules that are data move into the pack; the rest goes
-  into one module per ecosystem behind a single interface, so that adding a language never
-  touches the daemon. No change for users.
-
-## Then: performance in depth
+## Next: performance in depth
 
 - **Memory per component.** The instrumentation module Timonier adds counts the bytes each span
   allocates, and the map's Performances layer shows each component's share of them, as it shows

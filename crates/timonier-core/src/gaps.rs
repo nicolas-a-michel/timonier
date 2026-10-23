@@ -51,89 +51,153 @@ pub struct Callable {
     pub signature: Option<String>,
 }
 
-/// Test code, which the gaps leave out: the targets Rust ids mark (ADR 0013), `tests` modules,
-/// and the usual test files and folders.
-pub fn is_test_code(callable: &Callable) -> bool {
-    let id = &callable.id;
-    let rust_test = [
-        "::@tests::",
-        "::@examples::",
-        "::@benches::",
-        "::@build::",
-        "::tests::",
-    ]
-    .iter()
-    .any(|marker| id.contains(marker));
-    let file = callable.file.as_deref().unwrap_or_default();
-    let name = file.rsplit('/').next().unwrap_or(file);
-    let test_file = name.contains(".test.")
-        || name.contains(".spec.")
-        // pytest's names: `test_cart.py`, `cart_test.py`.
-        || (name.ends_with(".py") && (name.starts_with("test_") || name.ends_with("_test.py")))
-        // Go's: `cart_test.go`; C++'s: `cart_test.cpp`, `cart_unittest.cc`.
-        || name.ends_with("_test.go")
-        || [".cpp", ".cc", ".cxx", ".c"].iter().any(|ext| {
-            name.strip_suffix(ext)
-                .is_some_and(|stem| stem.ends_with("_test") || stem.ends_with("_unittest"))
-        })
-        || file.split('/').any(|part| {
-            let part = part.to_lowercase();
-            // A .NET test project: `Shop.Tests/`, `Shop.UnitTests/` (ADR 0069).
-            part == "test" || part == "tests" || part.ends_with(".tests") || part.ends_with(".test") || part.ends_with("unittests")
-        });
-    rust_test || test_file
+/// What a language counts as public and as test code (ADR 0049, 0077): its pack's `[code]`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LanguageCode {
+    /// Which functions are boundaries; none: no function of the language is.
+    #[serde(default)]
+    pub public: Option<PublicRule>,
+    #[serde(default)]
+    pub tests: TestRule,
+    /// What the report can only approximate for the language, said once its functions count.
+    #[serde(default)]
+    pub approximation: Option<String>,
+    /// A span's `code.function` names the function as its id does, after `<language>:`.
+    #[serde(default)]
+    pub function_ids: bool,
 }
 
-/// Whether the function is a boundary the conventions instrument (ADR 0049): `pub` in Rust,
-/// capitalised in Go, `public` in Java and C#, not `private`/`internal`/`protected` in Kotlin, not
-/// `static` in C and C++ (but members), without a leading `_` in Python;
-/// every one in TypeScript and JavaScript, but private methods (`private`, `#name`), as the
-/// graph does not keep `export`.
-pub fn is_public(callable: &Callable) -> bool {
-    if is_test_code(callable) {
+/// `[code.public]`: a function is public when its signature starts with one of
+/// `signature_starts` or holds one of `signature_words`; with neither, when its name starts
+/// with a capital letter if `capitalised`; otherwise unless its signature starts with one of
+/// `hidden_starts`, holds one of `hidden_words`, or its name starts with one of
+/// `hidden_names`, a member (a name holding one of `members`) being public whatever.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicRule {
+    #[serde(default)]
+    pub signature_starts: Vec<String>,
+    #[serde(default)]
+    pub signature_words: Vec<String>,
+    #[serde(default)]
+    pub capitalised: bool,
+    #[serde(default)]
+    pub hidden_starts: Vec<String>,
+    #[serde(default)]
+    pub hidden_words: Vec<String>,
+    #[serde(default)]
+    pub hidden_names: Vec<String>,
+    #[serde(default)]
+    pub members: Vec<String>,
+}
+
+/// `[code.tests]`: test code, which the gaps leave out: marks in an id, patterns of file names
+/// and of folder names (case-insensitive), `*` standing for any text.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TestRule {
+    #[serde(default)]
+    pub ids: Vec<String>,
+    #[serde(default)]
+    pub files: Vec<String>,
+    #[serde(default)]
+    pub folders: Vec<String>,
+}
+
+/// Every language's rules, in the packs' order.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CodeRules {
+    pub languages: Vec<(String, LanguageCode)>,
+}
+
+impl CodeRules {
+    fn of(&self, callable: &Callable) -> Option<&LanguageCode> {
+        let language = callable.id.split_once(':')?.0;
+        self.languages
+            .iter()
+            .find(|(name, _)| name == language)
+            .map(|(_, code)| code)
+    }
+}
+
+/// Whether `text` matches `pattern`, where `*` stands for any text.
+fn matches(pattern: &str, text: &str) -> bool {
+    match pattern.split_once('*') {
+        None => pattern == text,
+        Some((head, rest)) => {
+            let Some(text) = text.strip_prefix(head) else {
+                return false;
+            };
+            if rest.is_empty() {
+                return true;
+            }
+            (0..=text.len())
+                .filter(|&at| text.is_char_boundary(at))
+                .any(|at| matches(rest, &text[at..]))
+        }
+    }
+}
+
+/// Test code, which the gaps leave out: what any language's rules mark (an id, a file, a
+/// folder), and the folders named `test` or `tests`.
+pub fn is_test_code(callable: &Callable, rules: &CodeRules) -> bool {
+    let file = callable.file.as_deref().unwrap_or_default();
+    let name = file.rsplit('/').next().unwrap_or(file);
+    let folders: Vec<String> = file.split('/').map(str::to_lowercase).collect();
+    if folders.iter().any(|part| part == "test" || part == "tests") {
+        return true;
+    }
+    rules.languages.iter().any(|(_, code)| {
+        let tests = &code.tests;
+        tests
+            .ids
+            .iter()
+            .any(|mark| callable.id.contains(mark.as_str()))
+            || tests.files.iter().any(|pattern| matches(pattern, name))
+            || tests.folders.iter().any(|pattern| {
+                let pattern = pattern.to_lowercase();
+                folders.iter().any(|part| matches(&pattern, part))
+            })
+    })
+}
+
+/// Whether the function is a boundary the conventions instrument (ADR 0049), as its language's
+/// `[code.public]` says; test code never is.
+pub fn is_public(callable: &Callable, rules: &CodeRules) -> bool {
+    if is_test_code(callable, rules) {
         return false;
     }
+    let Some(rule) = rules.of(callable).and_then(|code| code.public.as_ref()) else {
+        return false;
+    };
     let signature = callable
         .signature
         .as_deref()
         .unwrap_or_default()
         .trim_start();
-    if callable.id.starts_with("rust:") {
-        signature.starts_with("pub ") || signature.starts_with("pub(")
-    } else if callable.id.starts_with("python:") {
-        // Python's convention: a leading `_` keeps a name to its module or class.
-        !callable.name.starts_with('_')
-    } else if callable.id.starts_with("java:") || callable.id.starts_with("csharp:") {
-        // Java says it: `public` among the modifiers, annotations before them.
-        signature.split_whitespace().any(|word| word == "public")
-    } else if callable.id.starts_with("php:") || callable.id.starts_with("scala:") {
-        // PHP's and Scala's default is public.
-        !signature
-            .split_whitespace()
-            .any(|word| matches!(word, "private" | "protected"))
-    } else if callable.id.starts_with("swift:") {
-        // Swift says it: `public` or `open`; the default, `internal`, stays in the module.
+    let name = callable.name.as_str();
+    let word = |words: &[String]| {
         signature
             .split_whitespace()
-            .any(|word| matches!(word, "public" | "open"))
-    } else if callable.id.starts_with("kotlin:") {
-        // Kotlin's default is public.
-        !signature
-            .split_whitespace()
-            .any(|word| matches!(word, "private" | "internal" | "protected"))
-    } else if callable.id.starts_with("cpp:") || callable.id.starts_with("c:") {
-        // What a file keeps to itself is `static`; the graph does not keep `private:`.
-        !signature.starts_with("static ") || callable.name.contains("::")
-    } else if callable.id.starts_with("go:") {
-        // Go exports a name by its capital letter.
-        callable.name.starts_with(|c: char| c.is_uppercase())
-    } else if callable.id.starts_with("typescript:") || callable.id.starts_with("javascript:") {
-        !(signature.starts_with("private ")
-            || signature.starts_with('#')
-            || callable.name.starts_with('#'))
-    } else {
-        false
+            .any(|w| words.iter().any(|word| word == w))
+    };
+    let starts = |starts: &[String]| starts.iter().any(|s| signature.starts_with(s.as_str()));
+    if !rule.signature_starts.is_empty() || !rule.signature_words.is_empty() {
+        return starts(&rule.signature_starts) || word(&rule.signature_words);
     }
+    if rule.capitalised {
+        return name.starts_with(|c: char| c.is_uppercase());
+    }
+    if rule.members.iter().any(|m| name.contains(m.as_str())) {
+        return true;
+    }
+    !(starts(&rule.hidden_starts)
+        || word(&rule.hidden_words)
+        || rule
+            .hidden_names
+            .iter()
+            .any(|h| name.starts_with(h.as_str())))
 }
 
 /// A public function no span of the run was seen in.
@@ -264,11 +328,17 @@ pub struct Facts<'a> {
     pub callables: &'a [Callable],
     pub spans: &'a SpanFacts,
     pub overhead: Result<Overhead, String>,
+    /// What each language counts as public and as test code.
+    pub rules: &'a CodeRules,
 }
 
 /// The report, its never seen functions from `cursor`, `limit` of them.
 pub fn report(facts: Facts<'_>, cursor: usize, limit: usize) -> InstrumentationGaps {
-    let public: Vec<&Callable> = facts.callables.iter().filter(|c| is_public(c)).collect();
+    let public: Vec<&Callable> = facts
+        .callables
+        .iter()
+        .filter(|c| is_public(c, facts.rules))
+        .collect();
     let never_seen: Vec<NeverSeen> = public
         .iter()
         .filter(|c| !facts.spans.seen.contains(&c.id))
@@ -284,21 +354,19 @@ pub fn report(facts: Facts<'_>, cursor: usize, limit: usize) -> InstrumentationG
         .get(cursor.min(end)..end)
         .unwrap_or_default()
         .to_vec();
-    let mut approximations = Vec::new();
-    if public.iter().any(|c| c.id.starts_with("typescript:")) {
-        approximations.push(
-            "TypeScript: every function and method but private ones counts as public, the \
-             graph does not keep `export` yet"
-                .to_owned(),
-        );
-    }
-    if public.iter().any(|c| c.id.starts_with("javascript:")) {
-        approximations.push(
-            "JavaScript: every function and method but `#private` ones counts as public, the \
-             graph does not keep `export` yet"
-                .to_owned(),
-        );
-    }
+    let approximations = facts
+        .rules
+        .languages
+        .iter()
+        .filter_map(|(language, code)| {
+            let said = code.approximation.as_ref()?;
+            let prefix = format!("{language}:");
+            public
+                .iter()
+                .any(|c| c.id.starts_with(&prefix))
+                .then(|| said.clone())
+        })
+        .collect();
     let (overhead, overhead_unknown) = match facts.overhead {
         Ok(overhead) => (Some(overhead), None),
         Err(why) => (None, Some(why)),
@@ -334,176 +402,107 @@ mod tests {
         }
     }
 
+    /// Rules as a pack gives them: Rust's `pub`, Go's capital letter, Python's `_`.
+    fn rules() -> CodeRules {
+        let code = |public: PublicRule, tests: TestRule| LanguageCode {
+            public: Some(public),
+            tests,
+            approximation: None,
+            function_ids: false,
+        };
+        CodeRules {
+            languages: vec![
+                (
+                    "rust".to_owned(),
+                    code(
+                        PublicRule {
+                            signature_starts: vec!["pub ".to_owned(), "pub(".to_owned()],
+                            ..PublicRule::default()
+                        },
+                        TestRule {
+                            ids: vec!["::tests::".to_owned()],
+                            ..TestRule::default()
+                        },
+                    ),
+                ),
+                (
+                    "go".to_owned(),
+                    code(
+                        PublicRule {
+                            capitalised: true,
+                            ..PublicRule::default()
+                        },
+                        TestRule {
+                            files: vec!["*_test.go".to_owned()],
+                            ..TestRule::default()
+                        },
+                    ),
+                ),
+                (
+                    "python".to_owned(),
+                    LanguageCode {
+                        approximation: Some("Python: by the name".to_owned()),
+                        ..code(
+                            PublicRule {
+                                hidden_names: vec!["_".to_owned()],
+                                ..PublicRule::default()
+                            },
+                            TestRule {
+                                folders: vec!["*.tests".to_owned()],
+                                ..TestRule::default()
+                            },
+                        )
+                    },
+                ),
+            ],
+        }
+    }
+
     #[test]
-    fn public_functions_are_the_boundaries_outside_tests() {
-        let public =
-            |id: &str, signature: &str, file: &str| is_public(&callable(id, signature, file));
+    fn patterns_stand_for_any_text_with_a_star() {
+        assert!(matches("*_test.go", "cart_test.go"));
+        assert!(matches("test_*.py", "test_cart.py"));
+        assert!(matches("*.test.*", "a.test.ts"));
+        assert!(!matches("*.test.*", "a.ts"));
+        assert!(matches("exact", "exact"));
+        assert!(!matches("exact", "exactly"));
+        assert!(matches("*", ""));
+    }
+
+    #[test]
+    fn a_language_s_rules_say_what_is_public_and_what_is_test_code() {
+        let rules = rules();
+        let public = |id: &str, signature: &str, file: &str| {
+            is_public(&callable(id, signature, file), &rules)
+        };
         assert!(public("rust:demo::f", "pub fn f()", "src/lib.rs"));
-        assert!(public(
-            "rust:demo::Thing::g",
-            "pub(crate) fn g(&self)",
-            "src/lib.rs"
-        ));
+        assert!(public("rust:demo::g", "  pub(crate) fn g()", "src/lib.rs"));
         assert!(!public("rust:demo::p", "fn p()", "src/lib.rs"));
-        // T-120: JavaScript as TypeScript; a `#private` method is not a boundary.
-        assert!(public(
-            "javascript:shop/src/cart#total",
-            "function total(items)",
-            "src/cart.js"
-        ));
+        assert!(!public("rust:demo::tests::h", "pub fn h()", "src/lib.rs"));
+        assert!(public("go:shop/cart#Total", "func Total()", "cart/cart.go"));
         assert!(!public(
-            "javascript:shop/src/cart#Cart.#sum",
-            "#sum(a)",
-            "src/cart.js"
-        ));
-        // T-121: Python by its leading underscore; `test_` files are test code.
-        assert!(public(
-            "python:shop.cart#total",
-            "def total(items):",
-            "src/shop/cart.py"
-        ));
-        assert!(!public(
-            "python:shop.cart#_round",
-            "def _round(x):",
-            "src/shop/cart.py"
-        ));
-        assert!(!public(
-            "python:test_cart#test_total",
-            "def test_total():",
-            "test_cart.py"
-        ));
-        // T-128: Swift by `public` or `open`.
-        assert!(public(
-            "swift:Shop/Cart#Cart.add",
-            "public func add(_ item: Item)",
-            "Sources/Shop/Cart.swift"
-        ));
-        assert!(!public(
-            "swift:Shop/Cart#Cart.make",
-            "static func make() -> Cart",
-            "Sources/Shop/Cart.swift"
-        ));
-        // T-127: Kotlin but `private`, `internal` and `protected`.
-        assert!(public(
-            "kotlin:com.shop.Cart#Cart.total",
-            "fun total(): Int",
-            "src/main/kotlin/com/shop/Cart.kt"
-        ));
-        assert!(!public(
-            "kotlin:com.shop.Cart#Cart.helper",
-            "private fun helper(): Int",
-            "src/main/kotlin/com/shop/Cart.kt"
-        ));
-        // T-129: C as C++: but `static` functions; `_test.c` files are test code.
-        assert!(public(
-            "c:src/cart.c#cart_total",
-            "int cart_total(const struct cart * c)",
-            "src/cart.c"
-        ));
-        assert!(!public(
-            "c:src/cart.c#round_up",
-            "static int round_up(int x)",
-            "src/cart.c"
-        ));
-        assert!(!public(
-            "c:tests/cart_test.c#check",
-            "void check(void)",
-            "tests/cart_test.c"
-        ));
-        // T-124: C++ but `static` functions; `_test.cpp` files are test code.
-        assert!(public(
-            "cpp:src/cart.cpp#shop::Cart::total",
-            "int Cart::total() const",
-            "src/cart.cpp"
-        ));
-        assert!(!public(
-            "cpp:src/cart.cpp#helper",
-            "static int helper()",
-            "src/cart.cpp"
-        ));
-        assert!(!public(
-            "cpp:src/cart_test.cpp#check",
-            "void check()",
-            "src/cart_test.cpp"
-        ));
-        // T-130: a .NET test project is test code, its methods public as they are.
-        assert!(!public(
-            "csharp:Shop.Tests/CartTests#CartTests.Total",
-            "public void Total()",
-            "tests/Shop.Tests/CartTests.cs"
-        ));
-        assert!(!public(
-            "csharp:Shop.Tests/A#A.B",
-            "public void B()",
-            "src/Shop.Tests/A.cs"
-        ));
-        assert!(public(
-            "csharp:Shop/Cart#Cart.Total",
-            "public int Total()",
-            "src/Shop/Cart.cs"
-        ));
-        // T-123: Java by `public`; `src/test/` is test code.
-        assert!(public(
-            "java:com.shop.Cart#Cart.total",
-            "@Override public int total()",
-            "src/main/java/com/shop/Cart.java"
-        ));
-        assert!(!public(
-            "java:com.shop.Cart#Cart.helper",
-            "private int helper()",
-            "src/main/java/com/shop/Cart.java"
-        ));
-        assert!(!public(
-            "java:com.shop.CartTest#CartTest.total",
-            "public void total()",
-            "src/test/java/com/shop/CartTest.java"
-        ));
-        // T-122: Go by its capital letter; `_test.go` files are test code.
-        assert!(public(
-            "go:example.com/shop/cart/cart#Cart.Total",
-            "func(c *Cart) Total() int",
+            "go:shop/cart#round",
+            "func round()",
             "cart/cart.go"
         ));
+        // Any language's test marks apply to every function.
+        assert!(!public("rust:demo::t", "pub fn t()", "src/a_test.go"));
+        assert!(public("python:shop#total", "def total():", "src/shop.py"));
         assert!(!public(
-            "go:example.com/shop/cart/cart#round",
-            "func round(x int) int",
-            "cart/cart.go"
-        ));
-        assert!(!public(
-            "go:example.com/shop/cart/cart_test#TestTotal",
-            "func TestTotal(t *testing.T)",
-            "cart/cart_test.go"
+            "python:shop#_round",
+            "def _round():",
+            "src/shop.py"
         ));
         assert!(!public(
-            "rust:demo::tests::helper",
-            "pub fn helper()",
-            "src/lib.rs"
+            "python:shop#total",
+            "def total():",
+            "src/Shop.Tests/a.py"
         ));
-        assert!(!public(
-            "rust:demo::@tests::it::run",
-            "pub fn run()",
-            "tests/it.rs"
-        ));
-        assert!(public(
-            "typescript:app/src/a#draw",
-            "function draw()",
-            "src/a.ts"
-        ));
-        assert!(!public(
-            "typescript:app/src/a#A.hide",
-            "private hide()",
-            "src/a.ts"
-        ));
-        assert!(!public(
-            "typescript:app/src/a.test#t",
-            "function t()",
-            "src/a.test.ts"
-        ));
-        assert!(!public(
-            "typescript:app/test/x#t",
-            "function t()",
-            "test/x.ts"
-        ));
+        // The folders `test` and `tests` are test code whatever the language.
+        assert!(!public("rust:demo::f", "pub fn f()", "tests/it.rs"));
+        assert!(!public("go:shop#Total", "func Total()", "Test/a.go"));
+        // A language without rules has no public function.
+        assert!(!public("cobol:shop#total", "total", "src/shop.cbl"));
     }
 
     #[test]
@@ -544,6 +543,7 @@ mod tests {
             unattached: 2,
             dropped: 0,
         };
+        let rules = rules();
         let facts = |cursor, limit| {
             report(
                 Facts {
@@ -552,6 +552,7 @@ mod tests {
                     callables: &callables,
                     spans: &spans,
                     overhead: Err("none".to_owned()),
+                    rules: &rules,
                 },
                 cursor,
                 limit,

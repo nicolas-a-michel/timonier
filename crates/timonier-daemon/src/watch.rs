@@ -21,8 +21,8 @@ use notify_debouncer_full::{DebounceEventResult, Debouncer, RecommendedCache, ne
 use timonier_core::Snapshot;
 use timonier_index::lsp::{LanguageServer, Priority};
 
-use crate::indexing::{Consolidated, Pipeline, Refinement, Report};
-use crate::{Error, Result, git};
+use crate::indexing::{Consolidated, Pipeline, Refinement, Report, ScipApplied};
+use crate::{Error, Result, git, scip};
 
 /// The debounce of the spec (« debounce ~300 ms »).
 pub const DEBOUNCE: Duration = Duration::from_millis(300);
@@ -45,6 +45,8 @@ pub enum Event {
     Reviewed(Result<Snapshot>),
     /// The head was frozen for a session's start or end (ADR 0029).
     Frozen(Result<Snapshot>),
+    /// A language's SCIP index was read (ADR 0073), applied or judged incomplete.
+    Scip(Result<ScipApplied>),
 }
 
 impl Event {
@@ -66,6 +68,8 @@ impl Event {
             Event::Reviewed(_) => true,
             // A new head opened; a failure may come after the disk was read again.
             Event::Frozen(_) => true,
+            Event::Scip(Ok(read)) => read.apply.as_ref().is_some_and(|a| !a.is_empty()),
+            Event::Scip(Err(_)) => false,
             _ => false,
         }
     }
@@ -82,6 +86,10 @@ enum Command {
     Review(SyncSender<std::result::Result<Snapshot, String>>),
     /// Freeze the head as a `working_tree` snapshot for a session, at the same place (ADR 0029).
     Freeze(SyncSender<std::result::Result<Snapshot, String>>),
+    /// An index a SCIP indexer wrote, to read into the graph (ADR 0073).
+    Scip(Box<scip::Produced>),
+    /// Index the last commit with SCIP now, whatever was done for it (ADR 0073).
+    ScipNow,
 }
 
 /// A snapshot the pipeline thread was asked for: a review mark, or a session's.
@@ -110,6 +118,9 @@ pub struct Watch {
     /// Files and lookups held until the client's documents are saved, as of the last step.
     held: Arc<AtomicUsize>,
     worker: Option<JoinHandle<Pipeline>>,
+    /// The SCIP indexers' way back to the pipeline: emptied at shutdown, so that the pipeline's
+    /// channel closes and its loop ends, and then the indexers' thread with it.
+    indexes: Arc<Mutex<Option<SyncSender<Command>>>>,
 }
 
 /// The directories under watch. A watch dies with its directory: a directory removed then
@@ -216,6 +227,21 @@ impl Watch {
                 source,
             })?;
         let debouncer = Arc::new(Mutex::new(debouncer));
+        // The SCIP indexers, on a thread of their own: their indexes come back as commands
+        // (ADR 0073).
+        let statuses = scip::Statuses::new(&root);
+        let indexes = Arc::new(Mutex::new(Some(commands.clone())));
+        let back = Arc::clone(&indexes);
+        let produced = Arc::clone(&pending);
+        let scip_jobs = scip::spawn(statuses.clone(), move |index| {
+            let Some(send) = back.lock().ok().and_then(|s| s.clone()) else {
+                return;
+            };
+            produced.fetch_add(1, Ordering::SeqCst);
+            let _ = send.send(Command::Scip(Box::new(index)));
+        })
+        .map_err(Error::Thread)?;
+        let head_root = root.clone();
         let mut watched = Watched {
             watcher: Arc::downgrade(&debouncer),
             dirs: BTreeSet::new(),
@@ -261,6 +287,13 @@ impl Watch {
                 }
                 on_event(Event::Indexed(report));
                 follow(&mut pipeline, &mut watched, &[], &mut on_event);
+                // The last commit without an index yet: indexed now (ADR 0073).
+                if let Some(sha) = git::head(&head_root)
+                    && !statuses.done(&sha)
+                    && let Some(job) = pipeline.scip_job(&sha)
+                {
+                    let _ = scip_jobs.send(job);
+                }
                 loop {
                     queued.store(pipeline.refinements_waiting(), Ordering::SeqCst);
                     holding.store(pipeline.refinements_held(), Ordering::SeqCst);
@@ -283,7 +316,14 @@ impl Watch {
                             waiting.fetch_sub(1, Ordering::SeqCst);
                             let named: Vec<PathBuf> =
                                 paths.iter().filter(|p| p.is_dir()).cloned().collect();
-                            changed(&mut pipeline, git.as_ref(), &roots, paths, &mut on_event);
+                            changed(
+                                &mut pipeline,
+                                git.as_ref(),
+                                &roots,
+                                paths,
+                                &scip_jobs,
+                                &mut on_event,
+                            );
                             follow(&mut pipeline, &mut watched, &named, &mut on_event);
                         }
                         Some(Command::Refine(path, priority)) => {
@@ -324,6 +364,33 @@ impl Watch {
                             });
                             on_event(Event::Frozen(frozen));
                         }
+                        Some(Command::ScipNow) => {
+                            waiting.fetch_sub(1, Ordering::SeqCst);
+                            if let Some(sha) = git::head(&head_root)
+                                && let Some(job) = pipeline.scip_job(&sha)
+                            {
+                                let _ = scip_jobs.send(job);
+                            }
+                        }
+                        Some(Command::Scip(produced)) => {
+                            waiting.fetch_sub(1, Ordering::SeqCst);
+                            let read = pipeline.apply_scip(&produced);
+                            statuses.set(
+                                &produced.sha,
+                                &produced.language,
+                                scip_status(&produced, &read),
+                            );
+                            match &read {
+                                Ok(read) => tracing::info!(
+                                    language = %produced.language,
+                                    confirmed = read.confirmed.unwrap_or(1.0),
+                                    applied = read.apply.is_some(),
+                                    "SCIP index read"
+                                ),
+                                Err(error) => tracing::warn!(%error, "SCIP index not read"),
+                            }
+                            on_event(Event::Scip(read));
+                        }
                         None => {
                             let Some(server) = server.as_deref_mut() else {
                                 continue;
@@ -361,6 +428,7 @@ impl Watch {
             refinements,
             held,
             worker: Some(worker),
+            indexes,
         })
     }
 
@@ -379,6 +447,13 @@ impl Watch {
             self.pending.fetch_add(1, Ordering::SeqCst);
             let _ = commands.send(Command::Nudge);
         }
+    }
+
+    /// Asks for the last commit's SCIP indexes now: after an indexer was installed (ADR 0073).
+    pub fn index_with_scip(&self) -> Result<()> {
+        let commands = self.commands.as_ref().ok_or(Error::Stopped)?;
+        self.pending.fetch_add(1, Ordering::SeqCst);
+        commands.send(Command::ScipNow).map_err(|_| Error::Stopped)
     }
 
     /// Asks the pipeline thread to mark the head as reviewed, once the step in progress is
@@ -430,6 +505,9 @@ impl Watch {
         // Dropping the watcher stops its thread, which drops its sender; dropping ours too
         // ends the pipeline thread's loop.
         self.debouncer.take();
+        if let Ok(mut indexes) = self.indexes.lock() {
+            indexes.take();
+        }
         self.commands.take();
         self.worker.take().and_then(|worker| worker.join().ok())
     }
@@ -511,6 +589,28 @@ fn follow(
     }
 }
 
+/// What a language's SCIP index came to, for `doctor` (ADR 0073).
+fn scip_status(produced: &scip::Produced, read: &Result<ScipApplied>) -> scip::LanguageStatus {
+    let (state, detail, confirmed) = match read {
+        Ok(read) if read.apply.is_some() => (scip::State::Applied, None, read.confirmed),
+        Ok(read) => (
+            scip::State::Incomplete,
+            Some(format!(
+                "it confirms {:.0} % of the links tree-sitter sees, under {:.0} %: install the project's dependencies, or check that it builds (the indexer's log is in {}/)",
+                read.confirmed.unwrap_or(0.0) * 100.0,
+                timonier_index::scip::COMPLETE_ENOUGH * 100.0,
+                scip::DIR
+            )),
+            read.confirmed,
+        ),
+        Err(error) => (scip::State::Failed, Some(error.to_string()), None),
+    };
+    let mut status = scip::status(&produced.indexer, state, detail);
+    status.seconds = Some(produced.seconds);
+    status.confirmed = confirmed;
+    status
+}
+
 /// A debounced batch: files go to the pipeline, a change in the git directory may be a commit.
 /// An ignore file above the root, or git's own, makes the walk start again.
 fn changed(
@@ -518,6 +618,7 @@ fn changed(
     places: Option<&git::Places>,
     roots: &[PathBuf],
     paths: Vec<PathBuf>,
+    scip_jobs: &mpsc::Sender<scip::Job>,
     on_event: &mut impl FnMut(Event),
 ) {
     let (git, paths): (Vec<PathBuf>, Vec<PathBuf>) = paths
@@ -555,6 +656,10 @@ fn changed(
             Ok(consolidated) => {
                 if let Some(snapshot) = &consolidated.snapshot {
                     tracing::info!(sha = %snapshot.sha, seq = snapshot.seq, "commit snapshot");
+                    // A newer commit cancels the indexer that runs (ADR 0073).
+                    if let Some(job) = pipeline.scip_job(&snapshot.sha) {
+                        let _ = scip_jobs.send(job);
+                    }
                 }
                 let event = Event::Committed(Ok(consolidated));
                 if event.changes_graph() {

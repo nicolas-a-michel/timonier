@@ -9,6 +9,7 @@ import {
   closeAll,
   initialUi,
   toggleChanges,
+  toggleCertainty,
   toggleDebt,
   toggleIntent,
   togglePerformance,
@@ -33,6 +34,8 @@ export interface MapDemoProps {
   only?: boolean;
   /** The layer of the review debt on from the start (ADR 0030). */
   debt?: boolean;
+  /** The certainty layer on from the start (PLAN.md 11.5). */
+  certainty?: boolean;
   /** Compared with a whiteboard drawn for Timonier (ADR 0042). */
   intent?: boolean;
   /** The Performances layer, on a run measured on Timonier (ADR 0051). */
@@ -205,6 +208,7 @@ export function MapDemo({
   review,
   only,
   debt,
+  certainty,
   intent,
   performance,
   budget,
@@ -218,6 +222,7 @@ export function MapDemo({
     ...(openAll ? everythingOpen(open) : initialUi),
     ...(only ? { onlyChanges: true } : {}),
     ...(debt ? { debt: true } : {}),
+    ...(certainty ? { certainty: true } : {}),
     ...(intent ? { intent: true } : {}),
     ...(performance ? { performance: true } : {}),
   }));
@@ -257,6 +262,9 @@ export function MapDemo({
         }}
         onToggleChanges={() => apply(toggleChanges(ui))}
         onToggleDebt={() => apply(toggleDebt(ui))}
+        onToggleCertainty={() => apply(toggleCertainty(ui))}
+        // What the host would ask about: the tests read it.
+        onRename={(box) => (document.body.dataset.rename = JSON.stringify(box))}
         onToggleIntent={() => apply(toggleIntent(ui))}
         intent={DRAWN}
         onOpenWhiteboard={() => (document.body.dataset.whiteboard = "true")}

@@ -157,3 +157,8 @@ json = ["com.lihaoyi:upickle_3", "io.circe:circe-core_3", "dev.zio:zio-json_3", 
 test-framework = ["org.scalameta:munit_3", "org.scalatest:scalatest_3", "com.lihaoyi:utest_3", "dev.zio:zio-test_3"]
 effects = ["org.typelevel:cats-effect_3", "dev.zio:zio_3"]
 http-client = ["com.softwaremill.sttp.client4:core_3", "com.lihaoyi:requests_3", "org.http4s:http4s-ember-client_3"]
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code.public]
+# The default is public.
+hidden_words = ["private", "protected"]

@@ -143,6 +143,45 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
 10. **Security-surface queries**: these are v2. Keep room for them in the format, but do not
     implement them in the MVP.
 
+## Where a language lives (ADR 0077)
+
+Adding a language touches `crates/timonier-index` only; `tests/one_place.rs` fails if the core,
+the daemon or the CLI name a language, an ecosystem or one of their manifests.
+
+- **Data** goes in `packs/<language>/pack.toml`: besides extraction, `[code.public]` and
+  `[code.tests]` (what the instrumentation gaps count as public and as test code),
+  `[code] function_ids`, `[scip] bin_dirs` and `[scip.environment]`,
+  `[tests.runners.config] purpose`.
+- **Code** for a new ecosystem goes in a module of `src/tooling/`, implementing `Tooling`:
+  its lockfiles (`dependencies`, a `Run` for any tool to launch), the project's detection
+  (`detect`, and its place in `DETECTION`), what its runner needs (`runs`), the manifest that
+  takes the SDK and its edits (`sdk_place`, `with_sdk`, `sdk_beside`, `without_manifest`,
+  `without_sdk`), CI steps (`ci_steps`), and its package ecosystems with their OSV name and
+  purl type (`PACKAGES`). Register it in `ALL`. A language of an existing ecosystem needs no
+  module.
+- Also: the grammar in `src/grammar.rs` and `Cargo.toml`, and the pack's files in `BUILTIN`.
+
+## The SCIP indexer: `[scip]` (ADR 0073)
+
+A language with a dependable SCIP indexer declares it; Scala, Swift and PHP have none. Check
+the indexer's version and licence, and record them in `PLAN.md`.
+
+| Field | What it says |
+| --- | --- |
+| `name` | The indexer, for `doctor` and the logs (`scip-typescript`) |
+| `program` | The program, found if it answers `--version` (on the `PATH` or in `bin_dirs`) |
+| `args` | Its arguments: `{output}` the index to write (else it writes `index.scip` where it runs), `{project}` the project's name, `{needs}` the file of `needs` found, `{variant}` the value of `variants` |
+| `install` | The command that installs it, run only on the developer's approval (Q94); `{home}` is the user's folder |
+| `note` | What to do by hand when no command installs it |
+| `bin_dirs` | Where its installer puts it, under the home (made before installing) |
+| `needs`, `needs_note` | Files one of which must be there (`compile_commands.json`), and what to say without |
+| `variants` | `{ when = "<file>", value = "<…>" }`: a value chosen by the files of the project |
+| `writes` | Files it may write in the project, taken back after unless they were there |
+| `in_place` | `false`: it runs in a git worktree of the commit (it cleans build outputs); the files changed since the commit get none of its facts |
+| `[scip.environment]` | The project's environment to activate for it (`folders`, `marker`, `bin`, `bin_windows`, `variable`) |
+
+Two languages with the same `program`, `args` and `in_place` share one run of the indexer.
+
 ## Adding a language: checklist
 
 - [ ] The grammar crate is verified (existence, version, licence) and recorded in the pack.
@@ -156,4 +195,7 @@ them, then `INSTA_UPDATE=always` to accept) and judge the graph of a real reposi
 - [ ] Indexing time per thousand lines is measured and recorded in `PLAN.md`.
 - [ ] Instrumentation conventions and runner configuration are written, and `timonier init
       --dry-run` shows the expected diff on the fixture.
+- [ ] `[code.public]` and `[code.tests]` are written, and `tests/code.rs` checks them.
+- [ ] A new ecosystem has its `tooling` module, with tests of its lockfile reading and of its
+      manifest edits (in and out, the file as it was).
 - [ ] The user documentation (French) lists the language and its limits.

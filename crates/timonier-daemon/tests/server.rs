@@ -44,6 +44,7 @@ struct Running {
 impl Running {
     fn start(root: &Path, runtime: &Path, idle: Duration) -> Self {
         let mut options = Options::new(root);
+        options.scip = false;
         options.runtime = Some(run_dir(runtime));
         options.idle = idle;
         options.debounce = Duration::from_millis(100);
@@ -1185,6 +1186,7 @@ fn one_daemon_serves_a_project() {
     client.initialize("test").unwrap();
 
     let mut options = Options::new(repo.path());
+    options.scip = false;
     options.runtime = Some(run_dir(runtime.path()));
     assert!(
         Daemon::bind(options).unwrap().is_none(),
@@ -2018,6 +2020,7 @@ fn solo_disciplined_opens_the_issue_the_branch_and_the_pull_request() {
 
     let runtime = tempfile::tempdir().unwrap();
     let mut options = Options::new(root);
+    options.scip = false;
     options.runtime = Some(run_dir(runtime.path()));
     options.idle = Duration::from_secs(600);
     options.debounce = Duration::from_millis(100);
@@ -2204,6 +2207,7 @@ fn claude_code_s_requests_give_the_session_its_tokens() {
         .unwrap()
         .port();
     let mut options = Options::new(root);
+    options.scip = false;
     options.runtime = Some(run_dir(runtime.path()));
     options.signals = false;
     options.agents = Some(timonier_daemon::server::AgentsOptions {
@@ -2285,4 +2289,115 @@ fn claude_code_s_requests_give_the_session_its_tokens() {
         .find(|t| t.contains("Theirs"))
         .unwrap();
     assert!(!theirs.contains("cc-1"), "{theirs}");
+}
+
+/// A box named by hand (Q96, ADR 0075): the developer through `names/set`, shown by the views
+/// and kept in `.timonier/names.json`; the agent's proposal is refused where the developer chose,
+/// and taken once the developer gave the box back to Timonier.
+#[test]
+fn the_developer_names_a_box_and_the_agent_proposes_where_they_did_not() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("vscode").unwrap();
+    indexed(&mut client, 2);
+    let set = |client: &mut Client, name: Value, role: Value| -> Value {
+        client
+            .request(
+                methods::NAMES_SET,
+                &json!({"id": "pkg:cargo/demo", "name": name, "role": role}),
+            )
+            .expect("names/set answers")
+    };
+    let named = set(&mut client, json!("Demo store"), json!("persistence"));
+    assert_eq!(named["name"], "Demo store");
+    let shown = |client: &mut Client| {
+        let state = fresh(client, &[]);
+        let node = state
+            .nodes()
+            .find(|n| n.id.as_str() == "pkg:cargo/demo")
+            .expect("the package on the map")
+            .clone();
+        (node.name, node.role)
+    };
+    assert_eq!(
+        shown(&mut client),
+        (
+            "Demo store".to_owned(),
+            Some(timonier_core::Role::Persistence)
+        )
+    );
+    let file = std::fs::read_to_string(root.join(".timonier/names.json")).unwrap();
+    assert!(file.contains("\"by\": \"developer\""), "{file}");
+
+    // The agent cannot rename what the developer named.
+    let refused: Value = client
+        .request(
+            methods::TOOLS_CALL,
+            &json!({"name": "propose_component_name", "arguments": {"component": "pkg:cargo/demo", "name": "Core"}}),
+        )
+        .expect("the tool answers");
+    assert_eq!(refused["isError"], true, "{refused}");
+    assert_eq!(
+        refused["structuredContent"]["error"]["code"], "developer_chose",
+        "{refused}"
+    );
+
+    // Given back to Timonier, the box takes the agent's proposal.
+    set(&mut client, Value::Null, Value::Null);
+    assert_eq!(shown(&mut client).0, "demo");
+    let proposed = tool(
+        &mut client,
+        "propose_component_name",
+        json!({"component": "pkg:cargo/demo", "name": "Core"}),
+    );
+    assert_eq!(proposed["result"]["name"], "Core", "{proposed}");
+    assert_eq!(shown(&mut client).0, "Core");
+    // A name holds when the code changes and is indexed again (review of Phase 11, m12).
+    write(root, "src/b.rs", "pub fn g() {}\n");
+    indexed(&mut client, 3);
+    assert_eq!(shown(&mut client).0, "Core");
+    // A `names.json` a colleague's commit brings is read within a second or so.
+    let mut names: Value =
+        serde_json::from_str(&std::fs::read_to_string(root.join(".timonier/names.json")).unwrap())
+            .unwrap();
+    names["boxes"]["pkg:cargo/demo"]["name"] = json!("Shared core");
+    std::fs::write(root.join(".timonier/names.json"), names.to_string()).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while shown(&mut client).0 != "Shared core" {
+        assert!(Instant::now() < deadline, "names.json not read again");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    // Not a box of the graph: refused in words.
+    let refused = client
+        .request::<Value>(
+            methods::NAMES_SET,
+            &json!({"id": "file:src/a.rs", "name": "x", "role": null}),
+        )
+        .unwrap_err();
+    assert_eq!(
+        rpc_code(refused),
+        timonier_core::protocol::errors::INVALID_PARAMS
+    );
+}
+
+/// `scip/run` (ADR 0073): answered at once, the indexes made in the background; with the
+/// indexers off, as in every test, none runs and no status is written.
+#[test]
+fn scip_run_answers_and_runs_no_indexer_when_they_are_off() {
+    let repo = project();
+    let root = repo.path();
+    let runtime = tempfile::tempdir().unwrap();
+    let daemon = Running::start(root, runtime.path(), Duration::from_secs(600));
+    let mut client = daemon.client();
+    client.initialize("vscode").unwrap();
+    indexed(&mut client, 2);
+    let answer: Value = client
+        .request(methods::SCIP_RUN, &Value::Null)
+        .expect("scip/run answers");
+    assert_eq!(answer, Value::Null);
+    std::thread::sleep(Duration::from_millis(300));
+    assert!(!timonier_daemon::scip::Status::path(root).exists());
 }

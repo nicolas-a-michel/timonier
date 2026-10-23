@@ -17,10 +17,11 @@ use timonier_index::lsp::{
     Verified,
 };
 use timonier_index::project::FileEntry;
+use timonier_index::scip::Indexed;
 use timonier_index::{BatchStats, CacheKey, Cached, Indexer, Packs};
 use timonier_store::{ApplyStats, CachedExtraction, PendingLookup, RefinementDebt, Store};
 
-use crate::{Error, Result, git};
+use crate::{Error, Result, git, scip};
 
 /// What one pass did, and how long it took from its start to the commit in SQLite.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -39,6 +40,14 @@ pub struct Consolidated {
     /// bring. The views read the head again, even when no snapshot is frozen (review n° 16,
     /// m16-5).
     pub head: ApplyStats,
+}
+
+/// A SCIP index read (ADR 0073): the share of tree-sitter's links it confirmed, and what
+/// changed in the head; `apply` is `None` when it confirmed too few to be applied.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScipApplied {
+    pub confirmed: Option<f64>,
+    pub apply: Option<ApplyStats>,
 }
 
 /// A commit consolidated into a frozen snapshot (ADR 0015).
@@ -109,6 +118,9 @@ pub struct Pipeline {
     behind: bool,
     verifications: u64,
     budget: usize,
+    /// Runs the SCIP indexers after a commit and at start (ADR 0073): off with
+    /// `TIMONIER_SCIP=off`, and in tests, whose machine may have an indexer installed.
+    scip: bool,
 }
 
 impl Pipeline {
@@ -124,11 +136,112 @@ impl Pipeline {
             behind: false,
             verifications: 0,
             budget: SYMBOL_EDGE_BUDGET,
+            scip: !scip::disabled(),
         })
+    }
+
+    /// No SCIP indexer runs for this pipeline (ADR 0073).
+    pub fn without_scip(&mut self) {
+        self.scip = false;
     }
 
     pub fn root(&self) -> &Path {
         self.indexer.root()
+    }
+
+    /// The SCIP work of a commit (ADR 0073): each language of the model whose pack has an
+    /// indexer, with its files and their content now. `None` when SCIP is off or no language
+    /// has one.
+    pub fn scip_job(&self, sha: &str) -> Option<scip::Job> {
+        static EMPTY: std::sync::LazyLock<HashSet<String>> = std::sync::LazyLock::new(HashSet::new);
+        if !self.scip {
+            return None;
+        }
+        let project = self.indexer.project();
+        // An indexer that reads the commit in a worktree (ADR 0073) indexes the committed
+        // content: a file the working tree changed since gets none of its facts, which would
+        // describe another content under the current one's hash (review of Phase 11, I1).
+        let mut changed: Option<HashSet<String>> = None;
+        let languages: Vec<scip::LanguageJob> = self
+            .indexer
+            .packs()
+            .iter()
+            .filter_map(|pack| {
+                let rule = pack.manifest.scip.clone()?;
+                let changed: &HashSet<String> = if rule.in_place {
+                    &EMPTY
+                } else {
+                    changed.get_or_insert_with(|| {
+                        git::dirty(self.root())
+                            .unwrap_or_default()
+                            .into_iter()
+                            .collect()
+                    })
+                };
+                let files: HashMap<String, Indexed> = project
+                    .files()
+                    .filter(|f| f.language == pack.language)
+                    .filter(|f| !changed.contains(&f.path))
+                    .map(|f| {
+                        (
+                            f.path.clone(),
+                            Indexed {
+                                id: f.id.clone(),
+                                content_hash: f.content_hash,
+                            },
+                        )
+                    })
+                    .collect();
+                (!files.is_empty()).then(|| scip::LanguageJob {
+                    language: pack.language.to_string(),
+                    rule,
+                    files,
+                })
+            })
+            .collect();
+        (!languages.is_empty()).then(|| scip::Job {
+            sha: sha.to_owned(),
+            root: self.root().to_path_buf(),
+            project: self.root().file_name().map_or_else(
+                || "project".to_owned(),
+                |n| n.to_string_lossy().into_owned(),
+            ),
+            languages,
+        })
+    }
+
+    /// Reads an index into the graph, unless it confirms too few of tree-sitter's links
+    /// (ADR 0073): the share it confirmed, and what changed.
+    #[tracing::instrument(skip_all, fields(language = %produced.language))]
+    pub fn apply_scip(&mut self, produced: &scip::Produced) -> Result<ScipApplied> {
+        let root = self.root().to_path_buf();
+        let reader = self.store.reader()?;
+        let mut read = timonier_index::scip::read(
+            &produced.bytes,
+            |path| produced.files.get(path).cloned(),
+            |path| std::fs::read(root.join(path)).ok(),
+            |path, at| {
+                let id = NodeId::file(path).ok()?;
+                reader.symbol_at(&id, at).ok().flatten()
+            },
+        )?;
+        drop(reader);
+        let paths: BTreeSet<String> = produced.files.keys().cloned().collect();
+        let tree_sitter = self.indexer.project().file_links(&paths);
+        let confirmed = timonier_index::scip::confirmed_share(&read.links, &tree_sitter);
+        if confirmed.is_some_and(|share| share < timonier_index::scip::COMPLETE_ENOUGH) {
+            return Ok(ScipApplied {
+                confirmed,
+                apply: None,
+            });
+        }
+        let imports = self.indexer.project().file_imports(&paths);
+        timonier_index::scip::confirm_imports(&mut read, &imports);
+        let apply = self.store.apply_all(read.updates)?;
+        Ok(ScipApplied {
+            confirmed,
+            apply: Some(apply),
+        })
     }
 
     pub fn store(&self) -> &Store {

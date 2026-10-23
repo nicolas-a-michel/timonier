@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "id": "S-2026-10-23-15",
+  "agent": "claude-code",
+  "objective": "11.9: fix what the second review found (worktree in a subfolder, a test that may run indexers, a misplaced doc, shared indexer claims, duplicate install commands, docs, French plurals), then the phase summary.",
+  "tasks": [
+    "T-141"
+  ],
+  "status": "ended",
+  "started_at": "2026-10-23T10:29:29Z",
+  "ended_at": "2026-10-23T10:38:12Z",
+  "snapshots": {
+    "start": 205,
+    "end": 206
+  },
+  "summary": "11.9 done. The second review's findings are fixed: a worktree indexer runs in the project's folder (tested), the last watch test turns SCIP off, the go_package doc is back, the shared-indexer claims are right (C and C++), install commands run once each, the docs, the READMEs' status and the roadmaps are updated, ADR 0073 is consistent, and the French plurals agree. I-b is recorded as a deviation. All checks are green, MSRV included. Phase 11 waits for the human's validation; next: commit, push, CI, then the 0.1.3 release.",
+  "todo": [
+    {
+      "id": "D-1",
+      "text": "I-a: the worktree indexer runs in the project's folder when the root is a subfolder of the repository, with a test",
+      "task": "T-141",
+      "status": "done"
+    },
+    {
+      "id": "D-2",
+      "text": "Minors: m-a without_scip in commit.rs, m-b go_package doc, m-c shared-indexer claims, m-d install commands once, m-e/m-f docs and ADR 0073, m-g French plurals; I-b recorded",
+      "task": "T-141",
+      "status": "done"
+    }
+  ],
+  "changes": {
+    "files": 5,
+    "added": [],
+    "modified": [
+      {
+        "id": "pkg:npm/@timonier/webview",
+        "name": "@timonier/webview",
+        "within": null
+      },
+      {
+        "id": "component:cluster/webview/src/App.test.tsx",
+        "name": "App",
+        "within": "@timonier/webview"
+      },
+      {
+        "id": "component:dir/crates",
+        "name": "crates",
+        "within": null
+      },
+      {
+        "id": "component:cluster/crates/timonier-cli/src/check.rs",
+        "name": "daemon",
+        "within": "timonier-cli"
+      },
+      {
+        "id": "component:cluster/crates/timonier-daemon/src/git.rs",
+        "name": "indexing",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "component:cluster/crates/timonier-index/src/ecosystem.rs",
+        "name": "pack",
+        "within": "timonier-index"
+      },
+      {
+        "id": "component:dir/crates/timonier-daemon/tests",
+        "name": "tests",
+        "within": "timonier-daemon"
+      },
+      {
+        "id": "pkg:cargo/timonier-cli",
+        "name": "timonier-cli",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-daemon",
+        "name": "timonier-daemon",
+        "within": "crates"
+      },
+      {
+        "id": "pkg:cargo/timonier-index",
+        "name": "timonier-index",
+        "within": "crates"
+      }
+    ],
+    "removed": [],
+    "linked": [],
+    "unlinked": []
+  },
+  "agent_sessions": [
+    "aecaf227-545b-4dee-974e-0b31c20f99ca"
+  ],
+  "usage": {
+    "requests": 20,
+    "input": 42,
+    "output": 14706,
+    "cache_read": 12929555,
+    "cache_creation": 28126,
+    "cost_usd_micros": 3105208
+  }
+}

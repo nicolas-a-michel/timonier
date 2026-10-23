@@ -2288,14 +2288,23 @@
           "id": "T-133",
           "title": "Le code de chaque langage au même endroit : règles de pack.toml (public, code de test) et un module d'écosystème par langage dans timonier-index, derrière une interface",
           "criterion": "Le démon, la CLI et le cœur ne nomment plus aucun langage ni écosystème : la publicité et le code de test se lisent dans pack.toml, les manifestes, verrous et éditions d'init/uninit passent par une interface de timonier-index ; tous les tests passent sans changement de comportement (relecture de la phase 10, I1).",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-14"
+            "S-2026-10-22-14",
+            "S-2026-10-23-9",
+            "S-2026-10-23-12"
           ],
           "created": {
             "at": "2026-10-22T10:49:33Z",
             "session": "S-2026-10-22-14"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T09:36:36Z",
+              "session": "S-2026-10-23-12",
+              "text": "The core, the daemon and the CLI name no language: [code] rules in the packs for the gaps; timonier_index::tooling (Tooling trait, one module per ecosystem) for lockfiles, detection, init/uninit manifest edits, CI steps, OSV/purl; new pack data ([scip] bin_dirs, [scip.environment], runner config purpose). Checked by tests/one_place.rs (probed). Full suite green with unchanged expectations, clippy clean. ADR 0077."
+            }
+          ]
         }
       ]
     },
@@ -2307,118 +2316,225 @@
           "id": "T-134",
           "title": "11.1 Mesurer ce que vaut la carte d'aujourd'hui",
           "criterion": "Sur six projets réels (Rust, TypeScript, Python, Go, Java, C#), précision et rappel des liens tree-sitter face à l'index SCIP du même commit, par langage, consignés dans PLAN.md.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-1"
           ],
           "created": {
             "at": "2026-10-22T17:59:14Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T05:19:16Z",
+              "session": "S-2026-10-23-1",
+              "text": "Measured on six real projects (ripgrep, node-express-realworld, Flask, cobra, spring-petclinic, aspnetcore-realworld): precision 90–100 % except C# 75 % (namespace using → one arbitrary file, T-143), recall 46–87 %. Table and method in PLAN.md 11.1; tools in the scratchpad."
+            }
+          ]
         },
         {
           "id": "T-135",
           "title": "11.2 ADR de l'intégration SCIP",
           "criterion": "ADR qui fixe quand (au commit, en tâche de fond, annulable, délai maximal), les indexeurs par langage déclarés dans les packs ([scip]), l'identité (Q95 : nos identifiants, occurrences rattachées par plage), la fusion, la mémoire, et le repli quand l'indexeur manque ou échoue.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-2"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T05:26:08Z",
+              "session": "S-2026-10-23-2",
+              "text": "ADR 0073 written (Proposé): at commit, in the background, one indexer at a time, cancellable, 10 min; packs' [scip] with install approved by a click (Q94), needs, in_place; occurrences mapped to our symbols by range (Q95); Scip Calls/References/Implements/Inherits with verifying; 256 MB limit; an index confirming under 70 % of tree-sitter's links is refused as incomplete."
+            }
+          ]
         },
         {
           "id": "T-136",
           "title": "11.3 Lire un index SCIP",
           "criterion": "timonier-index transforme un index.scip en observations Scip (appels, références, Implements, Inherits) ancrées sur le contenu indexé ; range et typed_range ; tests sur des index de trois indexeurs.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-3"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T05:39:01Z",
+              "session": "S-2026-10-23-3",
+              "text": "timonier-index::scip reads an index.scip into Scip observations on our ids (Calls between symbols, References between files, Implements/Inherits between types), anchored with computed_on, UTF-16/32 columns converted, typed_range then range. Tested on real indexes from rust-analyzer, scip-typescript and scip-python. rust-analyzer emits no relationships: such an index verifies Calls and References only (ADR 0073 amended)."
+            }
+          ]
         },
         {
           "id": "T-137",
           "title": "11.4 Lancer les indexeurs SCIP",
           "criterion": "Au commit, le démon lance l'indexeur de chaque langage sans bloquer la carte ; doctor dit lesquels manquent ; installation approuvée par un clic (Q94) ; temps et mémoire mesurés sur les six projets de 11.1.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-4"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T06:53:18Z",
+              "session": "S-2026-10-23-4",
+              "text": "The daemon runs each language's SCIP indexer after a commit (and at start if not done), on its own thread, cancellable, nice, 10 min; status in .timonier/scip/status.json; `timonier scip` (--install, --now, --json), scip/run, doctor notes, the extension's « Install the SCIP Indexers ». Measured through the daemon on the six projects of 11.1: all applied, 0.4–10.4 s, 75–100 % of tree-sitter's links confirmed."
+            }
+          ]
         },
         {
           "id": "T-138",
           "title": "11.5 Le degré de certitude sur la carte",
           "criterion": "Chaque boîte et chaque lien montrent la part de leurs liens confirmés (manifeste, LSP, SCIP), la carte entière sa part confirmée ; jamais par la couleur seule ; AA dans les six thèmes ; test des cinq secondes.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-5",
+            "S-2026-10-23-6"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T07:11:36Z",
+              "session": "S-2026-10-23-5",
+              "text": "Built (ADR 0074): confirmed counts in the protocol, three line looks (solid, long dashes, dashes), the Certainty layer with each item's share and the map's in the legend, palette command; AA 191/191 in six themes; screenshots checked. Waiting: the five-second test by the human."
+            },
+            {
+              "at": "2026-10-23T07:13:09Z",
+              "session": "S-2026-10-23-6",
+              "text": "Validated by the human on 2026-10-23 from the screenshots (« c'est bien je valide »). Deviation: the five-second test was not run as the method says."
+            },
+            {
+              "at": "2026-10-23T07:26:30Z",
+              "session": "S-2026-10-23-6",
+              "text": "Five-second test by the human on 2026-10-23: the boxes' percentage seen in under 2 s. The deviation noted before no longer holds."
+            }
+          ]
         },
         {
           "id": "T-139",
           "title": "11.6 Renommer une boîte et changer son rôle",
           "criterion": "F2, double clic ou commande renomment une boîte et changent son rôle ; gardés dans .timonier/names.json versionné (Q96) à travers réindexations et commits ; un outil MCP permet à l'agent de proposer, le choix du développeur l'emporte.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-6"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T07:38:57Z",
+              "session": "S-2026-10-23-6",
+              "text": "Names and roles given by hand in .timonier/names.json (ADR 0075), laid over the graph; F2, double click and the palette command in VSCode; names/set; the agent's propose_component_name, refused where the developer chose. Tests from core to the browser green."
+            }
+          ]
         },
         {
           "id": "T-140",
           "title": "11.8 Mesurer de nouveau avec SCIP",
           "criterion": "Les six projets de 11.1 : part confirmée des liens avant et après SCIP, consignée dans PLAN.md et le README.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-10",
+            "S-2026-10-23-11"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T08:42:39Z",
+              "session": "S-2026-10-23-11",
+              "text": "Six projects measured (index_dump with TIMONIER_SCIP_INDEX, through Pipeline::apply_scip): 0 % confirmed before; after SCIP, 96–100 % of the links between files and 99–100 % of the links between boxes. Imports confirmed by the index (ADR 0073). Recorded in PLAN.md, the READMEs and features.md; clippy and full suite green."
+            }
+          ]
         },
         {
           "id": "T-141",
           "title": "11.9 Relecture de la Phase 11 par phase-reviewer",
           "criterion": "Verdict « prête ».",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-25"
+            "S-2026-10-22-25",
+            "S-2026-10-23-13",
+            "S-2026-10-23-14",
+            "S-2026-10-23-15"
           ],
           "created": {
             "at": "2026-10-22T17:59:45Z",
             "session": "S-2026-10-22-25"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T10:38:12Z",
+              "session": "S-2026-10-23-15",
+              "text": "First review « pas prête »: B1, I1–I11 and m1–m13 fixed. Second review « prête avec réserves »: I-a and m-a to m-g fixed, I-b recorded as a deviation. fmt, clippy, the full Rust suite (36 binaries), Node tests, lint, typecheck, format and a11y (200) are green; MSRV 1.96 check passes."
+            }
+          ]
         },
         {
           "id": "T-142",
           "title": "11.10 L'agent lit et enrichit la carte",
           "criterion": "Les outils MCP query_graph et get_component donnent à l'agent le graphe réel ; l'agent propose noms, résumés et rôles des composants par un outil structuré, que le choix du développeur emporte (11.6) ; tests d'intégration MCP → démon.",
-          "status": "todo",
+          "status": "done",
           "sessions": [
-            "S-2026-10-22-27"
+            "S-2026-10-22-27",
+            "S-2026-10-23-8"
           ],
           "created": {
             "at": "2026-10-22T18:14:39Z",
             "session": "S-2026-10-22-27"
-          }
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T08:14:29Z",
+              "session": "S-2026-10-23-8",
+              "text": "get_component and query_graph in the catalogue, served by the daemon on view::load; summaries through propose_component_name, shown on the map; MCP → daemon integration test green. ADR 0076."
+            }
+          ]
+        },
+        {
+          "id": "T-143",
+          "title": "11.11 Un using d'espace de noms relié aux fichiers utilisés",
+          "criterion": "En C# (et partout où un import vise un espace de noms ou un paquet entier), le lien va aux fichiers de l'espace dont le fichier cite un nom, et non plus au premier fichier trouvé ; sur aspnetcore-realworld, la précision de 11.1 passe de 75 % à au moins 90 %.",
+          "status": "done",
+          "sessions": [
+            "S-2026-10-23-1",
+            "S-2026-10-23-7"
+          ],
+          "created": {
+            "at": "2026-10-23T05:18:54Z",
+            "session": "S-2026-10-23-1"
+          },
+          "notes": [
+            {
+              "at": "2026-10-23T07:51:13Z",
+              "session": "S-2026-10-23-7",
+              "text": "A C# using and a Swift import link to the files of the namespace or module that bring a name the file cites (top-level types, top-level functions). aspnetcore-realworld: precision 75 % → 99 %, recall 63 % → 66 %."
+            }
+          ]
         }
       ]
     }

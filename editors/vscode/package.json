@@ -104,6 +104,11 @@
         "category": "Timonier"
       },
       {
+        "command": "timonier.installScip",
+        "title": "%command.installScip.title%",
+        "category": "Timonier"
+      },
+      {
         "command": "timonier.openWorkflow",
         "title": "%command.openWorkflow.title%",
         "category": "Timonier"
@@ -256,6 +261,16 @@
       {
         "command": "timonier.map.showPerformance",
         "title": "%command.map.showPerformance.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.certainty",
+        "title": "%command.map.certainty.title%",
+        "category": "Timonier"
+      },
+      {
+        "command": "timonier.map.rename",
+        "title": "%command.map.rename.title%",
         "category": "Timonier"
       },
       {

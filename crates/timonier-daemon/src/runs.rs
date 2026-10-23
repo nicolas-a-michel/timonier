@@ -311,7 +311,7 @@ impl Runs {
             .collect();
         let (nodes, links) = map_of(&called);
         let mut reader = graph.reader()?;
-        let graph = crate::view::load(&mut reader)?;
+        let graph = crate::view::load(&mut reader, &self.root)?;
         let ancestors = nodes
             .iter()
             .filter_map(|n| {
@@ -352,7 +352,7 @@ impl Runs {
             return Ok(None);
         }
         let mut reader = graph.reader()?;
-        let graph = crate::view::load(&mut reader)?;
+        let graph = crate::view::load(&mut reader, &self.root)?;
         let drift = timonier_core::drift::drift(&intent, &timonier_core::actual::actual(&graph));
         let lineage = |node: &str, into: &mut BTreeMap<String, Vec<String>>| {
             if into.contains_key(node) {
@@ -444,7 +444,7 @@ impl Runs {
         run: Option<&str>,
     ) -> Result<std::result::Result<ComponentPerf, String>> {
         let mut reader = graph.reader()?;
-        let loaded = crate::view::load(&mut reader)?;
+        let loaded = crate::view::load(&mut reader, &self.root)?;
         let actual = timonier_core::actual::actual(&loaded);
         let intent = crate::tracking::read_intent(&self.root.join(".timonier").join("intent.json"))
             .ok()
@@ -776,7 +776,7 @@ impl Runs {
             });
         }
         let mut reader = graph.reader()?;
-        let loaded = crate::view::load(&mut reader)?;
+        let loaded = crate::view::load(&mut reader, &self.root)?;
         let names = |node: &str| {
             timonier_core::NodeId::parse(node.to_owned())
                 .ok()

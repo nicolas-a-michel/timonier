@@ -42,6 +42,8 @@
   --tim-edge-confirmed: color-mix(in srgb, var(--tim-color-fg) 80%, var(--tim-color-bg));
   --tim-edge-approximate: color-mix(in srgb, var(--tim-color-fg) 60%, var(--tim-color-bg));
   --tim-edge-dash: 5 4;
+  /* Partly confirmed (PLAN.md 11.5): long dashes, between the solid line and the short ones. */
+  --tim-edge-dash-partial: 12 3;
   /* One width: thickness is kept for the traffic measured during the tests (spec, Phase 8). */
   --tim-edge-width: 1.5px;
   /* Around the wires of the item pointed at: the background, which cuts the lines they cross. */

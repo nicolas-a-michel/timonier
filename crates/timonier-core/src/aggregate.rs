@@ -21,6 +21,10 @@ pub struct AggregatedEdge {
     /// True when they all come from approximate sources (tree-sitter alone): the map draws such
     /// edges differently (spec « Displayed precision »).
     pub approximate_only: bool,
+    /// How many of them a manifest, a language server or SCIP confirmed: the map says how sure
+    /// it is (PLAN.md 11.5).
+    #[serde(default)]
+    pub confirmed: u32,
 }
 
 /// Maps every edge endpoint to its nearest visible ancestor (itself included) and merges the
@@ -55,6 +59,7 @@ pub fn aggregate<'a>(
                 edges: 0,
                 best: edge.provenance,
                 approximate_only: true,
+                confirmed: 0,
             });
         entry.weight += u64::from(edge.weight);
         entry.edges += 1;
@@ -62,6 +67,9 @@ pub fn aggregate<'a>(
             entry.best = edge.provenance;
         }
         entry.approximate_only &= edge.provenance.is_approximate();
+        if !edge.provenance.is_approximate() {
+            entry.confirmed += 1;
+        }
     }
     merged.into_values().collect()
 }
@@ -157,6 +165,7 @@ mod tests {
                 edges: 2,
                 best: Provenance::Lsp,
                 approximate_only: false,
+                confirmed: 1,
             }]
         );
     }
@@ -187,6 +196,7 @@ mod tests {
             edges: 2,
             best: Provenance::Lsp,
             approximate_only: false,
+            confirmed: 2,
         };
         let json = serde_json::to_string(&edge).unwrap();
         assert_eq!(serde_json::from_str::<AggregatedEdge>(&json).unwrap(), edge);

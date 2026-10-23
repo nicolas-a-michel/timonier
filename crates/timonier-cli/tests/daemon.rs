@@ -47,6 +47,7 @@ impl Project {
         command
             .args(["daemon", action])
             .current_dir(dir)
+            .env("TIMONIER_SCIP", "off")
             .env("TIMONIER_RUNTIME_DIR", self.run_dir());
         if with_root {
             command.arg("--root").arg(self.repo.path());
@@ -166,6 +167,7 @@ fn run_serves_in_the_foreground_until_a_signal() {
     let mut child = Command::new(cargo_bin("tim"))
         .args(["daemon", "run", "--root"])
         .arg(project.repo.path())
+        .env("TIMONIER_SCIP", "off")
         .env("TIMONIER_RUNTIME_DIR", project.run_dir())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -217,6 +219,7 @@ fn run_outlives_the_process_that_read_its_output() {
     let mut child = Command::new(cargo_bin("tim"))
         .args(["daemon", "run", "--root"])
         .arg(project.repo.path())
+        .env("TIMONIER_SCIP", "off")
         .env("TIMONIER_RUNTIME_DIR", project.run_dir())
         // Something to log for each client, to a reader that is gone.
         .env("RUST_LOG", "debug")

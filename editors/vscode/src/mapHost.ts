@@ -1,5 +1,5 @@
 import { isWebviewMessage } from "./messages";
-import type { Density, HostMessage, WebviewMessage } from "./protocol/generated";
+import type { Density, HostMessage, Role, WebviewMessage } from "./protocol/generated";
 
 /** What the map panel does with its page's messages, apart from VSCode itself: for the tests. */
 export interface MapHostActions {
@@ -19,6 +19,8 @@ export interface MapHostActions {
   showPerformance?(on: boolean): unknown;
   /** The layer's « Open the Performances panel » button. */
   openPerformance?(): unknown;
+  /** F2, a double click or the command on a box: its name and role asked (ADR 0075). */
+  rename?(box: { target: string; name: string; role: Role | null }): unknown;
   /** Every other message goes to the view relay. */
   relay(message: WebviewMessage): unknown;
 }
@@ -54,6 +56,10 @@ export function onPageMessage(message: unknown, actions: MapHostActions): void {
   }
   if (message.type === "openPerformance") {
     actions.openPerformance?.();
+    return;
+  }
+  if (message.type === "rename") {
+    actions.rename?.({ target: message.target, name: message.name, role: message.role });
     return;
   }
   actions.relay(message);

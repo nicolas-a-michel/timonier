@@ -162,6 +162,20 @@ impl Project {
         self.files.get(path)
     }
 
+    /// The smallest symbol of the file at `path` that contains `at`: the one that starts last,
+    /// as the store's `symbol_at` picks it (ADR 0014, 0073).
+    pub fn symbol_at(&self, path: &str, at: timonier_core::Position) -> Option<NodeId> {
+        let file = self.files.get(path)?;
+        let (index, _) = file
+            .facts
+            .symbols
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.span.start() <= at && at <= s.span.end())
+            .max_by_key(|(_, s)| s.span.start())?;
+        self.symbol_id(file, index)
+    }
+
     /// The file at `path`, or the files under the directory `path`, by a range of the sorted
     /// map: no walk through every file.
     pub fn paths_under<'a>(&'a self, path: &'a str) -> impl Iterator<Item = &'a str> + 'a {
@@ -472,6 +486,63 @@ impl Project {
         self.structure_with(&self.context())
     }
 
+    /// The links tree-sitter sees from each of `paths` to another file of the model, a symbol's
+    /// lifted to its file: what a SCIP index is checked against (ADR 0073). Computed from the
+    /// facts, not read from the store, where a file a SCIP index verified has lost them.
+    pub fn file_links(&self, paths: &BTreeSet<String>) -> BTreeSet<(String, String)> {
+        self.lifted(paths)
+            .into_iter()
+            .map(|(from, to, _, _)| (from, to))
+            .collect()
+    }
+
+    /// Tree-sitter's imports from each of `paths` to another file, with their weight: what a
+    /// SCIP index confirms (ADR 0073).
+    pub fn file_imports(&self, paths: &BTreeSet<String>) -> BTreeMap<String, Vec<(String, u32)>> {
+        let mut imports: BTreeMap<String, Vec<(String, u32)>> = BTreeMap::new();
+        for (from, to, kind, weight) in self.lifted(paths) {
+            if kind == EdgeKind::Imports {
+                imports.entry(from).or_default().push((to, weight));
+            }
+        }
+        imports
+    }
+
+    /// Tree-sitter's observations from each of `paths` to another file, a symbol's lifted to
+    /// its file.
+    fn lifted(&self, paths: &BTreeSet<String>) -> Vec<(String, String, EdgeKind, u32)> {
+        let context = self.context();
+        let mut file_of: HashMap<NodeId, &str> = HashMap::new();
+        for file in self.files.values() {
+            file_of.insert(file.id.clone(), file.path.as_str());
+            for index in 0..file.facts.symbols.len() {
+                if let Some(id) = self.symbol_id(file, index) {
+                    file_of.insert(id, file.path.as_str());
+                }
+            }
+        }
+        let mut links = Vec::new();
+        for path in paths {
+            let Some(file) = self.files.get(path) else {
+                continue;
+            };
+            for observation in self.observations(file, &context).observations {
+                if let (Some(from), Some(to)) =
+                    (file_of.get(&observation.src), file_of.get(&observation.dst))
+                    && from != to
+                {
+                    links.push((
+                        (*from).to_owned(),
+                        (*to).to_owned(),
+                        observation.kind,
+                        observation.weight,
+                    ));
+                }
+            }
+        }
+        links
+    }
+
     /// The scope of a file's content: its hash, its symbols and its tree-sitter edges.
     pub fn file_update(&self, path: &str) -> Option<ScopeUpdate> {
         self.file_update_with(path, &self.context())
@@ -569,12 +640,15 @@ impl Project {
         for import in &file.facts.imports {
             // Python's `from shop import prices` imports the submodule when there is one.
             let submodules = self.python_submodules(file, import);
-            let targets: Vec<Target> = if submodules.is_empty() {
+            let targets: Vec<Target> = if !submodules.is_empty() {
+                submodules
+            } else if let Some(files) = self.whole_namespace(file, &import.path) {
+                // A whole namespace or module: the files of it the file uses (PLAN.md 11.11).
+                files
+            } else {
                 self.resolve_import(file, &import.path)
                     .into_iter()
                     .collect()
-            } else {
-                submodules
             };
             for target in targets {
                 match Some(target) {
@@ -1101,6 +1175,101 @@ impl Project {
             .map(|d| Target::External(d.name.clone()))
     }
 
+    /// An import of a whole namespace or module (a C# `using`, a Swift `import`): the files of
+    /// it that define a name the file cites (PLAN.md 11.11); `None` when the import names no
+    /// namespace or module of the repository, and the usual resolution says what it is.
+    fn whole_namespace(&self, file: &FileEntry, path: &str) -> Option<Vec<Target>> {
+        let members: BTreeSet<String> = match self.ecosystem_of(file)? {
+            Ecosystem::Nuget => {
+                let namespace = path.trim_start_matches("static ").trim();
+                (0..self.packages.len())
+                    .map(Some)
+                    .chain([None])
+                    .filter_map(|p| self.names.get(&(p, namespace.to_owned())))
+                    .flatten()
+                    .cloned()
+                    .collect()
+            }
+            Ecosystem::Swiftpm => self.swift_module_files(file, path),
+            // A Go package: the files of its folder, its tests aside (review of Phase 11, I2).
+            Ecosystem::Gomod => self
+                .go_package_files(file, path)?
+                .1
+                .into_iter()
+                .filter(|f| !f.path.ends_with("_test.go"))
+                .map(|f| f.path.clone())
+                .collect(),
+            _ => return None,
+        };
+        if members.is_empty() {
+            return None;
+        }
+        // Go names what a package brings by the package: `b.F2`, `b` its import path's last
+        // folder.
+        let go = self.ecosystem_of(file) == Some(Ecosystem::Gomod);
+        let binding = go.then(|| path.rsplit('/').next()).flatten();
+        let cited: HashSet<&str> = file
+            .facts
+            .references
+            .iter()
+            .filter(|r| binding.is_none_or(|b| r.path.first().is_some_and(|f| f == b)))
+            .flat_map(|r| r.path.iter().map(String::as_str))
+            .collect();
+        let used: Vec<Target> = members
+            .into_iter()
+            .filter(|path| {
+                self.files.get(path).is_some_and(|member| {
+                    // What a namespace brings in: the types at its top, and a module's
+                    // top-level functions. A member named like a type (`Article Article`)
+                    // or a type nested in another (`Delete.Command`) is not brought.
+                    let symbols = &member.facts.symbols;
+                    let at_top = |parent: Option<usize>| {
+                        parent.is_none_or(|p| {
+                            symbols.get(p).is_some_and(|s| s.kind == SymbolKind::Module)
+                        })
+                    };
+                    symbols.iter().any(|s| {
+                        let brought = matches!(s.kind, SymbolKind::Type | SymbolKind::Trait)
+                            || s.kind == SymbolKind::Function
+                            || (go && s.kind == SymbolKind::Constant);
+                        brought && at_top(s.parent) && cited.contains(s.name())
+                    })
+                })
+            })
+            .map(Target::File)
+            .collect();
+        // A Go package the file names nothing of (`import _ "x"`) still links to it.
+        if go && used.is_empty() {
+            return None;
+        }
+        Some(used)
+    }
+
+    /// The files of a Swift module of the file's package: its target's folder (ADR 0067).
+    fn swift_module_files(&self, file: &FileEntry, module: &str) -> BTreeSet<String> {
+        let Some(package) = file.package else {
+            return BTreeSet::new();
+        };
+        let dir = &self.packages[package].dir;
+        let mut found = BTreeSet::new();
+        for root in ["Sources", "Tests"] {
+            let prefix = [dir.as_str(), root, module, ""]
+                .iter()
+                .filter(|s| !s.is_empty())
+                .copied()
+                .collect::<Vec<_>>()
+                .join("/")
+                + "/";
+            found.extend(
+                self.files
+                    .range(prefix.clone()..)
+                    .take_while(|(p, _)| p.starts_with(&prefix))
+                    .map(|(p, _)| p.clone()),
+            );
+        }
+        found
+    }
+
     /// A C# `using` (ADR 0069): the files that declare that namespace, the first one; else the
     /// NuGet package whose name it starts with; `System` stays unresolved.
     fn csharp_using(&self, file: &FileEntry, namespace: &str) -> Option<Target> {
@@ -1268,39 +1437,44 @@ impl Project {
             .map(|d| Target::External(d.name.clone()))
     }
 
+    /// The files of the repository's Go package at import path `path`, of the file's language,
+    /// and its package's index; `None` when no module of the repository holds it.
+    fn go_package_files(&self, file: &FileEntry, path: &str) -> Option<(usize, Vec<&FileEntry>)> {
+        let inside = |module: &str| path == module || path.starts_with(&format!("{module}/"));
+        let (index, package) = self
+            .packages
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.ecosystem == Ecosystem::Gomod && inside(&p.code_name))
+            .max_by_key(|(_, p)| p.code_name.len())?;
+        let rest = path[package.code_name.len()..].trim_start_matches('/');
+        let dir = [package.dir.as_str(), rest]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .copied()
+            .collect::<Vec<_>>()
+            .join("/");
+        let prefix = if dir.is_empty() {
+            String::new()
+        } else {
+            format!("{dir}/")
+        };
+        let in_dir = self
+            .files
+            .range(prefix.clone()..)
+            .take_while(|(path, _)| path.starts_with(&prefix))
+            .filter(|(path, f)| !path[prefix.len()..].contains('/') && f.language == file.language)
+            .map(|(_, f)| f)
+            .collect();
+        Some((index, in_dir))
+    }
+
     /// A Go import path (ADR 0063): a package of a module of the repository, the file of its
     /// directory that defines `name` (else its first file, tests aside); a dependency by the
     /// longest module path it starts with; the standard library stays unresolved.
     fn go_package(&self, file: &FileEntry, path: &str, name: Option<&str>) -> Option<Target> {
         let inside = |module: &str| path == module || path.starts_with(&format!("{module}/"));
-        let module = self
-            .packages
-            .iter()
-            .enumerate()
-            .filter(|(_, p)| p.ecosystem == Ecosystem::Gomod && inside(&p.code_name))
-            .max_by_key(|(_, p)| p.code_name.len());
-        if let Some((index, package)) = module {
-            let rest = path[package.code_name.len()..].trim_start_matches('/');
-            let dir = [package.dir.as_str(), rest]
-                .iter()
-                .filter(|s| !s.is_empty())
-                .copied()
-                .collect::<Vec<_>>()
-                .join("/");
-            let prefix = if dir.is_empty() {
-                String::new()
-            } else {
-                format!("{dir}/")
-            };
-            let in_dir: Vec<&FileEntry> = self
-                .files
-                .range(prefix.clone()..)
-                .take_while(|(path, _)| path.starts_with(&prefix))
-                .filter(|(path, f)| {
-                    !path[prefix.len()..].contains('/') && f.language == file.language
-                })
-                .map(|(_, f)| f)
-                .collect();
+        if let Some((index, in_dir)) = self.go_package_files(file, path) {
             let defining = name.and_then(|name| {
                 in_dir
                     .iter()

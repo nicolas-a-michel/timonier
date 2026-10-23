@@ -170,3 +170,25 @@ state = ["redux", "@reduxjs/toolkit", "mobx", "zustand", "jotai", "recoil"]
 validation = ["zod", "yup", "joi", "ajv", "valibot"]
 css-in-js = ["styled-components", "@emotion/react", "@emotion/styled"]
 logging = ["winston", "pino", "bunyan"]
+
+# The SCIP indexer, run after each commit (ADR 0073): scip-typescript 0.5.2 (Apache-2.0, verified
+# on 2026-10-22), which infers a `tsconfig.json` for JavaScript.
+[scip]
+name = "scip-typescript"
+program = "scip-typescript"
+args = ["index", "--infer-tsconfig", "--output", "{output}"]
+install = "npm install --global @sourcegraph/scip-typescript@0.5.2"
+# `--infer-tsconfig` writes a `tsconfig.json` where there is none (checked on 2026-10-23).
+writes = ["tsconfig.json"]
+
+# What the instrumentation gaps count as public and as test code (ADR 0049, 0077).
+[code]
+approximation = "JavaScript: every function and method but `#private` ones counts as public, the graph does not keep `export` yet"
+
+[code.public]
+# Every function, but private methods: the graph does not keep `export`.
+hidden_starts = ["private ", "#"]
+hidden_names = ["#"]
+
+[code.tests]
+files = ["*.test.*", "*.spec.*"]
