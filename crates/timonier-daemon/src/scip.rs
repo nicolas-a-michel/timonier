@@ -432,7 +432,7 @@ fn stop(child: &mut Child) {
 /// The program at low priority: `nice -n 10` where there is one (Linux, macOS), leading a
 /// process group of its own, so that `stop` reaches what it starts.
 fn low_priority(program: &Path) -> Command {
-    let mut command = if cfg!(unix)
+    let command = if cfg!(unix)
         && let Some(nice) = find_program("nice")
     {
         let mut command = Command::new(nice);
@@ -442,7 +442,11 @@ fn low_priority(program: &Path) -> Command {
         Command::new(program)
     };
     #[cfg(unix)]
-    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    let command = {
+        let mut command = command;
+        std::os::unix::process::CommandExt::process_group(&mut command, 0);
+        command
+    };
     command
 }
 
@@ -603,8 +607,9 @@ impl Drop for Worktree {
     }
 }
 
-/// Waits for an index, for the tests: `RecvTimeoutError` when none comes in time.
-#[cfg(test)]
+/// Waits for an index, for the tests: `RecvTimeoutError` when none comes in time. The tests
+/// run `bash`: Unix only.
+#[cfg(all(test, unix))]
 fn next(
     receive: &Receiver<Produced>,
     within: Duration,
@@ -612,7 +617,7 @@ fn next(
     receive.recv_timeout(within)
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 
