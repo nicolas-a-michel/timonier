@@ -2,7 +2,7 @@
   "name": "timonier",
   "displayName": "Timonier",
   "description": "%extension.description%",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "NicolasMichel",
   "license": "MIT",
   "icon": "media/icon.png",

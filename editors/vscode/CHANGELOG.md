@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.3 — pre-release
+
+- The MCP server answers agents that speak the protocol's 2026-07-28 revision: their tool
+  calls no longer fail with « missing required resultType ».
+- SCIP indexes confirm the map's links: after each commit and at start, Timonier runs the
+  indexer of each language that has one (rust-analyzer, scip-typescript, scip-python, scip-go,
+  scip-java, scip-clang, scip-dotnet), in the background and at low priority. Timonier installs
+  an indexer only when you approve it: « Install the SCIP Indexers » or `tim scip --install`.
+  On six open-source projects, 96 to 100 % of the links between files are then confirmed.
+- The map says how sure each link is: solid when confirmed, long dashes when partly, short
+  dashes when known from syntax alone; the « Certainty » layer gives each box and the map
+  their share of confirmed links.
+- F2 or a double click renames a box and changes its role; the name is kept in
+  `.timonier/names.json`, shared through git. Agents can propose names, roles and a short
+  summary, which shows on the map; the names you give stay yours.
+- Agents read the map as you see it, through the MCP tools `query_graph` and
+  `get_component`.
+- A C# `using` and a Go import of a whole package lead to the files they use, not to the
+  first file of the namespace or package.
+
 ## 0.1.2 — pre-release
 
 - The map's Performances layer draws a bar of each box's share of the run's own time, with the
